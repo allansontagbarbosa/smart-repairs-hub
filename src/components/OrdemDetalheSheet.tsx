@@ -86,6 +86,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
       queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar"),

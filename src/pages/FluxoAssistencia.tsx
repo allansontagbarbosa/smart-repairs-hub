@@ -74,6 +74,7 @@ export default function FluxoAssistencia() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar status"),
