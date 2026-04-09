@@ -253,15 +253,16 @@ export default function Estoque() {
               <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" placeholder="128GB" className="mt-1.5" /></div>
               <div><Label className="text-xs">Cor</Label><Input name="cor" placeholder="Preto" className="mt-1.5" /></div>
             </div>
-            <div><Label className="text-xs">IMEI</Label><Input name="imei" placeholder="000000000000000" className="mt-1.5" /></div>
+            <div><Label className="text-xs">IMEI *</Label><Input name="imei" required placeholder="000000000000000" className="mt-1.5" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label className="text-xs">Custo de compra (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" placeholder="0" className="mt-1.5" /></div>
-              <div><Label className="text-xs">Localização</Label><Input name="localizacao" placeholder="Loja 1" className="mt-1.5" /></div>
+              <div><Label className="text-xs">Fornecedor</Label><Input name="fornecedor" placeholder="Ex: Distribuidora X" className="mt-1.5" /></div>
             </div>
+            <div><Label className="text-xs">Localização</Label><Input name="localizacao" placeholder="Loja 1" className="mt-1.5" /></div>
             <div><Label className="text-xs">Observações</Label><Textarea name="observacoes" rows={2} placeholder="Anotações..." className="mt-1.5" /></div>
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Adicionar
+              Adicionar Aparelho
             </Button>
           </form>
         </DialogContent>
