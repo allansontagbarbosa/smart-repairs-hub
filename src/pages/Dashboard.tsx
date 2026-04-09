@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAlertas } from "@/hooks/useAlertas";
 import { useAlertasEstoque, useAlertasEstoqueCruzado } from "@/hooks/useAlertasEstoque";
+import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import type { GenericAlert } from "@/components/AlertsBanner";
 import { useState, useMemo } from "react";
@@ -15,6 +16,12 @@ async function fetchOrders() {
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data;
+}
+
+async function fetchPecas() {
+  const { data, error } = await supabase.from("estoque").select("id, nome, quantidade, quantidade_minima, categoria");
+  if (error) throw error;
+  return data ?? [];
 }
 
 async function fetchKpis() {
@@ -55,15 +62,18 @@ export default function Dashboard() {
 
   const { data: orders = [] } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
   const { data: kpis, isLoading } = useQuery({ queryKey: ["dashboard-kpis"], queryFn: fetchKpis });
+  const { data: pecas = [] } = useQuery({ queryKey: ["pecas"], queryFn: fetchPecas });
   const alertasOS = useAlertas(orders);
   const alertasEstoque = useAlertasEstoque(kpis?.estoqueAp ?? []);
+  const alertasPecas = useAlertasPecas(pecas);
   const ordensAtivas = orders.filter(o => o.status !== "entregue");
   const alertasCruzados = useAlertasEstoqueCruzado(kpis?.estoqueAp ?? [], ordensAtivas);
   const allAlertas = useMemo<GenericAlert[]>(() => [
     ...alertasOS,
     ...alertasCruzados,
     ...alertasEstoque,
-  ], [alertasOS, alertasEstoque, alertasCruzados]);
+    ...alertasPecas,
+  ], [alertasOS, alertasEstoque, alertasCruzados, alertasPecas]);
 
   const k = kpis ?? { emAssistencia: 0, aguardandoEntrega: 0, totalPecas: 0, valorEstoque: 0, entradas: 0, saidas: 0, lucro: 0 };
 

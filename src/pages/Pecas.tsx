@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Loader2, Pencil, AlertTriangle } from "lucide-react";
+import { Plus, Search, Loader2, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAlertasPecas } from "@/hooks/useAlertasPecas";
+import { AlertsBanner } from "@/components/AlertsBanner";
 
 const categorias = ["Todos", "Telas", "Baterias", "Conectores", "Câmeras", "Outros"];
 
@@ -80,7 +82,8 @@ export default function Pecas() {
     return matchSearch && matchCat;
   });
 
-  const lowStock = pecas.filter((p) => p.quantidade <= p.quantidade_minima);
+  const lowStock = pecas.filter((p) => p.quantidade <= p.quantidade_minima && p.quantidade_minima > 0);
+  const alertasPecas = useAlertasPecas(pecas);
 
   return (
     <div className="space-y-5 md:space-y-6">
@@ -96,18 +99,8 @@ export default function Pecas() {
         </Button>
       </div>
 
-      {/* Low stock alert */}
-      {lowStock.length > 0 && (
-        <div className="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning-muted px-4 py-3">
-          <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-          <p className="text-sm">
-            <span className="font-medium">Estoque baixo: </span>
-            <span className="text-muted-foreground">
-              {lowStock.map((p) => `${p.nome} (${p.quantidade}/${p.quantidade_minima})`).join(" · ")}
-            </span>
-          </p>
-        </div>
-      )}
+      {/* Low stock alerts */}
+      <AlertsBanner alertas={alertasPecas} max={6} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
