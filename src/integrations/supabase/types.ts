@@ -1125,6 +1125,36 @@ export type Database = {
         }
         Relationships: []
       }
+      templates_mensagem: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          evento: string
+          id: string
+          mensagem: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          evento: string
+          id?: string
+          mensagem: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          evento?: string
+          id?: string
+          mensagem?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tipos_servico: {
         Row: {
           ativo: boolean
