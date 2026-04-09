@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { useAlertas } from "@/hooks/useAlertas";
+import { AlertsBanner } from "@/components/AlertsBanner";
 
 async function fetchOrders() {
   const { data, error } = await supabase
@@ -31,6 +33,8 @@ export default function Assistencia() {
     queryKey: ["ordens"],
     queryFn: fetchOrders,
   });
+
+  const alertas = useAlertas(orders);
 
   const filtered = orders.filter((o) => {
     const clientName = o.aparelhos?.clientes?.nome ?? "";
@@ -81,6 +85,10 @@ export default function Assistencia() {
           toast.success("Ordem de serviço criada!");
         }}
       />
+
+      {alertas.length > 0 && (
+        <AlertsBanner alertas={alertas} max={3} onClickAlert={setSelectedOrderId} />
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
