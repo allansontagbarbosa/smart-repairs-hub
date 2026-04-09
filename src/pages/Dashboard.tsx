@@ -32,8 +32,8 @@ async function fetchKpis() {
 
   const emAssistencia = ordens.filter(o => !["pronto", "entregue"].includes(o.status)).length;
   const aguardandoEntrega = ordens.filter(o => o.status === "pronto").length;
-  const totalPecas = estoque.reduce((s, e) => s + (e.quantidade ?? 0), 0);
-  const valorEstoque = estoque.reduce((s, e) => s + (e.quantidade ?? 0) * (e.preco_custo ?? 0), 0);
+  const totalPecas = estoqueAp.filter(a => a.status === "disponivel").length;
+  const valorEstoque = estoqueAp.reduce((s, a) => s + Number(a.custo_compra ?? 0), 0);
 
   const now = new Date();
   const mesAtual = now.getMonth();
