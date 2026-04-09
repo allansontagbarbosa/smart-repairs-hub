@@ -78,6 +78,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         status_novo: newStatus,
       });
       if (e2) throw e2;
+
+      // Sync stock device status
+      await syncEstoqueFromOrdem(ordem.aparelho_id, newStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
