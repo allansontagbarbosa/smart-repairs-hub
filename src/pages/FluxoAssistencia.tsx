@@ -140,9 +140,10 @@ export default function FluxoAssistencia() {
                     <div
                       key={order.id}
                       className={cn(
-                        "bg-card rounded-lg border p-3 space-y-2 transition-shadow hover:shadow-sm",
+                        "bg-card rounded-lg border p-3 space-y-2 transition-shadow hover:shadow-sm cursor-pointer",
                         isStale && "ring-1 ring-warning/40"
                       )}
+                      onClick={() => setSelectedOrderId(order.id)}
                     >
                       {/* Client + device */}
                       <div>
