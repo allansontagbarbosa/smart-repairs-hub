@@ -176,8 +176,10 @@ export type Database = {
           id: string
           numero: number
           observacoes: string | null
+          previsao_entrega: string | null
           servico_realizado: string | null
           status: Database["public"]["Enums"]["status_ordem"]
+          tecnico: string | null
           valor: number | null
         }
         Insert: {
@@ -192,8 +194,10 @@ export type Database = {
           id?: string
           numero?: number
           observacoes?: string | null
+          previsao_entrega?: string | null
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
+          tecnico?: string | null
           valor?: number | null
         }
         Update: {
@@ -208,8 +212,10 @@ export type Database = {
           id?: string
           numero?: number
           observacoes?: string | null
+          previsao_entrega?: string | null
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
+          tecnico?: string | null
           valor?: number | null
         }
         Relationships: [
@@ -231,12 +237,12 @@ export type Database = {
     }
     Enums: {
       status_ordem:
-        | "aguardando_orcamento"
-        | "orcamento_aprovado"
+        | "recebido"
+        | "em_analise"
+        | "aguardando_aprovacao"
         | "em_reparo"
         | "pronto"
         | "entregue"
-        | "cancelado"
       tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
@@ -366,12 +372,12 @@ export const Constants = {
   public: {
     Enums: {
       status_ordem: [
-        "aguardando_orcamento",
-        "orcamento_aprovado",
+        "recebido",
+        "em_analise",
+        "aguardando_aprovacao",
         "em_reparo",
         "pronto",
         "entregue",
-        "cancelado",
       ],
       tipo_movimentacao: ["entrada", "saida"],
     },
