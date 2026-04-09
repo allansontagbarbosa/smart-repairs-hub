@@ -143,7 +143,7 @@ export function useConfiguracoes() {
 
   // Generic save helper
   const saveEmpresa = useMutation({
-    mutationFn: async (values: Record<string, unknown>) => {
+    mutationFn: async (values: any) => {
       if (!empresa?.id) return;
       const { error } = await supabase.from("empresa_config").update(values).eq("id", empresa.id);
       if (error) throw error;
