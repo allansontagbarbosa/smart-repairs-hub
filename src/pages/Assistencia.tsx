@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Plus, Search, Loader2, LayoutGrid, List } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Plus, Search, Loader2, LayoutGrid, MessageCircle, ChevronRight, CheckCircle, Truck } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,25 @@ import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";
 import { AlertsBanner } from "@/components/AlertsBanner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { Database } from "@/integrations/supabase/types";
+
+type Status = Database["public"]["Enums"]["status_ordem"];
+
+const statusFlow: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "em_reparo", "pronto", "entregue"];
+const statusLabels: Record<Status, string> = {
+  recebido: "Recebido",
+  em_analise: "Em Análise",
+  aguardando_aprovacao: "Aguard. Aprovação",
+  em_reparo: "Em Reparo",
+  pronto: "Pronto",
+  entregue: "Entregue",
+};
 
 async function fetchOrders() {
   const { data, error } = await supabase
@@ -23,8 +42,10 @@ async function fetchOrders() {
 }
 
 export default function Assistencia() {
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get("status") || "todos";
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [filterStatus, setFilterStatus] = useState<string>(initialStatus);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -35,6 +56,37 @@ export default function Assistencia() {
   });
 
   const alertas = useAlertas(orders);
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
+      const updates: any = { status };
+      if (status === "entregue") updates.data_entrega = new Date().toISOString();
+      if (status === "pronto") updates.data_conclusao = new Date().toISOString();
+      const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      toast.success("Status atualizado!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
+    if (!phone) return toast.error("Cliente sem telefone cadastrado");
+    const clean = phone.replace(/\D/g, "");
+    const full = clean.startsWith("55") ? clean : `55${clean}`;
+    const msg = encodeURIComponent(
+      `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}. Por favor, entre em contato conosco.`
+    );
+    window.open(`https://wa.me/${full}?text=${msg}`, "_blank");
+  };
+
+  const getNextStatus = (current: Status): Status | null => {
+    const idx = statusFlow.indexOf(current);
+    if (idx < 0 || idx >= statusFlow.length - 1) return null;
+    return statusFlow[idx + 1];
+  };
 
   const filtered = orders.filter((o) => {
     const clientName = o.aparelhos?.clientes?.nome ?? "";
@@ -82,7 +134,6 @@ export default function Assistencia() {
         onOpenChange={setDialogOpen}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["ordens"] });
-          toast.success("Ordem de serviço criada!");
         }}
       />
 
@@ -120,29 +171,114 @@ export default function Assistencia() {
                   <th className="hidden lg:table-cell">Defeito</th>
                   <th>Status</th>
                   <th className="hidden md:table-cell">Entrada</th>
-                  <th className="hidden md:table-cell">Previsão</th>
                   <th className="hidden sm:table-cell">Técnico</th>
-                  <th className="text-right hidden sm:table-cell">Valor</th>
+                  <th className="text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((order) => (
-                  <tr key={order.id} className="cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
-                    <td className="font-mono text-xs text-muted-foreground">#{String(order.numero).padStart(3, "0")}</td>
-                    <td>
-                      <p className="font-medium text-sm">{order.aparelhos?.clientes?.nome ?? "—"}</p>
-                      <p className="text-xs text-muted-foreground">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
-                    </td>
-                    <td className="hidden lg:table-cell text-sm text-muted-foreground max-w-48 truncate">{order.defeito_relatado}</td>
-                    <td><StatusBadge status={order.status} /></td>
-                    <td className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(order.data_entrada)}</td>
-                    <td className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(order.previsao_entrega)}</td>
-                    <td className="hidden sm:table-cell text-sm">{order.tecnico ?? "—"}</td>
-                    <td className="hidden sm:table-cell text-sm font-medium text-right">{formatCurrency(order.valor)}</td>
-                  </tr>
-                ))}
+                {filtered.map((order) => {
+                  const nextStatus = getNextStatus(order.status as Status);
+                  const phone = order.aparelhos?.clientes?.telefone;
+                  return (
+                    <tr key={order.id}>
+                      <td
+                        className="font-mono text-xs text-muted-foreground cursor-pointer hover:text-foreground"
+                        onClick={() => setSelectedOrderId(order.id)}
+                      >
+                        #{String(order.numero).padStart(3, "0")}
+                      </td>
+                      <td className="cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
+                        <p className="font-medium text-sm">{order.aparelhos?.clientes?.nome ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
+                      </td>
+                      <td
+                        className="hidden lg:table-cell text-sm text-muted-foreground max-w-48 truncate cursor-pointer"
+                        onClick={() => setSelectedOrderId(order.id)}
+                      >
+                        {order.defeito_relatado}
+                      </td>
+                      <td>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="focus:outline-none">
+                              <StatusBadge status={order.status} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-44">
+                            {statusFlow.map((s) => (
+                              <DropdownMenuItem
+                                key={s}
+                                disabled={s === order.status}
+                                onClick={() => updateStatusMutation.mutate({ id: order.id, status: s })}
+                                className="text-xs"
+                              >
+                                {statusLabels[s]}
+                                {s === order.status && <span className="ml-auto text-muted-foreground">atual</span>}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                      <td className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(order.data_entrada)}</td>
+                      <td className="hidden sm:table-cell text-sm">{order.tecnico ?? "—"}</td>
+                      <td>
+                        <div className="flex items-center justify-end gap-1">
+                          {/* WhatsApp */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-success hover:text-success"
+                            title="Enviar WhatsApp"
+                            onClick={() => handleWhatsApp(phone, order.numero)}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </Button>
+
+                          {/* Quick: Mark as Pronto */}
+                          {!["pronto", "entregue"].includes(order.status) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-info hover:text-info"
+                              title="Marcar como Pronto"
+                              onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+
+                          {/* Quick: Mark as Entregue */}
+                          {order.status === "pronto" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-success hover:text-success"
+                              title="Marcar como Entregue"
+                              onClick={() => updateStatusMutation.mutate({ id: order.id, status: "entregue" })}
+                            >
+                              <Truck className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+
+                          {/* Advance to next status */}
+                          {nextStatus && order.status !== "pronto" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title={`Avançar para ${statusLabels[nextStatus]}`}
+                              onClick={() => updateStatusMutation.mutate({ id: order.id, status: nextStatus })}
+                            >
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="text-center text-muted-foreground py-10 text-sm">Nenhuma ordem encontrada</td></tr>
+                  <tr><td colSpan={7} className="text-center text-muted-foreground py-10 text-sm">Nenhuma ordem encontrada</td></tr>
                 )}
               </tbody>
             </table>
