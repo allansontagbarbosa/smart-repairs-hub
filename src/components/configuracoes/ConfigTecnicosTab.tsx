@@ -21,7 +21,7 @@ interface Props { funcionarios: any[] }
 
 const emptyForm = {
   nome: "", cpf: "", telefone: "", email: "", cargo: "", funcao: "",
-  endereco: "", cep: "", cidade: "", estado: "",
+  endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "", estado: "",
   tipo_comissao: "fixa" as string, valor_comissao: 0, ativo: true,
 };
 
@@ -44,12 +44,12 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
   const handleCepData = useCallback((data: CepData) => {
-    setForm((p: any) => ({ ...p, endereco: data.logradouro || p.endereco, cidade: data.localidade || "", estado: data.uf || "" }));
+    setForm((p: any) => ({ ...p, endereco: data.logradouro || p.endereco, bairro: data.bairro || "", cidade: data.localidade || "", estado: data.uf || "" }));
   }, []);
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
-    const { cep, cidade, estado, cpf, ...rest } = form;
+    const { cep, cidade, estado, cpf, numero, complemento, bairro, ...rest } = form;
     const payload = { ...rest, valor_comissao: Number(form.valor_comissao) || 0 };
     if (editId) {
       await supabase.from("funcionarios").update(payload).eq("id", editId);
@@ -103,9 +103,16 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
               </TabsContent>
 
               <TabsContent value="endereco" className="space-y-3 mt-3">
-                <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
-                <div><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
+                  <div className="col-span-2"><Label>Rua / Logradouro</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label>Número</Label><Input value={form.numero} onChange={(e) => set("numero", e.target.value)} placeholder="Nº" /></div>
+                  <div className="col-span-2"><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} placeholder="Apto, Bloco, Sala..." /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} /></div>
                   <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
                   <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => set("estado", e.target.value)} /></div>
                 </div>
