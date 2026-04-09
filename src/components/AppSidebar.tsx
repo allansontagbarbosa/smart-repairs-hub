@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, Package, DollarSign, Users } from "lucide-react";
+import { LayoutDashboard, Wrench, Package, DollarSign, Users, Cpu } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,6 +15,7 @@ const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Assistência", url: "/assistencia", icon: Wrench },
   { title: "Estoque", url: "/estoque", icon: Package },
+  { title: "Peças", url: "/pecas", icon: Cpu },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Clientes", url: "/clientes", icon: Users },
 ];
