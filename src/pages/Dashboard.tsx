@@ -126,10 +126,10 @@ export default function Dashboard() {
       </div>
 
       {/* Alertas */}
-      {alertas.length > 0 && (
+      {allAlertas.length > 0 && (
         <div>
-          <h2 className="section-title mb-3">Alertas ({alertas.length})</h2>
-          <AlertsBanner alertas={alertas} max={6} onClickAlert={setSelectedOrderId} />
+          <h2 className="section-title mb-3">Alertas ({allAlertas.length})</h2>
+          <AlertsBanner alertas={allAlertas} max={8} onClickAlert={setSelectedOrderId} />
         </div>
       )}
 
