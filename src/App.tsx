@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
 import Pecas from "./pages/Pecas";
+import Configuracoes from "./pages/Configuracoes";
 import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
 import ConsultaCliente from "./pages/ConsultaCliente";
@@ -60,6 +61,7 @@ const App = () => (
                   <Route path="/pecas" element={<Pecas />} />
                   <Route path="/financeiro" element={<Financeiro />} />
                   <Route path="/clientes" element={<Clientes />} />
+                  <Route path="/configuracoes" element={<Configuracoes />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
