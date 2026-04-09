@@ -27,6 +27,7 @@ async function fetchKpis() {
 
   const ordens = ordensRes.data ?? [];
   const estoque = estoqueRes.data ?? [];
+  const estoqueAp = estoqueApRes.data ?? [];
   const fin = finRes.data ?? [];
 
   const emAssistencia = ordens.filter(o => !["pronto", "entregue"].includes(o.status)).length;
