@@ -45,7 +45,7 @@ async function fetchKpis() {
   const entradas = finMes.filter(f => f.tipo === "entrada").reduce((s, f) => s + Number(f.valor), 0);
   const saidas = finMes.filter(f => f.tipo === "saida").reduce((s, f) => s + Number(f.valor), 0);
 
-  return { emAssistencia, aguardandoEntrega, totalPecas, valorEstoque, entradas, saidas, lucro: entradas - saidas };
+  return { emAssistencia, aguardandoEntrega, totalPecas, valorEstoque, entradas, saidas, lucro: entradas - saidas, estoqueAp };
 }
 
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
