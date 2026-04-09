@@ -144,35 +144,29 @@ export default function Dashboard() {
   const alertasPecas = useAlertasPecas(pecas);
 
   const allAlertas = useMemo<GenericAlert[]>(() => {
-    const enriched = alertasOS.map(a => {
-      const order = orders.find(o => o.id === a.orderId);
-      const phone = order?.aparelhos?.clientes?.telefone;
-      const actions: ("whatsapp" | "cobrar" | "entregar")[] = [];
-      if (phone) actions.push("whatsapp");
-      if (order?.status === "pronto") actions.push("entregar");
-      if (order?.status === "aguardando_aprovacao") actions.push("cobrar");
-      if (a.type === "danger" && phone) actions.push("cobrar");
-      return { ...a, phone, actions };
-    });
-
-    return [...enriched, ...alertasPecas];
-  }, [alertasOS, alertasPecas, orders]);
+    // alertasOS already has acoes, phone, sugestao from the updated hook
+    return [...alertasOS, ...alertasPecas];
+  }, [alertasOS, alertasPecas]);
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
-    if (action === "whatsapp" && phone) {
-      const cleanPhone = phone.replace(/\D/g, "");
-      const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-      window.open(`https://wa.me/${fullPhone}`, "_blank");
-    } else if (action === "cobrar" && phone) {
-      const cleanPhone = phone.replace(/\D/g, "");
-      const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-      const order = orders.find(o => o.id === orderId);
-      const msg = encodeURIComponent(
-        `Olá! Informamos que o serviço referente à OS #${String(order?.numero ?? 0).padStart(3, "0")} está aguardando sua aprovação. Por favor, entre em contato conosco.`
-      );
-      window.open(`https://wa.me/${fullPhone}?text=${msg}`, "_blank");
+    const sendWhatsApp = (p: string, msg: string) => {
+      const clean = p.replace(/\D/g, "");
+      const full = clean.startsWith("55") ? clean : `55${clean}`;
+      window.open(`https://wa.me/${full}?text=${encodeURIComponent(msg)}`, "_blank");
+    };
+
+    const order = orders.find(o => o.id === orderId);
+    const osLabel = `OS #${String(order?.numero ?? 0).padStart(3, "0")}`;
+
+    if ((action === "whatsapp_retirada" || action === "whatsapp") && phone) {
+      sendWhatsApp(phone, `Olá! Informamos que o serviço referente à ${osLabel} está pronto para retirada. Aguardamos seu contato!`);
+    } else if ((action === "cobrar_aprovacao" || action === "cobrar") && phone) {
+      sendWhatsApp(phone, `Olá! O serviço referente à ${osLabel} está aguardando sua aprovação. Por favor, entre em contato conosco.`);
     } else if (action === "entregar") {
       entregarMutation.mutate(orderId);
+    } else if (action === "verificar_status") {
+      setSelectedOrderId(orderId);
+    }
     }
   };
 
