@@ -396,19 +396,32 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Valores */}
+                {/* Valores e Lucro */}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Valores</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg border p-3">
-                      <p className="text-xs text-muted-foreground">Valor estimado</p>
-                      <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
-                    </div>
-                    <div className="rounded-lg border p-3">
-                      <p className="text-xs text-muted-foreground">Custo peças</p>
-                      <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.custo_pecas)}</p>
-                    </div>
-                  </div>
+                  {(() => {
+                    const valor = ordem.valor ?? 0;
+                    const custoPecas = ordem.custo_pecas ?? 0;
+                    const lucro = valor - custoPecas;
+                    return (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs text-muted-foreground">Valor cobrado</p>
+                          <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                          <p className="text-xs text-muted-foreground">Custo peças</p>
+                          <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.custo_pecas)}</p>
+                        </div>
+                        <div className={`rounded-lg border p-3 ${lucro > 0 ? "border-success/20 bg-success-muted" : lucro < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+                          <p className="text-xs text-muted-foreground">Lucro</p>
+                          <p className={`text-sm font-semibold mt-0.5 ${lucro > 0 ? "text-success" : lucro < 0 ? "text-destructive" : ""}`}>
+                            {valor > 0 ? fmtCurrency(lucro) : "—"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Peças utilizadas */}
