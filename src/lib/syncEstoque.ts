@@ -14,11 +14,10 @@ function mapOrdemToEstoque(statusOrdem: StatusOrdem): StatusEstoque | null {
     case "em_analise":
     case "aguardando_aprovacao":
     case "em_reparo":
-      return "em_assistencia";
     case "pronto":
-      return "em_assistencia"; // still in the shop
+      return "em_assistencia";
     case "entregue":
-      return "disponivel"; // returned to stock (can be overridden to "vendido" manually)
+      return null; // device leaves — no stock update (it's the client's device)
     default:
       return null;
   }
