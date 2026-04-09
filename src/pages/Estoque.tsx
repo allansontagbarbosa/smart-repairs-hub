@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Search, Loader2, Pencil } from "lucide-react";
+import { Plus, Search, Loader2, Pencil, ClipboardCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -142,9 +143,18 @@ export default function Estoque() {
             {aparelhos.length} aparelhos · {countByStatus("disponivel")} disponíveis
           </p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />Adicionar Aparelho
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/estoque/conferencia"
+            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <ClipboardCheck className="h-3.5 w-3.5" />
+            Conferência
+          </Link>
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />Adicionar Aparelho
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
