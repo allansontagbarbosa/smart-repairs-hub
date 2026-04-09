@@ -15,6 +15,8 @@ import type { Database } from "@/integrations/supabase/types";
 
 import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
 
+type Status = Database["public"]["Enums"]["status_ordem"];
+
 const statusFlow: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "em_reparo", "pronto", "entregue"];
 const statusLabels: Record<Status, string> = {
   recebido: "Recebido", em_analise: "Em Análise", aguardando_aprovacao: "Aguard. Aprovação",
