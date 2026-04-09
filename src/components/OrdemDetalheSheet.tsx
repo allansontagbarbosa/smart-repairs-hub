@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
-type Status = Database["public"]["Enums"]["status_ordem"];
+import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
 
 const statusFlow: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "em_reparo", "pronto", "entregue"];
 const statusLabels: Record<Status, string> = {
