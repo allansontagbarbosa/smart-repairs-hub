@@ -9,6 +9,7 @@ import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
+import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 async function fetchOrders() {
   const { data, error } = await supabase
@@ -23,6 +24,7 @@ export default function Assistencia() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: orders = [], isLoading } = useQuery({
@@ -117,7 +119,7 @@ export default function Assistencia() {
               </thead>
               <tbody>
                 {filtered.map((order) => (
-                  <tr key={order.id}>
+                  <tr key={order.id} className="cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
                     <td className="font-mono text-xs text-muted-foreground">#{String(order.numero).padStart(3, "0")}</td>
                     <td>
                       <p className="font-medium text-sm">{order.aparelhos?.clientes?.nome ?? "—"}</p>
