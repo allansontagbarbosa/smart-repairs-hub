@@ -57,28 +57,34 @@ export type Database = {
       }
       clientes: {
         Row: {
+          cpf: string | null
           created_at: string
           email: string | null
           id: string
           nome: string
           observacoes: string | null
           telefone: string
+          whatsapp: string | null
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
           nome: string
           observacoes?: string | null
           telefone: string
+          whatsapp?: string | null
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           email?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
           telefone?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
