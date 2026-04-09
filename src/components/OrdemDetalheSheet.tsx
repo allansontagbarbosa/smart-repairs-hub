@@ -178,14 +178,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
       const { error: e1 } = await supabase.from("ordens_de_servico").update(updates).eq("id", ordem.id);
       if (e1) throw e1;
-
-      const { error: e2 } = await supabase.from("historico_ordens").insert({
-        ordem_id: ordem.id,
-        status_anterior: ordem.status,
-        status_novo: newStatus,
-      });
-      if (e2) throw e2;
-
+      // Histórico registrado automaticamente pelo trigger
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
