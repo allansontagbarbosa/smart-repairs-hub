@@ -1,5 +1,6 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Sidebar,
   SidebarContent,
@@ -25,7 +26,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarContent>
+      <SidebarContent className="flex flex-col h-full">
         <div className={`flex items-center gap-2.5 px-4 pt-5 pb-4 ${collapsed ? "justify-center px-2" : ""}`}>
           <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-sidebar-accent">
             <Wrench className="h-4 w-4 text-sidebar-ring" />
@@ -43,7 +44,7 @@ export function AppSidebar() {
           </div>
         )}
 
-        <SidebarGroup>
+        <SidebarGroup className="flex-1">
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -64,6 +65,14 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Bottom section */}
+        <div className={`px-3 pb-4 pt-2 border-t border-sidebar-border ${collapsed ? "flex justify-center" : "flex items-center gap-2"}`}>
+          <ThemeToggle collapsed={collapsed} />
+          {!collapsed && (
+            <span className="text-[11px] text-sidebar-muted">Tema</span>
+          )}
+        </div>
       </SidebarContent>
     </Sidebar>
   );
