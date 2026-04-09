@@ -2,34 +2,38 @@ import { Wrench, Package, Clock, DollarSign, TrendingUp, TrendingDown, CheckCirc
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAlertas } from "@/hooks/useAlertas";
+import { useAlertasEstoque, useAlertasEstoqueCruzado } from "@/hooks/useAlertasEstoque";
 import { AlertsBanner } from "@/components/AlertsBanner";
-import { useState } from "react";
+import type { GenericAlert } from "@/components/AlertsBanner";
+import { useState, useMemo } from "react";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 async function fetchOrders() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos ( marca, modelo, imei, clientes ( nome, telefone ) )`)
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data;
 }
 
 async function fetchKpis() {
-  const [ordensRes, estoqueRes, finRes] = await Promise.all([
+  const [ordensRes, estoqueRes, estoqueApRes, finRes] = await Promise.all([
     supabase.from("ordens_de_servico").select("status, valor"),
     supabase.from("estoque").select("quantidade, preco_custo"),
+    supabase.from("estoque_aparelhos").select("*"),
     supabase.from("movimentacoes_financeiras").select("tipo, valor, data"),
   ]);
 
   const ordens = ordensRes.data ?? [];
   const estoque = estoqueRes.data ?? [];
+  const estoqueAp = estoqueApRes.data ?? [];
   const fin = finRes.data ?? [];
 
   const emAssistencia = ordens.filter(o => !["pronto", "entregue"].includes(o.status)).length;
   const aguardandoEntrega = ordens.filter(o => o.status === "pronto").length;
-  const totalPecas = estoque.reduce((s, e) => s + (e.quantidade ?? 0), 0);
-  const valorEstoque = estoque.reduce((s, e) => s + (e.quantidade ?? 0) * (e.preco_custo ?? 0), 0);
+  const totalPecas = estoqueAp.filter(a => a.status === "disponivel").length;
+  const valorEstoque = estoqueAp.reduce((s, a) => s + Number(a.custo_compra ?? 0), 0);
 
   const now = new Date();
   const mesAtual = now.getMonth();
@@ -41,7 +45,7 @@ async function fetchKpis() {
   const entradas = finMes.filter(f => f.tipo === "entrada").reduce((s, f) => s + Number(f.valor), 0);
   const saidas = finMes.filter(f => f.tipo === "saida").reduce((s, f) => s + Number(f.valor), 0);
 
-  return { emAssistencia, aguardandoEntrega, totalPecas, valorEstoque, entradas, saidas, lucro: entradas - saidas };
+  return { emAssistencia, aguardandoEntrega, totalPecas, valorEstoque, entradas, saidas, lucro: entradas - saidas, estoqueAp };
 }
 
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
@@ -51,7 +55,15 @@ export default function Dashboard() {
 
   const { data: orders = [] } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
   const { data: kpis, isLoading } = useQuery({ queryKey: ["dashboard-kpis"], queryFn: fetchKpis });
-  const alertas = useAlertas(orders);
+  const alertasOS = useAlertas(orders);
+  const alertasEstoque = useAlertasEstoque(kpis?.estoqueAp ?? []);
+  const ordensAtivas = orders.filter(o => o.status !== "entregue");
+  const alertasCruzados = useAlertasEstoqueCruzado(kpis?.estoqueAp ?? [], ordensAtivas);
+  const allAlertas = useMemo<GenericAlert[]>(() => [
+    ...alertasOS,
+    ...alertasCruzados,
+    ...alertasEstoque,
+  ], [alertasOS, alertasEstoque, alertasCruzados]);
 
   const k = kpis ?? { emAssistencia: 0, aguardandoEntrega: 0, totalPecas: 0, valorEstoque: 0, entradas: 0, saidas: 0, lucro: 0 };
 
@@ -114,10 +126,10 @@ export default function Dashboard() {
       </div>
 
       {/* Alertas */}
-      {alertas.length > 0 && (
+      {allAlertas.length > 0 && (
         <div>
-          <h2 className="section-title mb-3">Alertas ({alertas.length})</h2>
-          <AlertsBanner alertas={alertas} max={6} onClickAlert={setSelectedOrderId} />
+          <h2 className="section-title mb-3">Alertas ({allAlertas.length})</h2>
+          <AlertsBanner alertas={allAlertas} max={8} onClickAlert={setSelectedOrderId} />
         </div>
       )}
 

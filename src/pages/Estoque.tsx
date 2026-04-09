@@ -3,6 +3,8 @@ import { Plus, Search, Loader2, Pencil, ClipboardCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAlertasEstoque } from "@/hooks/useAlertasEstoque";
+import { AlertsBanner } from "@/components/AlertsBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,6 +74,8 @@ export default function Estoque() {
     queryKey: ["estoque_aparelhos"],
     queryFn: fetchAparelhos,
   });
+
+  const alertasEstoque = useAlertasEstoque(aparelhos);
 
   const createMutation = useMutation({
     mutationFn: async (form: FormData) => {
@@ -156,6 +160,9 @@ export default function Estoque() {
           </Button>
         </div>
       </div>
+      {alertasEstoque.length > 0 && (
+        <AlertsBanner alertas={alertasEstoque} max={4} />
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">

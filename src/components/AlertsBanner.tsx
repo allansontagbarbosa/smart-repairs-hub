@@ -1,5 +1,10 @@
 import { AlertTriangle, Clock, Info } from "lucide-react";
-import type { Alerta } from "@/hooks/useAlertas";
+
+export type GenericAlert = {
+  type: "danger" | "warning" | "info";
+  message: string;
+  orderId?: string;
+};
 
 const styles = {
   danger: { bg: "bg-destructive/8", border: "border-destructive/20", Icon: AlertTriangle, iconColor: "text-destructive" },
@@ -8,7 +13,7 @@ const styles = {
 };
 
 interface Props {
-  alertas: Alerta[];
+  alertas: GenericAlert[];
   max?: number;
   onClickAlert?: (orderId: string) => void;
 }
@@ -23,11 +28,12 @@ export function AlertsBanner({ alertas, max = 5, onClickAlert }: Props) {
     <div className="space-y-2">
       {shown.map((alert, i) => {
         const s = styles[alert.type];
+        const clickable = onClickAlert && alert.orderId;
         return (
           <div
             key={i}
-            onClick={() => onClickAlert?.(alert.orderId)}
-            className={`flex items-start gap-3 rounded-lg border ${s.border} ${s.bg} px-4 py-3 ${onClickAlert ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
+            onClick={() => clickable && onClickAlert(alert.orderId!)}
+            className={`flex items-start gap-3 rounded-lg border ${s.border} ${s.bg} px-4 py-3 ${clickable ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}`}
           >
             <s.Icon className={`h-4 w-4 shrink-0 mt-0.5 ${s.iconColor}`} />
             <p className="text-sm">{alert.message}</p>
