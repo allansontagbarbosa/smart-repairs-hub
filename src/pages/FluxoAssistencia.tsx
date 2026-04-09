@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import type { Database } from "@/integrations/supabase/types";
+import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
