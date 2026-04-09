@@ -121,6 +121,51 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_aparelhos: {
+        Row: {
+          capacidade: string | null
+          cor: string | null
+          created_at: string
+          custo_compra: number | null
+          data_entrada: string
+          id: string
+          imei: string | null
+          localizacao: string | null
+          marca: string
+          modelo: string
+          observacoes: string | null
+          status: Database["public"]["Enums"]["status_estoque_aparelho"]
+        }
+        Insert: {
+          capacidade?: string | null
+          cor?: string | null
+          created_at?: string
+          custo_compra?: number | null
+          data_entrada?: string
+          id?: string
+          imei?: string | null
+          localizacao?: string | null
+          marca: string
+          modelo: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_estoque_aparelho"]
+        }
+        Update: {
+          capacidade?: string | null
+          cor?: string | null
+          created_at?: string
+          custo_compra?: number | null
+          data_entrada?: string
+          id?: string
+          imei?: string | null
+          localizacao?: string | null
+          marca?: string
+          modelo?: string
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_estoque_aparelho"]
+        }
+        Relationships: []
+      }
       historico_ordens: {
         Row: {
           created_at: string
@@ -277,6 +322,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      status_estoque_aparelho:
+        | "disponivel"
+        | "em_assistencia"
+        | "em_transporte"
+        | "vendido"
       status_ordem:
         | "recebido"
         | "em_analise"
@@ -412,6 +462,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      status_estoque_aparelho: [
+        "disponivel",
+        "em_assistencia",
+        "em_transporte",
+        "vendido",
+      ],
       status_ordem: [
         "recebido",
         "em_analise",
