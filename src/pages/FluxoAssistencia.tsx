@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,6 +6,7 @@ import { ChevronRight, ChevronLeft, Clock, AlertTriangle, LayoutGrid, List, Load
 import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import type { Database } from "@/integrations/supabase/types";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
@@ -52,6 +54,7 @@ function daysAgo(dateStr: string) {
 
 export default function FluxoAssistencia() {
   const queryClient = useQueryClient();
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
 
   const updateStatus = useMutation({
@@ -137,9 +140,10 @@ export default function FluxoAssistencia() {
                     <div
                       key={order.id}
                       className={cn(
-                        "bg-card rounded-lg border p-3 space-y-2 transition-shadow hover:shadow-sm",
+                        "bg-card rounded-lg border p-3 space-y-2 transition-shadow hover:shadow-sm cursor-pointer",
                         isStale && "ring-1 ring-warning/40"
                       )}
+                      onClick={() => setSelectedOrderId(order.id)}
                     >
                       {/* Client + device */}
                       <div>
@@ -182,7 +186,7 @@ export default function FluxoAssistencia() {
                         <button
                           type="button"
                           disabled={!canGoBack || updateStatus.isPending}
-                          onClick={() => moveOrder(order.id, -1, status)}
+                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, -1, status); }}
                           className="flex-1 flex items-center justify-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           <ChevronLeft className="h-3 w-3" />
@@ -191,7 +195,7 @@ export default function FluxoAssistencia() {
                         <button
                           type="button"
                           disabled={!canGoForward || updateStatus.isPending}
-                          onClick={() => moveOrder(order.id, 1, status)}
+                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, 1, status); }}
                           className="flex-1 flex items-center justify-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           Avançar
@@ -212,6 +216,8 @@ export default function FluxoAssistencia() {
           );
         })}
       </div>
+
+      <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
     </div>
   );
 }
