@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Phone } from "lucide-react";
+import { Plus, Search, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -40,7 +40,7 @@ export default function Clientes() {
       id: clients.length + 1,
       name: fd.get("name") as string,
       phone: fd.get("phone") as string,
-      email: fd.get("email") as string,
+      email: (fd.get("email") as string) || "",
       orders: 0,
       lastVisit: new Date().toLocaleDateString("pt-BR"),
     };
@@ -50,22 +50,24 @@ export default function Clientes() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Clientes</h1>
-          <p className="text-muted-foreground text-sm mt-1">{clients.length} clientes cadastrados</p>
+        <div className="page-header !mb-0">
+          <h1 className="page-title">Clientes</h1>
+          <p className="page-subtitle">{clients.length} cadastrados</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Novo Cliente</Button>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1.5" />Novo Cliente</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
-            <form onSubmit={handleNew} className="space-y-4">
-              <div><Label>Nome</Label><Input name="name" required placeholder="Nome completo" /></div>
-              <div><Label>Telefone</Label><Input name="phone" required placeholder="(00) 00000-0000" /></div>
-              <div><Label>Email</Label><Input name="email" type="email" placeholder="email@exemplo.com" /></div>
+            <form onSubmit={handleNew} className="space-y-4 mt-2">
+              <div className="space-y-3">
+                <div><Label className="text-xs">Nome</Label><Input name="name" required placeholder="Nome completo" className="mt-1.5" /></div>
+                <div><Label className="text-xs">Telefone</Label><Input name="phone" required placeholder="(00) 00000-0000" className="mt-1.5" /></div>
+                <div><Label className="text-xs">Email (opcional)</Label><Input name="email" type="email" placeholder="email@exemplo.com" className="mt-1.5" /></div>
+              </div>
               <Button type="submit" className="w-full">Cadastrar</Button>
             </form>
           </DialogContent>
@@ -74,30 +76,35 @@ export default function Clientes() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou telefone..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input placeholder="Buscar por nome ou telefone..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filtered.map((client) => (
-          <div key={client.id} className="stat-card">
+          <div key={client.id} className="stat-card group">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="font-semibold">{client.name}</p>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{client.phone}</span>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm truncate">{client.name}</p>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <Phone className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground">{client.phone}</span>
                 </div>
+                {client.email && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <span className="text-xs text-muted-foreground truncate">{client.email}</span>
+                  </div>
+                )}
               </div>
-              <span className="text-xs bg-muted px-2 py-1 rounded-full">{client.orders} OS</span>
+              <span className="text-xs bg-secondary text-muted-foreground px-2 py-0.5 rounded-full font-medium shrink-0">
+                {client.orders} OS
+              </span>
             </div>
-            {client.email && (
-              <p className="text-xs text-muted-foreground mt-2">{client.email}</p>
-            )}
-            <p className="text-xs text-muted-foreground mt-2">Última visita: {client.lastVisit}</p>
+            <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">Última visita: {client.lastVisit}</p>
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-full text-center text-muted-foreground py-8">Nenhum cliente encontrado</p>
+          <p className="col-span-full text-center text-muted-foreground py-10 text-sm">Nenhum cliente encontrado</p>
         )}
       </div>
     </div>

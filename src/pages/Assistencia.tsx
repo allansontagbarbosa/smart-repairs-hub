@@ -61,40 +61,41 @@ export default function Assistencia() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Assistência Técnica</h1>
-          <p className="text-muted-foreground text-sm mt-1">Ordens de serviço</p>
+        <div className="page-header !mb-0">
+          <h1 className="page-title">Assistência Técnica</h1>
+          <p className="page-subtitle">{filtered.length} ordens de serviço</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />Nova Ordem</Button>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1.5" />Nova Ordem</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Nova Ordem de Serviço</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleNew} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>Cliente</Label><Input name="client" required placeholder="Nome do cliente" /></div>
-                <div><Label>Telefone</Label><Input name="phone" required placeholder="(00) 00000-0000" /></div>
+            <form onSubmit={handleNew} className="space-y-4 mt-2">
+              <div className="space-y-3">
+                <div><Label className="text-xs">Cliente</Label><Input name="client" required placeholder="Nome do cliente" className="mt-1.5" /></div>
+                <div><Label className="text-xs">Telefone</Label><Input name="phone" required placeholder="(00) 00000-0000" className="mt-1.5" /></div>
+                <div><Label className="text-xs">Aparelho</Label><Input name="device" required placeholder="Ex: iPhone 14 Pro" className="mt-1.5" /></div>
+                <div><Label className="text-xs">Defeito</Label><Textarea name="issue" required placeholder="Descreva o problema" rows={2} className="mt-1.5 resize-none" /></div>
               </div>
-              <div><Label>Aparelho</Label><Input name="device" required placeholder="Ex: iPhone 14 Pro" /></div>
-              <div><Label>Defeito</Label><Textarea name="issue" required placeholder="Descreva o problema" rows={2} /></div>
               <Button type="submit" className="w-full">Criar Ordem</Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por cliente, aparelho ou OS..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Buscar cliente, aparelho ou OS..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-full sm:w-44">
+          <SelectTrigger className="w-full sm:w-40 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -107,35 +108,37 @@ export default function Assistencia() {
         </Select>
       </div>
 
-      <div className="bg-card rounded-xl border overflow-hidden">
+      {/* Table */}
+      <div className="section-card">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="data-table">
             <thead>
-              <tr className="border-b bg-muted/30">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">OS</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Aparelho</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Defeito</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Valor</th>
+              <tr>
+                <th>OS</th>
+                <th>Cliente</th>
+                <th className="hidden md:table-cell">Aparelho</th>
+                <th className="hidden lg:table-cell">Defeito</th>
+                <th>Status</th>
+                <th className="hidden sm:table-cell text-right">Valor</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody>
               {filtered.map((order) => (
-                <tr key={order.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs">#{order.id}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{order.client}</p>
+                <tr key={order.id}>
+                  <td className="font-mono text-xs text-muted-foreground">#{order.id}</td>
+                  <td>
+                    <p className="font-medium text-sm">{order.client}</p>
+                    <p className="text-xs text-muted-foreground md:hidden">{order.device}</p>
                     <p className="text-xs text-muted-foreground">{order.date}</p>
                   </td>
-                  <td className="px-4 py-3 hidden md:table-cell">{order.device}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">{order.issue}</td>
-                  <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
-                  <td className="px-4 py-3 hidden sm:table-cell font-medium">{order.value}</td>
+                  <td className="hidden md:table-cell text-sm">{order.device}</td>
+                  <td className="hidden lg:table-cell text-sm text-muted-foreground">{order.issue}</td>
+                  <td><StatusBadge status={order.status} /></td>
+                  <td className="hidden sm:table-cell text-right font-medium text-sm">{order.value}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhuma ordem encontrada</td></tr>
+                <tr><td colSpan={6} className="text-center text-muted-foreground py-10">Nenhuma ordem encontrada</td></tr>
               )}
             </tbody>
           </table>
