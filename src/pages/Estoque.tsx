@@ -160,6 +160,9 @@ export default function Estoque() {
           </Button>
         </div>
       </div>
+      {alertasEstoque.length > 0 && (
+        <AlertsBanner alertas={alertasEstoque} max={4} />
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
