@@ -75,6 +75,8 @@ export default function Estoque() {
     queryFn: fetchAparelhos,
   });
 
+  const alertasEstoque = useAlertasEstoque(aparelhos);
+
   const createMutation = useMutation({
     mutationFn: async (form: FormData) => {
       const imei = (form.get("imei") as string).trim();
