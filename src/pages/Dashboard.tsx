@@ -55,7 +55,15 @@ export default function Dashboard() {
 
   const { data: orders = [] } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
   const { data: kpis, isLoading } = useQuery({ queryKey: ["dashboard-kpis"], queryFn: fetchKpis });
-  const alertas = useAlertas(orders);
+  const alertasOS = useAlertas(orders);
+  const alertasEstoque = useAlertasEstoque(kpis?.estoqueAp ?? []);
+  const ordensAtivas = orders.filter(o => o.status !== "entregue");
+  const alertasCruzados = useAlertasEstoqueCruzado(kpis?.estoqueAp ?? [], ordensAtivas);
+  const allAlertas = useMemo<GenericAlert[]>(() => [
+    ...alertasOS,
+    ...alertasCruzados,
+    ...alertasEstoque,
+  ], [alertasOS, alertasEstoque, alertasCruzados]);
 
   const k = kpis ?? { emAssistencia: 0, aguardandoEntrega: 0, totalPecas: 0, valorEstoque: 0, entradas: 0, saidas: 0, lucro: 0 };
 
