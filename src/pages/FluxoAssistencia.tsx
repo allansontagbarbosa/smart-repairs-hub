@@ -15,7 +15,9 @@ const statusFlow: Status[] = [
   "recebido",
   "em_analise",
   "aguardando_aprovacao",
+  "aprovado",
   "em_reparo",
+  "aguardando_peca",
   "pronto",
   "entregue",
 ];
@@ -24,7 +26,9 @@ const statusLabels: Record<Status, string> = {
   recebido: "Recebido",
   em_analise: "Em Análise",
   aguardando_aprovacao: "Aguard. Aprovação",
+  aprovado: "Aprovado",
   em_reparo: "Em Reparo",
+  aguardando_peca: "Aguard. Peça",
   pronto: "Pronto",
   entregue: "Entregue",
 };
@@ -33,7 +37,9 @@ const statusHeaderColors: Record<Status, string> = {
   recebido: "bg-muted-foreground/20",
   em_analise: "bg-info/20",
   aguardando_aprovacao: "bg-warning/20",
+  aprovado: "bg-success/20",
   em_reparo: "bg-info/20",
+  aguardando_peca: "bg-warning/20",
   pronto: "bg-success/20",
   entregue: "bg-muted/40",
 };
@@ -42,7 +48,9 @@ const statusDotColors: Record<Status, string> = {
   recebido: "bg-muted-foreground",
   em_analise: "bg-info",
   aguardando_aprovacao: "bg-warning",
+  aprovado: "bg-success",
   em_reparo: "bg-info",
+  aguardando_peca: "bg-warning",
   pronto: "bg-success",
   entregue: "bg-muted-foreground/50",
 };

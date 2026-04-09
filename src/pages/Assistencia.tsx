@@ -24,12 +24,14 @@ import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
-const statusFlow: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "em_reparo", "pronto", "entregue"];
+const statusFlow: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"];
 const statusLabels: Record<Status, string> = {
   recebido: "Recebido",
   em_analise: "Em Análise",
   aguardando_aprovacao: "Aguard. Aprovação",
+  aprovado: "Aprovado",
   em_reparo: "Em Reparo",
+  aguardando_peca: "Aguard. Peça",
   pronto: "Pronto",
   entregue: "Entregue",
 };
