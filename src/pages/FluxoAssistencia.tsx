@@ -189,7 +189,7 @@ export default function FluxoAssistencia() {
                         <button
                           type="button"
                           disabled={!canGoBack || updateStatus.isPending}
-                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, -1, status); }}
+                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, -1, status, order.aparelho_id); }}
                           className="flex-1 flex items-center justify-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           <ChevronLeft className="h-3 w-3" />
@@ -198,7 +198,7 @@ export default function FluxoAssistencia() {
                         <button
                           type="button"
                           disabled={!canGoForward || updateStatus.isPending}
-                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, 1, status); }}
+                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, 1, status, order.aparelho_id); }}
                           className="flex-1 flex items-center justify-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           Avançar
