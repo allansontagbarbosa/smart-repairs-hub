@@ -86,6 +86,10 @@ export default function Assistencia() {
         }}
       />
 
+      {alertas.length > 0 && (
+        <AlertsBanner alertas={alertas} max={3} onClickAlert={setSelectedOrderId} />
+      )}
+
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
