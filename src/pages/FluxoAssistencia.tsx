@@ -59,7 +59,7 @@ export default function FluxoAssistencia() {
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
+    mutationFn: async ({ id, newStatus, aparelhoId }: { id: string; newStatus: Status; aparelhoId: string }) => {
       const updates: {
         status: Status;
         data_conclusao?: string;
@@ -69,6 +69,8 @@ export default function FluxoAssistencia() {
       if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
+
+      await syncEstoqueFromOrdem(aparelhoId, newStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
