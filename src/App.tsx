@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
 import Estoque from "./pages/Estoque";
+import ConferenciaEstoque from "./pages/ConferenciaEstoque";
 import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
 import ConsultaCliente from "./pages/ConsultaCliente";
@@ -33,6 +34,7 @@ const App = () => (
                 <Route path="/assistencia" element={<Assistencia />} />
                 <Route path="/assistencia/fluxo" element={<FluxoAssistencia />} />
                 <Route path="/estoque" element={<Estoque />} />
+                <Route path="/estoque/conferencia" element={<ConferenciaEstoque />} />
                 <Route path="/financeiro" element={<Financeiro />} />
                 <Route path="/clientes" element={<Clientes />} />
                 <Route path="*" element={<NotFound />} />
