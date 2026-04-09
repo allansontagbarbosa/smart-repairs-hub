@@ -101,7 +101,7 @@ export default function Financeiro() {
       </div>
 
       {/* Main KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="stat-card">
           <TrendingUp className="h-4 w-4 text-success mb-3" />
           <p className="stat-value">{fmtCurrency(totalRecebido)}</p>
@@ -115,7 +115,12 @@ export default function Financeiro() {
         <div className={`stat-card ${lucroLiquido >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
           <DollarSign className={`h-4 w-4 mb-3 ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`} />
           <p className={`stat-value ${lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>{fmtCurrency(lucroLiquido)}</p>
-          <p className="stat-label">Lucro líquido · Margem {margem}%</p>
+          <p className="stat-label">Lucro líquido · {margem}%</p>
+        </div>
+        <div className="stat-card">
+          <DollarSign className="h-4 w-4 text-muted-foreground mb-3" />
+          <p className="stat-value">{fmtCurrency(ordensMes.filter(o => Number(o.valor ?? 0) > 0).length > 0 ? ordensMes.filter(o => Number(o.valor ?? 0) > 0).reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensMes.filter(o => Number(o.valor ?? 0) > 0).length : 0)}</p>
+          <p className="stat-label">Ticket médio</p>
         </div>
       </div>
 

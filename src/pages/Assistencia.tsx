@@ -171,7 +171,7 @@ export default function Assistencia() {
                   <th className="hidden lg:table-cell">Defeito</th>
                   <th>Status</th>
                   <th className="hidden md:table-cell">Entrada</th>
-                  <th className="hidden sm:table-cell">Técnico</th>
+                  <th className="hidden sm:table-cell text-right">Lucro</th>
                   <th className="text-right">Ações</th>
                 </tr>
               </thead>
@@ -220,7 +220,19 @@ export default function Assistencia() {
                         </DropdownMenu>
                       </td>
                       <td className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(order.data_entrada)}</td>
-                      <td className="hidden sm:table-cell text-sm">{order.tecnico ?? "—"}</td>
+                      <td className="hidden sm:table-cell text-sm text-right">
+                        {(() => {
+                          const valor = Number(order.valor ?? 0);
+                          const custo = Number(order.custo_pecas ?? 0);
+                          const lucro = valor - custo;
+                          if (!valor) return <span className="text-muted-foreground">—</span>;
+                          return (
+                            <span className={lucro >= 0 ? "text-success font-medium" : "text-destructive font-medium"}>
+                              {formatCurrency(lucro)}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td>
                         <div className="flex items-center justify-end gap-1">
                           {/* WhatsApp */}
