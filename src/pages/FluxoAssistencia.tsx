@@ -79,11 +79,11 @@ export default function FluxoAssistencia() {
     onError: () => toast.error("Erro ao atualizar status"),
   });
 
-  const moveOrder = (id: string, direction: 1 | -1, currentStatus: Status) => {
+  const moveOrder = (id: string, direction: 1 | -1, currentStatus: Status, aparelhoId: string) => {
     const idx = statusFlow.indexOf(currentStatus);
     const newIdx = idx + direction;
     if (newIdx < 0 || newIdx >= statusFlow.length) return;
-    updateStatus.mutate({ id, newStatus: statusFlow[newIdx] });
+    updateStatus.mutate({ id, newStatus: statusFlow[newIdx], aparelhoId });
   };
 
   if (isLoading) {
