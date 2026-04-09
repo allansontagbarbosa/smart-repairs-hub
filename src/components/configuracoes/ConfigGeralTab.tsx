@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Building2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CnpjLookup, type CnpjData } from "@/components/smart-inputs/CnpjLookup";
+import { CepLookup, type CepData } from "@/components/smart-inputs/CepLookup";
+import { MaskedInput } from "@/components/smart-inputs/MaskedInput";
+import { CurrencySelect } from "@/components/smart-inputs/CurrencySelect";
 
 interface Props {
   empresa: any;
@@ -20,6 +24,7 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
     endereco: empresa?.endereco || "",
     cidade: empresa?.cidade || "",
     estado: empresa?.estado || "",
+    cep: empresa?.cep || "",
     horario_funcionamento: empresa?.horario_funcionamento || "",
     cor_principal: empresa?.cor_principal || "#3b82f6",
     observacoes: empresa?.observacoes || "",
@@ -30,6 +35,27 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
   const handleSave = () => saveEmpresa.mutate(form);
   const set = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
+  const handleCnpjData = useCallback((data: CnpjData) => {
+    setForm((p) => ({
+      ...p,
+      nome: data.nome || p.nome,
+      endereco: data.logradouro || p.endereco,
+      cidade: data.municipio || p.cidade,
+      estado: data.uf || p.estado,
+      email: data.email || p.email,
+      telefone: data.telefone || p.telefone,
+    }));
+  }, []);
+
+  const handleCepData = useCallback((data: CepData) => {
+    setForm((p) => ({
+      ...p,
+      endereco: data.logradouro || p.endereco,
+      cidade: data.localidade || p.cidade,
+      estado: data.uf || p.estado,
+    }));
+  }, []);
+
   return (
     <div className="space-y-4">
       <Card>
@@ -38,20 +64,37 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CnpjLookup
+              value={form.cnpj_cpf}
+              onValueChange={(v) => set("cnpj_cpf", v)}
+              onDataFound={handleCnpjData}
+              label="CNPJ / CPF"
+            />
             <div><Label>Nome da empresa</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
-            <div><Label>CNPJ / CPF</Label><Input value={form.cnpj_cpf} onChange={(e) => set("cnpj_cpf", e.target.value)} /></div>
-            <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} /></div>
+            <div>
+              <MaskedInput mask="phone" value={form.telefone} onValueChange={(_, masked) => set("telefone", masked)} placeholder="(00) 00000-0000" />
+              <Label className="sr-only">Telefone</Label>
+            </div>
             <div><Label>Email</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
-            <div><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
+            <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
             <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => set("estado", e.target.value)} /></div>
             <div><Label>Horário de funcionamento</Label><Input value={form.horario_funcionamento} onChange={(e) => set("horario_funcionamento", e.target.value)} placeholder="08:00 - 18:00" /></div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div><Label>Cor principal</Label><Input type="color" value={form.cor_principal} onChange={(e) => set("cor_principal", e.target.value)} className="h-10" /></div>
-            <div><Label>Moeda</Label><Input value={form.moeda} onChange={(e) => set("moeda", e.target.value)} /></div>
+            <CurrencySelect value={form.moeda} onValueChange={(v) => set("moeda", v)} />
             <div><Label>Formato de data</Label><Input value={form.formato_data} onChange={(e) => set("formato_data", e.target.value)} /></div>
           </div>
+
           <div><Label>Observações internas</Label><Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} /></div>
           <Button onClick={handleSave} disabled={saveEmpresa.isPending}><Save className="h-4 w-4 mr-1" />Salvar</Button>
         </CardContent>
