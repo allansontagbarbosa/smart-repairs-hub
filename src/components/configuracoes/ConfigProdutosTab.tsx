@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CreatableSelect } from "@/components/smart-inputs/CreatableSelect";
+import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ interface Props {
   categorias: any[];
 }
 
-const emptyForm = { nome: "", categoria_id: "", marca_id: "", modelo_id: "", descricao: "", custo: 0, preco_padrao: 0, preco_especial: null as number | null, sku: "", ativo: true };
+const emptyForm = { nome: "", categoria_id: "", marca_id: "", modelo_id: "", descricao: "", custo: null as number | null, preco_padrao: null as number | null, preco_especial: null as number | null, sku: "", ativo: true };
 
 export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }: Props) {
   const qc = useQueryClient();
@@ -51,7 +52,7 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
   };
 
   const handleEdit = (p: any) => {
-    setForm({ nome: p.nome, categoria_id: p.categoria_id || "", marca_id: p.marca_id || "", modelo_id: p.modelo_id || "", descricao: p.descricao || "", custo: p.custo || 0, preco_padrao: p.preco_padrao || 0, preco_especial: p.preco_especial, sku: p.sku || "", ativo: p.ativo });
+    setForm({ nome: p.nome, categoria_id: p.categoria_id || "", marca_id: p.marca_id || "", modelo_id: p.modelo_id || "", descricao: p.descricao || "", custo: p.custo || null, preco_padrao: p.preco_padrao || null, preco_especial: p.preco_especial, sku: p.sku || "", ativo: p.ativo });
     setEditId(p.id); setOpen(true);
   };
 
@@ -59,6 +60,21 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
     await supabase.from("produtos_base").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["produtos_base"] });
     toast.success("Produto removido");
+  };
+
+  const createCategoria = async (nome: string) => {
+    const { data, error } = await supabase.from("estoque_categorias").insert({ nome }).select("id").single();
+    if (error) { toast.error("Erro ao criar categoria"); return null; }
+    qc.invalidateQueries({ queryKey: ["estoque_categorias"] });
+    toast.success("Categoria criada!");
+    return data.id;
+  };
+  const createMarca = async (nome: string) => {
+    const { data, error } = await supabase.from("marcas").insert({ nome }).select("id").single();
+    if (error) { toast.error("Erro ao criar marca"); return null; }
+    qc.invalidateQueries({ queryKey: ["marcas"] });
+    toast.success("Marca criada!");
+    return data.id;
   };
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -78,35 +94,24 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>SKU</Label><Input value={form.sku} onChange={(e) => set("sku", e.target.value)} /></div>
-                <div>
-                  <Label>Categoria</Label>
-                  <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{categorias.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+                <CreatableSelect label="Categoria" value={form.categoria_id} onValueChange={(v) => set("categoria_id", v)} options={categorias} onCreateNew={createCategoria} entityName="categoria" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Marca</Label>
-                  <Select value={form.marca_id} onValueChange={(v) => set("marca_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{marcas.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Modelo</Label>
-                  <Select value={form.modelo_id} onValueChange={(v) => set("modelo_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{modelos.filter((m) => !form.marca_id || m.marca_id === form.marca_id).map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+                <CreatableSelect label="Marca" value={form.marca_id} onValueChange={(v) => set("marca_id", v)} options={marcas} onCreateNew={createMarca} entityName="marca" />
+                <CreatableSelect label="Modelo" value={form.modelo_id} onValueChange={(v) => set("modelo_id", v)} options={modelos.filter((m: any) => !form.marca_id || m.marca_id === form.marca_id)} onCreateNew={async (nome) => {
+                  if (!form.marca_id) { toast.error("Selecione uma marca primeiro"); return null; }
+                  const { data, error } = await supabase.from("modelos").insert({ nome, marca_id: form.marca_id }).select("id").single();
+                  if (error) { toast.error("Erro ao criar modelo"); return null; }
+                  qc.invalidateQueries({ queryKey: ["modelos"] });
+                  toast.success("Modelo criado!");
+                  return data.id;
+                }} entityName="modelo" />
               </div>
               <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => set("descricao", e.target.value)} rows={2} /></div>
               <div className="grid grid-cols-3 gap-3">
-                <div><Label>Custo (R$)</Label><Input type="number" value={form.custo} onChange={(e) => set("custo", e.target.value)} /></div>
-                <div><Label>Preço padrão (R$)</Label><Input type="number" value={form.preco_padrao} onChange={(e) => set("preco_padrao", e.target.value)} /></div>
-                <div><Label>Preço especial (R$)</Label><Input type="number" value={form.preco_especial ?? ""} onChange={(e) => set("preco_especial", e.target.value || null)} /></div>
+                <div><Label>Custo</Label><CurrencyInput value={form.custo} onValueChange={(v) => set("custo", v)} /></div>
+                <div><Label>Preço padrão</Label><CurrencyInput value={form.preco_padrao} onValueChange={(v) => set("preco_padrao", v)} /></div>
+                <div><Label>Preço especial</Label><CurrencyInput value={form.preco_especial} onValueChange={(v) => set("preco_especial", v)} /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} /><Label>Ativo</Label></div>
               <Button onClick={handleSave} className="w-full">{editId ? "Salvar" : "Cadastrar"}</Button>

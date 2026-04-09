@@ -8,16 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface Props {
-  tiposServico: any[];
-}
+interface Props { tiposServico: any[] }
 
-const emptyForm = { nome: "", descricao: "", valor_padrao: 0, comissao_padrao: 0, ativo: true };
+const emptyForm = { nome: "", descricao: "", valor_padrao: null as number | null, comissao_padrao: null as number | null, ativo: true };
 
 export function ConfigServicosTab({ tiposServico }: Props) {
   const qc = useQueryClient();
@@ -43,7 +41,7 @@ export function ConfigServicosTab({ tiposServico }: Props) {
   };
 
   const handleEdit = (s: any) => {
-    setForm({ nome: s.nome, descricao: s.descricao || "", valor_padrao: s.valor_padrao || 0, comissao_padrao: s.comissao_padrao || 0, ativo: s.ativo });
+    setForm({ nome: s.nome, descricao: s.descricao || "", valor_padrao: s.valor_padrao || null, comissao_padrao: s.comissao_padrao || null, ativo: s.ativo });
     setEditId(s.id); setOpen(true);
   };
 
@@ -70,8 +68,8 @@ export function ConfigServicosTab({ tiposServico }: Props) {
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
               <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => set("descricao", e.target.value)} rows={2} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Valor padrão (R$)</Label><Input type="number" value={form.valor_padrao} onChange={(e) => set("valor_padrao", e.target.value)} /></div>
-                <div><Label>Comissão padrão (R$)</Label><Input type="number" value={form.comissao_padrao} onChange={(e) => set("comissao_padrao", e.target.value)} /></div>
+                <div><Label>Valor padrão</Label><CurrencyInput value={form.valor_padrao} onValueChange={(v) => set("valor_padrao", v)} /></div>
+                <div><Label>Comissão padrão</Label><CurrencyInput value={form.comissao_padrao} onValueChange={(v) => set("comissao_padrao", v)} /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} /><Label>Ativo</Label></div>
               <Button onClick={handleSave} className="w-full">{editId ? "Salvar" : "Cadastrar"}</Button>

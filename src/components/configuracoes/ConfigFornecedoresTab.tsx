@@ -1,22 +1,23 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { CnpjLookup, type CnpjData } from "@/components/smart-inputs/CnpjLookup";
+import { CepLookup, type CepData } from "@/components/smart-inputs/CepLookup";
+import { MaskedInput } from "@/components/smart-inputs/MaskedInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface Props {
-  fornecedores: any[];
-}
+interface Props { fornecedores: any[] }
 
-const emptyForm = { nome: "", responsavel: "", telefone: "", whatsapp: "", email: "", cnpj_cpf: "", endereco: "", categoria: "", prazo_medio: "", observacoes: "", ativo: true };
+const emptyForm = { nome: "", responsavel: "", telefone: "", whatsapp: "", email: "", cnpj_cpf: "", endereco: "", cep: "", cidade: "", estado: "", categoria: "", prazo_medio: "", observacoes: "", ativo: true };
 
 export function ConfigFornecedoresTab({ fornecedores }: Props) {
   const qc = useQueryClient();
@@ -28,27 +29,48 @@ export function ConfigFornecedoresTab({ fornecedores }: Props) {
   const filtered = fornecedores.filter((f) =>
     f.nome?.toLowerCase().includes(search.toLowerCase()) || f.categoria?.toLowerCase().includes(search.toLowerCase())
   );
-
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+
+  const handleCnpjData = useCallback((data: CnpjData) => {
+    setForm((p: any) => ({
+      ...p,
+      nome: data.nome || p.nome,
+      endereco: data.logradouro || p.endereco,
+      cidade: data.municipio || "",
+      estado: data.uf || "",
+      email: data.email || p.email,
+      telefone: data.telefone || p.telefone,
+    }));
+  }, []);
+
+  const handleCepData = useCallback((data: CepData) => {
+    setForm((p: any) => ({
+      ...p,
+      endereco: data.logradouro || p.endereco,
+      cidade: data.localidade || "",
+      estado: data.uf || "",
+    }));
+  }, []);
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
+    const { cep, cidade, estado, ...payload } = form;
+    // Include city+state in endereco
+    const fullEndereco = [form.endereco, form.cidade, form.estado].filter(Boolean).join(", ");
+    const savePayload = { ...payload, endereco: fullEndereco };
     if (editId) {
-      await supabase.from("fornecedores").update(form).eq("id", editId);
+      await supabase.from("fornecedores").update(savePayload).eq("id", editId);
     } else {
-      await supabase.from("fornecedores").insert(form);
+      await supabase.from("fornecedores").insert(savePayload);
     }
     qc.invalidateQueries({ queryKey: ["fornecedores"] });
     toast.success(editId ? "Fornecedor atualizado" : "Fornecedor cadastrado");
-    setOpen(false);
-    setForm(emptyForm);
-    setEditId(null);
+    setOpen(false); setForm(emptyForm); setEditId(null);
   };
 
   const handleEdit = (f: any) => {
-    setForm({ nome: f.nome, responsavel: f.responsavel || "", telefone: f.telefone || "", whatsapp: f.whatsapp || "", email: f.email || "", cnpj_cpf: f.cnpj_cpf || "", endereco: f.endereco || "", categoria: f.categoria || "", prazo_medio: f.prazo_medio || "", observacoes: f.observacoes || "", ativo: f.ativo });
-    setEditId(f.id);
-    setOpen(true);
+    setForm({ nome: f.nome, responsavel: f.responsavel || "", telefone: f.telefone || "", whatsapp: f.whatsapp || "", email: f.email || "", cnpj_cpf: f.cnpj_cpf || "", endereco: f.endereco || "", cep: "", cidade: "", estado: "", categoria: f.categoria || "", prazo_medio: f.prazo_medio || "", observacoes: f.observacoes || "", ativo: f.ativo });
+    setEditId(f.id); setOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -65,21 +87,30 @@ export function ConfigFornecedoresTab({ fornecedores }: Props) {
           <Input placeholder="Buscar fornecedor..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Fornecedor</Button>
-          </DialogTrigger>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Fornecedor</Button></DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Fornecedor</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <CnpjLookup value={form.cnpj_cpf} onValueChange={(v) => set("cnpj_cpf", v)} onDataFound={handleCnpjData} />
                 <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
-                <div><Label>Responsável</Label><Input value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} /></div>
-                <div><Label>Telefone</Label><Input value={form.telefone} onChange={(e) => set("telefone", e.target.value)} /></div>
-                <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></div>
-                <div><Label>Email</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
-                <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={(e) => set("cnpj_cpf", e.target.value)} /></div>
               </div>
-              <div><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div><Label>Responsável</Label><Input value={form.responsavel} onChange={(e) => set("responsavel", e.target.value)} /></div>
+                <div><Label>Telefone</Label><MaskedInput mask="phone" value={form.telefone} onValueChange={(_, m) => set("telefone", m)} placeholder="(00) 00000-0000" /></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div><Label>WhatsApp</Label><MaskedInput mask="phone" value={form.whatsapp} onValueChange={(_, m) => set("whatsapp", m)} placeholder="(00) 00000-0000" /></div>
+                <div><Label>Email</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
+                <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
+                <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => set("estado", e.target.value)} /></div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Categoria</Label><Input value={form.categoria} onChange={(e) => set("categoria", e.target.value)} placeholder="Ex: Peças, Acessórios" /></div>
                 <div><Label>Prazo médio</Label><Input value={form.prazo_medio} onChange={(e) => set("prazo_medio", e.target.value)} placeholder="Ex: 3-5 dias" /></div>
