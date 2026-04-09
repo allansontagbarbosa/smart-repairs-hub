@@ -44,7 +44,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
   const handleCepData = useCallback((data: CepData) => {
-    setForm((p: any) => ({ ...p, endereco: data.logradouro || p.endereco, cidade: data.localidade || "", estado: data.uf || "" }));
+    setForm((p: any) => ({ ...p, endereco: data.logradouro || p.endereco, bairro: data.bairro || "", cidade: data.localidade || "", estado: data.uf || "" }));
   }, []);
 
   const handleSave = async () => {
