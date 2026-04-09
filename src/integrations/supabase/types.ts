@@ -128,6 +128,7 @@ export type Database = {
           created_at: string
           custo_compra: number | null
           data_entrada: string
+          fornecedor: string | null
           id: string
           imei: string | null
           localizacao: string | null
@@ -142,6 +143,7 @@ export type Database = {
           created_at?: string
           custo_compra?: number | null
           data_entrada?: string
+          fornecedor?: string | null
           id?: string
           imei?: string | null
           localizacao?: string | null
@@ -156,6 +158,7 @@ export type Database = {
           created_at?: string
           custo_compra?: number | null
           data_entrada?: string
+          fornecedor?: string | null
           id?: string
           imei?: string | null
           localizacao?: string | null
