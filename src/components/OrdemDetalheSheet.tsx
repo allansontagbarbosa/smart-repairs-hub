@@ -30,6 +30,9 @@ interface Props {
 
 export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [editing, setEditing] = useState(false);
+  const [addingPart, setAddingPart] = useState(false);
+  const [selectedPecaId, setSelectedPecaId] = useState("");
+  const [pecaQtd, setPecaQtd] = useState(1);
   const queryClient = useQueryClient();
 
   const { data: ordem, isLoading } = useQuery({
