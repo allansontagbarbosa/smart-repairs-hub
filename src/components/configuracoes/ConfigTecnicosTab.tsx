@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Plus, Pencil, Search } from "lucide-react";
+import { Plus, Pencil, Search, Trash2, User, MapPin, Briefcase, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,11 @@ import { toast } from "sonner";
 interface Props { funcionarios: any[] }
 
 const emptyForm = {
-  nome: "", cpf: "", telefone: "", email: "", cargo: "", funcao: "",
+  nome: "", cpf: "", telefone: "", email: "", cargo: "", funcao: "", especialidade: "",
   endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "", estado: "",
-  tipo_comissao: "fixa" as string, valor_comissao: 0, ativo: true,
+  carga_horaria: "", salario_fixo: 0, vale_transporte: 0, vale_alimentacao: 0,
+  data_admissao: "",
+  tipo_comissao: "fixa" as string, valor_comissao: 0, ativo: true, observacoes: "",
 };
 
 export function ConfigTecnicosTab({ funcionarios }: Props) {
@@ -30,96 +32,254 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<any>(emptyForm);
+  const [form, setForm] = useState<any>({ ...emptyForm });
+  const [tab, setTab] = useState("dados");
 
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico"],
-    queryFn: async () => { const { data } = await supabase.from("tipos_servico").select("*").eq("ativo", true).order("nome"); return data || []; },
+    queryFn: async () => {
+      const { data } = await supabase.from("tipos_servico").select("*").eq("ativo", true).order("nome");
+      return data || [];
+    },
   });
 
-  // Commission per service (stored locally for display, future: separate table)
   const [comissoesPorServico, setComissoesPorServico] = useState<Record<string, { tipo: string; valor: number }>>({});
 
-  const filtered = funcionarios.filter((f) => f.nome?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = funcionarios.filter((f) =>
+    f.nome?.toLowerCase().includes(search.toLowerCase()) ||
+    f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
+    f.especialidade?.toLowerCase().includes(search.toLowerCase())
+  );
+
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
   const handleCepData = useCallback((data: CepData) => {
-    setForm((p: any) => ({ ...p, endereco: data.logradouro || p.endereco, bairro: data.bairro || "", cidade: data.localidade || "", estado: data.uf || "" }));
+    setForm((p: any) => ({
+      ...p,
+      endereco: data.logradouro || p.endereco,
+      bairro: data.bairro || "",
+      cidade: data.localidade || "",
+      estado: data.uf || "",
+    }));
   }, []);
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
-    const { cep, cidade, estado, cpf, numero, complemento, bairro, ...rest } = form;
-    const payload = { ...rest, valor_comissao: Number(form.valor_comissao) || 0 };
+    const payload: any = {
+      nome: form.nome,
+      cpf: form.cpf || null,
+      telefone: form.telefone || null,
+      email: form.email || null,
+      cargo: form.cargo || null,
+      funcao: form.funcao || null,
+      especialidade: form.especialidade || null,
+      endereco: form.endereco || null,
+      numero: form.numero || null,
+      complemento: form.complemento || null,
+      bairro: form.bairro || null,
+      cep: form.cep || null,
+      cidade: form.cidade || null,
+      estado: form.estado || null,
+      carga_horaria: form.carga_horaria || null,
+      salario_fixo: Number(form.salario_fixo) || 0,
+      vale_transporte: Number(form.vale_transporte) || 0,
+      vale_alimentacao: Number(form.vale_alimentacao) || 0,
+      data_admissao: form.data_admissao || null,
+      tipo_comissao: form.tipo_comissao,
+      valor_comissao: Number(form.valor_comissao) || 0,
+      ativo: form.ativo,
+      observacoes: form.observacoes || null,
+    };
+
     if (editId) {
-      await supabase.from("funcionarios").update(payload).eq("id", editId);
+      const { error } = await supabase.from("funcionarios").update(payload).eq("id", editId);
+      if (error) { toast.error("Erro ao atualizar"); return; }
     } else {
-      await supabase.from("funcionarios").insert(payload);
+      const { error } = await supabase.from("funcionarios").insert(payload);
+      if (error) { toast.error("Erro ao cadastrar"); return; }
     }
     qc.invalidateQueries({ queryKey: ["funcionarios"] });
     toast.success(editId ? "Técnico atualizado" : "Técnico cadastrado");
-    setOpen(false); setEditId(null); setForm(emptyForm);
+    setOpen(false); setEditId(null); setForm({ ...emptyForm }); setTab("dados");
   };
 
   const handleEdit = (f: any) => {
-    setForm({ nome: f.nome, cpf: "", telefone: f.telefone || "", email: f.email || "", funcao: f.funcao || "", cargo: f.cargo || "", endereco: "", cep: "", cidade: "", estado: "", tipo_comissao: f.tipo_comissao, valor_comissao: f.valor_comissao, ativo: f.ativo });
-    setEditId(f.id); setOpen(true);
+    setForm({
+      nome: f.nome || "", cpf: f.cpf || "", telefone: f.telefone || "", email: f.email || "",
+      funcao: f.funcao || "", cargo: f.cargo || "", especialidade: f.especialidade || "",
+      endereco: f.endereco || "", numero: f.numero || "", complemento: f.complemento || "",
+      bairro: f.bairro || "", cep: f.cep || "", cidade: f.cidade || "", estado: f.estado || "",
+      carga_horaria: f.carga_horaria || "", salario_fixo: f.salario_fixo || 0,
+      vale_transporte: f.vale_transporte || 0, vale_alimentacao: f.vale_alimentacao || 0,
+      data_admissao: f.data_admissao || "",
+      tipo_comissao: f.tipo_comissao || "fixa", valor_comissao: f.valor_comissao || 0,
+      ativo: f.ativo, observacoes: f.observacoes || "",
+    });
+    setEditId(f.id); setTab("dados"); setOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("funcionarios").update({ deleted_at: new Date().toISOString(), ativo: false }).eq("id", id);
+    if (error) { toast.error("Erro ao remover"); return; }
+    qc.invalidateQueries({ queryKey: ["funcionarios"] });
+    toast.success("Técnico removido");
   };
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  const custoTotal = Number(form.salario_fixo || 0) + Number(form.vale_transporte || 0) + Number(form.vale_alimentacao || 0);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar técnico..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditId(null); }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Técnico</Button></DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Técnico</DialogTitle></DialogHeader>
-            <Tabs defaultValue="dados" className="w-full">
-              <TabsList className="w-full grid grid-cols-3">
-                <TabsTrigger value="dados">Dados</TabsTrigger>
-                <TabsTrigger value="endereco">Endereço</TabsTrigger>
-                <TabsTrigger value="comissao">Comissão</TabsTrigger>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setTab("dados"); } }}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Técnico</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editId ? "Editar" : "Novo"} Técnico / Funcionário</DialogTitle>
+            </DialogHeader>
+
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              <TabsList className="w-full grid grid-cols-4">
+                <TabsTrigger value="dados" className="text-xs sm:text-sm gap-1">
+                  <User className="h-3.5 w-3.5 hidden sm:block" />Dados
+                </TabsTrigger>
+                <TabsTrigger value="endereco" className="text-xs sm:text-sm gap-1">
+                  <MapPin className="h-3.5 w-3.5 hidden sm:block" />Endereço
+                </TabsTrigger>
+                <TabsTrigger value="profissional" className="text-xs sm:text-sm gap-1">
+                  <Briefcase className="h-3.5 w-3.5 hidden sm:block" />Profissional
+                </TabsTrigger>
+                <TabsTrigger value="comissao" className="text-xs sm:text-sm gap-1">
+                  <DollarSign className="h-3.5 w-3.5 hidden sm:block" />Comissão
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="dados" className="space-y-3 mt-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
-                  <div><Label>CPF</Label><MaskedInput mask="cpf" value={form.cpf} onValueChange={(_, m) => set("cpf", m)} placeholder="000.000.000-00" /></div>
+              {/* DADOS PESSOAIS */}
+              <TabsContent value="dados" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Nome completo *</Label>
+                    <Input value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Nome do funcionário" />
+                  </div>
+                  <div>
+                    <Label>CPF</Label>
+                    <MaskedInput mask="cpf" value={form.cpf} onValueChange={(_, m) => set("cpf", m)} placeholder="000.000.000-00" />
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Telefone</Label><MaskedInput mask="phone" value={form.telefone} onValueChange={(_, m) => set("telefone", m)} placeholder="(00) 00000-0000" /></div>
-                  <div><Label>Email</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Telefone</Label>
+                    <MaskedInput mask="phone" value={form.telefone} onValueChange={(_, m) => set("telefone", m)} placeholder="(00) 00000-0000" />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="email@exemplo.com" />
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Cargo</Label><Input value={form.cargo} onChange={(e) => set("cargo", e.target.value)} placeholder="Ex: Técnico Sênior" /></div>
-                  <div><Label>Especialidade</Label><Input value={form.funcao} onChange={(e) => set("funcao", e.target.value)} placeholder="Ex: Telas, Placas" /></div>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} placeholder="Anotações sobre o funcionário..." rows={3} />
                 </div>
-                <div className="flex items-center gap-2"><Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} /><Label>Ativo</Label></div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} />
+                  <Label>Funcionário ativo</Label>
+                </div>
               </TabsContent>
 
-              <TabsContent value="endereco" className="space-y-3 mt-3">
-                <div className="grid grid-cols-3 gap-3">
+              {/* ENDEREÇO */}
+              <TabsContent value="endereco" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
-                  <div className="col-span-2"><Label>Rua / Logradouro</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+                  <div className="sm:col-span-2">
+                    <Label>Rua / Logradouro</Label>
+                    <Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} placeholder="Rua, Avenida..." />
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><Label>Número</Label><Input value={form.numero} onChange={(e) => set("numero", e.target.value)} placeholder="Nº" /></div>
-                  <div className="col-span-2"><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} placeholder="Apto, Bloco, Sala..." /></div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label>Número</Label>
+                    <Input value={form.numero} onChange={(e) => set("numero", e.target.value)} placeholder="Nº" />
+                  </div>
+                  <div>
+                    <Label>Complemento</Label>
+                    <Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} placeholder="Apto, Bloco..." />
+                  </div>
+                  <div>
+                    <Label>Bairro</Label>
+                    <Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} />
+                  </div>
+                  <div className="hidden sm:block" /> {/* spacer */}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} /></div>
-                  <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
-                  <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => set("estado", e.target.value)} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Cidade</Label>
+                    <Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Estado</Label>
+                    <Input value={form.estado} onChange={(e) => set("estado", e.target.value)} maxLength={2} placeholder="UF" />
+                  </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="comissao" className="space-y-3 mt-3">
-                <div className="grid grid-cols-2 gap-3">
+              {/* PROFISSIONAL */}
+              <TabsContent value="profissional" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Cargo</Label>
+                    <Input value={form.cargo} onChange={(e) => set("cargo", e.target.value)} placeholder="Ex: Técnico Sênior" />
+                  </div>
+                  <div>
+                    <Label>Especialidade</Label>
+                    <Input value={form.especialidade} onChange={(e) => set("especialidade", e.target.value)} placeholder="Ex: Telas, Placas, Software" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Carga horária</Label>
+                    <Input value={form.carga_horaria} onChange={(e) => set("carga_horaria", e.target.value)} placeholder="Ex: 44h semanais" />
+                  </div>
+                  <div>
+                    <Label>Data de admissão</Label>
+                    <Input type="date" value={form.data_admissao} onChange={(e) => set("data_admissao", e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold mb-3">Remuneração e Benefícios</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <Label>Salário fixo</Label>
+                      <CurrencyInput value={form.salario_fixo} onValueChange={(v) => set("salario_fixo", v)} placeholder="Salário mensal" />
+                    </div>
+                    <div>
+                      <Label>Vale transporte</Label>
+                      <CurrencyInput value={form.vale_transporte} onValueChange={(v) => set("vale_transporte", v)} placeholder="Valor do VT" />
+                    </div>
+                    <div>
+                      <Label>Vale alimentação</Label>
+                      <CurrencyInput value={form.vale_alimentacao} onValueChange={(v) => set("vale_alimentacao", v)} placeholder="Valor do VA" />
+                    </div>
+                  </div>
+                  {custoTotal > 0 && (
+                    <div className="mt-3 p-3 bg-muted/50 rounded-lg flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Custo total mensal</span>
+                      <span className="font-semibold text-base">{fmt(custoTotal)}</span>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* COMISSÃO */}
+              <TabsContent value="comissao" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Tipo de comissão padrão</Label>
                     <Select value={form.tipo_comissao} onValueChange={(v) => set("tipo_comissao", v)}>
@@ -140,12 +300,12 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Comissão por serviço</Label>
                     <p className="text-xs text-muted-foreground">Defina comissões específicas por tipo de serviço (sobrepõe a comissão padrão).</p>
-                    <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+                    <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
                       {tiposServico.map((s: any) => (
                         <div key={s.id} className="flex items-center gap-2 px-3 py-2">
                           <span className="text-sm flex-1 truncate">{s.nome}</span>
                           <Input
-                            className="w-20 h-8 text-xs text-right"
+                            className="w-24 h-8 text-xs text-right"
                             placeholder="—"
                             value={comissoesPorServico[s.id]?.valor || ""}
                             onChange={(e) => setComissoesPorServico((p) => ({ ...p, [s.id]: { tipo: "fixa", valor: Number(e.target.value) || 0 } }))}
@@ -158,27 +318,62 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                 )}
               </TabsContent>
             </Tabs>
-            <Button onClick={handleSave} className="w-full mt-3">{editId ? "Salvar" : "Cadastrar"}</Button>
+
+            <div className="flex gap-2 mt-4 pt-3 border-t">
+              <Button onClick={handleSave} className="flex-1">{editId ? "Salvar alterações" : "Cadastrar"}</Button>
+              <Button variant="outline" onClick={() => { setOpen(false); setEditId(null); setForm({ ...emptyForm }); }}>Cancelar</Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* LISTA */}
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium">Nome</th><th className="text-left p-3 font-medium hidden md:table-cell">Especialidade</th><th className="text-left p-3 font-medium hidden md:table-cell">Comissão</th><th className="text-left p-3 font-medium">Status</th><th className="p-3"></th></tr></thead>
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left p-3 font-medium">Nome</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Cargo</th>
+                  <th className="text-left p-3 font-medium hidden lg:table-cell">Especialidade</th>
+                  <th className="text-left p-3 font-medium hidden lg:table-cell">Salário</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Comissão</th>
+                  <th className="text-left p-3 font-medium">Status</th>
+                  <th className="p-3 w-20"></th>
+                </tr>
+              </thead>
               <tbody>
                 {filtered.map((f) => (
-                  <tr key={f.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="p-3 font-medium">{f.nome}<div className="text-xs text-muted-foreground">{f.cargo}</div></td>
-                    <td className="p-3 hidden md:table-cell text-muted-foreground">{f.funcao || "—"}</td>
-                    <td className="p-3 hidden md:table-cell">{f.tipo_comissao === "percentual" ? `${f.valor_comissao}%` : fmt(f.valor_comissao)}</td>
-                    <td className="p-3"><Badge variant={f.ativo ? "default" : "secondary"}>{f.ativo ? "Ativo" : "Inativo"}</Badge></td>
-                    <td className="p-3 text-right"><Button variant="ghost" size="icon" onClick={() => handleEdit(f)}><Pencil className="h-3.5 w-3.5" /></Button></td>
+                  <tr key={f.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="p-3">
+                      <div className="font-medium">{f.nome}</div>
+                      <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
+                    </td>
+                    <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
+                    <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
+                    <td className="p-3 hidden lg:table-cell">{f.salario_fixo > 0 ? fmt(f.salario_fixo) : "—"}</td>
+                    <td className="p-3 hidden md:table-cell">
+                      {f.tipo_comissao === "percentual" ? `${f.valor_comissao}%` : fmt(f.valor_comissao)}
+                    </td>
+                    <td className="p-3">
+                      <Badge variant={f.ativo ? "default" : "secondary"}>{f.ativo ? "Ativo" : "Inativo"}</Badge>
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(f.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum técnico cadastrado</td></tr>}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum técnico cadastrado</td></tr>
+                )}
               </tbody>
             </table>
           </div>
