@@ -2,8 +2,10 @@ import { Wrench, Package, Clock, DollarSign, TrendingUp, TrendingDown, CheckCirc
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAlertas } from "@/hooks/useAlertas";
+import { useAlertasEstoque, useAlertasEstoqueCruzado } from "@/hooks/useAlertasEstoque";
 import { AlertsBanner } from "@/components/AlertsBanner";
-import { useState } from "react";
+import type { GenericAlert } from "@/components/AlertsBanner";
+import { useState, useMemo } from "react";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 async function fetchOrders() {
