@@ -168,7 +168,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     onError: (e: any) => toast.error(e.message),
   });
 
-
+  const changeStatus = useMutation({
     mutationFn: async (newStatus: Status) => {
       if (!ordem) return;
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
