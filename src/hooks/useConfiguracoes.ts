@@ -8,7 +8,7 @@ export function useConfiguracoes() {
   const { data: empresa, isLoading: loadingEmpresa } = useQuery({
     queryKey: ["empresa_config"],
     queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("*").limit(1).single();
+      const { data } = await supabase.from("empresa_config").select("*").limit(1).maybeSingle();
       return data;
     },
   });
