@@ -34,6 +34,8 @@ export default function Assistencia() {
     queryFn: fetchOrders,
   });
 
+  const alertas = useAlertas(orders);
+
   const filtered = orders.filter((o) => {
     const clientName = o.aparelhos?.clientes?.nome ?? "";
     const clientPhone = o.aparelhos?.clientes?.telefone ?? "";
