@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { Plus, Search, Loader2, Pencil, ClipboardCheck } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, Loader2, Pencil, ClipboardCheck, Wrench, Info } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAlertasEstoque } from "@/hooks/useAlertasEstoque";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,9 +65,9 @@ const fmtDate = (d: string | null) => {
 export default function Estoque() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
-  const [novaOSOpen, setNovaOSOpen] = useState(false);
   const [editItem, setEditItem] = useState<Aparelho | null>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: aparelhos = [], isLoading } = useQuery({
     queryKey: ["estoque_aparelhos"],
@@ -122,11 +120,28 @@ export default function Estoque() {
             <ClipboardCheck className="h-3.5 w-3.5" />
             Conferência
           </Link>
-          <Button size="sm" onClick={() => setNovaOSOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />Nova OS
+        </div>
+      </div>
+
+      {/* Info banner: devices come from OS */}
+      <div className="flex items-start gap-3 rounded-lg border border-info/20 bg-info-muted px-4 py-3">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-info" />
+        <div className="flex-1">
+          <p className="text-sm">
+            Aparelhos são registrados automaticamente ao criar uma <strong>Ordem de Serviço</strong>.
+          </p>
+          <Button
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs text-info mt-1"
+            onClick={() => navigate("/assistencia")}
+          >
+            <Wrench className="h-3 w-3 mr-1" />
+            Ir para Assistência Técnica →
           </Button>
         </div>
       </div>
+
       {alertasEstoque.length > 0 && (
         <AlertsBanner alertas={alertasEstoque} max={4} />
       )}
@@ -170,7 +185,6 @@ export default function Estoque() {
                   <th>Status</th>
                   <th className="hidden md:table-cell">Localização</th>
                   <th className="hidden sm:table-cell">Entrada</th>
-                  <th className="text-right hidden sm:table-cell">Custo</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
@@ -195,9 +209,6 @@ export default function Estoque() {
                     <td className="hidden sm:table-cell text-sm text-muted-foreground">
                       {fmtDate(item.data_entrada)}
                     </td>
-                    <td className="text-right hidden sm:table-cell text-sm font-medium">
-                      {fmt(item.custo_compra)}
-                    </td>
                     <td>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditItem(item)}>
                         <Pencil className="h-3.5 w-3.5" />
@@ -207,7 +218,7 @@ export default function Estoque() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted-foreground py-10 text-sm">
+                    <td colSpan={6} className="text-center text-muted-foreground py-10 text-sm">
                       Nenhum aparelho encontrado
                     </td>
                   </tr>
@@ -217,12 +228,6 @@ export default function Estoque() {
           </div>
         </div>
       )}
-
-      <NovaOrdemDialog
-        open={novaOSOpen}
-        onOpenChange={setNovaOSOpen}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] })}
-      />
 
       {/* Edit Sheet */}
       <Sheet open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
@@ -242,8 +247,6 @@ export default function Estoque() {
                     capacidade: (fd.get("capacidade") as string) || null,
                     cor: (fd.get("cor") as string) || null,
                     imei: (fd.get("imei") as string) || null,
-                    custo_compra: Number(fd.get("custo_compra")) || 0,
-                    fornecedor: (fd.get("fornecedor") as string) || null,
                     localizacao: (fd.get("localizacao") as string) || null,
                     status: fd.get("status") as StatusEstoque,
                     observacoes: (fd.get("observacoes") as string) || null,
@@ -252,18 +255,14 @@ export default function Estoque() {
               }}
             >
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">Marca *</Label><Input name="marca" required defaultValue={editItem.marca} className="mt-1.5" /></div>
-                <div><Label className="text-xs">Modelo *</Label><Input name="modelo" required defaultValue={editItem.modelo} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Marca</Label><Input name="marca" required defaultValue={editItem.marca} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Modelo</Label><Input name="modelo" required defaultValue={editItem.modelo} className="mt-1.5" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" defaultValue={editItem.capacidade ?? ""} className="mt-1.5" /></div>
                 <div><Label className="text-xs">Cor</Label><Input name="cor" defaultValue={editItem.cor ?? ""} className="mt-1.5" /></div>
               </div>
-              <div><Label className="text-xs">IMEI *</Label><Input name="imei" required defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">Custo (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" defaultValue={editItem.custo_compra ?? 0} className="mt-1.5" /></div>
-                <div><Label className="text-xs">Fornecedor</Label><Input name="fornecedor" defaultValue={(editItem as any).fornecedor ?? ""} className="mt-1.5" /></div>
-              </div>
+              <div><Label className="text-xs">IMEI</Label><Input name="imei" defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
               <div><Label className="text-xs">Localização</Label><Input name="localizacao" defaultValue={editItem.localizacao ?? ""} className="mt-1.5" /></div>
               <div>
                 <Label className="text-xs">Status</Label>
