@@ -287,6 +287,7 @@ export default function Estoque() {
                     cor: (fd.get("cor") as string) || null,
                     imei: (fd.get("imei") as string) || null,
                     custo_compra: Number(fd.get("custo_compra")) || 0,
+                    fornecedor: (fd.get("fornecedor") as string) || null,
                     localizacao: (fd.get("localizacao") as string) || null,
                     status: fd.get("status") as StatusEstoque,
                     observacoes: (fd.get("observacoes") as string) || null,
@@ -302,11 +303,12 @@ export default function Estoque() {
                 <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" defaultValue={editItem.capacidade ?? ""} className="mt-1.5" /></div>
                 <div><Label className="text-xs">Cor</Label><Input name="cor" defaultValue={editItem.cor ?? ""} className="mt-1.5" /></div>
               </div>
-              <div><Label className="text-xs">IMEI</Label><Input name="imei" defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
+              <div><Label className="text-xs">IMEI *</Label><Input name="imei" required defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">Custo (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" defaultValue={editItem.custo_compra ?? 0} className="mt-1.5" /></div>
-                <div><Label className="text-xs">Localização</Label><Input name="localizacao" defaultValue={editItem.localizacao ?? ""} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Fornecedor</Label><Input name="fornecedor" defaultValue={(editItem as any).fornecedor ?? ""} className="mt-1.5" /></div>
               </div>
+              <div><Label className="text-xs">Localização</Label><Input name="localizacao" defaultValue={editItem.localizacao ?? ""} className="mt-1.5" /></div>
               <div>
                 <Label className="text-xs">Status</Label>
                 <Select name="status" defaultValue={editItem.status}>
