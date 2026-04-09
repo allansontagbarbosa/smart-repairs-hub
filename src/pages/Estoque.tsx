@@ -3,6 +3,8 @@ import { Plus, Search, Loader2, Pencil, ClipboardCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAlertasEstoque } from "@/hooks/useAlertasEstoque";
+import { AlertsBanner } from "@/components/AlertsBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
