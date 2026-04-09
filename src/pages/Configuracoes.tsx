@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Building2, Package, Wrench, Truck, Users, DollarSign, Boxes, ListChecks, Bell, FileText, Search } from "lucide-react";
+import { Loader2, Building2, Package, Wrench, Truck, Users, DollarSign, Boxes, ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
 import { ConfigProdutosTab } from "@/components/configuracoes/ConfigProdutosTab";
@@ -11,14 +11,18 @@ import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
 import { ConfigStatusTab } from "@/components/configuracoes/ConfigStatusTab";
 import { ConfigNotificacoesTab } from "@/components/configuracoes/ConfigNotificacoesTab";
 import { ConfigDocumentosTab } from "@/components/configuracoes/ConfigDocumentosTab";
+import { ConfigUsuariosTab } from "@/components/configuracoes/ConfigUsuariosTab";
+import { ConfigListaPrecosTab } from "@/components/configuracoes/ConfigListaPrecosTab";
+import { ConfigExportacaoTab } from "@/components/configuracoes/ConfigExportacaoTab";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const sections = [
   { id: "geral", label: "Geral", icon: Building2 },
+  { id: "usuarios", label: "Usuários", icon: ShieldCheck },
   { id: "produtos", label: "Produtos", icon: Package },
   { id: "servicos", label: "Serviços", icon: Wrench },
+  { id: "precos", label: "Lista de Preços", icon: Tag },
   { id: "fornecedores", label: "Fornecedores", icon: Truck },
   { id: "tecnicos", label: "Técnicos", icon: Users },
   { id: "financeiro", label: "Financeiro", icon: DollarSign },
@@ -26,6 +30,7 @@ const sections = [
   { id: "status", label: "Status e Etapas", icon: ListChecks },
   { id: "notificacoes", label: "Notificações", icon: Bell },
   { id: "documentos", label: "Documentos", icon: FileText },
+  { id: "exportacao", label: "Exportação", icon: FileDown },
 ];
 
 export default function Configuracoes() {
@@ -84,8 +89,10 @@ export default function Configuracoes() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {active === "geral" && <ConfigGeralTab empresa={data.empresa} saveEmpresa={data.saveEmpresa} />}
+          {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} />}
           {active === "produtos" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
           {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
+          {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
           {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
           {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} />}
           {active === "financeiro" && <ConfigFinanceiroTab categoriasFinanceiras={data.categoriasFinanceiras} centrosCusto={data.centrosCusto} formasPagamento={data.formasPagamento} />}
@@ -93,6 +100,7 @@ export default function Configuracoes() {
           {active === "status" && <ConfigStatusTab statusOrdem={data.statusOrdem} />}
           {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
           {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
+          {active === "exportacao" && <ConfigExportacaoTab />}
         </div>
       </div>
     </div>
