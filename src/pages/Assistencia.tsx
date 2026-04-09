@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Loader2, LayoutGrid, List } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -56,9 +57,18 @@ export default function Assistencia() {
           <h1 className="page-title">Assistência Técnica</h1>
           <p className="page-subtitle">{filtered.length} ordens de serviço</p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />Nova Ordem
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/assistencia/fluxo"
+            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Kanban
+          </Link>
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />Nova Ordem
+          </Button>
+        </div>
       </div>
 
       <NovaOrdemDialog
