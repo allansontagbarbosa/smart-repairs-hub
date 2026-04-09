@@ -5,6 +5,7 @@ import { ChevronRight, ChevronLeft, Clock, AlertTriangle, LayoutGrid, List, Load
 import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import type { Database } from "@/integrations/supabase/types";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
@@ -52,6 +53,7 @@ function daysAgo(dateStr: string) {
 
 export default function FluxoAssistencia() {
   const queryClient = useQueryClient();
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
 
   const updateStatus = useMutation({
