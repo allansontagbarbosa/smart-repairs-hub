@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import type { Database } from "@/integrations/supabase/types";
+import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -58,7 +59,7 @@ export default function FluxoAssistencia() {
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
+    mutationFn: async ({ id, newStatus, aparelhoId }: { id: string; newStatus: Status; aparelhoId: string }) => {
       const updates: {
         status: Status;
         data_conclusao?: string;
@@ -68,19 +69,22 @@ export default function FluxoAssistencia() {
       if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
+
+      await syncEstoqueFromOrdem(aparelhoId, newStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar status"),
   });
 
-  const moveOrder = (id: string, direction: 1 | -1, currentStatus: Status) => {
+  const moveOrder = (id: string, direction: 1 | -1, currentStatus: Status, aparelhoId: string) => {
     const idx = statusFlow.indexOf(currentStatus);
     const newIdx = idx + direction;
     if (newIdx < 0 || newIdx >= statusFlow.length) return;
-    updateStatus.mutate({ id, newStatus: statusFlow[newIdx] });
+    updateStatus.mutate({ id, newStatus: statusFlow[newIdx], aparelhoId });
   };
 
   if (isLoading) {
@@ -186,7 +190,7 @@ export default function FluxoAssistencia() {
                         <button
                           type="button"
                           disabled={!canGoBack || updateStatus.isPending}
-                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, -1, status); }}
+                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, -1, status, order.aparelho_id); }}
                           className="flex-1 flex items-center justify-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           <ChevronLeft className="h-3 w-3" />
@@ -195,7 +199,7 @@ export default function FluxoAssistencia() {
                         <button
                           type="button"
                           disabled={!canGoForward || updateStatus.isPending}
-                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, 1, status); }}
+                          onClick={(e) => { e.stopPropagation(); moveOrder(order.id, 1, status, order.aparelho_id); }}
                           className="flex-1 flex items-center justify-center gap-1 rounded-md border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           Avançar
