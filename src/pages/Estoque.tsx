@@ -74,13 +74,25 @@ export default function Estoque() {
 
   const createMutation = useMutation({
     mutationFn: async (form: FormData) => {
+      const imei = (form.get("imei") as string).trim();
+      if (!imei) throw new Error("IMEI é obrigatório");
+
+      // Check duplicate IMEI
+      const { data: existing } = await supabase
+        .from("estoque_aparelhos")
+        .select("id")
+        .eq("imei", imei)
+        .maybeSingle();
+      if (existing) throw new Error("Já existe um aparelho com este IMEI cadastrado");
+
       const { error } = await supabase.from("estoque_aparelhos").insert({
         marca: form.get("marca") as string,
         modelo: form.get("modelo") as string,
         capacidade: (form.get("capacidade") as string) || null,
         cor: (form.get("cor") as string) || null,
-        imei: (form.get("imei") as string) || null,
+        imei,
         custo_compra: Number(form.get("custo_compra")) || 0,
+        fornecedor: (form.get("fornecedor") as string) || null,
         localizacao: (form.get("localizacao") as string) || null,
         observacoes: (form.get("observacoes") as string) || null,
       });
@@ -241,15 +253,16 @@ export default function Estoque() {
               <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" placeholder="128GB" className="mt-1.5" /></div>
               <div><Label className="text-xs">Cor</Label><Input name="cor" placeholder="Preto" className="mt-1.5" /></div>
             </div>
-            <div><Label className="text-xs">IMEI</Label><Input name="imei" placeholder="000000000000000" className="mt-1.5" /></div>
+            <div><Label className="text-xs">IMEI *</Label><Input name="imei" required placeholder="000000000000000" className="mt-1.5" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label className="text-xs">Custo de compra (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" placeholder="0" className="mt-1.5" /></div>
-              <div><Label className="text-xs">Localização</Label><Input name="localizacao" placeholder="Loja 1" className="mt-1.5" /></div>
+              <div><Label className="text-xs">Fornecedor</Label><Input name="fornecedor" placeholder="Ex: Distribuidora X" className="mt-1.5" /></div>
             </div>
+            <div><Label className="text-xs">Localização</Label><Input name="localizacao" placeholder="Loja 1" className="mt-1.5" /></div>
             <div><Label className="text-xs">Observações</Label><Textarea name="observacoes" rows={2} placeholder="Anotações..." className="mt-1.5" /></div>
             <Button type="submit" className="w-full" disabled={createMutation.isPending}>
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Adicionar
+              Adicionar Aparelho
             </Button>
           </form>
         </DialogContent>
@@ -274,6 +287,7 @@ export default function Estoque() {
                     cor: (fd.get("cor") as string) || null,
                     imei: (fd.get("imei") as string) || null,
                     custo_compra: Number(fd.get("custo_compra")) || 0,
+                    fornecedor: (fd.get("fornecedor") as string) || null,
                     localizacao: (fd.get("localizacao") as string) || null,
                     status: fd.get("status") as StatusEstoque,
                     observacoes: (fd.get("observacoes") as string) || null,
@@ -289,11 +303,12 @@ export default function Estoque() {
                 <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" defaultValue={editItem.capacidade ?? ""} className="mt-1.5" /></div>
                 <div><Label className="text-xs">Cor</Label><Input name="cor" defaultValue={editItem.cor ?? ""} className="mt-1.5" /></div>
               </div>
-              <div><Label className="text-xs">IMEI</Label><Input name="imei" defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
+              <div><Label className="text-xs">IMEI *</Label><Input name="imei" required defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs">Custo (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" defaultValue={editItem.custo_compra ?? 0} className="mt-1.5" /></div>
-                <div><Label className="text-xs">Localização</Label><Input name="localizacao" defaultValue={editItem.localizacao ?? ""} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Fornecedor</Label><Input name="fornecedor" defaultValue={(editItem as any).fornecedor ?? ""} className="mt-1.5" /></div>
               </div>
+              <div><Label className="text-xs">Localização</Label><Input name="localizacao" defaultValue={editItem.localizacao ?? ""} className="mt-1.5" /></div>
               <div>
                 <Label className="text-xs">Status</Label>
                 <Select name="status" defaultValue={editItem.status}>
