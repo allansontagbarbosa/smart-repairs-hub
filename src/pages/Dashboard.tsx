@@ -1,19 +1,68 @@
-import { Wrench, Package, Clock, AlertTriangle, DollarSign, TrendingUp, TrendingDown, CheckCircle } from "lucide-react";
+import { Wrench, Package, Clock, DollarSign, TrendingUp, TrendingDown, CheckCircle, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAlertas } from "@/hooks/useAlertas";
+import { AlertsBanner } from "@/components/AlertsBanner";
+import { useState } from "react";
+import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
-const alerts = [
-  { type: "danger" as const, message: "iPhone 14 de Maria Silva parado há 12 dias sem atualização" },
-  { type: "warning" as const, message: "Samsung S23 de João Santos pronto há 5 dias — cliente não retirou" },
-  { type: "warning" as const, message: "Motorola G54 de Ana Costa pronto há 3 dias — aguardando retirada" },
-  { type: "info" as const, message: "Estoque de Tela iPhone 14: sistema mostra 2, conferência encontrou 1" },
-];
+async function fetchOrders() {
+  const { data, error } = await supabase
+    .from("ordens_de_servico")
+    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) )`)
+    .order("data_entrada", { ascending: false });
+  if (error) throw error;
+  return data;
+}
 
-const alertStyles = {
-  danger: { bg: "bg-destructive/8", border: "border-destructive/20", icon: AlertTriangle, iconColor: "text-destructive" },
-  warning: { bg: "bg-warning-muted", border: "border-warning/20", icon: Clock, iconColor: "text-warning" },
-  info: { bg: "bg-info-muted", border: "border-info/20", icon: Package, iconColor: "text-info" },
-};
+async function fetchKpis() {
+  const [ordensRes, estoqueRes, finRes] = await Promise.all([
+    supabase.from("ordens_de_servico").select("status, valor"),
+    supabase.from("estoque").select("quantidade, preco_custo"),
+    supabase.from("movimentacoes_financeiras").select("tipo, valor, data"),
+  ]);
+
+  const ordens = ordensRes.data ?? [];
+  const estoque = estoqueRes.data ?? [];
+  const fin = finRes.data ?? [];
+
+  const emAssistencia = ordens.filter(o => !["pronto", "entregue"].includes(o.status)).length;
+  const aguardandoEntrega = ordens.filter(o => o.status === "pronto").length;
+  const totalPecas = estoque.reduce((s, e) => s + (e.quantidade ?? 0), 0);
+  const valorEstoque = estoque.reduce((s, e) => s + (e.quantidade ?? 0) * (e.preco_custo ?? 0), 0);
+
+  const now = new Date();
+  const mesAtual = now.getMonth();
+  const anoAtual = now.getFullYear();
+  const finMes = fin.filter(f => {
+    const d = new Date(f.data);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
+  const entradas = finMes.filter(f => f.tipo === "entrada").reduce((s, f) => s + Number(f.valor), 0);
+  const saidas = finMes.filter(f => f.tipo === "saida").reduce((s, f) => s + Number(f.valor), 0);
+
+  return { emAssistencia, aguardandoEntrega, totalPecas, valorEstoque, entradas, saidas, lucro: entradas - saidas };
+}
+
+const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
 export default function Dashboard() {
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const { data: orders = [] } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
+  const { data: kpis, isLoading } = useQuery({ queryKey: ["dashboard-kpis"], queryFn: fetchKpis });
+  const alertas = useAlertas(orders);
+
+  const k = kpis ?? { emAssistencia: 0, aguardandoEntrega: 0, totalPecas: 0, valorEstoque: 0, entradas: 0, saidas: 0, lucro: 0 };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="page-header">
@@ -21,65 +70,58 @@ export default function Dashboard() {
         <p className="page-subtitle">Resumo geral da assistência</p>
       </div>
 
-      {/* KPI Cards — row 1: Assistência */}
+      {/* KPI Cards — row 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
           <Wrench className="h-4 w-4 text-info mb-3" />
-          <p className="stat-value">12</p>
+          <p className="stat-value">{k.emAssistencia}</p>
           <p className="stat-label">Em assistência</p>
         </div>
         <div className="stat-card">
           <CheckCircle className="h-4 w-4 text-success mb-3" />
-          <p className="stat-value">5</p>
+          <p className="stat-value">{k.aguardandoEntrega}</p>
           <p className="stat-label">Aguardando entrega</p>
         </div>
         <div className="stat-card">
           <Package className="h-4 w-4 text-muted-foreground mb-3" />
-          <p className="stat-value">34</p>
+          <p className="stat-value">{k.totalPecas}</p>
           <p className="stat-label">Peças em estoque</p>
         </div>
         <div className="stat-card">
           <DollarSign className="h-4 w-4 text-muted-foreground mb-3" />
-          <p className="stat-value">R$ 3.240</p>
+          <p className="stat-value">{fmt(k.valorEstoque)}</p>
           <p className="stat-label">Valor do estoque</p>
         </div>
       </div>
 
-      {/* KPI Cards — row 2: Financeiro */}
+      {/* KPI Cards — row 2 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="stat-card">
           <TrendingUp className="h-4 w-4 text-success mb-3" />
-          <p className="stat-value">R$ 4.280</p>
+          <p className="stat-value">{fmt(k.entradas)}</p>
           <p className="stat-label">Entradas do mês</p>
         </div>
         <div className="stat-card">
           <TrendingDown className="h-4 w-4 text-destructive mb-3" />
-          <p className="stat-value">R$ 2.140</p>
+          <p className="stat-value">{fmt(k.saidas)}</p>
           <p className="stat-label">Saídas do mês</p>
         </div>
         <div className="stat-card border-success/20 bg-success-muted">
           <DollarSign className="h-4 w-4 text-success mb-3" />
-          <p className="stat-value text-success">R$ 2.140</p>
+          <p className="stat-value text-success">{fmt(k.lucro)}</p>
           <p className="stat-label">Lucro líquido do mês</p>
         </div>
       </div>
 
-      {/* Alerts */}
-      <div>
-        <h2 className="section-title mb-3">Alertas</h2>
-        <div className="space-y-2">
-          {alerts.map((alert, i) => {
-            const style = alertStyles[alert.type];
-            const Icon = style.icon;
-            return (
-              <div key={i} className={`flex items-start gap-3 rounded-lg border ${style.border} ${style.bg} px-4 py-3`}>
-                <Icon className={`h-4 w-4 shrink-0 mt-0.5 ${style.iconColor}`} />
-                <p className="text-sm">{alert.message}</p>
-              </div>
-            );
-          })}
+      {/* Alertas */}
+      {alertas.length > 0 && (
+        <div>
+          <h2 className="section-title mb-3">Alertas ({alertas.length})</h2>
+          <AlertsBanner alertas={alertas} max={6} onClickAlert={setSelectedOrderId} />
         </div>
-      </div>
+      )}
+
+      <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
     </div>
   );
 }
