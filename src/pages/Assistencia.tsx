@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Loader2, LayoutGrid, MessageCircle, ChevronRight, CheckCircle, Truck } from "lucide-react";
+import { Plus, Search, Loader2, LayoutGrid, MessageCircle, ChevronRight, CheckCircle, Truck, AlertTriangle, Clock, CircleDot } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";
 import { AlertsBanner } from "@/components/AlertsBanner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Database } from "@/integrations/supabase/types";
+import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -32,6 +34,12 @@ const statusLabels: Record<Status, string> = {
   entregue: "Entregue",
 };
 
+const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: typeof AlertTriangle }> = {
+  critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
+  atencao: { color: "text-warning", bg: "bg-warning/10 border-warning/30", icon: Clock },
+  normal: { color: "text-success", bg: "bg-success/10 border-success/30", icon: CircleDot },
+};
+
 async function fetchOrders() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
@@ -41,11 +49,28 @@ async function fetchOrders() {
   return data;
 }
 
+function PrioridadeBadge({ nivel, motivo }: { nivel: Prioridade; motivo: string }) {
+  const cfg = prioridadeConfig[nivel];
+  const Icon = cfg.icon;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${cfg.bg} ${cfg.color}`}>
+          <Icon className="h-3 w-3" />
+          {nivel === "critica" ? "Urgente" : nivel === "atencao" ? "Atenção" : "OK"}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">{motivo}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function Assistencia() {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get("status") || "todos";
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>(initialStatus);
+  const [filterPrioridade, setFilterPrioridade] = useState<string>("todas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -88,15 +113,28 @@ export default function Assistencia() {
     return statusFlow[idx + 1];
   };
 
-  const filtered = orders.filter((o) => {
+  const enrichedOrders = orders.map((o) => {
+    const prio = calcularPrioridade(o.status, o.data_entrada, o.previsao_entrega);
+    return { ...o, prioridade: prio };
+  });
+
+  const filtered = enrichedOrders.filter((o) => {
     const clientName = o.aparelhos?.clientes?.nome ?? "";
     const clientPhone = o.aparelhos?.clientes?.telefone ?? "";
     const device = `${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""}`;
     const q = search.toLowerCase();
     const matchSearch = !search || clientName.toLowerCase().includes(q) || clientPhone.includes(q) || device.toLowerCase().includes(q) || String(o.numero).includes(q);
     const matchStatus = filterStatus === "todos" ? o.status !== "entregue" : o.status === filterStatus;
-    return matchSearch && matchStatus;
+    const matchPrioridade = filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
+    return matchSearch && matchStatus && matchPrioridade;
   });
+
+  const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
+  const sorted = [...filtered].sort((a, b) => prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel]);
+
+  const activePrios = enrichedOrders.filter((o) => o.status !== "entregue");
+  const countCritica = activePrios.filter((o) => o.prioridade.nivel === "critica").length;
+  const countAtencao = activePrios.filter((o) => o.prioridade.nivel === "atencao").length;
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
@@ -113,7 +151,7 @@ export default function Assistencia() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="page-header !mb-0">
           <h1 className="page-title">Assistência Técnica</h1>
-          <p className="page-subtitle">{filtered.length} ordens de serviço</p>
+          <p className="page-subtitle">{sorted.length} ordens de serviço</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -136,6 +174,46 @@ export default function Assistencia() {
           queryClient.invalidateQueries({ queryKey: ["ordens"] });
         }}
       />
+
+      {/* Priority summary bar */}
+      {(countCritica > 0 || countAtencao > 0) && (
+        <div className="flex items-center gap-3 flex-wrap">
+          {countCritica > 0 && (
+            <button
+              onClick={() => setFilterPrioridade(filterPrioridade === "critica" ? "todas" : "critica")}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                filterPrioridade === "critica"
+                  ? "bg-destructive text-destructive-foreground border-destructive"
+                  : "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"
+              }`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {countCritica} urgente{countCritica > 1 ? "s" : ""}
+            </button>
+          )}
+          {countAtencao > 0 && (
+            <button
+              onClick={() => setFilterPrioridade(filterPrioridade === "atencao" ? "todas" : "atencao")}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                filterPrioridade === "atencao"
+                  ? "bg-warning text-warning-foreground border-warning"
+                  : "bg-warning/10 text-warning border-warning/30 hover:bg-warning/20"
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {countAtencao} atenção
+            </button>
+          )}
+          {filterPrioridade !== "todas" && (
+            <button
+              onClick={() => setFilterPrioridade("todas")}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Limpar filtro
+            </button>
+          )}
+        </div>
+      )}
 
       {alertas.length > 0 && (
         <AlertsBanner alertas={alertas} max={3} onClickAlert={setSelectedOrderId} />
@@ -168,6 +246,7 @@ export default function Assistencia() {
                 <tr>
                   <th>OS</th>
                   <th>Cliente / Aparelho</th>
+                  <th className="hidden md:table-cell">Prioridade</th>
                   <th className="hidden lg:table-cell">Defeito</th>
                   <th>Status</th>
                   <th className="hidden md:table-cell">Entrada</th>
@@ -176,11 +255,12 @@ export default function Assistencia() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((order) => {
+                {sorted.map((order) => {
                   const nextStatus = getNextStatus(order.status as Status);
                   const phone = order.aparelhos?.clientes?.telefone;
+                  const isCritica = order.prioridade.nivel === "critica";
                   return (
-                    <tr key={order.id}>
+                    <tr key={order.id} className={isCritica ? "bg-destructive/5" : ""}>
                       <td
                         className="font-mono text-xs text-muted-foreground cursor-pointer hover:text-foreground"
                         onClick={() => setSelectedOrderId(order.id)}
@@ -190,6 +270,9 @@ export default function Assistencia() {
                       <td className="cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
                         <p className="font-medium text-sm">{order.aparelhos?.clientes?.nome ?? "—"}</p>
                         <p className="text-xs text-muted-foreground">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
+                      </td>
+                      <td className="hidden md:table-cell">
+                        <PrioridadeBadge nivel={order.prioridade.nivel} motivo={order.prioridade.motivo} />
                       </td>
                       <td
                         className="hidden lg:table-cell text-sm text-muted-foreground max-w-48 truncate cursor-pointer"
@@ -235,7 +318,6 @@ export default function Assistencia() {
                       </td>
                       <td>
                         <div className="flex items-center justify-end gap-1">
-                          {/* WhatsApp */}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -245,8 +327,6 @@ export default function Assistencia() {
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
                           </Button>
-
-                          {/* Quick: Mark as Pronto */}
                           {!["pronto", "entregue"].includes(order.status) && (
                             <Button
                               variant="ghost"
@@ -258,8 +338,6 @@ export default function Assistencia() {
                               <CheckCircle className="h-3.5 w-3.5" />
                             </Button>
                           )}
-
-                          {/* Quick: Mark as Entregue */}
                           {order.status === "pronto" && (
                             <Button
                               variant="ghost"
@@ -271,8 +349,6 @@ export default function Assistencia() {
                               <Truck className="h-3.5 w-3.5" />
                             </Button>
                           )}
-
-                          {/* Advance to next status */}
                           {nextStatus && order.status !== "pronto" && (
                             <Button
                               variant="ghost"
@@ -289,8 +365,8 @@ export default function Assistencia() {
                     </tr>
                   );
                 })}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="text-center text-muted-foreground py-10 text-sm">Nenhuma ordem encontrada</td></tr>
+                {sorted.length === 0 && (
+                  <tr><td colSpan={8} className="text-center text-muted-foreground py-10 text-sm">Nenhuma ordem encontrada</td></tr>
                 )}
               </tbody>
             </table>
