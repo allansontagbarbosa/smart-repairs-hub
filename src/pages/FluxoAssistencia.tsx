@@ -216,6 +216,8 @@ export default function FluxoAssistencia() {
           );
         })}
       </div>
+
+      <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
     </div>
   );
 }
