@@ -65,7 +65,110 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
-  const changeStatus = useMutation({
+  const { data: pecasUtilizadas = [] } = useQuery({
+    queryKey: ["pecas_utilizadas", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("pecas_utilizadas")
+        .select("*, estoque ( nome, categoria )")
+        .eq("ordem_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
+  const { data: pecasDisponiveis = [] } = useQuery({
+    queryKey: ["pecas_disponiveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estoque")
+        .select("id, nome, categoria, quantidade, preco_custo")
+        .gt("quantidade", 0)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const addPecaMutation = useMutation({
+    mutationFn: async ({ pecaId, qtd }: { pecaId: string; qtd: number }) => {
+      if (!ordem) return;
+      const peca = pecasDisponiveis.find(p => p.id === pecaId);
+      if (!peca) throw new Error("Peça não encontrada");
+      if (peca.quantidade < qtd) throw new Error(`Estoque insuficiente (disponível: ${peca.quantidade})`);
+
+      // Insert usage record
+      const { error: e1 } = await supabase.from("pecas_utilizadas").insert({
+        ordem_id: ordem.id,
+        peca_id: pecaId,
+        quantidade: qtd,
+        custo_unitario: peca.preco_custo ?? 0,
+      });
+      if (e1) throw e1;
+
+      // Deduct from stock
+      const { error: e2 } = await supabase.from("estoque").update({
+        quantidade: peca.quantidade - qtd,
+      }).eq("id", pecaId);
+      if (e2) throw e2;
+
+      // Update OS custo_pecas
+      const custoAdicional = (peca.preco_custo ?? 0) * qtd;
+      const { error: e3 } = await supabase.from("ordens_de_servico").update({
+        custo_pecas: (ordem.custo_pecas ?? 0) + custoAdicional,
+      }).eq("id", ordem.id);
+      if (e3) throw e3;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["pecas"] });
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setAddingPart(false);
+      setSelectedPecaId("");
+      setPecaQtd(1);
+      toast.success("Peça registrada e estoque atualizado!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const removePecaMutation = useMutation({
+    mutationFn: async (usage: { id: string; peca_id: string; quantidade: number; custo_unitario: number }) => {
+      if (!ordem) return;
+      // Remove usage record
+      const { error: e1 } = await supabase.from("pecas_utilizadas").delete().eq("id", usage.id);
+      if (e1) throw e1;
+
+      // Return to stock
+      const { data: peca } = await supabase.from("estoque").select("quantidade").eq("id", usage.peca_id).single();
+      if (peca) {
+        await supabase.from("estoque").update({
+          quantidade: peca.quantidade + usage.quantidade,
+        }).eq("id", usage.peca_id);
+      }
+
+      // Update OS custo_pecas
+      const custoRemovido = usage.custo_unitario * usage.quantidade;
+      await supabase.from("ordens_de_servico").update({
+        custo_pecas: Math.max(0, (ordem.custo_pecas ?? 0) - custoRemovido),
+      }).eq("id", ordem.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["pecas"] });
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      toast.success("Peça removida e estoque devolvido!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+
     mutationFn: async (newStatus: Status) => {
       if (!ordem) return;
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
