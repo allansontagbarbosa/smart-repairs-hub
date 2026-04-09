@@ -320,6 +320,48 @@ export type Database = {
           },
         ]
       }
+      pecas_utilizadas: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          id: string
+          ordem_id: string
+          peca_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          ordem_id: string
+          peca_id: string
+          quantidade?: number
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          id?: string
+          ordem_id?: string
+          peca_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pecas_utilizadas_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pecas_utilizadas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

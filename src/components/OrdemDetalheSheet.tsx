@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
@@ -30,6 +30,9 @@ interface Props {
 
 export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [editing, setEditing] = useState(false);
+  const [addingPart, setAddingPart] = useState(false);
+  const [selectedPecaId, setSelectedPecaId] = useState("");
+  const [pecaQtd, setPecaQtd] = useState(1);
   const queryClient = useQueryClient();
 
   const { data: ordem, isLoading } = useQuery({
@@ -60,6 +63,109 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       return data;
     },
     enabled: !!orderId,
+  });
+
+  const { data: pecasUtilizadas = [] } = useQuery({
+    queryKey: ["pecas_utilizadas", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("pecas_utilizadas")
+        .select("*, estoque ( nome, categoria )")
+        .eq("ordem_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
+  const { data: pecasDisponiveis = [] } = useQuery({
+    queryKey: ["pecas_disponiveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estoque")
+        .select("id, nome, categoria, quantidade, preco_custo")
+        .gt("quantidade", 0)
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const addPecaMutation = useMutation({
+    mutationFn: async ({ pecaId, qtd }: { pecaId: string; qtd: number }) => {
+      if (!ordem) return;
+      const peca = pecasDisponiveis.find(p => p.id === pecaId);
+      if (!peca) throw new Error("Peça não encontrada");
+      if (peca.quantidade < qtd) throw new Error(`Estoque insuficiente (disponível: ${peca.quantidade})`);
+
+      // Insert usage record
+      const { error: e1 } = await supabase.from("pecas_utilizadas").insert({
+        ordem_id: ordem.id,
+        peca_id: pecaId,
+        quantidade: qtd,
+        custo_unitario: peca.preco_custo ?? 0,
+      });
+      if (e1) throw e1;
+
+      // Deduct from stock
+      const { error: e2 } = await supabase.from("estoque").update({
+        quantidade: peca.quantidade - qtd,
+      }).eq("id", pecaId);
+      if (e2) throw e2;
+
+      // Update OS custo_pecas
+      const custoAdicional = (peca.preco_custo ?? 0) * qtd;
+      const { error: e3 } = await supabase.from("ordens_de_servico").update({
+        custo_pecas: (ordem.custo_pecas ?? 0) + custoAdicional,
+      }).eq("id", ordem.id);
+      if (e3) throw e3;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["pecas"] });
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setAddingPart(false);
+      setSelectedPecaId("");
+      setPecaQtd(1);
+      toast.success("Peça registrada e estoque atualizado!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const removePecaMutation = useMutation({
+    mutationFn: async (usage: { id: string; peca_id: string; quantidade: number; custo_unitario: number }) => {
+      if (!ordem) return;
+      // Remove usage record
+      const { error: e1 } = await supabase.from("pecas_utilizadas").delete().eq("id", usage.id);
+      if (e1) throw e1;
+
+      // Return to stock
+      const { data: peca } = await supabase.from("estoque").select("quantidade").eq("id", usage.peca_id).single();
+      if (peca) {
+        await supabase.from("estoque").update({
+          quantidade: peca.quantidade + usage.quantidade,
+        }).eq("id", usage.peca_id);
+      }
+
+      // Update OS custo_pecas
+      const custoRemovido = usage.custo_unitario * usage.quantidade;
+      await supabase.from("ordens_de_servico").update({
+        custo_pecas: Math.max(0, (ordem.custo_pecas ?? 0) - custoRemovido),
+      }).eq("id", ordem.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["pecas"] });
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      toast.success("Peça removida e estoque devolvido!");
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const changeStatus = useMutation({
@@ -305,7 +411,103 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Datas + técnico */}
+                {/* Peças utilizadas */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-muted-foreground">Peças utilizadas</p>
+                    {ordem.status !== "entregue" && !addingPart && (
+                      <button
+                        type="button"
+                        onClick={() => setAddingPart(true)}
+                        className="inline-flex items-center gap-1 text-xs text-info hover:underline"
+                      >
+                        <Plus className="h-3 w-3" />Adicionar
+                      </button>
+                    )}
+                  </div>
+
+                  {addingPart && (
+                    <div className="rounded-lg border bg-muted/30 p-3 space-y-3 mb-3">
+                      <div>
+                        <Label className="text-xs">Peça</Label>
+                        <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
+                          <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione a peça" /></SelectTrigger>
+                          <SelectContent>
+                            {pecasDisponiveis.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.nome} — {p.quantidade} em estoque — R$ {Number(p.preco_custo ?? 0).toFixed(2)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Quantidade</Label>
+                        <Input type="number" min={1} value={pecaQtd} onChange={(e) => setPecaQtd(Number(e.target.value))} className="mt-1 h-8" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={!selectedPecaId || addPecaMutation.isPending}
+                          onClick={() => addPecaMutation.mutate({ pecaId: selectedPecaId, qtd: pecaQtd })}
+                        >
+                          {addPecaMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                          Registrar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setAddingPart(false); setSelectedPecaId(""); setPecaQtd(1); }}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {pecasUtilizadas.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma peça registrada</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {pecasUtilizadas.map((pu) => (
+                        <div key={pu.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{(pu as any).estoque?.nome ?? "Peça"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {pu.quantidade}x — R$ {Number(pu.custo_unitario).toFixed(2)} cada
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              R$ {(pu.quantidade * Number(pu.custo_unitario)).toFixed(2)}
+                            </span>
+                            {ordem.status !== "entregue" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={() => removePecaMutation.mutate({
+                                  id: pu.id,
+                                  peca_id: pu.peca_id,
+                                  quantidade: pu.quantidade,
+                                  custo_unitario: Number(pu.custo_unitario),
+                                })}
+                                disabled={removePecaMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm pt-1 border-t">
+                        <span className="text-muted-foreground">Total peças</span>
+                        <span className="font-semibold">
+                          R$ {pecasUtilizadas.reduce((s, pu) => s + pu.quantidade * Number(pu.custo_unitario), 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
