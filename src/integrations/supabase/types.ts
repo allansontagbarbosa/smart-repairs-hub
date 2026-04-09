@@ -137,6 +137,7 @@ export type Database = {
         Row: {
           cpf: string | null
           created_at: string
+          deleted_at: string | null
           documento: string | null
           email: string | null
           id: string
@@ -150,6 +151,7 @@ export type Database = {
         Insert: {
           cpf?: string | null
           created_at?: string
+          deleted_at?: string | null
           documento?: string | null
           email?: string | null
           id?: string
@@ -163,6 +165,7 @@ export type Database = {
         Update: {
           cpf?: string | null
           created_at?: string
+          deleted_at?: string | null
           documento?: string | null
           email?: string | null
           id?: string
@@ -335,6 +338,7 @@ export type Database = {
           centro_custo: string | null
           centro_custo_id: string | null
           created_at: string
+          created_by: string | null
           data_pagamento: string | null
           data_vencimento: string
           descricao: string
@@ -352,6 +356,7 @@ export type Database = {
           centro_custo?: string | null
           centro_custo_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_pagamento?: string | null
           data_vencimento: string
           descricao: string
@@ -369,6 +374,7 @@ export type Database = {
           centro_custo?: string | null
           centro_custo_id?: string | null
           created_at?: string
+          created_by?: string | null
           data_pagamento?: string | null
           data_vencimento?: string
           descricao?: string
@@ -515,6 +521,7 @@ export type Database = {
           cor: string | null
           created_at: string
           custo_unitario: number | null
+          deleted_at: string | null
           fornecedor: string | null
           id: string
           imei_serial: string | null
@@ -537,6 +544,7 @@ export type Database = {
           cor?: string | null
           created_at?: string
           custo_unitario?: number | null
+          deleted_at?: string | null
           fornecedor?: string | null
           id?: string
           imei_serial?: string | null
@@ -559,6 +567,7 @@ export type Database = {
           cor?: string | null
           created_at?: string
           custo_unitario?: number | null
+          deleted_at?: string | null
           fornecedor?: string | null
           id?: string
           imei_serial?: string | null
@@ -628,6 +637,7 @@ export type Database = {
           ativo: boolean
           cargo: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
           funcao: string | null
           id: string
@@ -640,6 +650,7 @@ export type Database = {
           ativo?: boolean
           cargo?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           funcao?: string | null
           id?: string
@@ -652,6 +663,7 @@ export type Database = {
           ativo?: boolean
           cargo?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           funcao?: string | null
           id?: string
@@ -709,6 +721,7 @@ export type Database = {
           cidade: string | null
           cliente_id: string
           created_at: string
+          deleted_at: string | null
           email: string | null
           endereco: string | null
           estado: string | null
@@ -723,6 +736,7 @@ export type Database = {
           cidade?: string | null
           cliente_id: string
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
@@ -737,6 +751,7 @@ export type Database = {
           cidade?: string | null
           cliente_id?: string
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
@@ -876,75 +891,99 @@ export type Database = {
       ordens_de_servico: {
         Row: {
           aparelho_id: string
+          aprovacao_orcamento: string | null
           created_at: string
+          created_by: string | null
           custo_pecas: number | null
+          data_aprovacao: string | null
           data_conclusao: string | null
           data_entrada: string
           data_entrega: string | null
           defeito_relatado: string
+          deleted_at: string | null
           diagnostico: string | null
           forma_pagamento_id: string | null
           funcionario_id: string | null
           id: string
           loja_id: string | null
+          motivo_reprovacao: string | null
           numero: number
           observacoes: string | null
+          prazo_vencido: boolean
           previsao_entrega: string | null
+          prioridade: string
           servico_realizado: string | null
           status: Database["public"]["Enums"]["status_ordem"]
           tecnico: string | null
           tipo_servico_id: string | null
           updated_at: string
+          updated_by: string | null
           valor: number | null
           valor_pago: number | null
           valor_pendente: number | null
         }
         Insert: {
           aparelho_id: string
+          aprovacao_orcamento?: string | null
           created_at?: string
+          created_by?: string | null
           custo_pecas?: number | null
+          data_aprovacao?: string | null
           data_conclusao?: string | null
           data_entrada?: string
           data_entrega?: string | null
           defeito_relatado: string
+          deleted_at?: string | null
           diagnostico?: string | null
           forma_pagamento_id?: string | null
           funcionario_id?: string | null
           id?: string
           loja_id?: string | null
+          motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
+          prazo_vencido?: boolean
           previsao_entrega?: string | null
+          prioridade?: string
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
           tipo_servico_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           valor?: number | null
           valor_pago?: number | null
           valor_pendente?: number | null
         }
         Update: {
           aparelho_id?: string
+          aprovacao_orcamento?: string | null
           created_at?: string
+          created_by?: string | null
           custo_pecas?: number | null
+          data_aprovacao?: string | null
           data_conclusao?: string | null
           data_entrada?: string
           data_entrega?: string | null
           defeito_relatado?: string
+          deleted_at?: string | null
           diagnostico?: string | null
           forma_pagamento_id?: string | null
           funcionario_id?: string | null
           id?: string
           loja_id?: string | null
+          motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
+          prazo_vencido?: boolean
           previsao_entrega?: string | null
+          prioridade?: string
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
           tipo_servico_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           valor?: number | null
           valor_pago?: number | null
           valor_pendente?: number | null
@@ -1118,6 +1157,54 @@ export type Database = {
           valor_padrao?: number | null
         }
         Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          funcionario_id: string | null
+          id: string
+          nome_exibicao: string | null
+          perfil_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          funcionario_id?: string | null
+          id?: string
+          nome_exibicao?: string | null
+          perfil_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          funcionario_id?: string | null
+          id?: string
+          nome_exibicao?: string | null
+          perfil_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_profiles_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis_acesso"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
