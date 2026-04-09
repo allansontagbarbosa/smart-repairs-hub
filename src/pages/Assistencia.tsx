@@ -42,7 +42,7 @@ export default function Assistencia() {
     const device = `${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""}`;
     const q = search.toLowerCase();
     const matchSearch = !search || clientName.toLowerCase().includes(q) || clientPhone.includes(q) || device.toLowerCase().includes(q) || String(o.numero).includes(q);
-    const matchStatus = filterStatus === "todos" || o.status === filterStatus;
+    const matchStatus = filterStatus === "todos" ? o.status !== "entregue" : o.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
