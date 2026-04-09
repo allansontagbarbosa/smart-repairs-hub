@@ -115,6 +115,41 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_ordens: {
+        Row: {
+          created_at: string
+          id: string
+          observacao: string | null
+          ordem_id: string
+          status_anterior: string | null
+          status_novo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          ordem_id: string
+          status_anterior?: string | null
+          status_novo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          observacao?: string | null
+          ordem_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_ordens_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movimentacoes_financeiras: {
         Row: {
           created_at: string
