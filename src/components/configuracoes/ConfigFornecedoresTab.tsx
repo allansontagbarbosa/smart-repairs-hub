@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 interface Props { fornecedores: any[] }
 
-const emptyForm = { nome: "", responsavel: "", telefone: "", whatsapp: "", email: "", cnpj_cpf: "", endereco: "", cep: "", cidade: "", estado: "", categoria: "", prazo_medio: "", observacoes: "", ativo: true };
+const emptyForm = { nome: "", responsavel: "", telefone: "", whatsapp: "", email: "", cnpj_cpf: "", endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "", estado: "", categoria: "", prazo_medio: "", observacoes: "", ativo: true };
 
 export function ConfigFornecedoresTab({ fornecedores }: Props) {
   const qc = useQueryClient();
@@ -47,6 +47,7 @@ export function ConfigFornecedoresTab({ fornecedores }: Props) {
     setForm((p: any) => ({
       ...p,
       endereco: data.logradouro || p.endereco,
+      bairro: data.bairro || "",
       cidade: data.localidade || "",
       estado: data.uf || "",
     }));
@@ -54,10 +55,9 @@ export function ConfigFornecedoresTab({ fornecedores }: Props) {
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
-    const { cep, cidade, estado, ...payload } = form;
-    // Include city+state in endereco
-    const fullEndereco = [form.endereco, form.cidade, form.estado].filter(Boolean).join(", ");
-    const savePayload = { ...payload, endereco: fullEndereco };
+    const { cep, cidade, estado, numero, complemento, bairro, ...rest } = form;
+    const parts = [form.endereco, form.numero && `Nº ${form.numero}`, form.complemento, form.bairro, form.cidade, form.estado].filter(Boolean);
+    const savePayload = { ...rest, endereco: parts.join(", ") };
     if (editId) {
       await supabase.from("fornecedores").update(savePayload).eq("id", editId);
     } else {
@@ -69,7 +69,7 @@ export function ConfigFornecedoresTab({ fornecedores }: Props) {
   };
 
   const handleEdit = (f: any) => {
-    setForm({ nome: f.nome, responsavel: f.responsavel || "", telefone: f.telefone || "", whatsapp: f.whatsapp || "", email: f.email || "", cnpj_cpf: f.cnpj_cpf || "", endereco: f.endereco || "", cep: "", cidade: "", estado: "", categoria: f.categoria || "", prazo_medio: f.prazo_medio || "", observacoes: f.observacoes || "", ativo: f.ativo });
+    setForm({ nome: f.nome, responsavel: f.responsavel || "", telefone: f.telefone || "", whatsapp: f.whatsapp || "", email: f.email || "", cnpj_cpf: f.cnpj_cpf || "", endereco: f.endereco || "", numero: "", complemento: "", bairro: "", cep: "", cidade: "", estado: "", categoria: f.categoria || "", prazo_medio: f.prazo_medio || "", observacoes: f.observacoes || "", ativo: f.ativo });
     setEditId(f.id); setOpen(true);
   };
 
@@ -103,14 +103,19 @@ export function ConfigFornecedoresTab({ fornecedores }: Props) {
                 <div><Label>WhatsApp</Label><MaskedInput mask="phone" value={form.whatsapp} onValueChange={(_, m) => set("whatsapp", m)} placeholder="(00) 00000-0000" /></div>
                 <div><Label>Email</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
-                <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+                <div className="md:col-span-2"><Label>Rua / Logradouro</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+                <div><Label>Número</Label><Input value={form.numero} onChange={(e) => set("numero", e.target.value)} placeholder="Nº" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} placeholder="Apto, Bloco, Sala..." /></div>
+                <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} /></div>
                 <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
                 <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => set("estado", e.target.value)} /></div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Categoria</Label><Input value={form.categoria} onChange={(e) => set("categoria", e.target.value)} placeholder="Ex: Peças, Acessórios" /></div>
                 <div><Label>Prazo médio</Label><Input value={form.prazo_medio} onChange={(e) => set("prazo_medio", e.target.value)} placeholder="Ex: 3-5 dias" /></div>

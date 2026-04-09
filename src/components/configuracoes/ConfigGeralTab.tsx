@@ -22,6 +22,9 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
     telefone: empresa?.telefone || "",
     email: empresa?.email || "",
     endereco: empresa?.endereco || "",
+    numero: empresa?.numero || "",
+    complemento: empresa?.complemento || "",
+    bairro: empresa?.bairro || "",
     cidade: empresa?.cidade || "",
     estado: empresa?.estado || "",
     cep: empresa?.cep || "",
@@ -51,6 +54,7 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
     setForm((p) => ({
       ...p,
       endereco: data.logradouro || p.endereco,
+      bairro: data.bairro || p.bairro,
       cidade: data.localidade || p.cidade,
       estado: data.uf || p.estado,
     }));
@@ -64,35 +68,29 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <CnpjLookup
-              value={form.cnpj_cpf}
-              onValueChange={(v) => set("cnpj_cpf", v)}
-              onDataFound={handleCnpjData}
-              label="CNPJ / CPF"
-            />
+            <CnpjLookup value={form.cnpj_cpf} onValueChange={(v) => set("cnpj_cpf", v)} onDataFound={handleCnpjData} label="CNPJ / CPF" />
             <div><Label>Nome da empresa</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
-            <div>
-              <MaskedInput mask="phone" value={form.telefone} onValueChange={(_, masked) => set("telefone", masked)} placeholder="(00) 00000-0000" />
-              <Label className="sr-only">Telefone</Label>
-            </div>
+            <div><Label>Telefone</Label><MaskedInput mask="phone" value={form.telefone} onValueChange={(_, masked) => set("telefone", masked)} placeholder="(00) 00000-0000" /></div>
             <div><Label>Email</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <CepLookup cep={form.cep} onCepChange={(v) => set("cep", v)} onAddressFound={handleCepData} />
-            <div className="md:col-span-2"><Label>Endereço</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+            <div className="md:col-span-2"><Label>Rua / Logradouro</Label><Input value={form.endereco} onChange={(e) => set("endereco", e.target.value)} /></div>
+            <div><Label>Número</Label><Input value={form.numero} onChange={(e) => set("numero", e.target.value)} placeholder="Nº" /></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div><Label>Complemento</Label><Input value={form.complemento} onChange={(e) => set("complemento", e.target.value)} placeholder="Apto, Bloco, Sala..." /></div>
+            <div><Label>Bairro</Label><Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} /></div>
             <div><Label>Cidade</Label><Input value={form.cidade} onChange={(e) => set("cidade", e.target.value)} /></div>
             <div><Label>Estado</Label><Input value={form.estado} onChange={(e) => set("estado", e.target.value)} /></div>
-            <div><Label>Horário de funcionamento</Label><Input value={form.horario_funcionamento} onChange={(e) => set("horario_funcionamento", e.target.value)} placeholder="08:00 - 18:00" /></div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div><Label>Horário de funcionamento</Label><Input value={form.horario_funcionamento} onChange={(e) => set("horario_funcionamento", e.target.value)} placeholder="08:00 - 18:00" /></div>
             <div><Label>Cor principal</Label><Input type="color" value={form.cor_principal} onChange={(e) => set("cor_principal", e.target.value)} className="h-10" /></div>
             <CurrencySelect value={form.moeda} onValueChange={(v) => set("moeda", v)} />
-            <div><Label>Formato de data</Label><Input value={form.formato_data} onChange={(e) => set("formato_data", e.target.value)} /></div>
           </div>
 
           <div><Label>Observações internas</Label><Textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={3} /></div>
