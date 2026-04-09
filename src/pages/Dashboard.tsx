@@ -167,7 +167,6 @@ export default function Dashboard() {
     } else if (action === "verificar_status") {
       setSelectedOrderId(orderId);
     }
-    }
   };
 
   if (loadingOrders) {
