@@ -141,6 +141,8 @@ export default function Assistencia() {
           </div>
         </div>
       )}
+
+      <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
     </div>
   );
 }
