@@ -56,7 +56,11 @@ export default function FluxoAssistencia() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
-      const updates: Record<string, unknown> = { status: newStatus };
+      const updates: {
+        status: Status;
+        data_conclusao?: string;
+        data_entrega?: string;
+      } = { status: newStatus };
       if (newStatus === "pronto") updates.data_conclusao = new Date().toISOString();
       if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
