@@ -1,139 +1,319 @@
 import { useState } from "react";
-import { Plus, Search, AlertTriangle } from "lucide-react";
+import { Plus, Search, Loader2, Pencil } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
 
-type Item = {
-  id: number;
-  name: string;
-  category: string;
-  qty: number;
-  minQty: number;
-  cost: string;
-  sellPrice: string;
+type StatusEstoque = Database["public"]["Enums"]["status_estoque_aparelho"];
+type Aparelho = Database["public"]["Tables"]["estoque_aparelhos"]["Row"];
+
+const statusConfig: Record<StatusEstoque, { label: string; dot: string; text: string; bg: string }> = {
+  disponivel: { label: "Disponível", dot: "bg-success", text: "text-success", bg: "bg-success-muted" },
+  em_assistencia: { label: "Em Assistência", dot: "bg-info", text: "text-info", bg: "bg-info-muted" },
+  em_transporte: { label: "Em Transporte", dot: "bg-warning", text: "text-warning", bg: "bg-warning-muted" },
+  vendido: { label: "Vendido", dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
 };
 
-const initialItems: Item[] = [
-  { id: 1, name: "Tela iPhone 14", category: "Telas", qty: 2, minQty: 3, cost: "R$ 180", sellPrice: "R$ 350" },
-  { id: 2, name: "Tela iPhone 13", category: "Telas", qty: 5, minQty: 3, cost: "R$ 150", sellPrice: "R$ 320" },
-  { id: 3, name: "Bateria Samsung S23", category: "Baterias", qty: 1, minQty: 2, cost: "R$ 60", sellPrice: "R$ 150" },
-  { id: 4, name: "Conector USB-C universal", category: "Conectores", qty: 8, minQty: 5, cost: "R$ 15", sellPrice: "R$ 80" },
-  { id: 5, name: "Bateria iPhone 14", category: "Baterias", qty: 3, minQty: 2, cost: "R$ 70", sellPrice: "R$ 160" },
-  { id: 6, name: "Película de vidro universal", category: "Acessórios", qty: 25, minQty: 10, cost: "R$ 5", sellPrice: "R$ 30" },
+const allStatusOptions: { value: StatusEstoque | "todos"; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "disponivel", label: "Disponível" },
+  { value: "em_assistencia", label: "Em Assistência" },
+  { value: "em_transporte", label: "Em Transporte" },
+  { value: "vendido", label: "Vendido" },
 ];
 
-export default function Estoque() {
-  const [items, setItems] = useState<Item[]>(initialItems);
-  const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const filtered = items.filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.category.toLowerCase().includes(search.toLowerCase())
+function StatusBadgeEstoque({ status }: { status: StatusEstoque }) {
+  const c = statusConfig[status];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap", c.bg, c.text)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
+      {c.label}
+    </span>
   );
+}
 
-  const lowStock = items.filter((i) => i.qty <= i.minQty);
+async function fetchAparelhos() {
+  const { data, error } = await supabase
+    .from("estoque_aparelhos")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
 
-  const handleNew = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const newItem: Item = {
-      id: items.length + 1,
-      name: fd.get("name") as string,
-      category: fd.get("category") as string,
-      qty: Number(fd.get("qty")),
-      minQty: Number(fd.get("minQty")),
-      cost: `R$ ${fd.get("cost")}`,
-      sellPrice: `R$ ${fd.get("sellPrice")}`,
-    };
-    setItems([newItem, ...items]);
-    setDialogOpen(false);
-    toast.success("Peça adicionada!");
-  };
+const fmt = (v: number | null) => {
+  if (!v) return "—";
+  return `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+};
+
+const fmtDate = (d: string | null) => {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("pt-BR");
+};
+
+export default function Estoque() {
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editItem, setEditItem] = useState<Aparelho | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: aparelhos = [], isLoading } = useQuery({
+    queryKey: ["estoque_aparelhos"],
+    queryFn: fetchAparelhos,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (form: FormData) => {
+      const { error } = await supabase.from("estoque_aparelhos").insert({
+        marca: form.get("marca") as string,
+        modelo: form.get("modelo") as string,
+        capacidade: (form.get("capacidade") as string) || null,
+        cor: (form.get("cor") as string) || null,
+        imei: (form.get("imei") as string) || null,
+        custo_compra: Number(form.get("custo_compra")) || 0,
+        localizacao: (form.get("localizacao") as string) || null,
+        observacoes: (form.get("observacoes") as string) || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
+      setDialogOpen(false);
+      toast.success("Aparelho adicionado!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Aparelho> }) => {
+      const { error } = await supabase.from("estoque_aparelhos").update(data).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
+      setEditItem(null);
+      toast.success("Aparelho atualizado!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const filtered = aparelhos.filter((a) => {
+    const q = search.toLowerCase();
+    const matchSearch =
+      !search ||
+      a.modelo.toLowerCase().includes(q) ||
+      a.marca.toLowerCase().includes(q) ||
+      (a.imei ?? "").toLowerCase().includes(q) ||
+      (a.cor ?? "").toLowerCase().includes(q);
+    const matchStatus = filterStatus === "todos" || a.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const countByStatus = (s: StatusEstoque) => aparelhos.filter((a) => a.status === s).length;
 
   return (
     <div className="space-y-5 md:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="page-header !mb-0">
-          <h1 className="page-title">Estoque</h1>
-          <p className="page-subtitle">{items.length} itens · {lowStock.length} com estoque baixo</p>
+          <h1 className="page-title">Estoque de Aparelhos</h1>
+          <p className="page-subtitle">
+            {aparelhos.length} aparelhos · {countByStatus("disponivel")} disponíveis
+          </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1.5" />Adicionar Peça</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader><DialogTitle>Nova Peça</DialogTitle></DialogHeader>
-            <form onSubmit={handleNew} className="space-y-4 mt-2">
-              <div className="space-y-3">
-                <div><Label className="text-xs">Nome</Label><Input name="name" required placeholder="Ex: Tela iPhone 15" className="mt-1.5" /></div>
-                <div><Label className="text-xs">Categoria</Label><Input name="category" required placeholder="Ex: Telas" className="mt-1.5" /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Quantidade</Label><Input name="qty" type="number" required min={0} className="mt-1.5" /></div>
-                  <div><Label className="text-xs">Mínimo</Label><Input name="minQty" type="number" required min={0} className="mt-1.5" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Custo (R$)</Label><Input name="cost" required placeholder="0,00" className="mt-1.5" /></div>
-                  <div><Label className="text-xs">Venda (R$)</Label><Input name="sellPrice" required placeholder="0,00" className="mt-1.5" /></div>
-                </div>
-              </div>
-              <Button type="submit" className="w-full">Adicionar</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-1.5" />Adicionar Aparelho
+        </Button>
       </div>
 
-      {lowStock.length > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-warning/25 bg-warning-muted p-3.5">
-          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-          <p className="text-sm">
-            <span className="font-medium">Estoque baixo: </span>
-            <span className="text-muted-foreground">{lowStock.map((i) => `${i.name} (${i.qty})`).join(" · ")}</span>
-          </p>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2.5">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por IMEI, modelo, marca ou cor..."
+            className="pl-9 h-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-full sm:w-44 h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {allStatusOptions.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="section-card">
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Aparelho</th>
+                  <th className="hidden lg:table-cell">IMEI</th>
+                  <th>Status</th>
+                  <th className="hidden md:table-cell">Localização</th>
+                  <th className="hidden sm:table-cell">Entrada</th>
+                  <th className="text-right hidden sm:table-cell">Custo</th>
+                  <th className="w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <p className="font-medium text-sm">{item.marca} {item.modelo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {[item.capacidade, item.cor].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </td>
+                    <td className="hidden lg:table-cell text-sm font-mono text-muted-foreground">
+                      {item.imei ?? "—"}
+                    </td>
+                    <td>
+                      <StatusBadgeEstoque status={item.status} />
+                    </td>
+                    <td className="hidden md:table-cell text-sm text-muted-foreground">
+                      {item.localizacao ?? "—"}
+                    </td>
+                    <td className="hidden sm:table-cell text-sm text-muted-foreground">
+                      {fmtDate(item.data_entrada)}
+                    </td>
+                    <td className="text-right hidden sm:table-cell text-sm font-medium">
+                      {fmt(item.custo_compra)}
+                    </td>
+                    <td>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditItem(item)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center text-muted-foreground py-10 text-sm">
+                      Nenhum aparelho encontrado
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar peça ou categoria..." className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-      </div>
+      {/* New Device Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Novo Aparelho</DialogTitle></DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createMutation.mutate(new FormData(e.currentTarget));
+            }}
+            className="space-y-4 mt-2"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">Marca *</Label><Input name="marca" required placeholder="Apple" className="mt-1.5" /></div>
+              <div><Label className="text-xs">Modelo *</Label><Input name="modelo" required placeholder="iPhone 14" className="mt-1.5" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" placeholder="128GB" className="mt-1.5" /></div>
+              <div><Label className="text-xs">Cor</Label><Input name="cor" placeholder="Preto" className="mt-1.5" /></div>
+            </div>
+            <div><Label className="text-xs">IMEI</Label><Input name="imei" placeholder="000000000000000" className="mt-1.5" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">Custo de compra (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" placeholder="0" className="mt-1.5" /></div>
+              <div><Label className="text-xs">Localização</Label><Input name="localizacao" placeholder="Loja 1" className="mt-1.5" /></div>
+            </div>
+            <div><Label className="text-xs">Observações</Label><Textarea name="observacoes" rows={2} placeholder="Anotações..." className="mt-1.5" /></div>
+            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
+              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              Adicionar
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      <div className="section-card">
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Peça</th>
-                <th className="hidden sm:table-cell">Categoria</th>
-                <th className="text-center">Qtd</th>
-                <th className="hidden md:table-cell text-right">Custo</th>
-                <th className="text-right">Venda</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground sm:hidden">{item.category}</p>
-                  </td>
-                  <td className="hidden sm:table-cell text-sm text-muted-foreground">{item.category}</td>
-                  <td className="text-center">
-                    <span className={`text-sm font-medium ${item.qty <= item.minQty ? "text-destructive" : ""}`}>
-                      {item.qty}
-                    </span>
-                  </td>
-                  <td className="hidden md:table-cell text-right text-sm text-muted-foreground">{item.cost}</td>
-                  <td className="text-right text-sm font-medium">{item.sellPrice}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Edit Sheet */}
+      <Sheet open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          <SheetHeader><SheetTitle>Editar Aparelho</SheetTitle></SheetHeader>
+          {editItem && (
+            <form
+              className="space-y-4 mt-6"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                updateMutation.mutate({
+                  id: editItem.id,
+                  data: {
+                    marca: fd.get("marca") as string,
+                    modelo: fd.get("modelo") as string,
+                    capacidade: (fd.get("capacidade") as string) || null,
+                    cor: (fd.get("cor") as string) || null,
+                    imei: (fd.get("imei") as string) || null,
+                    custo_compra: Number(fd.get("custo_compra")) || 0,
+                    localizacao: (fd.get("localizacao") as string) || null,
+                    status: fd.get("status") as StatusEstoque,
+                    observacoes: (fd.get("observacoes") as string) || null,
+                  },
+                });
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Marca *</Label><Input name="marca" required defaultValue={editItem.marca} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Modelo *</Label><Input name="modelo" required defaultValue={editItem.modelo} className="mt-1.5" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" defaultValue={editItem.capacidade ?? ""} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Cor</Label><Input name="cor" defaultValue={editItem.cor ?? ""} className="mt-1.5" /></div>
+              </div>
+              <div><Label className="text-xs">IMEI</Label><Input name="imei" defaultValue={editItem.imei ?? ""} className="mt-1.5" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Custo (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" defaultValue={editItem.custo_compra ?? 0} className="mt-1.5" /></div>
+                <div><Label className="text-xs">Localização</Label><Input name="localizacao" defaultValue={editItem.localizacao ?? ""} className="mt-1.5" /></div>
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <Select name="status" defaultValue={editItem.status}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {allStatusOptions.filter(s => s.value !== "todos").map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label className="text-xs">Observações</Label><Textarea name="observacoes" rows={2} defaultValue={editItem.observacoes ?? ""} className="mt-1.5" /></div>
+              <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                Salvar
+              </Button>
+            </form>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
