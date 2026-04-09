@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
