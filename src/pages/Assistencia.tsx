@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { useAlertas } from "@/hooks/useAlertas";
+import { AlertsBanner } from "@/components/AlertsBanner";
 
 async function fetchOrders() {
   const { data, error } = await supabase
