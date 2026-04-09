@@ -14,7 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      aparelhos: {
+        Row: {
+          cliente_id: string
+          cor: string | null
+          created_at: string
+          id: string
+          imei: string | null
+          marca: string
+          modelo: string
+          observacoes: string | null
+        }
+        Insert: {
+          cliente_id: string
+          cor?: string | null
+          created_at?: string
+          id?: string
+          imei?: string | null
+          marca: string
+          modelo: string
+          observacoes?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          cor?: string | null
+          created_at?: string
+          id?: string
+          imei?: string | null
+          marca?: string
+          modelo?: string
+          observacoes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aparelhos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string
+        }
+        Relationships: []
+      }
+      estoque: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          id: string
+          nome: string
+          preco_custo: number | null
+          preco_venda: number | null
+          quantidade: number
+          quantidade_minima: number
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          preco_custo?: number | null
+          preco_venda?: number | null
+          quantidade?: number
+          quantidade_minima?: number
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          preco_custo?: number | null
+          preco_venda?: number | null
+          quantidade?: number
+          quantidade_minima?: number
+        }
+        Relationships: []
+      }
+      movimentacoes_financeiras: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          estoque_id: string | null
+          id: string
+          ordem_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao: string
+          estoque_id?: string | null
+          id?: string
+          ordem_id?: string | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"]
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          estoque_id?: string | null
+          id?: string
+          ordem_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_financeiras_estoque_id_fkey"
+            columns: ["estoque_id"]
+            isOneToOne: false
+            referencedRelation: "estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_financeiras_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ordens_de_servico: {
+        Row: {
+          aparelho_id: string
+          created_at: string
+          custo_pecas: number | null
+          data_conclusao: string | null
+          data_entrada: string
+          data_entrega: string | null
+          defeito_relatado: string
+          diagnostico: string | null
+          id: string
+          numero: number
+          observacoes: string | null
+          servico_realizado: string | null
+          status: Database["public"]["Enums"]["status_ordem"]
+          valor: number | null
+        }
+        Insert: {
+          aparelho_id: string
+          created_at?: string
+          custo_pecas?: number | null
+          data_conclusao?: string | null
+          data_entrada?: string
+          data_entrega?: string | null
+          defeito_relatado: string
+          diagnostico?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          servico_realizado?: string | null
+          status?: Database["public"]["Enums"]["status_ordem"]
+          valor?: number | null
+        }
+        Update: {
+          aparelho_id?: string
+          created_at?: string
+          custo_pecas?: number | null
+          data_conclusao?: string | null
+          data_entrada?: string
+          data_entrega?: string | null
+          defeito_relatado?: string
+          diagnostico?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          servico_realizado?: string | null
+          status?: Database["public"]["Enums"]["status_ordem"]
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_de_servico_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "aparelhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +230,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      status_ordem:
+        | "aguardando_orcamento"
+        | "orcamento_aprovado"
+        | "em_reparo"
+        | "pronto"
+        | "entregue"
+        | "cancelado"
+      tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +364,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      status_ordem: [
+        "aguardando_orcamento",
+        "orcamento_aprovado",
+        "em_reparo",
+        "pronto",
+        "entregue",
+        "cancelado",
+      ],
+      tipo_movimentacao: ["entrada", "saida"],
+    },
   },
 } as const
