@@ -11,7 +11,7 @@ import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 async function fetchOrders() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos ( marca, modelo, imei, clientes ( nome, telefone ) )`)
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data;
