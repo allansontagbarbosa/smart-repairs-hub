@@ -21,7 +21,7 @@ interface Props { funcionarios: any[] }
 
 const emptyForm = {
   nome: "", cpf: "", telefone: "", email: "", cargo: "", funcao: "",
-  endereco: "", cep: "", cidade: "", estado: "",
+  endereco: "", numero: "", complemento: "", bairro: "", cep: "", cidade: "", estado: "",
   tipo_comissao: "fixa" as string, valor_comissao: 0, ativo: true,
 };
 
