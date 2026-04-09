@@ -49,7 +49,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
-    const { cep, cidade, estado, cpf, ...rest } = form;
+    const { cep, cidade, estado, cpf, numero, complemento, bairro, ...rest } = form;
     const payload = { ...rest, valor_comissao: Number(form.valor_comissao) || 0 };
     if (editId) {
       await supabase.from("funcionarios").update(payload).eq("id", editId);
