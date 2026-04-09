@@ -411,7 +411,103 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Datas + técnico */}
+                {/* Peças utilizadas */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-muted-foreground">Peças utilizadas</p>
+                    {ordem.status !== "entregue" && !addingPart && (
+                      <button
+                        type="button"
+                        onClick={() => setAddingPart(true)}
+                        className="inline-flex items-center gap-1 text-xs text-info hover:underline"
+                      >
+                        <Plus className="h-3 w-3" />Adicionar
+                      </button>
+                    )}
+                  </div>
+
+                  {addingPart && (
+                    <div className="rounded-lg border bg-muted/30 p-3 space-y-3 mb-3">
+                      <div>
+                        <Label className="text-xs">Peça</Label>
+                        <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
+                          <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione a peça" /></SelectTrigger>
+                          <SelectContent>
+                            {pecasDisponiveis.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.nome} — {p.quantidade} em estoque — R$ {Number(p.preco_custo ?? 0).toFixed(2)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Quantidade</Label>
+                        <Input type="number" min={1} value={pecaQtd} onChange={(e) => setPecaQtd(Number(e.target.value))} className="mt-1 h-8" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={!selectedPecaId || addPecaMutation.isPending}
+                          onClick={() => addPecaMutation.mutate({ pecaId: selectedPecaId, qtd: pecaQtd })}
+                        >
+                          {addPecaMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                          Registrar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setAddingPart(false); setSelectedPecaId(""); setPecaQtd(1); }}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {pecasUtilizadas.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma peça registrada</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {pecasUtilizadas.map((pu) => (
+                        <div key={pu.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{(pu as any).estoque?.nome ?? "Peça"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {pu.quantidade}x — R$ {Number(pu.custo_unitario).toFixed(2)} cada
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              R$ {(pu.quantidade * Number(pu.custo_unitario)).toFixed(2)}
+                            </span>
+                            {ordem.status !== "entregue" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={() => removePecaMutation.mutate({
+                                  id: pu.id,
+                                  peca_id: pu.peca_id,
+                                  quantidade: pu.quantidade,
+                                  custo_unitario: Number(pu.custo_unitario),
+                                })}
+                                disabled={removePecaMutation.isPending}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm pt-1 border-t">
+                        <span className="text-muted-foreground">Total peças</span>
+                        <span className="font-semibold">
+                          R$ {pecasUtilizadas.reduce((s, pu) => s + pu.quantidade * Number(pu.custo_unitario), 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
