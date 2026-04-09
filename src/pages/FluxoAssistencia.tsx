@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import type { Database } from "@/integrations/supabase/types";
-import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
+
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -69,12 +69,9 @@ export default function FluxoAssistencia() {
       if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
-
-      await syncEstoqueFromOrdem(aparelhoId, newStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
-      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar status"),
