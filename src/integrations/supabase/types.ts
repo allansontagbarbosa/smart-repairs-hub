@@ -743,41 +743,86 @@ export type Database = {
       funcionarios: {
         Row: {
           ativo: boolean
+          bairro: string | null
+          carga_horaria: string | null
           cargo: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cpf: string | null
           created_at: string
+          data_admissao: string | null
           deleted_at: string | null
           email: string | null
+          endereco: string | null
+          especialidade: string | null
+          estado: string | null
           funcao: string | null
           id: string
           nome: string
+          numero: string | null
+          observacoes: string | null
+          salario_fixo: number | null
           telefone: string | null
           tipo_comissao: Database["public"]["Enums"]["tipo_comissao"]
+          vale_alimentacao: number | null
+          vale_transporte: number | null
           valor_comissao: number
         }
         Insert: {
           ativo?: boolean
+          bairro?: string | null
+          carga_horaria?: string | null
           cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
           created_at?: string
+          data_admissao?: string | null
           deleted_at?: string | null
           email?: string | null
+          endereco?: string | null
+          especialidade?: string | null
+          estado?: string | null
           funcao?: string | null
           id?: string
           nome: string
+          numero?: string | null
+          observacoes?: string | null
+          salario_fixo?: number | null
           telefone?: string | null
           tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          vale_alimentacao?: number | null
+          vale_transporte?: number | null
           valor_comissao?: number
         }
         Update: {
           ativo?: boolean
+          bairro?: string | null
+          carga_horaria?: string | null
           cargo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
           created_at?: string
+          data_admissao?: string | null
           deleted_at?: string | null
           email?: string | null
+          endereco?: string | null
+          especialidade?: string | null
+          estado?: string | null
           funcao?: string | null
           id?: string
           nome?: string
+          numero?: string | null
+          observacoes?: string | null
+          salario_fixo?: number | null
           telefone?: string | null
           tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          vale_alimentacao?: number | null
+          vale_transporte?: number | null
           valor_comissao?: number
         }
         Relationships: []
