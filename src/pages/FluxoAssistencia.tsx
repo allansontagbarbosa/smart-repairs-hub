@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, ChevronLeft, Clock, AlertTriangle, LayoutGrid, List, Loader2 } from "lucide-react";
@@ -90,9 +90,19 @@ export default function FluxoAssistencia() {
 
   return (
     <div className="space-y-5">
-      <div className="page-header">
-        <h1 className="page-title">Fluxo de Atendimento</h1>
-        <p className="page-subtitle">Acompanhe cada aparelho pelas etapas da assistência</p>
+      <div className="flex items-center justify-between">
+        <div className="page-header !mb-0">
+          <h1 className="page-title">Fluxo de Atendimento</h1>
+          <p className="page-subtitle">Acompanhe cada aparelho pelas etapas</p>
+        </div>
+        <Link
+          to="/assistencia"
+          className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <List className="h-3.5 w-3.5" />
+          Lista
+        </Link>
+      </div>
       </div>
 
       {/* Kanban */}
