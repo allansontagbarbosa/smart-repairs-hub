@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAlertas } from "@/hooks/useAlertas";
 import { useAlertasEstoque, useAlertasEstoqueCruzado } from "@/hooks/useAlertasEstoque";
+import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import type { GenericAlert } from "@/components/AlertsBanner";
 import { useState, useMemo } from "react";
