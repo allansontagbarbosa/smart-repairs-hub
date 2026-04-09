@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
-import { syncEstoqueFromOrdem } from "@/lib/syncEstoque";
+
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -185,14 +185,11 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       });
       if (e2) throw e2;
 
-      // Sync stock device status
-      await syncEstoqueFromOrdem(ordem.aparelho_id, newStatus);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
       queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
-      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar"),

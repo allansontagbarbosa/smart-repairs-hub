@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import type { Database } from "@/integrations/supabase/types";
-import { marcarEstoqueEmAssistencia } from "@/lib/syncEstoque";
+
 import { toast } from "sonner";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
@@ -83,8 +83,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
       });
       if (osErr) throw osErr;
 
-      const imei = (fd.get("imei") as string) || null;
-      await marcarEstoqueEmAssistencia(imei);
     },
     onSuccess: () => {
       setSelectedClientId("");
