@@ -7,7 +7,9 @@ const statusConfig: Record<Status, { label: string; dot: string; text: string; b
   recebido: { label: "Recebido", dot: "bg-muted-foreground", text: "text-muted-foreground", bg: "bg-muted" },
   em_analise: { label: "Em Análise", dot: "bg-info", text: "text-info", bg: "bg-info-muted" },
   aguardando_aprovacao: { label: "Aguard. Aprovação", dot: "bg-warning", text: "text-warning", bg: "bg-warning-muted" },
+  aprovado: { label: "Aprovado", dot: "bg-success", text: "text-success", bg: "bg-success-muted" },
   em_reparo: { label: "Em Reparo", dot: "bg-info", text: "text-info", bg: "bg-info-muted" },
+  aguardando_peca: { label: "Aguard. Peça", dot: "bg-warning", text: "text-warning", bg: "bg-warning-muted" },
   pronto: { label: "Pronto", dot: "bg-success", text: "text-success", bg: "bg-success-muted" },
   entregue: { label: "Entregue", dot: "bg-foreground/30", text: "text-muted-foreground", bg: "bg-muted" },
 };
@@ -27,7 +29,9 @@ export const allStatuses: { value: Status | "todos"; label: string }[] = [
   { value: "recebido", label: "Recebido" },
   { value: "em_analise", label: "Em Análise" },
   { value: "aguardando_aprovacao", label: "Aguard. Aprovação" },
+  { value: "aprovado", label: "Aprovado" },
   { value: "em_reparo", label: "Em Reparo" },
+  { value: "aguardando_peca", label: "Aguard. Peça" },
   { value: "pronto", label: "Pronto" },
   { value: "entregue", label: "Entregue" },
 ];

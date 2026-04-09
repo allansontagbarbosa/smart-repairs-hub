@@ -11,14 +11,17 @@ type Status = Database["public"]["Enums"]["status_ordem"];
 
 const statusLabels: Record<Status, string> = {
   recebido: "Recebido", em_analise: "Em Análise", aguardando_aprovacao: "Aguardando Aprovação",
-  em_reparo: "Em Reparo", pronto: "Pronto para Retirada", entregue: "Entregue",
+  aprovado: "Aprovado", em_reparo: "Em Reparo", aguardando_peca: "Aguardando Peça",
+  pronto: "Pronto para Retirada", entregue: "Entregue",
 };
 
 const statusDescriptions: Record<Status, string> = {
   recebido: "Seu aparelho foi recebido e está na fila de atendimento.",
   em_analise: "Nosso técnico está analisando o problema do seu aparelho.",
   aguardando_aprovacao: "O orçamento foi enviado. Aguardamos sua aprovação para iniciar o reparo.",
+  aprovado: "Orçamento aprovado! Seu aparelho entrará em reparo em breve.",
   em_reparo: "Seu aparelho está sendo reparado pelo nosso técnico.",
+  aguardando_peca: "Estamos aguardando a chegada de uma peça necessária para o reparo.",
   pronto: "O reparo foi concluído! Seu aparelho está pronto para retirada.",
   entregue: "Aparelho já foi entregue. Obrigado pela confiança!",
 };
@@ -27,14 +30,15 @@ const statusColors: Record<Status, { dot: string; bg: string; text: string }> = 
   recebido: { dot: "bg-muted-foreground", bg: "bg-muted", text: "text-muted-foreground" },
   em_analise: { dot: "bg-info", bg: "bg-info-muted", text: "text-info" },
   aguardando_aprovacao: { dot: "bg-warning", bg: "bg-warning-muted", text: "text-warning" },
+  aprovado: { dot: "bg-success", bg: "bg-success-muted", text: "text-success" },
   em_reparo: { dot: "bg-info", bg: "bg-info-muted", text: "text-info" },
+  aguardando_peca: { dot: "bg-warning", bg: "bg-warning-muted", text: "text-warning" },
   pronto: { dot: "bg-success", bg: "bg-success-muted", text: "text-success" },
   entregue: { dot: "bg-foreground/30", bg: "bg-muted", text: "text-muted-foreground" },
 };
 
-// The 6-step flow for the progress bar
-const steps: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "em_reparo", "pronto", "entregue"];
-const stepLabels = ["Recebido", "Análise", "Orçamento", "Reparo", "Pronto", "Entregue"];
+const steps: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"];
+const stepLabels = ["Recebido", "Análise", "Orçamento", "Aprovado", "Reparo", "Peça", "Pronto", "Entregue"];
 
 type OrderResult = {
   numero: number;

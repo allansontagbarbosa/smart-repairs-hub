@@ -55,6 +55,30 @@ export type Database = {
           },
         ]
       }
+      categorias_sistema: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cpf: string | null
@@ -85,6 +109,167 @@ export type Database = {
           observacoes?: string | null
           telefone?: string
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      comissoes: {
+        Row: {
+          created_at: string
+          data_pagamento: string | null
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          ordem_id: string | null
+          status: Database["public"]["Enums"]["status_comissao"]
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string | null
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          ordem_id?: string | null
+          status?: Database["public"]["Enums"]["status_comissao"]
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string | null
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          ordem_id?: string | null
+          status?: Database["public"]["Enums"]["status_comissao"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conferencia_itens: {
+        Row: {
+          conferencia_id: string
+          created_at: string
+          divergencia: number
+          id: string
+          item_id: string | null
+          item_nome: string
+          item_tipo: string
+          quantidade_contada: number
+          quantidade_esperada: number
+        }
+        Insert: {
+          conferencia_id: string
+          created_at?: string
+          divergencia?: number
+          id?: string
+          item_id?: string | null
+          item_nome: string
+          item_tipo: string
+          quantidade_contada?: number
+          quantidade_esperada?: number
+        }
+        Update: {
+          conferencia_id?: string
+          created_at?: string
+          divergencia?: number
+          id?: string
+          item_id?: string | null
+          item_nome?: string
+          item_tipo?: string
+          quantidade_contada?: number
+          quantidade_esperada?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conferencia_itens_conferencia_id_fkey"
+            columns: ["conferencia_id"]
+            isOneToOne: false
+            referencedRelation: "conferencias_estoque"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conferencias_estoque: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          observacoes: string | null
+          responsavel: string
+          status: Database["public"]["Enums"]["status_conferencia"]
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          observacoes?: string | null
+          responsavel: string
+          status?: Database["public"]["Enums"]["status_conferencia"]
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          observacoes?: string | null
+          responsavel?: string
+          status?: Database["public"]["Enums"]["status_conferencia"]
+        }
+        Relationships: []
+      }
+      contas_a_pagar: {
+        Row: {
+          categoria: string
+          centro_custo: string | null
+          created_at: string
+          data_pagamento: string | null
+          data_vencimento: string
+          descricao: string
+          id: string
+          observacoes: string | null
+          recorrente: boolean
+          status: Database["public"]["Enums"]["status_conta"]
+          valor: number
+        }
+        Insert: {
+          categoria?: string
+          centro_custo?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento: string
+          descricao: string
+          id?: string
+          observacoes?: string | null
+          recorrente?: boolean
+          status?: Database["public"]["Enums"]["status_conta"]
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          centro_custo?: string | null
+          created_at?: string
+          data_pagamento?: string | null
+          data_vencimento?: string
+          descricao?: string
+          id?: string
+          observacoes?: string | null
+          recorrente?: boolean
+          status?: Database["public"]["Enums"]["status_conta"]
+          valor?: number
         }
         Relationships: []
       }
@@ -172,6 +357,39 @@ export type Database = {
         }
         Relationships: []
       }
+      funcionarios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          funcao: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          tipo_comissao: Database["public"]["Enums"]["tipo_comissao"]
+          valor_comissao: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          funcao?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          valor_comissao?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          funcao?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          valor_comissao?: number
+        }
+        Relationships: []
+      }
       historico_ordens: {
         Row: {
           created_at: string
@@ -203,6 +421,50 @@ export type Database = {
             columns: ["ordem_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lojas: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          created_at: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
@@ -265,7 +527,9 @@ export type Database = {
           data_entrega: string | null
           defeito_relatado: string
           diagnostico: string | null
+          funcionario_id: string | null
           id: string
+          loja_id: string | null
           numero: number
           observacoes: string | null
           previsao_entrega: string | null
@@ -283,7 +547,9 @@ export type Database = {
           data_entrega?: string | null
           defeito_relatado: string
           diagnostico?: string | null
+          funcionario_id?: string | null
           id?: string
+          loja_id?: string | null
           numero?: number
           observacoes?: string | null
           previsao_entrega?: string | null
@@ -301,7 +567,9 @@ export type Database = {
           data_entrega?: string | null
           defeito_relatado?: string
           diagnostico?: string | null
+          funcionario_id?: string | null
           id?: string
+          loja_id?: string | null
           numero?: number
           observacoes?: string | null
           previsao_entrega?: string | null
@@ -316,6 +584,20 @@ export type Database = {
             columns: ["aparelho_id"]
             isOneToOne: false
             referencedRelation: "aparelhos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_de_servico_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_de_servico_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
             referencedColumns: ["id"]
           },
         ]
@@ -370,6 +652,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      status_comissao: "pendente" | "liberada" | "paga"
+      status_conferencia: "em_andamento" | "finalizada"
+      status_conta: "pendente" | "paga" | "vencida" | "cancelada"
       status_estoque_aparelho:
         | "disponivel"
         | "em_assistencia"
@@ -379,9 +664,12 @@ export type Database = {
         | "recebido"
         | "em_analise"
         | "aguardando_aprovacao"
+        | "aprovado"
         | "em_reparo"
+        | "aguardando_peca"
         | "pronto"
         | "entregue"
+      tipo_comissao: "fixa" | "percentual"
       tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
@@ -510,6 +798,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      status_comissao: ["pendente", "liberada", "paga"],
+      status_conferencia: ["em_andamento", "finalizada"],
+      status_conta: ["pendente", "paga", "vencida", "cancelada"],
       status_estoque_aparelho: [
         "disponivel",
         "em_assistencia",
@@ -520,10 +811,13 @@ export const Constants = {
         "recebido",
         "em_analise",
         "aguardando_aprovacao",
+        "aprovado",
         "em_reparo",
+        "aguardando_peca",
         "pronto",
         "entregue",
       ],
+      tipo_comissao: ["fixa", "percentual"],
       tipo_movimentacao: ["entrada", "saida"],
     },
   },
