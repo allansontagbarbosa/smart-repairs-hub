@@ -87,6 +87,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         status: "recebido" as Status,
       });
       if (osErr) throw osErr;
+
+      // Sync stock: mark matching IMEI device as "em_assistencia"
+      const imei = (fd.get("imei") as string) || null;
+      await marcarEstoqueEmAssistencia(imei);
     },
     onSuccess: () => {
       setSelectedClientId("");
