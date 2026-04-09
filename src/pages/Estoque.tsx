@@ -74,13 +74,25 @@ export default function Estoque() {
 
   const createMutation = useMutation({
     mutationFn: async (form: FormData) => {
+      const imei = (form.get("imei") as string).trim();
+      if (!imei) throw new Error("IMEI é obrigatório");
+
+      // Check duplicate IMEI
+      const { data: existing } = await supabase
+        .from("estoque_aparelhos")
+        .select("id")
+        .eq("imei", imei)
+        .maybeSingle();
+      if (existing) throw new Error("Já existe um aparelho com este IMEI cadastrado");
+
       const { error } = await supabase.from("estoque_aparelhos").insert({
         marca: form.get("marca") as string,
         modelo: form.get("modelo") as string,
         capacidade: (form.get("capacidade") as string) || null,
         cor: (form.get("cor") as string) || null,
-        imei: (form.get("imei") as string) || null,
+        imei,
         custo_compra: Number(form.get("custo_compra")) || 0,
+        fornecedor: (form.get("fornecedor") as string) || null,
         localizacao: (form.get("localizacao") as string) || null,
         observacoes: (form.get("observacoes") as string) || null,
       });
