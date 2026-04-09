@@ -137,7 +137,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
 
             {showNewClient ? (
               <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                <div onSubmit={handleNewClient} className="contents">
+                <div className="contents">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-xs text-muted-foreground">Nome</Label>
