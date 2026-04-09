@@ -67,7 +67,7 @@ const fmtDate = (d: string | null) => {
 export default function Estoque() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [novaOSOpen, setNovaOSOpen] = useState(false);
   const [editItem, setEditItem] = useState<Aparelho | null>(null);
   const queryClient = useQueryClient();
 
@@ -77,40 +77,6 @@ export default function Estoque() {
   });
 
   const alertasEstoque = useAlertasEstoque(aparelhos);
-
-  const createMutation = useMutation({
-    mutationFn: async (form: FormData) => {
-      const imei = (form.get("imei") as string).trim();
-      if (!imei) throw new Error("IMEI é obrigatório");
-
-      // Check duplicate IMEI
-      const { data: existing } = await supabase
-        .from("estoque_aparelhos")
-        .select("id")
-        .eq("imei", imei)
-        .maybeSingle();
-      if (existing) throw new Error("Já existe um aparelho com este IMEI cadastrado");
-
-      const { error } = await supabase.from("estoque_aparelhos").insert({
-        marca: form.get("marca") as string,
-        modelo: form.get("modelo") as string,
-        capacidade: (form.get("capacidade") as string) || null,
-        cor: (form.get("cor") as string) || null,
-        imei,
-        custo_compra: Number(form.get("custo_compra")) || 0,
-        fornecedor: (form.get("fornecedor") as string) || null,
-        localizacao: (form.get("localizacao") as string) || null,
-        observacoes: (form.get("observacoes") as string) || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] });
-      setDialogOpen(false);
-      toast.success("Aparelho adicionado!");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Aparelho> }) => {
@@ -156,8 +122,8 @@ export default function Estoque() {
             <ClipboardCheck className="h-3.5 w-3.5" />
             Conferência
           </Link>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />Adicionar Aparelho
+          <Button size="sm" onClick={() => setNovaOSOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />Nova OS
           </Button>
         </div>
       </div>
@@ -252,39 +218,11 @@ export default function Estoque() {
         </div>
       )}
 
-      {/* New Device Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Novo Aparelho</DialogTitle></DialogHeader>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              createMutation.mutate(new FormData(e.currentTarget));
-            }}
-            className="space-y-4 mt-2"
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Marca *</Label><Input name="marca" required placeholder="Apple" className="mt-1.5" /></div>
-              <div><Label className="text-xs">Modelo *</Label><Input name="modelo" required placeholder="iPhone 14" className="mt-1.5" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Capacidade</Label><Input name="capacidade" placeholder="128GB" className="mt-1.5" /></div>
-              <div><Label className="text-xs">Cor</Label><Input name="cor" placeholder="Preto" className="mt-1.5" /></div>
-            </div>
-            <div><Label className="text-xs">IMEI *</Label><Input name="imei" required placeholder="000000000000000" className="mt-1.5" /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">Custo de compra (R$)</Label><Input name="custo_compra" type="number" min={0} step="0.01" placeholder="0" className="mt-1.5" /></div>
-              <div><Label className="text-xs">Fornecedor</Label><Input name="fornecedor" placeholder="Ex: Distribuidora X" className="mt-1.5" /></div>
-            </div>
-            <div><Label className="text-xs">Localização</Label><Input name="localizacao" placeholder="Loja 1" className="mt-1.5" /></div>
-            <div><Label className="text-xs">Observações</Label><Textarea name="observacoes" rows={2} placeholder="Anotações..." className="mt-1.5" /></div>
-            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              Adicionar Aparelho
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <NovaOrdemDialog
+        open={novaOSOpen}
+        onOpenChange={setNovaOSOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["estoque_aparelhos"] })}
+      />
 
       {/* Edit Sheet */}
       <Sheet open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
