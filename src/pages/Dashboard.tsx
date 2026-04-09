@@ -1,11 +1,10 @@
 import {
   Wrench, Clock, DollarSign, TrendingUp, CheckCircle, Loader2,
-  AlertTriangle, Plus, Search, MessageCircle, Package, BarChart3, Timer,
+  AlertTriangle, Plus, Search, MessageCircle, Package, Timer,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAlertas } from "@/hooks/useAlertas";
-import { useAlertasEstoque, useAlertasEstoqueCruzado } from "@/hooks/useAlertasEstoque";
 import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import type { GenericAlert } from "@/components/AlertsBanner";
@@ -15,7 +14,7 @@ import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { differenceInDays, differenceInHours } from "date-fns";
+import { differenceInHours } from "date-fns";
 
 type OrderRow = {
   id: string;
@@ -49,18 +48,6 @@ async function fetchPecas() {
   return data ?? [];
 }
 
-async function fetchEstoqueAp() {
-  const { data, error } = await supabase.from("estoque_aparelhos").select("*");
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchFinanceiro() {
-  const { data, error } = await supabase.from("movimentacoes_financeiras").select("tipo, valor, data");
-  if (error) throw error;
-  return data ?? [];
-}
-
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
 const statusLabels: Record<string, string> = {
@@ -89,10 +76,7 @@ export default function Dashboard() {
 
   const { data: orders = [], isLoading: loadingOrders } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
   const { data: pecas = [] } = useQuery({ queryKey: ["pecas"], queryFn: fetchPecas });
-  const { data: estoqueAp = [] } = useQuery({ queryKey: ["estoque-ap"], queryFn: fetchEstoqueAp });
-  const { data: fin = [] } = useQuery({ queryKey: ["financeiro-dash"], queryFn: fetchFinanceiro });
 
-  // Mark as delivered mutation
   const entregarMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const { error } = await supabase
@@ -107,7 +91,6 @@ export default function Dashboard() {
     },
   });
 
-  // KPIs
   const kpis = useMemo(() => {
     const now = new Date();
     const hoje = now.toISOString().split("T")[0];
@@ -121,22 +104,15 @@ export default function Dashboard() {
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     });
 
-    // Receita do dia (ordens de hoje com valor)
     const receitaDia = ordensHoje.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-
-    // Lucro do dia
     const lucroDia = ordensHoje.reduce((s, o) => s + (Number(o.valor ?? 0) - Number(o.custo_pecas ?? 0)), 0);
-
-    // Lucro do mês
     const lucroMes = ordensMes.reduce((s, o) => s + (Number(o.valor ?? 0) - Number(o.custo_pecas ?? 0)), 0);
 
-    // Ticket médio (mês)
     const ordensComValorMes = ordensMes.filter(o => Number(o.valor ?? 0) > 0);
     const ticketMedio = ordensComValorMes.length > 0
       ? ordensComValorMes.reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensComValorMes.length
       : 0;
 
-    // Tempo médio de reparo (ordens concluídas)
     const concluidas = orders.filter(o => o.data_conclusao);
     let tempoMedio = 0;
     if (concluidas.length > 0) {
@@ -146,16 +122,13 @@ export default function Dashboard() {
       tempoMedio = Math.round(totalHoras / concluidas.length);
     }
 
-    // Ordens em atraso
     const emAtraso = ativas.filter(o =>
       o.previsao_entrega && new Date(o.previsao_entrega) < now && o.status !== "pronto"
     ).length;
 
-    // Em assistência
     const emAssistencia = ativas.filter(o => !["pronto"].includes(o.status)).length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
 
-    // Status counts (for kanban)
     const statusCounts: Record<string, number> = {};
     for (const o of ativas) {
       statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
@@ -167,14 +140,9 @@ export default function Dashboard() {
     };
   }, [orders]);
 
-  // Alertas
   const alertasOS = useAlertas(orders);
-  const alertasEstoque = useAlertasEstoque(estoqueAp);
-  const ordensAtivas = orders.filter(o => o.status !== "entregue");
-  const alertasCruzados = useAlertasEstoqueCruzado(estoqueAp, ordensAtivas);
   const alertasPecas = useAlertasPecas(pecas);
 
-  // Enrich alerts with phone and actions
   const allAlertas = useMemo<GenericAlert[]>(() => {
     const enriched = alertasOS.map(a => {
       const order = orders.find(o => o.id === a.orderId);
@@ -187,13 +155,8 @@ export default function Dashboard() {
       return { ...a, phone, actions };
     });
 
-    return [
-      ...enriched,
-      ...alertasCruzados,
-      ...alertasEstoque,
-      ...alertasPecas,
-    ];
-  }, [alertasOS, alertasEstoque, alertasCruzados, alertasPecas, orders]);
+    return [...enriched, ...alertasPecas];
+  }, [alertasOS, alertasPecas, orders]);
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
     if (action === "whatsapp" && phone) {
@@ -227,7 +190,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Header + Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Central de Controle</h1>
@@ -243,13 +205,9 @@ export default function Dashboard() {
           <Button size="sm" variant="outline" onClick={() => navigate("/pecas")} className="gap-1.5">
             <Package className="h-3.5 w-3.5" /> Peças
           </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate("/estoque/conferencia")} className="gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Conferir Estoque
-          </Button>
         </div>
       </div>
 
-      {/* KPI Cards — Row 1: Financial */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
           <DollarSign className="h-4 w-4 text-success mb-3" />
@@ -273,7 +231,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards — Row 2: Operational */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
           <Wrench className="h-4 w-4 text-info mb-3" />
@@ -297,7 +254,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Status Kanban Summary */}
       <div>
         <h2 className="section-title mb-3">Visão por Status</h2>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -318,7 +274,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Alertas */}
       {allAlertas.length > 0 && (
         <div>
           <h2 className="section-title mb-3">
