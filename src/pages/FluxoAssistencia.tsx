@@ -103,7 +103,6 @@ export default function FluxoAssistencia() {
           Lista
         </Link>
       </div>
-      </div>
 
       {/* Kanban */}
       <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x">
