@@ -18,6 +18,7 @@ const items = [
   { title: "Estoque", url: "/pecas", icon: Cpu },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Clientes", url: "/clientes", icon: Users },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {
