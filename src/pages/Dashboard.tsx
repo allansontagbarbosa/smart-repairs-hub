@@ -18,9 +18,10 @@ async function fetchOrders() {
 }
 
 async function fetchKpis() {
-  const [ordensRes, estoqueRes, finRes] = await Promise.all([
+  const [ordensRes, estoqueRes, estoqueApRes, finRes] = await Promise.all([
     supabase.from("ordens_de_servico").select("status, valor"),
     supabase.from("estoque").select("quantidade, preco_custo"),
+    supabase.from("estoque_aparelhos").select("*"),
     supabase.from("movimentacoes_financeiras").select("tipo, valor, data"),
   ]);
 
