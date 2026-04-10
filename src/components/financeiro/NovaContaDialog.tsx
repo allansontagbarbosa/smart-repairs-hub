@@ -79,7 +79,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
       const payload = {
         descricao: values.descricao,
         categoria: values.categoria,
-        centro_custo: values.centro_custo || null,
+        centro_custo: values.centro_custo && values.centro_custo !== "__nenhum__" ? values.centro_custo : null,
         fornecedor: values.fornecedor || null,
         valor: parseFloat(values.valor),
         data_vencimento: values.data_vencimento,
