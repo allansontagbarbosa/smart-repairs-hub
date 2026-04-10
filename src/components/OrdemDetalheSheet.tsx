@@ -560,8 +560,43 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   )}
                 </div>
 
+                {/* Comissões da OS */}
+                {comissoesOS.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
+                    <div className="space-y-1.5">
+                      {comissoesOS.map((c) => (
+                        <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
+                            <p className="text-xs text-muted-foreground">{c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}</p>
+                          </div>
+                          <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                <div>
+                {/* Despesas vinculadas */}
+                {despesasOS.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Despesas Vinculadas</p>
+                    <div className="space-y-1.5">
+                      {despesasOS.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{d.descricao}</p>
+                            <p className="text-xs text-muted-foreground">{(d as any).fornecedores?.nome ?? ""} · {d.status}</p>
+                          </div>
+                          <span className="text-sm font-medium text-destructive">{fmtCurrency(Number(d.valor))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
                     <InfoRow label="Técnico" value={ordem.tecnico ?? "—"} />
