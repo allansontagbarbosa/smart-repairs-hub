@@ -21,22 +21,26 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 interface Props {
   comissoes: Comissao[];
   funcionarios: { id: string; nome: string }[];
+  tiposServico?: { id: string; nome: string }[];
   onViewOrder?: (orderId: string) => void;
 }
 
-export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
+export function Comissoes({ comissoes, funcionarios, tiposServico = [], onViewOrder }: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterFunc, setFilterFunc] = useState("todos");
+  const [filterServico, setFilterServico] = useState("todos");
   const queryClient = useQueryClient();
 
   const filtered = comissoes.filter(c => {
     const q = search.toLowerCase();
     const nome = c.funcionarios?.nome ?? "";
-    const matchSearch = !search || nome.toLowerCase().includes(q) || String(c.ordens_de_servico?.numero ?? "").includes(q);
+    const obs = c.observacoes ?? "";
+    const matchSearch = !search || nome.toLowerCase().includes(q) || String(c.ordens_de_servico?.numero ?? "").includes(q) || obs.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
-    return matchSearch && matchStatus && matchFunc;
+    const matchServico = filterServico === "todos" || (obs.toLowerCase().includes(filterServico.toLowerCase()));
+    return matchSearch && matchStatus && matchFunc && matchServico;
   });
 
   // KPIs
@@ -109,6 +113,15 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
             {funcionarios.map(f => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        {tiposServico.length > 0 && (
+          <Select value={filterServico} onValueChange={setFilterServico}>
+            <SelectTrigger className="w-full sm:w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos serviços</SelectItem>
+              {tiposServico.map(s => <SelectItem key={s.id} value={s.nome}>{s.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -139,6 +152,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                 const cfg = statusConfig[c.status] ?? statusConfig.pendente;
                 const os = c.ordens_de_servico;
                 const aparelho = os?.aparelhos ? `${os.aparelhos.marca} ${os.aparelhos.modelo}` : "";
+                const servico = c.observacoes?.replace("Serviço: ", "") ?? "";
                 return (
                   <tr key={c.id}>
                     <td className="text-sm font-medium">{c.funcionarios?.nome ?? "—"}</td>
@@ -146,7 +160,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                       {os ? (
                         <div>
                           <p className="text-sm">OS #{String(os.numero).padStart(3, "0")}</p>
-                          <p className="text-xs text-muted-foreground">{aparelho}</p>
+                          <p className="text-xs text-muted-foreground">{servico || aparelho}</p>
                         </div>
                       ) : "—"}
                     </td>

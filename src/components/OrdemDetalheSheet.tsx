@@ -96,6 +96,56 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
+  // Fetch tipos_servico and funcionarios for commission preview
+  const { data: tiposServico = [] } = useQuery({
+    queryKey: ["tipos_servico_os"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tipos_servico").select("id, nome").eq("ativo", true).order("nome");
+      return data || [];
+    },
+  });
+  const { data: funcionariosAtivos = [] } = useQuery({
+    queryKey: ["funcionarios_os"],
+    queryFn: async () => {
+      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao").eq("ativo", true).order("nome");
+      return data || [];
+    },
+  });
+
+  // Fetch per-service commission for commission preview
+  const { data: comissaoPreview } = useQuery({
+    queryKey: ["comissao_preview", ordem?.funcionario_id, ordem?.tipo_servico_id],
+    queryFn: async () => {
+      if (!ordem?.funcionario_id) return null;
+      // Try per-service
+      if (ordem.tipo_servico_id) {
+        const { data } = await supabase
+          .from("comissoes_servico")
+          .select("tipo_comissao, valor")
+          .eq("funcionario_id", ordem.funcionario_id)
+          .eq("tipo_servico_id", ordem.tipo_servico_id)
+          .maybeSingle();
+        if (data && Number(data.valor) > 0) {
+          const tipoLabel = data.tipo_comissao === "percentual" ? "%" : "R$";
+          const valorCalc = data.tipo_comissao === "percentual"
+            ? (ordem.valor ?? 0) * Number(data.valor) / 100
+            : Number(data.valor);
+          return { tipo: data.tipo_comissao, config: Number(data.valor), calculado: valorCalc, origem: "por serviço" };
+        }
+      }
+      // Fallback to default
+      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
+      if (func && Number(func.valor_comissao) > 0) {
+        const valorCalc = func.tipo_comissao === "percentual"
+          ? (ordem.valor ?? 0) * Number(func.valor_comissao) / 100
+          : Number(func.valor_comissao);
+        return { tipo: func.tipo_comissao, config: Number(func.valor_comissao), calculado: valorCalc, origem: "padrão" };
+      }
+      return null;
+    },
+    enabled: !!ordem?.funcionario_id && comissoesOS.length === 0,
+  });
+
   const { data: despesasOS = [] } = useQuery({
     queryKey: ["despesas_os", orderId],
     queryFn: async () => {
@@ -213,6 +263,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
       queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["comissoes"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
       toast.success("Status atualizado!");
     },
@@ -561,22 +613,43 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 </div>
 
                 {/* Comissões da OS */}
-                {comissoesOS.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
+                  {comissoesOS.length > 0 ? (
                     <div className="space-y-1.5">
                       {comissoesOS.map((c) => (
                         <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                           <div>
                             <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
-                            <p className="text-xs text-muted-foreground">{c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}
+                              {c.observacoes && ` · ${c.observacoes}`}
+                            </p>
                           </div>
                           <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : comissaoPreview ? (
+                    <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-warning">Comissão prevista</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {comissaoPreview.tipo === "percentual" ? `${comissaoPreview.config}%` : fmtCurrency(comissaoPreview.config)}
+                            {" · "}Regra {comissaoPreview.origem}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-warning">{fmtCurrency(comissaoPreview.calculado)}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">Será gerada automaticamente ao marcar como "Pronto"</p>
+                    </div>
+                  ) : ordem.funcionario_id ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma comissão configurada para este técnico/serviço</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Selecione um técnico para ver a comissão prevista</p>
+                  )}
+                </div>
 
                 {/* Despesas vinculadas */}
                 {despesasOS.length > 0 && (
@@ -600,7 +673,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
-                    <InfoRow label="Técnico" value={ordem.tecnico ?? "—"} />
+                    {(() => {
+                      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
+                      const tipoServ = tiposServico.find(t => t.id === ordem.tipo_servico_id);
+                      return (
+                        <>
+                          <InfoRow label="Técnico" value={func?.nome ?? ordem.tecnico ?? "—"} />
+                          <InfoRow label="Tipo de serviço" value={tipoServ?.nome ?? "—"} />
+                        </>
+                      );
+                    })()}
                     <InfoRow label="Data entrada" value={fmtDate(ordem.data_entrada)} />
                     <InfoRow label="Previsão entrega" value={fmtDate(ordem.previsao_entrega)} />
                     <InfoRow label="Conclusão" value={fmtDate(ordem.data_conclusao)} />
