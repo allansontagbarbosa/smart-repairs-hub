@@ -26,7 +26,6 @@ interface Props {
 }
 
 type FormValues = {
-  tipo_item: string;
   categoria_id: string;
   marca_id: string;
   modelo_id: string;
@@ -42,6 +41,14 @@ type FormValues = {
   local_estoque: string;
   fornecedor: string;
   observacoes: string;
+  descricao: string;
+};
+
+const emptyForm: FormValues = {
+  categoria_id: "", marca_id: "", modelo_id: "",
+  nome_personalizado: "", cor: "", capacidade: "", imei_serial: "", sku: "",
+  quantidade: "1", quantidade_minima: "0", custo_unitario: "", preco_venda: "",
+  local_estoque: "", fornecedor: "", observacoes: "", descricao: "",
 };
 
 export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, marcas, modelos }: Props) {
@@ -49,17 +56,13 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
   const isEditing = !!editingItem;
   const [newCatName, setNewCatName] = useState("");
   const [newMarcaName, setNewMarcaName] = useState("");
+  const [newModeloName, setNewModeloName] = useState("");
   const [showNewCat, setShowNewCat] = useState(false);
   const [showNewMarca, setShowNewMarca] = useState(false);
+  const [showNewModelo, setShowNewModelo] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const { register, handleSubmit, reset, setValue, watch } = useForm<FormValues>({
-    defaultValues: {
-      tipo_item: "peca", categoria_id: "", marca_id: "", modelo_id: "",
-      nome_personalizado: "", cor: "", capacidade: "", imei_serial: "", sku: "",
-      quantidade: "1", quantidade_minima: "0", custo_unitario: "", preco_venda: "",
-      local_estoque: "", fornecedor: "", observacoes: "",
-    },
-  });
+  const { register, handleSubmit, reset, setValue, watch } = useForm<FormValues>({ defaultValues: emptyForm });
 
   const selectedMarca = watch("marca_id");
   const filteredModelos = modelos.filter(m => m.marca_id === selectedMarca);
@@ -67,7 +70,6 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
   useEffect(() => {
     if (open && editingItem) {
       reset({
-        tipo_item: editingItem.tipo_item,
         categoria_id: editingItem.categoria_id ?? "",
         marca_id: editingItem.marca_id ?? "",
         modelo_id: editingItem.modelo_id ?? "",
@@ -78,19 +80,19 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         sku: editingItem.sku ?? "",
         quantidade: String(editingItem.quantidade),
         quantidade_minima: String(editingItem.quantidade_minima),
-        custo_unitario: String(editingItem.custo_unitario ?? ""),
-        preco_venda: String(editingItem.preco_venda ?? ""),
+        custo_unitario: editingItem.custo_unitario ? String(editingItem.custo_unitario) : "",
+        preco_venda: editingItem.preco_venda ? String(editingItem.preco_venda) : "",
         local_estoque: editingItem.local_estoque ?? "",
         fornecedor: editingItem.fornecedor ?? "",
         observacoes: editingItem.observacoes ?? "",
+        descricao: "",
       });
+      if (editingItem.cor || editingItem.capacidade || editingItem.imei_serial || editingItem.preco_venda) {
+        setShowAdvanced(true);
+      }
     } else if (open) {
-      reset({
-        tipo_item: "peca", categoria_id: "", marca_id: "", modelo_id: "",
-        nome_personalizado: "", cor: "", capacidade: "", imei_serial: "", sku: "",
-        quantidade: "1", quantidade_minima: "0", custo_unitario: "", preco_venda: "",
-        local_estoque: "", fornecedor: "", observacoes: "",
-      });
+      reset(emptyForm);
+      setShowAdvanced(false);
     }
   }, [open, editingItem, reset]);
 
@@ -124,10 +126,26 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     },
   });
 
+  const addModelo = useMutation({
+    mutationFn: async () => {
+      if (!selectedMarca) throw new Error("Selecione uma marca primeiro");
+      const { data, error } = await supabase.from("modelos").insert({ nome: newModeloName, marca_id: selectedMarca }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["modelos"] });
+      setValue("modelo_id", data.id);
+      setNewModeloName("");
+      setShowNewModelo(false);
+      toast.success("Modelo criado!");
+    },
+  });
+
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const payload = {
-        tipo_item: values.tipo_item,
+        tipo_item: "peca" as const,
         categoria_id: values.categoria_id || null,
         marca_id: values.marca_id || null,
         modelo_id: values.modelo_id || null,
@@ -155,15 +173,11 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success(isEditing ? "Item atualizado!" : "Item adicionado!");
+      toast.success(isEditing ? "Peça atualizada!" : "Peça adicionada ao estoque!");
       onOpenChange(false);
     },
     onError: (e: any) => {
-      if (e.message?.includes("estoque_itens_imei_serial_unique")) {
-        toast.error("IMEI/Serial já cadastrado no sistema!");
-      } else {
-        toast.error(e.message);
-      }
+      toast.error(e.message);
     },
   });
 
@@ -171,20 +185,13 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Item" : "Novo Item no Estoque"}</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Peça" : "Nova Peça no Estoque"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(v => mutation.mutate(v))} className="space-y-3">
-          {/* Tipo */}
+          {/* Nome da peça */}
           <div>
-            <Label className="text-xs">Tipo do item *</Label>
-            <Select value={watch("tipo_item")} onValueChange={v => setValue("tipo_item", v)}>
-              <SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="aparelho">Aparelho</SelectItem>
-                <SelectItem value="peca">Peça</SelectItem>
-                <SelectItem value="acessorio">Acessório</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label className="text-xs">Nome da peça *</Label>
+            <Input {...register("nome_personalizado")} placeholder="Ex: Tela iPhone 14 Pro Max" className="h-9 mt-1" autoFocus />
           </div>
 
           {/* Categoria */}
@@ -202,7 +209,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
               </div>
             ) : (
               <Select value={watch("categoria_id")} onValueChange={v => setValue("categoria_id", v)}>
-                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
                 <SelectContent>
                   {categorias.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
                 </SelectContent>
@@ -210,10 +217,10 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             )}
           </div>
 
-          {/* Marca */}
+          {/* Marca compatível */}
           <div>
             <div className="flex items-center justify-between">
-              <Label className="text-xs">Marca</Label>
+              <Label className="text-xs">Marca compatível</Label>
               <button type="button" className="text-[10px] text-primary font-medium hover:underline" onClick={() => setShowNewMarca(!showNewMarca)}>
                 <Plus className="h-3 w-3 inline" /> Nova
               </button>
@@ -225,7 +232,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
               </div>
             ) : (
               <Select value={watch("marca_id")} onValueChange={v => { setValue("marca_id", v); setValue("modelo_id", ""); }}>
-                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Selecionar marca" /></SelectTrigger>
                 <SelectContent>
                   {marcas.map(m => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
                 </SelectContent>
@@ -233,62 +240,80 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             )}
           </div>
 
-          {/* Modelo */}
+          {/* Modelo compatível */}
           {selectedMarca && (
             <div>
-              <Label className="text-xs">Modelo</Label>
-              <Select value={watch("modelo_id")} onValueChange={v => setValue("modelo_id", v)}>
-                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Selecionar modelo" /></SelectTrigger>
-                <SelectContent>
-                  {filteredModelos.map(m => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Modelo compatível</Label>
+                <button type="button" className="text-[10px] text-primary font-medium hover:underline" onClick={() => setShowNewModelo(!showNewModelo)}>
+                  <Plus className="h-3 w-3 inline" /> Novo
+                </button>
+              </div>
+              {showNewModelo ? (
+                <div className="flex gap-2 mt-1">
+                  <Input value={newModeloName} onChange={e => setNewModeloName(e.target.value)} placeholder="Nome do modelo" className="h-8 text-sm" />
+                  <Button type="button" size="sm" className="h-8" onClick={() => addModelo.mutate()} disabled={!newModeloName}>Criar</Button>
+                </div>
+              ) : (
+                <Select value={watch("modelo_id")} onValueChange={v => setValue("modelo_id", v)}>
+                  <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Selecionar modelo" /></SelectTrigger>
+                  <SelectContent>
+                    {filteredModelos.map(m => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
 
-          {/* Nome + Cor + Capacidade */}
-          <div>
-            <Label className="text-xs">Nome personalizado</Label>
-            <Input {...register("nome_personalizado")} placeholder="Ex: Tela iPhone 14 Pro Max" className="h-9 mt-1" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Cor</Label><Input {...register("cor")} placeholder="Preto" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">Capacidade</Label><Input {...register("capacidade")} placeholder="128GB" className="h-9 mt-1" /></div>
-          </div>
-
-          {/* IMEI + SKU */}
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">IMEI / Serial</Label><Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Opcional" className="h-9 mt-1" /></div>
-          </div>
-
-          {/* Quantidade */}
+          {/* Quantidade + Mínimo */}
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs">Quantidade *</Label><Input type="number" {...register("quantidade")} className="h-9 mt-1" /></div>
             <div><Label className="text-xs">Qtd. Mínima</Label><Input type="number" {...register("quantidade_minima")} className="h-9 mt-1" /></div>
           </div>
 
-          {/* Preços */}
+          {/* Custo + SKU */}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Custo unitário (R$)</Label><Input type="number" step="0.01" {...register("custo_unitario")} placeholder="0,00" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">Preço venda (R$)</Label><Input type="number" step="0.01" {...register("preco_venda")} placeholder="0,00" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">Custo unitário (R$)</Label><Input type="number" step="0.01" {...register("custo_unitario")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Código interno" className="h-9 mt-1" /></div>
           </div>
 
           {/* Local + Fornecedor */}
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs">Local do estoque</Label><Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome do fornecedor" className="h-9 mt-1" /></div>
           </div>
+
+          {/* Toggle advanced fields */}
+          <button
+            type="button"
+            className="text-xs text-primary hover:underline"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            {showAdvanced ? "▾ Menos campos" : "▸ Mais campos (cor, capacidade, serial, preço venda)"}
+          </button>
+
+          {showAdvanced && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Cor</Label><Input {...register("cor")} placeholder="Preto" className="h-9 mt-1" /></div>
+                <div><Label className="text-xs">Capacidade</Label><Input {...register("capacidade")} placeholder="128GB" className="h-9 mt-1" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">IMEI / Serial</Label><Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" /></div>
+                <div><Label className="text-xs">Preço venda (R$)</Label><Input type="number" step="0.01" {...register("preco_venda")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
+              </div>
+            </>
+          )}
 
           <div>
             <Label className="text-xs">Observações</Label>
-            <Textarea {...register("observacoes")} rows={2} className="mt-1" />
+            <Textarea {...register("observacoes")} rows={2} className="mt-1" placeholder="Informações adicionais sobre a peça" />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Salvando..." : isEditing ? "Salvar" : "Adicionar"}
+              {mutation.isPending ? "Salvando..." : isEditing ? "Salvar" : "Adicionar Peça"}
             </Button>
           </div>
         </form>
