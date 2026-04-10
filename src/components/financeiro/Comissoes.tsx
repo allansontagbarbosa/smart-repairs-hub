@@ -113,6 +113,15 @@ export function Comissoes({ comissoes, funcionarios, tiposServico = [], onViewOr
             {funcionarios.map(f => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        {tiposServico.length > 0 && (
+          <Select value={filterServico} onValueChange={setFilterServico}>
+            <SelectTrigger className="w-full sm:w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos serviços</SelectItem>
+              {tiposServico.map(s => <SelectItem key={s.id} value={s.nome}>{s.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
