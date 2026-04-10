@@ -92,16 +92,37 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
       observacoes: form.observacoes || null,
     };
 
+    let funcId = editId;
     if (editId) {
       const { error } = await supabase.from("funcionarios").update(payload).eq("id", editId);
       if (error) { toast.error("Erro ao atualizar"); return; }
     } else {
-      const { error } = await supabase.from("funcionarios").insert(payload);
+      const { data, error } = await supabase.from("funcionarios").insert(payload).select("id").single();
       if (error) { toast.error("Erro ao cadastrar"); return; }
+      funcId = data.id;
     }
+
+    // Save per-service commissions
+    if (funcId) {
+      // Delete existing
+      await supabase.from("comissoes_servico").delete().eq("funcionario_id", funcId);
+      // Insert new ones (only where valor > 0)
+      const rows = Object.entries(comissoesPorServico)
+        .filter(([, v]) => v.valor > 0)
+        .map(([tipoServicoId, v]) => ({
+          funcionario_id: funcId!,
+          tipo_servico_id: tipoServicoId,
+          tipo_comissao: v.tipo as any,
+          valor: v.valor,
+        }));
+      if (rows.length > 0) {
+        await supabase.from("comissoes_servico").insert(rows);
+      }
+    }
+
     qc.invalidateQueries({ queryKey: ["funcionarios"] });
     toast.success(editId ? "Técnico atualizado" : "Técnico cadastrado");
-    setOpen(false); setEditId(null); setForm({ ...emptyForm }); setTab("dados");
+    setOpen(false); setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados");
   };
 
   const handleEdit = (f: any) => {
