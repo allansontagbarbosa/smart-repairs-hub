@@ -1,20 +1,158 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * IMEI Lookup Edge Function — Consulta profissional de IMEI via API
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * FLUXO DE CONSULTA (cascata):
+ *   1. Validação Luhn do IMEI
+ *   2. Verificação de duplicidade no banco
+ *   3. Consulta API externa (fonte principal)
+ *   4. Fallback: cache local (imei_device_cache)
+ *   5. Fallback: base TAC interna
+ *
+ * COMO TROCAR DE PROVEDOR DE API:
+ *   - Edite a seção API_CONFIG abaixo
+ *   - Ajuste a função mapApiResponse() para o novo formato de resposta
+ *   - Adicione o secret IMEI_API_KEY se necessário
+ *
+ * SECRETS NECESSÁRIOS (configurar via Lovable Cloud):
+ *   - IMEI_API_KEY (opcional) — chave de autenticação da API externa
+ *   - SUPABASE_URL (automático)
+ *   - SUPABASE_SERVICE_ROLE_KEY (automático)
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
 import { corsHeaders } from 'npm:@supabase/supabase-js/cors';
 import { createClient } from 'npm:@supabase/supabase-js';
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-// ─── Configuration: easily swappable API provider ───
+// ─────────────────────────────────────────────────────────────────────────────
+// 🔧 CONFIGURAÇÃO DA API — EDITE AQUI PARA TROCAR DE PROVEDOR
+// ─────────────────────────────────────────────────────────────────────────────
 const API_CONFIG = {
-  // Primary: Free IMEI/TAC check via api.imeicheck.net (no key needed for TAC)
-  // Alternative providers can be swapped here
-  tacLookupUrl: "https://api.imeicheck.net/v1/tac",
-  // If a paid provider key is configured, use it
+  /**
+   * URL base do provedor de consulta IMEI.
+   * O TAC (8 primeiros dígitos do IMEI) será adicionado ao final.
+   *
+   * Provedores suportados (descomente o desejado):
+   *   - imeidb.xyz (gratuito, sem chave)
+   *   - imei.info (pago, requer IMEI_API_KEY)
+   *   - imeicheck.net (pago, requer IMEI_API_KEY)
+   *
+   * Para adicionar um novo provedor:
+   *   1. Altere baseUrl e buildRequestUrl()
+   *   2. Ajuste buildRequestHeaders()
+   *   3. Ajuste mapApiResponse() para o formato de retorno
+   */
+  baseUrl: "https://api.imeidb.xyz/v1/devices",
+
+  /** Chave da API (lida do secret IMEI_API_KEY, null se não configurada) */
   apiKey: Deno.env.get("IMEI_API_KEY") || null,
+
+  /** Timeout da requisição em milissegundos */
   timeoutMs: 8000,
+
+  /** Método HTTP da API */
+  method: "GET" as const,
 };
 
-// ─── Known TAC database (common devices, built-in fallback) ───
+/**
+ * Monta a URL completa da requisição.
+ * Ajuste conforme o padrão do provedor escolhido.
+ *
+ * Exemplos por provedor:
+ *   imeidb.xyz:    `${baseUrl}/${tac}`
+ *   imei.info:     `https://api.imei.info/check?imei=${fullImei}&apikey=${key}`
+ *   imeicheck.net: `https://api.imeicheck.net/v1/tac/${tac}`
+ */
+function buildRequestUrl(imei: string, tac: string): string {
+  // ── Provedor atual: imeidb.xyz (consulta por TAC, gratuito) ──
+  return `${API_CONFIG.baseUrl}/${tac}`;
+}
+
+/**
+ * Monta os headers da requisição.
+ * Adicione aqui Authorization, X-API-Key, etc. conforme o provedor.
+ *
+ * Exemplos:
+ *   Bearer token:  { "Authorization": `Bearer ${API_CONFIG.apiKey}` }
+ *   API Key header: { "X-API-Key": API_CONFIG.apiKey }
+ */
+function buildRequestHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Accept": "application/json",
+    "User-Agent": "SmartRepairsHub/1.0",
+  };
+
+  // Descomentar quando usar provedor pago com API key:
+  // if (API_CONFIG.apiKey) {
+  //   headers["Authorization"] = `Bearer ${API_CONFIG.apiKey}`;
+  // }
+
+  return headers;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * MAPEAMENTO DA RESPOSTA DA API → CAMPOS INTERNOS
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Cada provedor retorna dados em formato diferente. Ajuste esta função
+ * para mapear os campos da API para os campos do sistema.
+ *
+ * Campos internos esperados:
+ *   - marca       → nome da fabricante (Apple, Samsung, Motorola)
+ *   - modelo      → nome do modelo (iPhone 15 Pro Max, Galaxy S24)
+ *   - cor         → cor do aparelho (Preto, Azul, Titanium)
+ *   - capacidade  → armazenamento (128GB, 256GB, 512GB)
+ *   - tipo        → tipo de dispositivo (smartphone, tablet)
+ *
+ * Exemplos de mapeamento por provedor:
+ *
+ *   imeidb.xyz:
+ *     apiData.brand → marca
+ *     apiData.name  → modelo
+ *
+ *   imei.info:
+ *     apiData.device_image → ignorar
+ *     apiData.brand_name   → marca
+ *     apiData.model_name   → modelo
+ *     apiData.device_name  → modelo (fallback)
+ *
+ *   imeicheck.net:
+ *     apiData.manufacturer → marca
+ *     apiData.model        → modelo
+ *     apiData.storage      → capacidade
+ */
+type MappedDevice = {
+  marca?: string;
+  modelo?: string;
+  cor?: string;
+  capacidade?: string;
+  tipo?: string;
+};
+
+function mapApiResponse(apiData: any): MappedDevice | null {
+  if (!apiData) return null;
+
+  // ── Mapeamento para imeidb.xyz ──
+  // Formato: { brand: "Apple", name: "iPhone 15 Pro", type: "Smartphone", ... }
+  const marca = apiData.brand || apiData.manufacturer || apiData.brand_name;
+  const modelo = apiData.name || apiData.model || apiData.model_name || apiData.device_name;
+
+  if (!marca && !modelo) return null;
+
+  return {
+    marca: marca || undefined,
+    modelo: modelo || undefined,
+    cor: apiData.color || apiData.colour || undefined,
+    capacidade: apiData.storage || apiData.capacity || apiData.internal_memory || undefined,
+    tipo: apiData.type || apiData.device_type || undefined,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BASE TAC INTERNA — Fallback local para dispositivos comuns no Brasil
+// ─────────────────────────────────────────────────────────────────────────────
 const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: string }> = {
   // Apple iPhones
   "35397110": { marca: "Apple", modelo: "iPhone 15 Pro Max" },
@@ -38,6 +176,10 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "35316110": { marca: "Apple", modelo: "iPhone 11 Pro Max" },
   "35316010": { marca: "Apple", modelo: "iPhone 11 Pro" },
   "35316210": { marca: "Apple", modelo: "iPhone 11" },
+  "35490111": { marca: "Apple", modelo: "iPhone 16 Pro Max" },
+  "35490110": { marca: "Apple", modelo: "iPhone 16 Pro" },
+  "35489911": { marca: "Apple", modelo: "iPhone 16 Plus" },
+  "35489910": { marca: "Apple", modelo: "iPhone 16" },
   // Samsung Galaxy S series
   "35260212": { marca: "Samsung", modelo: "Galaxy S24 Ultra" },
   "35260211": { marca: "Samsung", modelo: "Galaxy S24+" },
@@ -64,7 +206,9 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "86826904": { marca: "Xiaomi", modelo: "Poco X6 Pro" },
 };
 
-// ─── IMEI validation (Luhn) ───
+// ─────────────────────────────────────────────────────────────────────────────
+// VALIDAÇÃO IMEI (Luhn)
+// ─────────────────────────────────────────────────────────────────────────────
 function isValidImei(imei: string): boolean {
   if (imei.length !== 15 || !/^\d{15}$/.test(imei)) return false;
   let sum = 0;
@@ -76,6 +220,9 @@ function isValidImei(imei: string): boolean {
   return sum % 10 === 0;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TIPOS DE RESPOSTA
+// ─────────────────────────────────────────────────────────────────────────────
 type LookupResult = {
   status: "found" | "partial" | "not_found" | "error";
   source: "api" | "cache" | "tac_db" | "none";
@@ -88,168 +235,145 @@ type LookupResult = {
   duplicate?: { table: string; info: string } | null;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HANDLER PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const respond = (body: LookupResult, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   try {
     const { imei } = await req.json();
     if (!imei || typeof imei !== "string") {
-      return new Response(JSON.stringify({ status: "error", message: "IMEI é obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ status: "error", source: "none", message: "IMEI é obrigatório" }, 400);
     }
 
     const digits = imei.replace(/\D/g, "");
     if (!isValidImei(digits)) {
-      return new Response(JSON.stringify({ status: "error", message: "IMEI inválido (falha na validação Luhn)" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ status: "error", source: "none", message: "IMEI inválido (falha na validação Luhn)" }, 400);
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
     const tac = digits.slice(0, 8);
 
-    // ─── 1. Check duplicates ───
+    // ═══ ETAPA 1: Verificar duplicidade ═══
     const { data: existingStock } = await supabase
       .from("estoque_aparelhos").select("id, marca, modelo, status").eq("imei", digits).limit(1);
-    if (existingStock && existingStock.length > 0) {
+    if (existingStock?.length) {
       const d = existingStock[0];
-      const result: LookupResult = {
+      return respond({
         status: "error", source: "none",
-        message: "IMEI já cadastrado no sistema",
+        message: "IMEI já cadastrado no estoque",
         duplicate: { table: "estoque_aparelhos", info: `${d.marca} ${d.modelo} — Status: ${d.status}` },
-      };
-      return new Response(JSON.stringify(result), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { data: existingDevice } = await supabase
       .from("aparelhos").select("id, marca, modelo").eq("imei", digits).limit(1);
-    if (existingDevice && existingDevice.length > 0) {
+    if (existingDevice?.length) {
       const d = existingDevice[0];
-      const result: LookupResult = {
+      return respond({
         status: "error", source: "none",
         message: "IMEI já cadastrado como aparelho de cliente",
         duplicate: { table: "aparelhos", info: `${d.marca} ${d.modelo}` },
-      };
-      return new Response(JSON.stringify(result), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ─── 2. Try external API (primary source) ───
-    let apiResult: Partial<LookupResult> | null = null;
+    // ═══ ETAPA 2: Consulta API externa (FONTE PRINCIPAL) ═══
+    let device: MappedDevice | null = null;
+    let source: LookupResult["source"] = "none";
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), API_CONFIG.timeoutMs);
+      const url = buildRequestUrl(digits, tac);
 
-      // Try free API: imeidb.xyz (open TAC database)
-      const apiUrl = `https://imeidb.xyz/api/imei/${digits}`;
-      const apiResponse = await fetch(apiUrl, {
-        method: "GET",
+      console.log(`[imei-lookup] Consultando API: ${url}`);
+
+      const apiResponse = await fetch(url, {
+        method: API_CONFIG.method,
         signal: controller.signal,
-        headers: { "Accept": "application/json" },
+        headers: buildRequestHeaders(),
       });
       clearTimeout(timeout);
 
       if (apiResponse.ok) {
         const apiData = await apiResponse.json();
-        // Map API response to our format
-        if (apiData && (apiData.brand || apiData.model || apiData.device_name)) {
-          apiResult = {
-            marca: apiData.brand || apiData.manufacturer || undefined,
-            modelo: apiData.model || apiData.device_name || undefined,
-            source: "api",
-          };
-          console.log(`[imei-lookup] API found: ${apiResult.marca} ${apiResult.modelo}`);
+        device = mapApiResponse(apiData);
+        if (device) {
+          source = "api";
+          console.log(`[imei-lookup] API retornou: ${device.marca} ${device.modelo}`);
         }
+      } else {
+        console.log(`[imei-lookup] API retornou status ${apiResponse.status}`);
       }
     } catch (apiErr) {
-      console.log(`[imei-lookup] External API error: ${apiErr}`);
-      // Continue to fallbacks
+      // Timeout ou erro de rede — seguir para fallbacks
+      console.log(`[imei-lookup] Erro na API externa: ${apiErr}`);
     }
 
-    // ─── 3. If API didn't return full data, try second API ───
-    if (!apiResult?.marca || !apiResult?.modelo) {
-      try {
-        const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), API_CONFIG.timeoutMs);
-
-        // Try alternative: api-check.net TAC lookup
-        const tacUrl = `https://alpha.ipqualityscore.com/api/json/phone/${tac}`;
-        const tacResponse = await fetch(tacUrl, {
-          method: "GET",
-          signal: controller2.signal,
-        });
-        clearTimeout(timeout2);
-
-        if (tacResponse.ok) {
-          const tacData = await tacResponse.json();
-          if (tacData && tacData.brand) {
-            apiResult = {
-              marca: tacData.brand || apiResult?.marca,
-              modelo: tacData.model || apiResult?.modelo,
-              source: "api",
-            };
-          }
-        }
-      } catch {
-        console.log(`[imei-lookup] Secondary API also failed`);
-      }
-    }
-
-    // ─── 4. Fallback: local cache ───
-    if (!apiResult?.marca || !apiResult?.modelo) {
+    // ═══ ETAPA 3: Fallback — cache local ═══
+    if (!device?.marca || !device?.modelo) {
       const { data: cached } = await supabase
         .from("imei_device_cache").select("*").eq("tac", tac)
         .order("vezes_usado", { ascending: false }).limit(1);
 
-      if (cached && cached.length > 0) {
+      if (cached?.length) {
         const c = cached[0];
-        apiResult = {
-          marca: apiResult?.marca || c.marca,
-          modelo: apiResult?.modelo || c.modelo,
-          cor: c.cor || undefined,
-          capacidade: c.capacidade || undefined,
-          source: "cache",
+        device = {
+          marca: device?.marca || c.marca,
+          modelo: device?.modelo || c.modelo,
+          cor: device?.cor || c.cor || undefined,
+          capacidade: device?.capacidade || c.capacidade || undefined,
         };
-        // Increment usage
+        source = source === "api" ? "api" : "cache";
+        // Incrementar uso
         await supabase.from("imei_device_cache")
-          .update({ vezes_usado: (c.vezes_usado || 0) + 1 }).eq("id", c.id);
+          .update({ vezes_usado: (c.vezes_usado || 0) + 1, updated_at: new Date().toISOString() })
+          .eq("id", c.id);
         console.log(`[imei-lookup] Cache hit: ${c.marca} ${c.modelo}`);
       }
     }
 
-    // ─── 5. Fallback: built-in TAC database ───
-    if (!apiResult?.marca || !apiResult?.modelo) {
+    // ═══ ETAPA 4: Fallback — base TAC interna ═══
+    if (!device?.marca || !device?.modelo) {
       const known = KNOWN_TACS[tac];
       if (known) {
-        apiResult = {
-          marca: apiResult?.marca || known.marca,
-          modelo: apiResult?.modelo || known.modelo,
-          capacidade: known.capacidade || apiResult?.capacidade,
-          source: "tac_db",
+        device = {
+          marca: device?.marca || known.marca,
+          modelo: device?.modelo || known.modelo,
+          capacidade: device?.capacidade || known.capacidade,
         };
+        source = source !== "none" ? source : "tac_db";
         console.log(`[imei-lookup] TAC DB hit: ${known.marca} ${known.modelo}`);
       }
     }
 
-    // ─── 6. Build response ───
-    if (apiResult?.marca && apiResult?.modelo) {
+    // ═══ ETAPA 5: Montar resposta ═══
+    if (device?.marca && device?.modelo) {
+      const hasFullData = !!(device.cor || device.capacidade);
       const result: LookupResult = {
-        status: apiResult.cor || apiResult.capacidade ? "found" : "partial",
-        source: apiResult.source as any || "api",
-        marca: apiResult.marca,
-        modelo: apiResult.modelo,
-        cor: apiResult.cor,
-        capacidade: apiResult.capacidade,
+        status: hasFullData ? "found" : "partial",
+        source,
+        marca: device.marca,
+        modelo: device.modelo,
+        cor: device.cor,
+        capacidade: device.capacidade,
+        tipo: device.tipo,
         duplicate: null,
       };
 
-      // Save/update cache
+      // Salvar/atualizar cache para futuras consultas
       try {
         await supabase.from("imei_device_cache").upsert({
           tac,
@@ -257,35 +381,31 @@ Deno.serve(async (req) => {
           modelo: result.modelo!,
           cor: result.cor || null,
           capacidade: result.capacidade || null,
-          fonte: result.source,
+          fonte: source,
           vezes_usado: 1,
         }, { onConflict: "tac,marca,modelo" });
-      } catch { /* silent */ }
+      } catch { /* cache silencioso */ }
 
-      return new Response(JSON.stringify(result), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond(result);
     }
 
-    // Nothing found
-    const result: LookupResult = {
+    // Nada encontrado
+    return respond({
       status: "not_found",
       source: "none",
       message: "Não foi possível identificar este aparelho. Preencha manualmente.",
       duplicate: null,
-    };
-    return new Response(JSON.stringify(result), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err) {
-    console.error("[imei-lookup] Unhandled error:", err);
+    console.error("[imei-lookup] Erro não tratado:", err);
     return new Response(JSON.stringify({
       status: "error",
       source: "none",
       message: "Erro interno ao consultar IMEI",
     }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
