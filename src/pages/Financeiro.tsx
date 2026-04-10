@@ -8,7 +8,7 @@ import { Comissoes } from "@/components/financeiro/Comissoes";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 export default function Financeiro() {
-  const { contas, comissoes, categorias, centros, funcionarios, isLoading, kpis } = useFinanceiro();
+  const { contas, comissoes, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   if (isLoading) {
@@ -48,7 +48,14 @@ export default function Financeiro() {
         </TabsContent>
 
         <TabsContent value="contas">
-          <ContasPagar contas={contas} categorias={categorias} centros={centros} />
+          <ContasPagar
+            contas={contas}
+            categorias={categorias}
+            centros={centros}
+            fornecedores={fornecedores}
+            lojas={lojas}
+            ordens={ordens}
+          />
         </TabsContent>
 
         <TabsContent value="comissoes">
