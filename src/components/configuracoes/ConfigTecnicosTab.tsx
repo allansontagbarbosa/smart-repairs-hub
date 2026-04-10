@@ -44,6 +44,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   });
 
   const [comissoesPorServico, setComissoesPorServico] = useState<Record<string, { tipo: string; valor: number }>>({});
+  const [loadingComissoes, setLoadingComissoes] = useState(false);
 
   const filtered = funcionarios.filter((f) =>
     f.nome?.toLowerCase().includes(search.toLowerCase()) ||
