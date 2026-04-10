@@ -133,7 +133,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
               <Select value={watch("centro_custo")} onValueChange={v => setValue("centro_custo", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__nenhum__">Nenhum</SelectItem>
                   {centros.map(c => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
