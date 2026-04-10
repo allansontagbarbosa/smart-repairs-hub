@@ -597,6 +597,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 )}
 
 
+                <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
                     <InfoRow label="Técnico" value={ordem.tecnico ?? "—"} />
