@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus } from "lucide-react";
 import { EntradaAparelhoDialog } from "@/components/estoque/EntradaAparelhoDialog";
+import { EntradaLoteDialog } from "@/components/estoque/EntradaLoteDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
