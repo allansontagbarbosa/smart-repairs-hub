@@ -96,6 +96,56 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
+  // Fetch tipos_servico and funcionarios for commission preview
+  const { data: tiposServico = [] } = useQuery({
+    queryKey: ["tipos_servico_os"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tipos_servico").select("id, nome").eq("ativo", true).order("nome");
+      return data || [];
+    },
+  });
+  const { data: funcionariosAtivos = [] } = useQuery({
+    queryKey: ["funcionarios_os"],
+    queryFn: async () => {
+      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao").eq("ativo", true).order("nome");
+      return data || [];
+    },
+  });
+
+  // Fetch per-service commission for commission preview
+  const { data: comissaoPreview } = useQuery({
+    queryKey: ["comissao_preview", ordem?.funcionario_id, ordem?.tipo_servico_id],
+    queryFn: async () => {
+      if (!ordem?.funcionario_id) return null;
+      // Try per-service
+      if (ordem.tipo_servico_id) {
+        const { data } = await supabase
+          .from("comissoes_servico")
+          .select("tipo_comissao, valor")
+          .eq("funcionario_id", ordem.funcionario_id)
+          .eq("tipo_servico_id", ordem.tipo_servico_id)
+          .maybeSingle();
+        if (data && Number(data.valor) > 0) {
+          const tipoLabel = data.tipo_comissao === "percentual" ? "%" : "R$";
+          const valorCalc = data.tipo_comissao === "percentual"
+            ? (ordem.valor ?? 0) * Number(data.valor) / 100
+            : Number(data.valor);
+          return { tipo: data.tipo_comissao, config: Number(data.valor), calculado: valorCalc, origem: "por serviço" };
+        }
+      }
+      // Fallback to default
+      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
+      if (func && Number(func.valor_comissao) > 0) {
+        const valorCalc = func.tipo_comissao === "percentual"
+          ? (ordem.valor ?? 0) * Number(func.valor_comissao) / 100
+          : Number(func.valor_comissao);
+        return { tipo: func.tipo_comissao, config: Number(func.valor_comissao), calculado: valorCalc, origem: "padrão" };
+      }
+      return null;
+    },
+    enabled: !!ordem?.funcionario_id && comissoesOS.length === 0,
+  });
+
   const { data: despesasOS = [] } = useQuery({
     queryKey: ["despesas_os", orderId],
     queryFn: async () => {

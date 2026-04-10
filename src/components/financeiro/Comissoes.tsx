@@ -21,22 +21,26 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 interface Props {
   comissoes: Comissao[];
   funcionarios: { id: string; nome: string }[];
+  tiposServico?: { id: string; nome: string }[];
   onViewOrder?: (orderId: string) => void;
 }
 
-export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
+export function Comissoes({ comissoes, funcionarios, tiposServico = [], onViewOrder }: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterFunc, setFilterFunc] = useState("todos");
+  const [filterServico, setFilterServico] = useState("todos");
   const queryClient = useQueryClient();
 
   const filtered = comissoes.filter(c => {
     const q = search.toLowerCase();
     const nome = c.funcionarios?.nome ?? "";
-    const matchSearch = !search || nome.toLowerCase().includes(q) || String(c.ordens_de_servico?.numero ?? "").includes(q);
+    const obs = c.observacoes ?? "";
+    const matchSearch = !search || nome.toLowerCase().includes(q) || String(c.ordens_de_servico?.numero ?? "").includes(q) || obs.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
-    return matchSearch && matchStatus && matchFunc;
+    const matchServico = filterServico === "todos" || (obs.toLowerCase().includes(filterServico.toLowerCase()));
+    return matchSearch && matchStatus && matchFunc && matchServico;
   });
 
   // KPIs
