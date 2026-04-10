@@ -9,27 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package,
+  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi,
 } from "lucide-react";
+import {
+  lookupImei as lookupImeiService,
+  saveToImeiCache,
+  type ImeiLookupStatus,
+} from "@/services/imeiLookupService";
 
-// ─── Shared helpers ───
-function isValidImei(imei: string): boolean {
-  const digits = imei.replace(/\D/g, "");
-  if (digits.length !== 15) return false;
-  let sum = 0;
-  for (let i = 0; i < 15; i++) {
-    let d = parseInt(digits[i]);
-    if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
-    sum += d;
-  }
-  return sum % 10 === 0;
-}
-
-function extractTac(imei: string): string {
-  return imei.replace(/\D/g, "").slice(0, 8);
-}
-
-type RowStatus = "searching" | "found" | "not_found" | "duplicate" | "invalid" | "ready";
+type RowStatus = "searching" | "found" | "partial" | "not_found" | "duplicate" | "invalid" | "error" | "ready";
 
 type BatchRow = {
   id: string;
@@ -42,6 +30,7 @@ type BatchRow = {
   custo: string;
   status: RowStatus;
   statusMsg: string;
+  source: string;
   autoFields: Set<string>;
 };
 
@@ -69,123 +58,63 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
   const [defaultFornecedor, setDefaultFornecedor] = useState("");
   const [defaultLocalizacao, setDefaultLocalizacao] = useState("");
 
-  // ─── Lookup a single IMEI ───
-  const lookupImei = useCallback(async (imeiDigits: string): Promise<Partial<BatchRow>> => {
-    if (!isValidImei(imeiDigits)) {
-      return { status: "invalid", statusMsg: "IMEI inválido" };
-    }
-
-    // Check duplicates in estoque_aparelhos
-    const { data: existing } = await supabase
-      .from("estoque_aparelhos").select("marca, modelo, status").eq("imei", imeiDigits).limit(1);
-    if (existing && existing.length > 0) {
-      return { status: "duplicate", statusMsg: `Já cadastrado: ${existing[0].marca} ${existing[0].modelo}` };
-    }
-
-    // Check aparelhos (customer)
-    const { data: custDev } = await supabase
-      .from("aparelhos").select("marca, modelo").eq("imei", imeiDigits).limit(1);
-    if (custDev && custDev.length > 0) {
-      return { status: "duplicate", statusMsg: `Aparelho de cliente: ${custDev[0].marca} ${custDev[0].modelo}` };
-    }
-
-    // Check cache by TAC
-    const tac = extractTac(imeiDigits);
-    const { data: cached } = await supabase
-      .from("imei_device_cache").select("*").eq("tac", tac).order("vezes_usado", { ascending: false }).limit(1);
-
-    if (cached && cached.length > 0) {
-      const c = cached[0];
-      const autoFields = new Set<string>();
-      if (c.marca) autoFields.add("marca");
-      if (c.modelo) autoFields.add("modelo");
-      if (c.cor) autoFields.add("cor");
-      if (c.capacidade) autoFields.add("capacidade");
-
-      await supabase.from("imei_device_cache").update({ vezes_usado: (c.vezes_usado || 0) + 1 }).eq("id", c.id);
-
-      return {
-        marca: c.marca || "",
-        modelo: c.modelo || "",
-        cor: c.cor || "",
-        capacidade: c.capacidade || "",
-        status: "found",
-        statusMsg: "Identificado",
-        autoFields,
-      };
-    }
-
-    return { status: "not_found", statusMsg: "Não encontrado" };
-  }, []);
-
-  // ─── Handle scan/paste ───
   const handleAddImei = useCallback(async (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 15);
-    if (digits.length !== 15) {
-      toast.error("IMEI deve ter 15 dígitos");
-      return;
-    }
-
-    // Check if already in current batch
-    if (rows.some(r => r.imei === digits)) {
-      toast.warning("Este IMEI já está na lista");
-      return;
-    }
+    if (digits.length !== 15) { toast.error("IMEI deve ter 15 dígitos"); return; }
+    if (rows.some(r => r.imei === digits)) { toast.warning("Este IMEI já está na lista"); return; }
 
     const rowId = crypto.randomUUID();
     const placeholder: BatchRow = {
       id: rowId, imei: digits, marca: "", modelo: "", cor: "", capacidade: "",
-      grade: defaultGrade, custo: "", status: "searching", statusMsg: "Consultando...",
-      autoFields: new Set(),
+      grade: defaultGrade, custo: "", status: "searching", statusMsg: "Consultando API...",
+      source: "", autoFields: new Set(),
     };
-
     setRows(prev => [...prev, placeholder]);
 
     try {
-      const result = await lookupImei(digits);
+      const result = await lookupImeiService(digits);
+
+      const statusMap: Record<string, RowStatus> = {
+        success: "found", partial_success: "partial",
+        not_found: "not_found", duplicate: "duplicate", error: "error",
+      };
+
       setRows(prev => prev.map(r => r.id === rowId ? {
         ...r,
-        marca: result.marca ?? r.marca,
-        modelo: result.modelo ?? r.modelo,
-        cor: result.cor ?? r.cor,
-        capacidade: result.capacidade ?? r.capacidade,
-        status: result.status ?? "not_found",
-        statusMsg: result.statusMsg ?? "",
-        autoFields: result.autoFields ?? new Set(),
+        marca: result.marca ?? "",
+        modelo: result.modelo ?? "",
+        cor: result.cor ?? "",
+        capacidade: result.capacidade ?? "",
+        status: statusMap[result.status] ?? "not_found",
+        statusMsg: result.status === "duplicate" ? (result.duplicate?.info || "Duplicado") :
+                   result.status === "error" ? (result.message || "Erro") :
+                   result.status === "success" || result.status === "partial_success"
+                     ? `${result.source === "api" ? "API" : result.source === "cache" ? "Cache" : "TAC"}`
+                     : "Manual",
+        source: result.source || "",
+        autoFields: result.autoFields,
       } : r));
     } catch {
-      setRows(prev => prev.map(r => r.id === rowId ? { ...r, status: "not_found", statusMsg: "Erro na consulta" } : r));
+      setRows(prev => prev.map(r => r.id === rowId ? { ...r, status: "error", statusMsg: "Erro na consulta" } : r));
     }
-  }, [rows, defaultGrade, lookupImei]);
+  }, [rows, defaultGrade]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const val = scanInput.trim();
-      if (val) { handleAddImei(val); setScanInput(""); }
-    }
+    if (e.key === "Enter") { e.preventDefault(); const val = scanInput.trim(); if (val) { handleAddImei(val); setScanInput(""); } }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const text = e.clipboardData.getData("text").trim();
-    // Support pasting multiple IMEIs (newline or comma separated)
     const lines = text.split(/[\n,;]+/).map(l => l.trim().replace(/\D/g, "")).filter(l => l.length === 15);
-    if (lines.length > 1) {
-      e.preventDefault();
-      setScanInput("");
-      lines.forEach((l, i) => setTimeout(() => handleAddImei(l), i * 200));
-      return;
-    }
-    // Single IMEI paste handled by onChange + Enter
+    if (lines.length > 1) { e.preventDefault(); setScanInput(""); lines.forEach((l, i) => setTimeout(() => handleAddImei(l), i * 300)); }
   };
 
   const updateRow = (id: string, field: keyof BatchRow, value: string) => {
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, [field]: value };
-      // Mark as ready if it has marca+modelo and isn't duplicate/invalid
-      if (updated.status !== "duplicate" && updated.status !== "invalid" && updated.marca && updated.modelo) {
-        updated.status = updated.status === "found" ? "found" : "ready";
+      if (updated.status !== "duplicate" && updated.status !== "invalid" && updated.status !== "searching" && updated.marca && updated.modelo) {
+        if (updated.status !== "found") updated.status = "ready" as RowStatus;
       }
       return updated;
     }));
@@ -193,10 +122,9 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
 
   const removeRow = (id: string) => setRows(prev => prev.filter(r => r.id !== id));
 
-  // ─── Save all ───
-  const savableRows = rows.filter(r => r.status !== "duplicate" && r.status !== "invalid" && r.status !== "searching" && r.marca && r.modelo);
+  const savableRows = rows.filter(r => r.status !== "duplicate" && r.status !== "invalid" && r.status !== "searching" && r.status !== "error" && r.marca && r.modelo);
   const duplicateCount = rows.filter(r => r.status === "duplicate").length;
-  const invalidCount = rows.filter(r => r.status === "invalid").length;
+  const invalidCount = rows.filter(r => r.status === "invalid" || r.status === "error").length;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -218,17 +146,8 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
       const { error } = await supabase.from("estoque_aparelhos").insert(payloads);
       if (error) throw error;
 
-      // Save to cache for learning
       for (const r of savableRows) {
-        if (r.imei.length >= 8 && r.marca && r.modelo) {
-          try {
-            await supabase.from("imei_device_cache").upsert({
-              tac: extractTac(r.imei), marca: r.marca.trim(), modelo: r.modelo.trim(),
-              cor: r.cor.trim() || null, capacidade: r.capacidade.trim() || null,
-              fonte: "manual", vezes_usado: 1,
-            }, { onConflict: "tac,marca,modelo" });
-          } catch { /* silent */ }
-        }
+        await saveToImeiCache(r.imei, r.marca, r.modelo, r.cor, r.capacidade);
       }
     },
     onSuccess: () => {
@@ -243,10 +162,12 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
     switch (s) {
       case "searching": return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
       case "found": return <CheckCircle className="h-4 w-4 text-success" />;
+      case "partial": return <CheckCircle className="h-4 w-4 text-success" />;
+      case "ready": return <CheckCircle className="h-4 w-4 text-success" />;
       case "not_found": return <AlertTriangle className="h-4 w-4 text-warning" />;
       case "duplicate": return <XCircle className="h-4 w-4 text-destructive" />;
       case "invalid": return <XCircle className="h-4 w-4 text-destructive" />;
-      case "ready": return <CheckCircle className="h-4 w-4 text-success" />;
+      case "error": return <XCircle className="h-4 w-4 text-warning" />;
     }
   };
 
@@ -257,6 +178,9 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Package className="h-5 w-5 text-primary" />
             Entrada em Lote
+            <span className="text-[10px] font-normal text-muted-foreground flex items-center gap-1 ml-1">
+              <Wifi className="h-3 w-3" /> Consulta via API
+            </span>
             {rows.length > 0 && (
               <span className="text-sm font-normal text-muted-foreground ml-2">
                 {rows.length} bipado(s) · {savableRows.length} válido(s)
@@ -266,15 +190,12 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div className="px-6 space-y-4 flex-shrink-0">
-          {/* Defaults row */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">Grade padrão</Label>
               <Select value={defaultGrade} onValueChange={setDefaultGrade}>
                 <SelectTrigger className="h-8 mt-1 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {grades.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-                </SelectContent>
+                <SelectContent>{grades.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
@@ -287,7 +208,6 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
             </div>
           </div>
 
-          {/* Scanner input */}
           <div className="relative">
             <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/60" />
             <Input
@@ -296,26 +216,23 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
               onChange={e => setScanInput(e.target.value.replace(/\D/g, "").slice(0, 15))}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              placeholder="Bipe ou cole IMEIs em sequência (Enter após cada um)"
+              placeholder="Bipe ou cole IMEIs em sequência — cada um será consultado via API automaticamente"
               className="pl-10 h-11 text-base font-mono tracking-wider border-2 border-primary/30 focus:border-primary"
               autoFocus
               inputMode="numeric"
             />
             {scanInput.length > 0 && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                {scanInput.length}/15
-              </span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{scanInput.length}/15</span>
             )}
           </div>
         </div>
 
-        {/* ─── Table ─── */}
         <div className="flex-1 overflow-auto px-6 pb-2 min-h-0">
           {rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <ScanLine className="h-10 w-10 mb-3 opacity-30" />
               <p className="text-sm font-medium">Nenhum aparelho bipado ainda</p>
-              <p className="text-xs mt-1">Bipe, cole ou digite IMEIs no campo acima</p>
+              <p className="text-xs mt-1">Cada IMEI bipado será consultado automaticamente via API</p>
             </div>
           ) : (
             <table className="w-full text-sm">
@@ -329,7 +246,7 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
                   <th className="text-left py-2 pr-2 hidden lg:table-cell">Capacidade</th>
                   <th className="text-left py-2 pr-2 hidden md:table-cell">Grade</th>
                   <th className="text-left py-2 pr-2 hidden md:table-cell">Custo</th>
-                  <th className="text-center py-2 pr-2 w-10">Status</th>
+                  <th className="text-center py-2 pr-2 w-16">Status</th>
                   <th className="w-8"></th>
                 </tr>
               </thead>
@@ -341,62 +258,40 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
                       <td className="py-1.5 pr-2 text-xs text-muted-foreground">{idx + 1}</td>
                       <td className="py-1.5 pr-2 font-mono text-xs">{row.imei}</td>
                       <td className="py-1.5 pr-2">
-                        <Input
-                          value={row.marca}
-                          onChange={e => updateRow(row.id, "marca", e.target.value)}
+                        <Input value={row.marca} onChange={e => updateRow(row.id, "marca", e.target.value)}
                           className={cn("h-7 text-xs", row.autoFields.has("marca") && "ring-1 ring-success/40 bg-success/5")}
-                          disabled={isDup || row.status === "searching"}
-                          placeholder="—"
-                        />
+                          disabled={isDup || row.status === "searching"} placeholder="—" />
                       </td>
                       <td className="py-1.5 pr-2">
-                        <Input
-                          value={row.modelo}
-                          onChange={e => updateRow(row.id, "modelo", e.target.value)}
+                        <Input value={row.modelo} onChange={e => updateRow(row.id, "modelo", e.target.value)}
                           className={cn("h-7 text-xs", row.autoFields.has("modelo") && "ring-1 ring-success/40 bg-success/5")}
-                          disabled={isDup || row.status === "searching"}
-                          placeholder="—"
-                        />
+                          disabled={isDup || row.status === "searching"} placeholder="—" />
                       </td>
                       <td className="py-1.5 pr-2 hidden lg:table-cell">
-                        <Input
-                          value={row.cor}
-                          onChange={e => updateRow(row.id, "cor", e.target.value)}
+                        <Input value={row.cor} onChange={e => updateRow(row.id, "cor", e.target.value)}
                           className={cn("h-7 text-xs", row.autoFields.has("cor") && "ring-1 ring-success/40 bg-success/5")}
-                          disabled={isDup || row.status === "searching"}
-                          placeholder="—"
-                        />
+                          disabled={isDup || row.status === "searching"} placeholder="—" />
                       </td>
                       <td className="py-1.5 pr-2 hidden lg:table-cell">
-                        <Input
-                          value={row.capacidade}
-                          onChange={e => updateRow(row.id, "capacidade", e.target.value)}
+                        <Input value={row.capacidade} onChange={e => updateRow(row.id, "capacidade", e.target.value)}
                           className={cn("h-7 text-xs", row.autoFields.has("capacidade") && "ring-1 ring-success/40 bg-success/5")}
-                          disabled={isDup || row.status === "searching"}
-                          placeholder="—"
-                        />
+                          disabled={isDup || row.status === "searching"} placeholder="—" />
                       </td>
                       <td className="py-1.5 pr-2 hidden md:table-cell">
                         <Select value={row.grade} onValueChange={v => updateRow(row.id, "grade", v)} disabled={isDup}>
                           <SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {grades.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-                          </SelectContent>
+                          <SelectContent>{grades.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
                         </Select>
                       </td>
                       <td className="py-1.5 pr-2 hidden md:table-cell">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={row.custo}
-                          onChange={e => updateRow(row.id, "custo", e.target.value)}
-                          className="h-7 text-xs w-24"
-                          disabled={isDup || row.status === "searching"}
-                          placeholder="R$"
-                        />
+                        <Input type="number" step="0.01" value={row.custo} onChange={e => updateRow(row.id, "custo", e.target.value)}
+                          className="h-7 text-xs w-24" disabled={isDup || row.status === "searching"} placeholder="R$" />
                       </td>
                       <td className="py-1.5 pr-2 text-center" title={row.statusMsg}>
-                        {statusIcon(row.status)}
+                        <div className="flex flex-col items-center gap-0.5">
+                          {statusIcon(row.status)}
+                          <span className="text-[9px] text-muted-foreground leading-none">{row.statusMsg}</span>
+                        </div>
                       </td>
                       <td className="py-1.5">
                         <button onClick={() => removeRow(row.id)} className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors">
@@ -411,29 +306,17 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
           )}
         </div>
 
-        {/* ─── Footer ─── */}
         {rows.length > 0 && (
           <div className="px-6 py-4 border-t bg-muted/30 flex items-center justify-between flex-shrink-0">
             <div className="text-xs text-muted-foreground space-x-3">
               <span className="text-success font-medium">{savableRows.length} válido(s)</span>
               {duplicateCount > 0 && <span className="text-destructive">{duplicateCount} duplicado(s)</span>}
-              {invalidCount > 0 && <span className="text-destructive">{invalidCount} inválido(s)</span>}
+              {invalidCount > 0 && <span className="text-destructive">{invalidCount} erro(s)</span>}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setRows([])}>
-                Limpar tudo
-              </Button>
-              <Button
-                size="sm"
-                className="gap-1.5"
-                disabled={saveMutation.isPending || savableRows.length === 0}
-                onClick={() => saveMutation.mutate()}
-              >
-                {saveMutation.isPending ? (
-                  <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Salvando...</>
-                ) : (
-                  <><Save className="h-3.5 w-3.5" /> Salvar {savableRows.length} aparelho(s)</>
-                )}
+              <Button variant="outline" size="sm" onClick={() => setRows([])}>Limpar tudo</Button>
+              <Button size="sm" className="gap-1.5" disabled={saveMutation.isPending || savableRows.length === 0} onClick={() => saveMutation.mutate()}>
+                {saveMutation.isPending ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Salvando...</> : <><Save className="h-3.5 w-3.5" /> Salvar {savableRows.length} aparelho(s)</>}
               </Button>
             </div>
           </div>
