@@ -154,33 +154,56 @@ function mapApiResponse(apiData: any): MappedDevice | null {
 // BASE TAC INTERNA — Fallback local para dispositivos comuns no Brasil
 // ─────────────────────────────────────────────────────────────────────────────
 const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: string }> = {
-  // Apple iPhones
+  // ═══ Apple iPhones ═══
+  // iPhone 16 series
+  "35490111": { marca: "Apple", modelo: "iPhone 16 Pro Max" },
+  "35490110": { marca: "Apple", modelo: "iPhone 16 Pro" },
+  "35489911": { marca: "Apple", modelo: "iPhone 16 Plus" },
+  "35489910": { marca: "Apple", modelo: "iPhone 16" },
+  // iPhone 15 series
   "35397110": { marca: "Apple", modelo: "iPhone 15 Pro Max" },
   "35397010": { marca: "Apple", modelo: "iPhone 15 Pro" },
   "35395510": { marca: "Apple", modelo: "iPhone 15 Plus" },
   "35395010": { marca: "Apple", modelo: "iPhone 15" },
+  // iPhone 14 series
   "35332211": { marca: "Apple", modelo: "iPhone 14 Pro Max" },
   "35332210": { marca: "Apple", modelo: "iPhone 14 Pro Max" },
   "35328211": { marca: "Apple", modelo: "iPhone 14 Pro" },
   "35325811": { marca: "Apple", modelo: "iPhone 14 Plus" },
   "35325010": { marca: "Apple", modelo: "iPhone 14" },
+  // iPhone 13 series
   "35904211": { marca: "Apple", modelo: "iPhone 13 Pro Max" },
   "35904210": { marca: "Apple", modelo: "iPhone 13 Pro" },
   "35395311": { marca: "Apple", modelo: "iPhone 13" },
   "35324710": { marca: "Apple", modelo: "iPhone 13 mini" },
+  // iPhone 12 series
   "35407115": { marca: "Apple", modelo: "iPhone 12 Pro Max" },
   "35407110": { marca: "Apple", modelo: "iPhone 12 Pro" },
   "35340511": { marca: "Apple", modelo: "iPhone 12" },
   "35340510": { marca: "Apple", modelo: "iPhone 12 mini" },
-  "35391510": { marca: "Apple", modelo: "iPhone SE (3rd gen)" },
+  // iPhone 11 series
   "35316110": { marca: "Apple", modelo: "iPhone 11 Pro Max" },
   "35316010": { marca: "Apple", modelo: "iPhone 11 Pro" },
   "35316210": { marca: "Apple", modelo: "iPhone 11" },
-  "35490111": { marca: "Apple", modelo: "iPhone 16 Pro Max" },
-  "35490110": { marca: "Apple", modelo: "iPhone 16 Pro" },
-  "35489911": { marca: "Apple", modelo: "iPhone 16 Plus" },
-  "35489910": { marca: "Apple", modelo: "iPhone 16" },
-  // Samsung Galaxy S series
+  // iPhone SE / X / XS / XR
+  "35391510": { marca: "Apple", modelo: "iPhone SE (3rd gen)" },
+  "35391410": { marca: "Apple", modelo: "iPhone SE (2nd gen)" },
+  "35694209": { marca: "Apple", modelo: "iPhone XS Max" },
+  "35694109": { marca: "Apple", modelo: "iPhone XS" },
+  "35693509": { marca: "Apple", modelo: "iPhone XR" },
+  "35299509": { marca: "Apple", modelo: "iPhone X" },
+  // iPhone 8 / 7 / 6 / older (TACs comuns no Brasil)
+  "35320008": { marca: "Apple", modelo: "iPhone 8 Plus" },
+  "35320108": { marca: "Apple", modelo: "iPhone 8" },
+  "35319607": { marca: "Apple", modelo: "iPhone 7 Plus" },
+  "35319507": { marca: "Apple", modelo: "iPhone 7" },
+  "35104697": { marca: "Apple", modelo: "iPhone 7" },
+  "35389006": { marca: "Apple", modelo: "iPhone 6s Plus" },
+  "35388906": { marca: "Apple", modelo: "iPhone 6s" },
+  "35332706": { marca: "Apple", modelo: "iPhone 6 Plus" },
+  "35332606": { marca: "Apple", modelo: "iPhone 6" },
+
+  // ═══ Samsung Galaxy S series ═══
   "35260212": { marca: "Samsung", modelo: "Galaxy S24 Ultra" },
   "35260211": { marca: "Samsung", modelo: "Galaxy S24+" },
   "35260210": { marca: "Samsung", modelo: "Galaxy S24" },
@@ -190,20 +213,89 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "35555512": { marca: "Samsung", modelo: "Galaxy S22 Ultra" },
   "35555511": { marca: "Samsung", modelo: "Galaxy S22+" },
   "35555510": { marca: "Samsung", modelo: "Galaxy S22" },
-  // Samsung Galaxy A series
+  "35230011": { marca: "Samsung", modelo: "Galaxy S21 Ultra" },
+  "35230010": { marca: "Samsung", modelo: "Galaxy S21" },
+
+  // ═══ Samsung Galaxy A series (muito populares no Brasil) ═══
   "35290512": { marca: "Samsung", modelo: "Galaxy A54" },
   "35290511": { marca: "Samsung", modelo: "Galaxy A34" },
   "35290510": { marca: "Samsung", modelo: "Galaxy A14" },
-  // Motorola
+  "35617311": { marca: "Samsung", modelo: "Galaxy A55" },
+  "35617211": { marca: "Samsung", modelo: "Galaxy A35" },
+  "35617111": { marca: "Samsung", modelo: "Galaxy A15" },
+  "35617011": { marca: "Samsung", modelo: "Galaxy A05" },
+  "35281610": { marca: "Samsung", modelo: "Galaxy A53" },
+  "35281510": { marca: "Samsung", modelo: "Galaxy A33" },
+  "35281410": { marca: "Samsung", modelo: "Galaxy A23" },
+  "35281310": { marca: "Samsung", modelo: "Galaxy A13" },
+  "35281210": { marca: "Samsung", modelo: "Galaxy A03" },
+  "35470510": { marca: "Samsung", modelo: "Galaxy A52" },
+  "35470410": { marca: "Samsung", modelo: "Galaxy A32" },
+  "35470310": { marca: "Samsung", modelo: "Galaxy A22" },
+  "35470210": { marca: "Samsung", modelo: "Galaxy A12" },
+  "35470110": { marca: "Samsung", modelo: "Galaxy A02" },
+
+  // ═══ Samsung Galaxy M / F series ═══
+  "35659911": { marca: "Samsung", modelo: "Galaxy M54" },
+  "35659811": { marca: "Samsung", modelo: "Galaxy M34" },
+  "35659711": { marca: "Samsung", modelo: "Galaxy M14" },
+
+  // ═══ Samsung Galaxy Z (dobráveis) ═══
+  "35711612": { marca: "Samsung", modelo: "Galaxy Z Fold5" },
+  "35711512": { marca: "Samsung", modelo: "Galaxy Z Flip5" },
+
+  // ═══ Motorola ═══
   "35473810": { marca: "Motorola", modelo: "Moto G84" },
   "35473710": { marca: "Motorola", modelo: "Moto G54" },
   "35473610": { marca: "Motorola", modelo: "Moto G34" },
   "35766710": { marca: "Motorola", modelo: "Moto Edge 40" },
-  // Xiaomi
+  "35766810": { marca: "Motorola", modelo: "Moto Edge 40 Pro" },
+  "35473510": { marca: "Motorola", modelo: "Moto G73" },
+  "35473410": { marca: "Motorola", modelo: "Moto G53" },
+  "35473310": { marca: "Motorola", modelo: "Moto G23" },
+  "35473210": { marca: "Motorola", modelo: "Moto G13" },
+  "35766610": { marca: "Motorola", modelo: "Moto Edge 30" },
+  "35684710": { marca: "Motorola", modelo: "Moto G82" },
+  "35684610": { marca: "Motorola", modelo: "Moto G72" },
+  "35684510": { marca: "Motorola", modelo: "Moto G62" },
+  "35684410": { marca: "Motorola", modelo: "Moto G42" },
+  "35684310": { marca: "Motorola", modelo: "Moto G32" },
+  "35684210": { marca: "Motorola", modelo: "Moto G22" },
+  "35684110": { marca: "Motorola", modelo: "Moto E22" },
+  "35766510": { marca: "Motorola", modelo: "Moto Razr 40" },
+
+  // ═══ Xiaomi ═══
   "86769804": { marca: "Xiaomi", modelo: "Redmi Note 13 Pro" },
   "86769704": { marca: "Xiaomi", modelo: "Redmi Note 13" },
   "86769604": { marca: "Xiaomi", modelo: "Redmi 13C" },
   "86826904": { marca: "Xiaomi", modelo: "Poco X6 Pro" },
+  "86826804": { marca: "Xiaomi", modelo: "Poco X6" },
+  "86826704": { marca: "Xiaomi", modelo: "Poco M6 Pro" },
+  "86058604": { marca: "Xiaomi", modelo: "Redmi Note 12 Pro" },
+  "86058504": { marca: "Xiaomi", modelo: "Redmi Note 12" },
+  "86058404": { marca: "Xiaomi", modelo: "Redmi 12" },
+  "86058304": { marca: "Xiaomi", modelo: "Poco X5 Pro" },
+  "86058204": { marca: "Xiaomi", modelo: "Poco X5" },
+  "86393604": { marca: "Xiaomi", modelo: "Xiaomi 14" },
+  "86393504": { marca: "Xiaomi", modelo: "Xiaomi 13" },
+  "86393404": { marca: "Xiaomi", modelo: "Xiaomi 13 Lite" },
+
+  // ═══ Realme ═══
+  "86812804": { marca: "Realme", modelo: "Realme 12 Pro+" },
+  "86812704": { marca: "Realme", modelo: "Realme 12" },
+  "86812604": { marca: "Realme", modelo: "Realme C55" },
+
+  // ═══ OPPO ═══
+  "86480104": { marca: "OPPO", modelo: "Reno 11" },
+  "86480004": { marca: "OPPO", modelo: "OPPO A78" },
+
+  // ═══ iPad / Tablets ═══
+  "35830311": { marca: "Apple", modelo: "iPad Pro 12.9 (6th gen)" },
+  "35830211": { marca: "Apple", modelo: "iPad Pro 11 (4th gen)" },
+  "35830111": { marca: "Apple", modelo: "iPad Air (5th gen)" },
+  "35830011": { marca: "Apple", modelo: "iPad (10th gen)" },
+  "35273011": { marca: "Samsung", modelo: "Galaxy Tab S9" },
+  "35273111": { marca: "Samsung", modelo: "Galaxy Tab A9" },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
