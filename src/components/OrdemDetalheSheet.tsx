@@ -81,6 +81,36 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
+  const { data: comissoesOS = [] } = useQuery({
+    queryKey: ["comissoes_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("comissoes")
+        .select("*, funcionarios ( nome )")
+        .eq("ordem_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
+  const { data: despesasOS = [] } = useQuery({
+    queryKey: ["despesas_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("contas_a_pagar")
+        .select("id, descricao, valor, status, fornecedores ( nome )")
+        .eq("ordem_servico_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
   const { data: pecasDisponiveis = [] } = useQuery({
     queryKey: ["pecas_disponiveis"],
     queryFn: async () => {
@@ -387,28 +417,47 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Valores e Lucro */}
+                {/* Valores e Lucro Real */}
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Valores</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Valores & Lucro Real</p>
                   {(() => {
                     const valor = ordem.valor ?? 0;
                     const custoPecas = ordem.custo_pecas ?? 0;
-                    const lucro = valor - custoPecas;
+                    const totalComissoes = comissoesOS.reduce((s, c) => s + Number(c.valor), 0);
+                    const totalDespesas = despesasOS.reduce((s, d) => s + Number(d.valor), 0);
+                    const lucroReal = valor - custoPecas - totalComissoes - totalDespesas;
                     return (
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="rounded-lg border p-3">
-                          <p className="text-xs text-muted-foreground">Valor cobrado</p>
-                          <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Valor cobrado</p>
+                            <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
+                          </div>
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Custo peças</p>
+                            <p className="text-sm font-semibold mt-0.5 text-destructive">{custoPecas > 0 ? `- ${fmtCurrency(custoPecas)}` : "—"}</p>
+                          </div>
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Comissões</p>
+                            <p className="text-sm font-semibold mt-0.5 text-warning">{totalComissoes > 0 ? `- ${fmtCurrency(totalComissoes)}` : "—"}</p>
+                          </div>
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Despesas vinculadas</p>
+                            <p className="text-sm font-semibold mt-0.5 text-destructive">{totalDespesas > 0 ? `- ${fmtCurrency(totalDespesas)}` : "—"}</p>
+                          </div>
                         </div>
-                        <div className="rounded-lg border p-3">
-                          <p className="text-xs text-muted-foreground">Custo peças</p>
-                          <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.custo_pecas)}</p>
-                        </div>
-                        <div className={`rounded-lg border p-3 ${lucro > 0 ? "border-success/20 bg-success-muted" : lucro < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-                          <p className="text-xs text-muted-foreground">Lucro</p>
-                          <p className={`text-sm font-semibold mt-0.5 ${lucro > 0 ? "text-success" : lucro < 0 ? "text-destructive" : ""}`}>
-                            {valor > 0 ? fmtCurrency(lucro) : "—"}
-                          </p>
+                        <div className={`rounded-lg border p-3 ${lucroReal > 0 ? "border-success/20 bg-success-muted" : lucroReal < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground font-medium">Lucro Real</p>
+                            <p className={`text-base font-bold ${lucroReal > 0 ? "text-success" : lucroReal < 0 ? "text-destructive" : ""}`}>
+                              {valor > 0 ? fmtCurrency(lucroReal) : "—"}
+                            </p>
+                          </div>
+                          {valor > 0 && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {fmtCurrency(valor)} − {fmtCurrency(custoPecas)} − {fmtCurrency(totalComissoes)} − {fmtCurrency(totalDespesas)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -510,6 +559,42 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     </div>
                   )}
                 </div>
+
+                {/* Comissões da OS */}
+                {comissoesOS.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
+                    <div className="space-y-1.5">
+                      {comissoesOS.map((c) => (
+                        <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
+                            <p className="text-xs text-muted-foreground">{c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}</p>
+                          </div>
+                          <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Despesas vinculadas */}
+                {despesasOS.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Despesas Vinculadas</p>
+                    <div className="space-y-1.5">
+                      {despesasOS.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium">{d.descricao}</p>
+                            <p className="text-xs text-muted-foreground">{(d as any).fornecedores?.nome ?? ""} · {d.status}</p>
+                          </div>
+                          <span className="text-sm font-medium text-destructive">{fmtCurrency(Number(d.valor))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
 
                 <div>
