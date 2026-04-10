@@ -1,22 +1,22 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════
- * IMEI Lookup Edge Function — Consulta profissional de IMEI via API
+ * IMEI Lookup Edge Function — Consulta profissional via IMEI.info API
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * FLUXO DE CONSULTA (cascata):
  *   1. Validação Luhn do IMEI
  *   2. Verificação de duplicidade no banco
- *   3. Consulta API externa (fonte principal)
+ *   3. Consulta API IMEI.info (assíncrona: submit → polling)
  *   4. Fallback: cache local (imei_device_cache)
  *   5. Fallback: base TAC interna
  *
- * COMO TROCAR DE PROVEDOR DE API:
- *   - Edite a seção API_CONFIG abaixo
- *   - Ajuste a função mapApiResponse() para o novo formato de resposta
- *   - Adicione o secret IMEI_API_KEY se necessário
+ * COMO FUNCIONA O IMEI.info:
+ *   - Submit: GET /check/{serviceId}/?API_KEY=...&imei=... → retorna history_id
+ *   - Polling: GET /search_history/{history_id}/?API_KEY=... → aguarda status "Done"
+ *   - Docs: https://www.imei.info/api/imei/docs/
  *
  * SECRETS NECESSÁRIOS (configurar via Lovable Cloud):
- *   - IMEI_API_KEY (opcional) — chave de autenticação da API externa
+ *   - IMEI_API_KEY — token da conta IMEI.info
  *   - SUPABASE_URL (automático)
  *   - SUPABASE_SERVICE_ROLE_KEY (automático)
  * ═══════════════════════════════════════════════════════════════════════════
@@ -26,76 +26,38 @@ import { corsHeaders } from 'npm:@supabase/supabase-js/cors';
 import { createClient } from 'npm:@supabase/supabase-js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🔧 CONFIGURAÇÃO DA API — EDITE AQUI PARA TROCAR DE PROVEDOR
+// 🔧 CONFIGURAÇÃO DA API IMEI.info
 // ─────────────────────────────────────────────────────────────────────────────
 const API_CONFIG = {
-  /**
-   * Provedor atual: IMEI.info (https://dash.dev.imei.info/api)
-   * Endpoint: GET /check/{service}/?API_KEY=...&imei=...
-   * O parâmetro "service" é o Service ID (integer). Usar 1 para checagem padrão.
-   * Docs: https://www.imei.info/api/imei/docs/
-   */
-  baseUrl: "https://api.imei.info/api",
+  baseUrl: "https://www.imei.info/api",
 
-  /** Service ID do IMEI.info (1 = checagem padrão) */
-  serviceId: 1,
+  /**
+   * Service ID do IMEI.info. Depende do seu plano/pacote.
+   * Exemplos:
+   *   12 = APPLE: Warranty Check (~$0.04/req)
+   *   2  = APPLE: Carrier & Lock Status & FMI (~$0.36/req)
+   * Consulte seu dashboard para ver os services disponíveis.
+   */
+  serviceId: 12,
 
   /** Chave da API (lida do secret IMEI_API_KEY) */
   apiKey: Deno.env.get("IMEI_API_KEY") || null,
 
-  /** Timeout da requisição em milissegundos */
-  timeoutMs: 15000,
+  /** Intervalo de polling em ms */
+  pollIntervalMs: 2500,
 
-  /** Método HTTP da API */
-  method: "GET" as const,
+  /** Máximo de tentativas de polling */
+  maxPollAttempts: 8,
 };
 
-/**
- * Monta a URL completa da requisição.
- * IMEI.info: GET /check/{service}/?API_KEY={key}&imei={imei}
- */
-function buildRequestUrl(imei: string, _tac: string): string {
-  const params = new URLSearchParams();
-  if (API_CONFIG.apiKey) params.set("API_KEY", API_CONFIG.apiKey);
-  params.set("imei", imei);
-  return `${API_CONFIG.baseUrl}/check/${API_CONFIG.serviceId}/?${params.toString()}`;
-}
+const API_HEADERS: Record<string, string> = {
+  "Accept": "application/json",
+  "User-Agent": "SmartRepairsHub/1.0",
+};
 
-/**
- * Monta os headers da requisição.
- * IMEI.info usa API_KEY como query param, não precisa de header de auth.
- */
-function buildRequestHeaders(): Record<string, string> {
-  return {
-    "Accept": "application/json",
-    "User-Agent": "SmartRepairsHub/1.0",
-  };
-}
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- * MAPEAMENTO DA RESPOSTA DA API → CAMPOS INTERNOS
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * IMEI.info retorna estrutura como:
- * {
- *   "status": "success",
- *   "imei": "351046973238759",
- *   "brand": "Apple",
- *   "name": "iPhone 7",
- *   "model": "A1778",
- *   "models": [...],
- *   "device_spec": { ... },
- *   ...
- * }
- *
- * Campos mapeados:
- *   brand / brand_name         → marca
- *   name / model_name          → modelo
- *   device_spec.color          → cor
- *   device_spec.storage        → capacidade
- *   device_spec.type           → tipo
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// TIPOS
+// ─────────────────────────────────────────────────────────────────────────────
 type MappedDevice = {
   marca?: string;
   modelo?: string;
@@ -104,24 +66,132 @@ type MappedDevice = {
   tipo?: string;
 };
 
-function mapApiResponse(apiData: any): MappedDevice | null {
-  if (!apiData) return null;
+type LookupResult = {
+  status: "found" | "partial" | "not_found" | "error";
+  source: "api" | "cache" | "tac_db" | "none";
+  marca?: string;
+  modelo?: string;
+  cor?: string;
+  capacidade?: string;
+  tipo?: string;
+  message?: string;
+  duplicate?: { table: string; info: string } | null;
+};
 
-  // IMEI.info pode retornar { status: "fail" } em caso de erro
-  if (apiData.status === "fail" || apiData.error) return null;
+// ─────────────────────────────────────────────────────────────────────────────
+// CONSULTA ASSÍNCRONA AO IMEI.info (submit + polling)
+// ─────────────────────────────────────────────────────────────────────────────
+async function queryImeiInfoApi(imei: string): Promise<MappedDevice | null> {
+  if (!API_CONFIG.apiKey) {
+    console.log("[imei-lookup] IMEI_API_KEY não configurada, pulando API");
+    return null;
+  }
 
-  const marca = apiData.brand || apiData.brand_name || apiData.manufacturer;
-  const modelo = apiData.name || apiData.model_name || apiData.device_name || apiData.model;
-  const spec = apiData.device_spec || {};
+  // ── STEP 1: Submeter checagem ──
+  const checkUrl = `${API_CONFIG.baseUrl}/check/${API_CONFIG.serviceId}/?API_KEY=${API_CONFIG.apiKey}&imei=${imei}`;
+  console.log(`[imei-lookup] Submetendo check: service=${API_CONFIG.serviceId}`);
+
+  const submitResp = await fetch(checkUrl, { headers: API_HEADERS });
+  const submitData = await submitResp.json();
+
+  if (!submitResp.ok || submitData.error) {
+    console.log(`[imei-lookup] Erro no submit: ${JSON.stringify(submitData)}`);
+    return null;
+  }
+
+  if (submitData.status === "Rejected") {
+    console.log(`[imei-lookup] Rejeitado: ${submitData.result}`);
+    return null;
+  }
+
+  const historyId = submitData.history_id || submitData.id;
+  if (!historyId) {
+    console.log(`[imei-lookup] Sem history_id: ${JSON.stringify(submitData)}`);
+    return null;
+  }
+
+  console.log(`[imei-lookup] Aguardando resultado, history_id=${historyId}`);
+
+  // ── STEP 2: Polling do resultado ──
+  const historyUrl = `${API_CONFIG.baseUrl}/search_history/${historyId}/?API_KEY=${API_CONFIG.apiKey}`;
+
+  for (let attempt = 0; attempt < API_CONFIG.maxPollAttempts; attempt++) {
+    await new Promise(r => setTimeout(r, API_CONFIG.pollIntervalMs));
+
+    const pollResp = await fetch(historyUrl, { headers: API_HEADERS });
+    if (!pollResp.ok) continue;
+
+    const pollData = await pollResp.json();
+    console.log(`[imei-lookup] Poll #${attempt + 1}: status=${pollData.status}`);
+
+    if (pollData.status === "Done" && pollData.result) {
+      return mapImeiInfoResult(pollData);
+    }
+    if (pollData.status === "Rejected" || pollData.status === "Error") {
+      console.log(`[imei-lookup] Falha: ${pollData.result}`);
+      return null;
+    }
+  }
+
+  console.log(`[imei-lookup] Timeout após ${API_CONFIG.maxPollAttempts} tentativas`);
+  return null;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * MAPEAMENTO DA RESPOSTA DO IMEI.info
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Resposta do service 12 (Apple Warranty Check):
+ * {
+ *   "service": "APPLE: Warranty Check",
+ *   "result": {
+ *     "model": "iPhone 17 PRO MAX (A3257)",
+ *     "activation_status": "Activated",
+ *     "warranty_status": "AppleCare One",
+ *     ...
+ *   }
+ * }
+ */
+function mapImeiInfoResult(pollData: any): MappedDevice | null {
+  const result = pollData.result;
+  if (!result || typeof result === "string") return null;
+
+  const service = (pollData.service || "").toLowerCase();
+
+  // Inferir marca pelo nome do service
+  let marca: string | undefined;
+  if (service.includes("apple")) marca = "Apple";
+  else if (service.includes("samsung")) marca = "Samsung";
+  else if (service.includes("xiaomi")) marca = "Xiaomi";
+  else if (service.includes("motorola")) marca = "Motorola";
+  else if (service.includes("huawei")) marca = "Huawei";
+
+  // Extrair modelo
+  let modelo = result.model || result.model_name || result.device_name;
+  if (modelo) {
+    // Remover código interno: "iPhone 17 PRO MAX (A3257)" → "iPhone 17 Pro Max"
+    modelo = modelo.replace(/\s*\([A-Z0-9]+\)\s*$/, "").trim();
+    // Inferir marca do nome do modelo
+    if (!marca) {
+      const m = modelo.toLowerCase();
+      if (m.startsWith("iphone") || m.startsWith("ipad")) marca = "Apple";
+      else if (m.startsWith("galaxy") || m.startsWith("sm-")) marca = "Samsung";
+      else if (m.startsWith("moto")) marca = "Motorola";
+      else if (m.startsWith("redmi") || m.startsWith("poco") || m.startsWith("mi ")) marca = "Xiaomi";
+    }
+  }
 
   if (!marca && !modelo) return null;
 
+  console.log(`[imei-lookup] API resultado: ${marca} ${modelo}`);
+
   return {
-    marca: marca || undefined,
-    modelo: modelo || undefined,
-    cor: spec.color || spec.colour || apiData.color || undefined,
-    capacidade: spec.storage || spec.internal_memory || apiData.storage || undefined,
-    tipo: spec.type || apiData.type || apiData.device_type || undefined,
+    marca,
+    modelo,
+    cor: result.color || result.colour || undefined,
+    capacidade: result.storage || result.capacity || undefined,
+    tipo: undefined,
   };
 }
 
@@ -130,44 +200,36 @@ function mapApiResponse(apiData: any): MappedDevice | null {
 // ─────────────────────────────────────────────────────────────────────────────
 const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: string }> = {
   // ═══ Apple iPhones ═══
-  // iPhone 16 series
   "35490111": { marca: "Apple", modelo: "iPhone 16 Pro Max" },
   "35490110": { marca: "Apple", modelo: "iPhone 16 Pro" },
   "35489911": { marca: "Apple", modelo: "iPhone 16 Plus" },
   "35489910": { marca: "Apple", modelo: "iPhone 16" },
-  // iPhone 15 series
   "35397110": { marca: "Apple", modelo: "iPhone 15 Pro Max" },
   "35397010": { marca: "Apple", modelo: "iPhone 15 Pro" },
   "35395510": { marca: "Apple", modelo: "iPhone 15 Plus" },
   "35395010": { marca: "Apple", modelo: "iPhone 15" },
-  // iPhone 14 series
   "35332211": { marca: "Apple", modelo: "iPhone 14 Pro Max" },
   "35332210": { marca: "Apple", modelo: "iPhone 14 Pro Max" },
   "35328211": { marca: "Apple", modelo: "iPhone 14 Pro" },
   "35325811": { marca: "Apple", modelo: "iPhone 14 Plus" },
   "35325010": { marca: "Apple", modelo: "iPhone 14" },
-  // iPhone 13 series
   "35904211": { marca: "Apple", modelo: "iPhone 13 Pro Max" },
   "35904210": { marca: "Apple", modelo: "iPhone 13 Pro" },
   "35395311": { marca: "Apple", modelo: "iPhone 13" },
   "35324710": { marca: "Apple", modelo: "iPhone 13 mini" },
-  // iPhone 12 series
   "35407115": { marca: "Apple", modelo: "iPhone 12 Pro Max" },
   "35407110": { marca: "Apple", modelo: "iPhone 12 Pro" },
   "35340511": { marca: "Apple", modelo: "iPhone 12" },
   "35340510": { marca: "Apple", modelo: "iPhone 12 mini" },
-  // iPhone 11 series
   "35316110": { marca: "Apple", modelo: "iPhone 11 Pro Max" },
   "35316010": { marca: "Apple", modelo: "iPhone 11 Pro" },
   "35316210": { marca: "Apple", modelo: "iPhone 11" },
-  // iPhone SE / X / XS / XR
   "35391510": { marca: "Apple", modelo: "iPhone SE (3rd gen)" },
   "35391410": { marca: "Apple", modelo: "iPhone SE (2nd gen)" },
   "35694209": { marca: "Apple", modelo: "iPhone XS Max" },
   "35694109": { marca: "Apple", modelo: "iPhone XS" },
   "35693509": { marca: "Apple", modelo: "iPhone XR" },
   "35299509": { marca: "Apple", modelo: "iPhone X" },
-  // iPhone 8 / 7 / 6 / older (TACs comuns no Brasil)
   "35320008": { marca: "Apple", modelo: "iPhone 8 Plus" },
   "35320108": { marca: "Apple", modelo: "iPhone 8" },
   "35319607": { marca: "Apple", modelo: "iPhone 7 Plus" },
@@ -177,8 +239,7 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "35388906": { marca: "Apple", modelo: "iPhone 6s" },
   "35332706": { marca: "Apple", modelo: "iPhone 6 Plus" },
   "35332606": { marca: "Apple", modelo: "iPhone 6" },
-
-  // ═══ Samsung Galaxy S series ═══
+  // ═══ Samsung Galaxy S ═══
   "35260212": { marca: "Samsung", modelo: "Galaxy S24 Ultra" },
   "35260211": { marca: "Samsung", modelo: "Galaxy S24+" },
   "35260210": { marca: "Samsung", modelo: "Galaxy S24" },
@@ -190,8 +251,7 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "35555510": { marca: "Samsung", modelo: "Galaxy S22" },
   "35230011": { marca: "Samsung", modelo: "Galaxy S21 Ultra" },
   "35230010": { marca: "Samsung", modelo: "Galaxy S21" },
-
-  // ═══ Samsung Galaxy A series (muito populares no Brasil) ═══
+  // ═══ Samsung Galaxy A ═══
   "35290512": { marca: "Samsung", modelo: "Galaxy A54" },
   "35290511": { marca: "Samsung", modelo: "Galaxy A34" },
   "35290510": { marca: "Samsung", modelo: "Galaxy A14" },
@@ -209,16 +269,12 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "35470310": { marca: "Samsung", modelo: "Galaxy A22" },
   "35470210": { marca: "Samsung", modelo: "Galaxy A12" },
   "35470110": { marca: "Samsung", modelo: "Galaxy A02" },
-
-  // ═══ Samsung Galaxy M / F series ═══
+  // ═══ Samsung M / Z ═══
   "35659911": { marca: "Samsung", modelo: "Galaxy M54" },
   "35659811": { marca: "Samsung", modelo: "Galaxy M34" },
   "35659711": { marca: "Samsung", modelo: "Galaxy M14" },
-
-  // ═══ Samsung Galaxy Z (dobráveis) ═══
   "35711612": { marca: "Samsung", modelo: "Galaxy Z Fold5" },
   "35711512": { marca: "Samsung", modelo: "Galaxy Z Flip5" },
-
   // ═══ Motorola ═══
   "35473810": { marca: "Motorola", modelo: "Moto G84" },
   "35473710": { marca: "Motorola", modelo: "Moto G54" },
@@ -238,7 +294,6 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "35684210": { marca: "Motorola", modelo: "Moto G22" },
   "35684110": { marca: "Motorola", modelo: "Moto E22" },
   "35766510": { marca: "Motorola", modelo: "Moto Razr 40" },
-
   // ═══ Xiaomi ═══
   "86769804": { marca: "Xiaomi", modelo: "Redmi Note 13 Pro" },
   "86769704": { marca: "Xiaomi", modelo: "Redmi Note 13" },
@@ -254,17 +309,13 @@ const KNOWN_TACS: Record<string, { marca: string; modelo: string; capacidade?: s
   "86393604": { marca: "Xiaomi", modelo: "Xiaomi 14" },
   "86393504": { marca: "Xiaomi", modelo: "Xiaomi 13" },
   "86393404": { marca: "Xiaomi", modelo: "Xiaomi 13 Lite" },
-
-  // ═══ Realme ═══
+  // ═══ Outros ═══
   "86812804": { marca: "Realme", modelo: "Realme 12 Pro+" },
   "86812704": { marca: "Realme", modelo: "Realme 12" },
   "86812604": { marca: "Realme", modelo: "Realme C55" },
-
-  // ═══ OPPO ═══
   "86480104": { marca: "OPPO", modelo: "Reno 11" },
   "86480004": { marca: "OPPO", modelo: "OPPO A78" },
-
-  // ═══ iPad / Tablets ═══
+  // ═══ Tablets ═══
   "35830311": { marca: "Apple", modelo: "iPad Pro 12.9 (6th gen)" },
   "35830211": { marca: "Apple", modelo: "iPad Pro 11 (4th gen)" },
   "35830111": { marca: "Apple", modelo: "iPad Air (5th gen)" },
@@ -286,21 +337,6 @@ function isValidImei(imei: string): boolean {
   }
   return sum % 10 === 0;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TIPOS DE RESPOSTA
-// ─────────────────────────────────────────────────────────────────────────────
-type LookupResult = {
-  status: "found" | "partial" | "not_found" | "error";
-  source: "api" | "cache" | "tac_db" | "none";
-  marca?: string;
-  modelo?: string;
-  cor?: string;
-  capacidade?: string;
-  tipo?: string;
-  message?: string;
-  duplicate?: { table: string; info: string } | null;
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HANDLER PRINCIPAL
@@ -356,36 +392,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ═══ ETAPA 2: Consulta API externa (FONTE PRINCIPAL) ═══
+    // ═══ ETAPA 2: Consulta API IMEI.info (assíncrona) ═══
     let device: MappedDevice | null = null;
     let source: LookupResult["source"] = "none";
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), API_CONFIG.timeoutMs);
-      const url = buildRequestUrl(digits, tac);
-
-      console.log(`[imei-lookup] Consultando API: ${url}`);
-
-      const apiResponse = await fetch(url, {
-        method: API_CONFIG.method,
-        signal: controller.signal,
-        headers: buildRequestHeaders(),
-      });
-      clearTimeout(timeout);
-
-      if (apiResponse.ok) {
-        const apiData = await apiResponse.json();
-        device = mapApiResponse(apiData);
-        if (device) {
-          source = "api";
-          console.log(`[imei-lookup] API retornou: ${device.marca} ${device.modelo}`);
-        }
-      } else {
-        console.log(`[imei-lookup] API retornou status ${apiResponse.status}`);
+      device = await queryImeiInfoApi(digits);
+      if (device) {
+        source = "api";
       }
     } catch (apiErr) {
-      // Timeout ou erro de rede — seguir para fallbacks
       console.log(`[imei-lookup] Erro na API externa: ${apiErr}`);
     }
 
@@ -404,7 +420,6 @@ Deno.serve(async (req) => {
           capacidade: device?.capacidade || c.capacidade || undefined,
         };
         source = source === "api" ? "api" : "cache";
-        // Incrementar uso
         await supabase.from("imei_device_cache")
           .update({ vezes_usado: (c.vezes_usado || 0) + 1, updated_at: new Date().toISOString() })
           .eq("id", c.id);
@@ -440,7 +455,7 @@ Deno.serve(async (req) => {
         duplicate: null,
       };
 
-      // Salvar/atualizar cache para futuras consultas
+      // Salvar/atualizar cache
       try {
         await supabase.from("imei_device_cache").upsert({
           tac,
@@ -456,7 +471,6 @@ Deno.serve(async (req) => {
       return respond(result);
     }
 
-    // Nada encontrado
     return respond({
       status: "not_found",
       source: "none",
