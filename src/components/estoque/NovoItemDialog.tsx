@@ -153,7 +153,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         cor: values.cor || null,
         capacidade: values.capacidade || null,
         imei_serial: values.imei_serial || null,
-        sku: values.sku || null,
+        sku: values.sku?.trim() || null, // null = auto-generate via trigger
         quantidade: parseInt(values.quantidade) || 0,
         quantidade_minima: parseInt(values.quantidade_minima) || 0,
         custo_unitario: values.custo_unitario ? parseFloat(values.custo_unitario) : null,
@@ -164,20 +164,28 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
       };
 
       if (isEditing) {
-        const { error } = await supabase.from("estoque_itens").update(payload).eq("id", editingItem.id);
+        const { data, error } = await supabase.from("estoque_itens").update(payload).eq("id", editingItem.id).select("sku").single();
         if (error) throw error;
+        return data;
       } else {
-        const { error } = await supabase.from("estoque_itens").insert(payload);
+        const { data, error } = await supabase.from("estoque_itens").insert(payload).select("sku").single();
         if (error) throw error;
+        return data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success(isEditing ? "Peça atualizada!" : "Peça adicionada ao estoque!");
+      const skuMsg = data?.sku ? ` (SKU: ${data.sku})` : "";
+      toast.success((isEditing ? "Peça atualizada!" : "Peça adicionada ao estoque!") + skuMsg);
       onOpenChange(false);
     },
     onError: (e: any) => {
-      toast.error(e.message);
+      const msg = e.message || "";
+      if (msg.includes("já está em uso") || msg.includes("duplicate") || msg.includes("unique")) {
+        toast.error("Este SKU já está em uso. Use outro ou deixe vazio para gerar automaticamente.");
+      } else {
+        toast.error(msg);
+      }
     },
   });
 
