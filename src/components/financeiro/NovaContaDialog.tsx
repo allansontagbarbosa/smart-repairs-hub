@@ -168,8 +168,8 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
             <div>
               <Label>Valor (R$) *</Label>
               <CurrencyInput
-                value={watch("valor")}
-                onValueChange={v => setValue("valor", v)}
+                value={watch("valor") ? parseFloat(watch("valor")) : null}
+                onValueChange={v => setValue("valor", String(v))}
                 placeholder="Digite o valor"
               />
             </div>
