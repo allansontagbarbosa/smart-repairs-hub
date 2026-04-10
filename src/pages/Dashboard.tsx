@@ -151,7 +151,13 @@ export default function Dashboard() {
 
     const faturamentoMes = ordensMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
-    const lucroMes = faturamentoMes - custosMes;
+
+    // Real profit: faturamento - peças - comissões - despesas
+    const comissoesTotal = comissoesPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
+    const despesasTotal = contasPendentes
+      .filter(c => c.data_vencimento?.startsWith(`${anoAtual}-${String(mesAtual + 1).padStart(2, "0")}`))
+      .reduce((s, c) => s + Number(c.valor ?? 0), 0);
+    const lucroMes = faturamentoMes - custosMes - comissoesTotal - despesasTotal;
 
     const ordensComValorMes = ordensMes.filter(o => Number(o.valor ?? 0) > 0);
     const ticketMedio = ordensComValorMes.length > 0
@@ -184,13 +190,37 @@ export default function Dashboard() {
 
     const estoqueBaixo = pecas.filter(p => p.quantidade_minima > 0 && p.quantidade <= p.quantidade_minima).length;
 
+    // Lucro por loja
+    const lucroPorLoja: { nome: string; receita: number; custo: number; lucro: number }[] = [];
+    if (lojas.length > 0) {
+      for (const loja of lojas) {
+        const ordensLoja = ordensMes.filter(o => o.loja_id === loja.id);
+        const rec = ordensLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
+        const cst = ordensLoja.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+        if (rec > 0 || cst > 0) {
+          lucroPorLoja.push({ nome: loja.nome, receita: rec, custo: cst, lucro: rec - cst });
+        }
+      }
+      // Add orders without store
+      const semLoja = ordensMes.filter(o => !o.loja_id);
+      if (semLoja.length > 0) {
+        const rec = semLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
+        const cst = semLoja.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+        if (rec > 0 || cst > 0) {
+          lucroPorLoja.push({ nome: "Sem loja", receita: rec, custo: cst, lucro: rec - cst });
+        }
+      }
+      lucroPorLoja.sort((a, b) => b.lucro - a.lucro);
+    }
+
     return {
       faturamentoMes, lucroMes, ticketMedio, tempoMedio,
       emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, estoqueBaixo,
       totalOrdensMes: ordensMes.length,
+      lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecas]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecas, lojas]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
