@@ -343,8 +343,11 @@ export type Database = {
           data_vencimento: string
           descricao: string
           fornecedor: string | null
+          fornecedor_id: string | null
           id: string
+          loja_id: string | null
           observacoes: string | null
+          ordem_servico_id: string | null
           recorrente: boolean
           status: Database["public"]["Enums"]["status_conta"]
           updated_at: string
@@ -361,8 +364,11 @@ export type Database = {
           data_vencimento: string
           descricao: string
           fornecedor?: string | null
+          fornecedor_id?: string | null
           id?: string
+          loja_id?: string | null
           observacoes?: string | null
+          ordem_servico_id?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_conta"]
           updated_at?: string
@@ -379,8 +385,11 @@ export type Database = {
           data_vencimento?: string
           descricao?: string
           fornecedor?: string | null
+          fornecedor_id?: string | null
           id?: string
+          loja_id?: string | null
           observacoes?: string | null
+          ordem_servico_id?: string | null
           recorrente?: boolean
           status?: Database["public"]["Enums"]["status_conta"]
           updated_at?: string
@@ -399,6 +408,27 @@ export type Database = {
             columns: ["centro_custo_id"]
             isOneToOne: false
             referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_a_pagar_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_a_pagar_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_a_pagar_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
         ]

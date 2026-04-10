@@ -1,6 +1,6 @@
 import {
-  DollarSign, TrendingUp, TrendingDown, AlertTriangle,
-  Calendar, CalendarDays, CalendarRange, CreditCard, Users,
+  TrendingUp, AlertTriangle,
+  Calendar, CalendarDays, CalendarRange, CreditCard, Users, Wallet, Package, Receipt,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -28,7 +28,11 @@ interface Props {
     pagarMes: number;
     pagoMes: number;
     totalComissoesPendentes: number;
-    lucroEstimado: number;
+    lucroReal: number;
+    receitaMes: number;
+    custosPecasMes: number;
+    despesasPagasMes: number;
+    comissoesMes: number;
     despesasPorCategoria: Record<string, number>;
     evolucaoMensal: { mes: string; despesas: number; receita: number }[];
     contasVencidas: number;
@@ -61,7 +65,7 @@ export function FinanceiroDashboard({ kpis }: Props) {
         </div>
       )}
 
-      {/* KPI Cards */}
+      {/* KPI Cards - Row 1: Urgency */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <div className={`stat-card ${kpis.pagarHoje > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
           <Calendar className={`h-4 w-4 mb-3 ${kpis.pagarHoje > 0 ? "text-destructive" : "text-muted-foreground"}`} />
@@ -78,26 +82,57 @@ export function FinanceiroDashboard({ kpis }: Props) {
           <p className="stat-value">{fmtCurrency(kpis.pagarMes)}</p>
           <p className="stat-label">A pagar no mês</p>
         </div>
+      </div>
+
+      {/* KPI Cards - Row 2: Profit breakdown */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="stat-card border-success/20 bg-success-muted">
+          <Wallet className="h-4 w-4 text-success mb-3" />
+          <p className="stat-value text-success">{fmtCurrency(kpis.receitaMes)}</p>
+          <p className="stat-label">Receita do mês</p>
+        </div>
+        <div className="stat-card">
+          <Package className="h-4 w-4 text-warning mb-3" />
+          <p className="stat-value">{fmtCurrency(kpis.custosPecasMes)}</p>
+          <p className="stat-label">Custo peças</p>
+        </div>
+        <div className="stat-card">
+          <Receipt className="h-4 w-4 text-destructive mb-3" />
+          <p className="stat-value">{fmtCurrency(kpis.despesasPagasMes)}</p>
+          <p className="stat-label">Despesas pagas</p>
+        </div>
+        <div className={`stat-card ${kpis.lucroReal >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
+          <TrendingUp className={`h-4 w-4 mb-3 ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`} />
+          <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmtCurrency(kpis.lucroReal)}</p>
+          <p className="stat-label">Lucro real do mês</p>
+        </div>
+      </div>
+
+      {/* Additional KPIs */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="stat-card border-success/20 bg-success-muted">
           <CreditCard className="h-4 w-4 text-success mb-3" />
           <p className="stat-value text-success">{fmtCurrency(kpis.pagoMes)}</p>
-          <p className="stat-label">Pago no mês</p>
+          <p className="stat-label">Total pago no mês</p>
         </div>
         <div className="stat-card">
           <Users className="h-4 w-4 text-warning mb-3" />
           <p className="stat-value">{fmtCurrency(kpis.totalComissoesPendentes)}</p>
           <p className="stat-label">Comissões a pagar</p>
         </div>
-        <div className={`stat-card ${kpis.lucroEstimado >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
-          <TrendingUp className={`h-4 w-4 mb-3 ${kpis.lucroEstimado >= 0 ? "text-success" : "text-destructive"}`} />
-          <p className={`stat-value ${kpis.lucroEstimado >= 0 ? "text-success" : "text-destructive"}`}>{fmtCurrency(kpis.lucroEstimado)}</p>
-          <p className="stat-label">Lucro estimado do mês</p>
+      </div>
+
+      {/* Profit formula explanation */}
+      <div className="section-card">
+        <div className="p-4">
+          <p className="text-xs text-muted-foreground">
+            <strong>Fórmula do lucro real:</strong> Receita ({fmtCurrency(kpis.receitaMes)}) − Peças ({fmtCurrency(kpis.custosPecasMes)}) − Despesas ({fmtCurrency(kpis.despesasPagasMes)}) − Comissões ({fmtCurrency(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmtCurrency(kpis.lucroReal)}</strong>
+          </p>
         </div>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Evolução mensal */}
         <div className="section-card">
           <div className="section-header">
             <h3 className="section-title">Evolução Mensal</h3>
@@ -118,7 +153,6 @@ export function FinanceiroDashboard({ kpis }: Props) {
           </div>
         </div>
 
-        {/* Despesas por categoria */}
         <div className="section-card">
           <div className="section-header">
             <h3 className="section-title">Despesas por Categoria</h3>
