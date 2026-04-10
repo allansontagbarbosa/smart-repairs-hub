@@ -382,7 +382,8 @@ Deno.serve(async (req) => {
           console.log(`[imei-lookup] API retornou: ${device.marca} ${device.modelo}`);
         }
       } else {
-        console.log(`[imei-lookup] API retornou status ${apiResponse.status}`);
+        const errBody = await apiResponse.text();
+        console.log(`[imei-lookup] API retornou status ${apiResponse.status}: ${errBody}`);
       }
     } catch (apiErr) {
       // Timeout ou erro de rede — seguir para fallbacks
