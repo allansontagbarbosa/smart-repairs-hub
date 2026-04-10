@@ -152,6 +152,7 @@ export function Comissoes({ comissoes, funcionarios, tiposServico = [], onViewOr
                 const cfg = statusConfig[c.status] ?? statusConfig.pendente;
                 const os = c.ordens_de_servico;
                 const aparelho = os?.aparelhos ? `${os.aparelhos.marca} ${os.aparelhos.modelo}` : "";
+                const servico = c.observacoes?.replace("Serviço: ", "") ?? "";
                 return (
                   <tr key={c.id}>
                     <td className="text-sm font-medium">{c.funcionarios?.nome ?? "—"}</td>
@@ -159,7 +160,7 @@ export function Comissoes({ comissoes, funcionarios, tiposServico = [], onViewOr
                       {os ? (
                         <div>
                           <p className="text-sm">OS #{String(os.numero).padStart(3, "0")}</p>
-                          <p className="text-xs text-muted-foreground">{aparelho}</p>
+                          <p className="text-xs text-muted-foreground">{servico || aparelho}</p>
                         </div>
                       ) : "—"}
                     </td>
