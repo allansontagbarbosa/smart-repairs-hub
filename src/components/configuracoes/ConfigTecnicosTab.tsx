@@ -125,7 +125,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
     setOpen(false); setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados");
   };
 
-  const handleEdit = (f: any) => {
+  const handleEdit = async (f: any) => {
     setForm({
       nome: f.nome || "", cpf: f.cpf || "", telefone: f.telefone || "", email: f.email || "",
       funcao: f.funcao || "", cargo: f.cargo || "", especialidade: f.especialidade || "",
@@ -138,6 +138,17 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
       ativo: f.ativo, observacoes: f.observacoes || "",
     });
     setEditId(f.id); setTab("dados"); setOpen(true);
+
+    // Load per-service commissions
+    setLoadingComissoes(true);
+    const { data: cs } = await supabase
+      .from("comissoes_servico")
+      .select("tipo_servico_id, tipo_comissao, valor")
+      .eq("funcionario_id", f.id);
+    const map: Record<string, { tipo: string; valor: number }> = {};
+    (cs || []).forEach((r: any) => { map[r.tipo_servico_id] = { tipo: r.tipo_comissao, valor: Number(r.valor) }; });
+    setComissoesPorServico(map);
+    setLoadingComissoes(false);
   };
 
   const handleDelete = async (id: string) => {
