@@ -79,7 +79,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
       const payload = {
         descricao: values.descricao,
         categoria: values.categoria,
-        centro_custo: values.centro_custo || null,
+        centro_custo: values.centro_custo && values.centro_custo !== "__nenhum__" ? values.centro_custo : null,
         fornecedor: values.fornecedor || null,
         valor: parseFloat(values.valor),
         data_vencimento: values.data_vencimento,
@@ -133,7 +133,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
               <Select value={watch("centro_custo")} onValueChange={v => setValue("centro_custo", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="__nenhum__">Nenhum</SelectItem>
                   {centros.map(c => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
