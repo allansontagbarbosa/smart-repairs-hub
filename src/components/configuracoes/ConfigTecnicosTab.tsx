@@ -312,9 +312,13 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
 
               {/* COMISSÃO */}
               <TabsContent value="comissao" className="space-y-4 mt-4">
+                <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Comissão padrão (fallback)</p>
+                  <p className="text-xs text-muted-foreground">Usada quando não houver comissão específica para o serviço.</p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <Label>Tipo de comissão padrão</Label>
+                    <Label>Tipo padrão</Label>
                     <Select value={form.tipo_comissao} onValueChange={(v) => set("tipo_comissao", v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -324,31 +328,92 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                     </Select>
                   </div>
                   <div>
-                    <Label>{form.tipo_comissao === "percentual" ? "Percentual (%)" : "Valor fixo"}</Label>
-                    <CurrencyInput value={form.valor_comissao} onValueChange={(v) => set("valor_comissao", v)} placeholder="Digite o valor" />
+                    <Label>{form.tipo_comissao === "percentual" ? "Percentual (%)" : "Valor fixo (R$)"}</Label>
+                    <CurrencyInput value={form.valor_comissao} onValueChange={(v) => set("valor_comissao", v)} placeholder="Valor fallback" />
                   </div>
                 </div>
 
-                {tiposServico.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Comissão por serviço</Label>
-                    <p className="text-xs text-muted-foreground">Defina comissões específicas por tipo de serviço (sobrepõe a comissão padrão).</p>
-                    <div className="border rounded-lg divide-y max-h-52 overflow-y-auto">
-                      {tiposServico.map((s: any) => (
-                        <div key={s.id} className="flex items-center gap-2 px-3 py-2">
-                          <span className="text-sm flex-1 truncate">{s.nome}</span>
-                          <Input
-                            className="w-24 h-8 text-xs text-right"
-                            placeholder="—"
-                            value={comissoesPorServico[s.id]?.valor || ""}
-                            onChange={(e) => setComissoesPorServico((p) => ({ ...p, [s.id]: { tipo: "fixa", valor: Number(e.target.value) || 0 } }))}
-                            inputMode="decimal"
-                          />
-                        </div>
-                      ))}
+                <div className="border-t pt-4 space-y-2">
+                  <Label className="text-sm font-semibold">Comissões por serviço</Label>
+                  <p className="text-xs text-muted-foreground">Defina comissões específicas por tipo de serviço. Estas sobrepõem a comissão padrão.</p>
+
+                  {tiposServico.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">Nenhum tipo de serviço cadastrado.</p>
+                  ) : (
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50 border-b">
+                            <th className="text-left p-2 font-medium">Serviço</th>
+                            <th className="text-left p-2 font-medium w-32">Tipo</th>
+                            <th className="text-right p-2 font-medium w-28">Valor</th>
+                            <th className="p-2 w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {tiposServico.map((s: any) => {
+                            const cs = comissoesPorServico[s.id];
+                            return (
+                              <tr key={s.id} className={cs ? "bg-primary/5" : ""}>
+                                <td className="p-2 text-sm">{s.nome}</td>
+                                <td className="p-2">
+                                  <Select
+                                    value={cs?.tipo || "fixa"}
+                                    onValueChange={(v) => setComissoesPorServico((p) => ({
+                                      ...p,
+                                      [s.id]: { tipo: v, valor: cs?.valor || 0 },
+                                    }))}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="fixa">R$ Fixo</SelectItem>
+                                      <SelectItem value="percentual">%</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                <td className="p-2">
+                                  <Input
+                                    className="h-8 text-xs text-right w-full"
+                                    placeholder="—"
+                                    value={cs?.valor || ""}
+                                    onChange={(e) => {
+                                      const val = Number(e.target.value) || 0;
+                                      setComissoesPorServico((p) => ({
+                                        ...p,
+                                        [s.id]: { tipo: p[s.id]?.tipo || "fixa", valor: val },
+                                      }));
+                                    }}
+                                    inputMode="decimal"
+                                  />
+                                </td>
+                                <td className="p-2 text-center">
+                                  {cs && cs.valor > 0 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-destructive"
+                                      onClick={() => {
+                                        setComissoesPorServico((p) => {
+                                          const next = { ...p };
+                                          delete next[s.id];
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
 
