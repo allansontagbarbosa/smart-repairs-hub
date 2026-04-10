@@ -48,6 +48,7 @@ export default function AparelhosAssistencia() {
   const { aparelhos, kpis, lojas, tecnicos, isLoading } = useAparelhosAssistencia();
   const [tab, setTab] = useState("lista");
   const [entradaOpen, setEntradaOpen] = useState(false);
+  const [loteOpen, setLoteOpen] = useState(false);
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
