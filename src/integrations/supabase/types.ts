@@ -235,6 +235,51 @@ export type Database = {
           },
         ]
       }
+      comissoes_servico: {
+        Row: {
+          created_at: string
+          funcionario_id: string
+          id: string
+          tipo_comissao: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_servico_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          funcionario_id: string
+          id?: string
+          tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_servico_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          funcionario_id?: string
+          id?: string
+          tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_servico_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_servico_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_servico_tipo_servico_id_fkey"
+            columns: ["tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conferencia_itens: {
         Row: {
           conferencia_id: string
