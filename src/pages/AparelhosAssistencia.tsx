@@ -99,6 +99,7 @@ export default function AparelhosAssistencia() {
       </Tabs>
 
       <EntradaAparelhoDialog open={entradaOpen} onOpenChange={setEntradaOpen} />
+      <EntradaLoteDialog open={loteOpen} onOpenChange={setLoteOpen} />
     </div>
   );
 }
