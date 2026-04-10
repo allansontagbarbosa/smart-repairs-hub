@@ -34,6 +34,7 @@ async function fetchEstoqueItens() {
     .from("estoque_itens")
     .select("*, estoque_categorias:categoria_id ( nome ), marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
     .is("deleted_at", null)
+    .in("tipo_item", ["peca", "acessorio"])
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as EstoqueItem[];
@@ -79,12 +80,11 @@ export function useEstoque() {
   const kpis = useMemo(() => {
     const all = itens.data ?? [];
     const total = all.length;
-    const aparelhos = all.filter(i => i.tipo_item === "aparelho").length;
     const pecas = all.filter(i => i.tipo_item === "peca").length;
     const acessorios = all.filter(i => i.tipo_item === "acessorio").length;
     const estoqueBaixo = all.filter(i => i.quantidade_minima > 0 && i.quantidade <= i.quantidade_minima).length;
     const valorTotal = all.reduce((s, i) => s + (Number(i.custo_unitario ?? 0) * i.quantidade), 0);
-    return { total, aparelhos, pecas, acessorios, estoqueBaixo, valorTotal };
+    return { total, pecas, acessorios, estoqueBaixo, valorTotal };
   }, [itens.data]);
 
   return {

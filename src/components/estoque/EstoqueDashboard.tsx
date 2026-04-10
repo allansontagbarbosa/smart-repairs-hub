@@ -1,11 +1,10 @@
-import { Package, Smartphone, Cpu, Headphones, AlertTriangle, DollarSign } from "lucide-react";
+import { Package, Cpu, Headphones, AlertTriangle, DollarSign } from "lucide-react";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
 interface Props {
   kpis: {
     total: number;
-    aparelhos: number;
     pecas: number;
     acessorios: number;
     estoqueBaixo: number;
@@ -19,12 +18,7 @@ export function EstoqueDashboard({ kpis }: Props) {
       <div className="stat-card">
         <Package className="h-4 w-4 text-primary mb-3" />
         <p className="stat-value">{kpis.total}</p>
-        <p className="stat-label">Total de itens</p>
-      </div>
-      <div className="stat-card">
-        <Smartphone className="h-4 w-4 text-info mb-3" />
-        <p className="stat-value">{kpis.aparelhos}</p>
-        <p className="stat-label">Aparelhos</p>
+        <p className="stat-label">Total de peças</p>
       </div>
       <div className="stat-card">
         <Cpu className="h-4 w-4 text-warning mb-3" />

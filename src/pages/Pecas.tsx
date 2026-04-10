@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEstoque } from "@/hooks/useEstoque";
@@ -16,9 +15,9 @@ export default function Pecas() {
   return (
     <div className="space-y-5 md:space-y-6">
       <div className="page-header">
-        <h1 className="page-title">Estoque</h1>
+        <h1 className="page-title">Estoque de Peças</h1>
         <p className="page-subtitle">
-          {kpis.total} itens · {kpis.estoqueBaixo > 0 ? `${kpis.estoqueBaixo} com estoque baixo` : "estoque OK"}
+          {kpis.total} peças cadastradas · {kpis.estoqueBaixo > 0 ? `${kpis.estoqueBaixo} com estoque baixo` : "estoque OK"}
         </p>
       </div>
 
@@ -26,7 +25,7 @@ export default function Pecas() {
         <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="itens">
-            Itens
+            Peças
             {kpis.estoqueBaixo > 0 && (
               <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold h-4 min-w-4 px-1">
                 {kpis.estoqueBaixo}

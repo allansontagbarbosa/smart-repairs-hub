@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Pencil, Trash2, Minus } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Minus, MapPin } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,18 +15,6 @@ const fmtCurrency = (v: number | null) => {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 };
 
-const tipoLabels: Record<string, string> = {
-  aparelho: "Aparelho",
-  peca: "Peça",
-  acessorio: "Acessório",
-};
-
-const tipoColors: Record<string, string> = {
-  aparelho: "bg-info/10 text-info",
-  peca: "bg-warning/10 text-warning",
-  acessorio: "bg-success/10 text-success",
-};
-
 interface Props {
   itens: EstoqueItem[];
   categorias: { id: string; nome: string }[];
@@ -36,7 +24,6 @@ interface Props {
 
 export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
   const [search, setSearch] = useState("");
-  const [filterTipo, setFilterTipo] = useState("todos");
   const [filterCategoria, setFilterCategoria] = useState("todas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EstoqueItem | null>(null);
@@ -53,12 +40,11 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     const name = getItemName(i).toLowerCase();
     const matchSearch = !search ||
       name.includes(q) ||
-      (i.imei_serial?.toLowerCase().includes(q)) ||
       (i.sku?.toLowerCase().includes(q)) ||
-      (i.fornecedor?.toLowerCase().includes(q));
-    const matchTipo = filterTipo === "todos" || i.tipo_item === filterTipo;
+      (i.fornecedor?.toLowerCase().includes(q)) ||
+      (i.estoque_categorias?.nome?.toLowerCase().includes(q));
     const matchCat = filterCategoria === "todas" || i.categoria_id === filterCategoria;
-    return matchSearch && matchTipo && matchCat;
+    return matchSearch && matchCat;
   });
 
   const softDeleteMutation = useMutation({
@@ -68,7 +54,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success("Item removido do estoque!");
+      toast.success("Peça removida do estoque!");
     },
   });
 
@@ -90,17 +76,8 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar nome, IMEI, SKU..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+          <Input placeholder="Buscar peça, SKU, fornecedor..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Select value={filterTipo} onValueChange={setFilterTipo}>
-          <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos tipos</SelectItem>
-            <SelectItem value="aparelho">Aparelhos</SelectItem>
-            <SelectItem value="peca">Peças</SelectItem>
-            <SelectItem value="acessorio">Acessórios</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={filterCategoria} onValueChange={setFilterCategoria}>
           <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -109,7 +86,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
           </SelectContent>
         </Select>
         <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingItem(null); setDialogOpen(true); }}>
-          <Plus className="h-3.5 w-3.5" /> Novo Item
+          <Plus className="h-3.5 w-3.5" /> Nova Peça
         </Button>
       </div>
 
@@ -118,12 +95,13 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Item</th>
-                <th className="hidden sm:table-cell">Tipo</th>
+                <th>Peça</th>
                 <th className="hidden md:table-cell">Categoria</th>
+                <th className="hidden lg:table-cell">Marca / Modelo</th>
                 <th className="text-center">Qtd</th>
-                <th className="hidden sm:table-cell">IMEI/Serial</th>
+                <th className="hidden sm:table-cell text-center">Mín</th>
                 <th className="hidden md:table-cell text-right">Custo</th>
+                <th className="hidden lg:table-cell">Local</th>
                 <th className="text-right">Ações</th>
               </tr>
             </thead>
@@ -135,14 +113,12 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                   <tr key={item.id} className={isBaixo ? "bg-destructive/5" : ""}>
                     <td>
                       <p className="text-sm font-medium">{name}</p>
-                      <p className="text-xs text-muted-foreground">{item.marcas?.nome} {item.modelos?.nome}</p>
-                    </td>
-                    <td className="hidden sm:table-cell">
-                      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold", tipoColors[item.tipo_item])}>
-                        {tipoLabels[item.tipo_item] ?? item.tipo_item}
-                      </span>
+                      {item.sku && <p className="text-[10px] text-muted-foreground font-mono">SKU: {item.sku}</p>}
                     </td>
                     <td className="hidden md:table-cell text-sm text-muted-foreground">{item.estoque_categorias?.nome ?? "—"}</td>
+                    <td className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {[item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" / ") || "—"}
+                    </td>
                     <td className="text-center">
                       <div className="inline-flex items-center gap-1">
                         <button
@@ -151,7 +127,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className={cn("text-sm font-medium min-w-8 text-center", isBaixo && "text-destructive")}>
+                        <span className={cn("text-sm font-medium min-w-8 text-center", isBaixo && "text-destructive font-bold")}>
                           {item.quantidade}
                         </span>
                         <button
@@ -161,12 +137,14 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      {item.quantidade_minima > 0 && (
-                        <p className="text-[10px] text-muted-foreground">mín: {item.quantidade_minima}</p>
-                      )}
                     </td>
-                    <td className="hidden sm:table-cell text-xs text-muted-foreground font-mono">{item.imei_serial ?? "—"}</td>
+                    <td className="hidden sm:table-cell text-center text-sm text-muted-foreground">{item.quantidade_minima || "—"}</td>
                     <td className="hidden md:table-cell text-sm text-right text-muted-foreground">{fmtCurrency(item.custo_unitario)}</td>
+                    <td className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {item.local_estoque ? (
+                        <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{item.local_estoque}</span>
+                      ) : "—"}
+                    </td>
                     <td>
                       <div className="flex items-center justify-end gap-0.5">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setDialogOpen(true); }}>
@@ -181,7 +159,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="text-center text-muted-foreground py-10 text-sm">Nenhum item encontrado</td></tr>
+                <tr><td colSpan={8} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>
