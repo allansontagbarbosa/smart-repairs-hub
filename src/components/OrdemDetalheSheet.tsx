@@ -417,28 +417,47 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
-                {/* Valores e Lucro */}
+                {/* Valores e Lucro Real */}
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Valores</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Valores & Lucro Real</p>
                   {(() => {
                     const valor = ordem.valor ?? 0;
                     const custoPecas = ordem.custo_pecas ?? 0;
-                    const lucro = valor - custoPecas;
+                    const totalComissoes = comissoesOS.reduce((s, c) => s + Number(c.valor), 0);
+                    const totalDespesas = despesasOS.reduce((s, d) => s + Number(d.valor), 0);
+                    const lucroReal = valor - custoPecas - totalComissoes - totalDespesas;
                     return (
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="rounded-lg border p-3">
-                          <p className="text-xs text-muted-foreground">Valor cobrado</p>
-                          <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Valor cobrado</p>
+                            <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
+                          </div>
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Custo peças</p>
+                            <p className="text-sm font-semibold mt-0.5 text-destructive">{custoPecas > 0 ? `- ${fmtCurrency(custoPecas)}` : "—"}</p>
+                          </div>
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Comissões</p>
+                            <p className="text-sm font-semibold mt-0.5 text-warning">{totalComissoes > 0 ? `- ${fmtCurrency(totalComissoes)}` : "—"}</p>
+                          </div>
+                          <div className="rounded-lg border p-2.5">
+                            <p className="text-[10px] text-muted-foreground">Despesas vinculadas</p>
+                            <p className="text-sm font-semibold mt-0.5 text-destructive">{totalDespesas > 0 ? `- ${fmtCurrency(totalDespesas)}` : "—"}</p>
+                          </div>
                         </div>
-                        <div className="rounded-lg border p-3">
-                          <p className="text-xs text-muted-foreground">Custo peças</p>
-                          <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.custo_pecas)}</p>
-                        </div>
-                        <div className={`rounded-lg border p-3 ${lucro > 0 ? "border-success/20 bg-success-muted" : lucro < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-                          <p className="text-xs text-muted-foreground">Lucro</p>
-                          <p className={`text-sm font-semibold mt-0.5 ${lucro > 0 ? "text-success" : lucro < 0 ? "text-destructive" : ""}`}>
-                            {valor > 0 ? fmtCurrency(lucro) : "—"}
-                          </p>
+                        <div className={`rounded-lg border p-3 ${lucroReal > 0 ? "border-success/20 bg-success-muted" : lucroReal < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground font-medium">Lucro Real</p>
+                            <p className={`text-base font-bold ${lucroReal > 0 ? "text-success" : lucroReal < 0 ? "text-destructive" : ""}`}>
+                              {valor > 0 ? fmtCurrency(lucroReal) : "—"}
+                            </p>
+                          </div>
+                          {valor > 0 && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {fmtCurrency(valor)} − {fmtCurrency(custoPecas)} − {fmtCurrency(totalComissoes)} − {fmtCurrency(totalDespesas)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
