@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList } from "lucide-react";
+import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus } from "lucide-react";
+import { EntradaAparelhoDialog } from "@/components/estoque/EntradaAparelhoDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ type ConferenciaItemState = {
 export default function AparelhosAssistencia() {
   const { aparelhos, kpis, lojas, tecnicos, isLoading } = useAparelhosAssistencia();
   const [tab, setTab] = useState("lista");
+  const [entradaOpen, setEntradaOpen] = useState(false);
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -52,11 +54,16 @@ export default function AparelhosAssistencia() {
 
   return (
     <div className="space-y-5 md:space-y-6">
-      <div className="page-header">
-        <h1 className="page-title">Aparelhos na Assistência</h1>
-        <p className="page-subtitle">
-          {kpis.total} aparelhos em assistência {kpis.atrasados > 0 ? `· ${kpis.atrasados} atrasados` : ""}
-        </p>
+      <div className="page-header flex items-start justify-between">
+        <div>
+          <h1 className="page-title">Aparelhos na Assistência</h1>
+          <p className="page-subtitle">
+            {kpis.total} aparelhos em assistência {kpis.atrasados > 0 ? `· ${kpis.atrasados} atrasados` : ""}
+          </p>
+        </div>
+        <Button size="sm" className="gap-1.5 h-9" onClick={() => setEntradaOpen(true)}>
+          <Plus className="h-3.5 w-3.5" /> Entrada Rápida
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -83,6 +90,8 @@ export default function AparelhosAssistencia() {
           <ConferenciaAparelhos aparelhos={aparelhos} lojas={lojas} />
         </TabsContent>
       </Tabs>
+
+      <EntradaAparelhoDialog open={entradaOpen} onOpenChange={setEntradaOpen} />
     </div>
   );
 }

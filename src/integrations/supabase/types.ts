@@ -943,6 +943,45 @@ export type Database = {
           },
         ]
       }
+      imei_device_cache: {
+        Row: {
+          capacidade: string | null
+          cor: string | null
+          created_at: string
+          fonte: string
+          id: string
+          marca: string
+          modelo: string
+          tac: string
+          updated_at: string
+          vezes_usado: number
+        }
+        Insert: {
+          capacidade?: string | null
+          cor?: string | null
+          created_at?: string
+          fonte?: string
+          id?: string
+          marca: string
+          modelo: string
+          tac: string
+          updated_at?: string
+          vezes_usado?: number
+        }
+        Update: {
+          capacidade?: string | null
+          cor?: string | null
+          created_at?: string
+          fonte?: string
+          id?: string
+          marca?: string
+          modelo?: string
+          tac?: string
+          updated_at?: string
+          vezes_usado?: number
+        }
+        Relationships: []
+      }
       listas_preco: {
         Row: {
           ativo: boolean
