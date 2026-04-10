@@ -611,22 +611,43 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 </div>
 
                 {/* Comissões da OS */}
-                {comissoesOS.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
+                  {comissoesOS.length > 0 ? (
                     <div className="space-y-1.5">
                       {comissoesOS.map((c) => (
                         <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                           <div>
                             <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
-                            <p className="text-xs text-muted-foreground">{c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}
+                              {c.observacoes && ` · ${c.observacoes}`}
+                            </p>
                           </div>
                           <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : comissaoPreview ? (
+                    <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-warning">Comissão prevista</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {comissaoPreview.tipo === "percentual" ? `${comissaoPreview.config}%` : fmtCurrency(comissaoPreview.config)}
+                            {" · "}Regra {comissaoPreview.origem}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-warning">{fmtCurrency(comissaoPreview.calculado)}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">Será gerada automaticamente ao marcar como "Pronto"</p>
+                    </div>
+                  ) : ordem.funcionario_id ? (
+                    <p className="text-xs text-muted-foreground">Nenhuma comissão configurada para este técnico/serviço</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Selecione um técnico para ver a comissão prevista</p>
+                  )}
+                </div>
 
                 {/* Despesas vinculadas */}
                 {despesasOS.length > 0 && (
@@ -650,7 +671,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
-                    <InfoRow label="Técnico" value={ordem.tecnico ?? "—"} />
+                    {(() => {
+                      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
+                      const tipoServ = tiposServico.find(t => t.id === ordem.tipo_servico_id);
+                      return (
+                        <>
+                          <InfoRow label="Técnico" value={func?.nome ?? ordem.tecnico ?? "—"} />
+                          <InfoRow label="Tipo de serviço" value={tipoServ?.nome ?? "—"} />
+                        </>
+                      );
+                    })()}
                     <InfoRow label="Data entrada" value={fmtDate(ordem.data_entrada)} />
                     <InfoRow label="Previsão entrega" value={fmtDate(ordem.previsao_entrega)} />
                     <InfoRow label="Conclusão" value={fmtDate(ordem.data_conclusao)} />

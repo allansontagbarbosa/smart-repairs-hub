@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useFinanceiro } from "@/hooks/useFinanceiro";
 import { FinanceiroDashboard } from "@/components/financeiro/FinanceiroDashboard";
@@ -10,6 +12,14 @@ import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 export default function Financeiro() {
   const { contas, comissoes, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const { data: tiposServico = [] } = useQuery({
+    queryKey: ["tipos_servico_fin"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tipos_servico").select("id, nome").eq("ativo", true).order("nome");
+      return data || [];
+    },
+  });
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -59,7 +69,7 @@ export default function Financeiro() {
         </TabsContent>
 
         <TabsContent value="comissoes">
-          <Comissoes comissoes={comissoes} funcionarios={funcionarios} onViewOrder={setSelectedOrderId} />
+          <Comissoes comissoes={comissoes} funcionarios={funcionarios} tiposServico={tiposServico} onViewOrder={setSelectedOrderId} />
         </TabsContent>
       </Tabs>
 
