@@ -30,26 +30,21 @@ import { createClient } from 'npm:@supabase/supabase-js';
 // ─────────────────────────────────────────────────────────────────────────────
 const API_CONFIG = {
   /**
-   * URL base do provedor de consulta IMEI.
-   * O TAC (8 primeiros dígitos do IMEI) será adicionado ao final.
-   *
-   * Provedores suportados (descomente o desejado):
-   *   - imeidb.xyz (gratuito, sem chave)
-   *   - imei.info (pago, requer IMEI_API_KEY)
-   *   - imeicheck.net (pago, requer IMEI_API_KEY)
-   *
-   * Para adicionar um novo provedor:
-   *   1. Altere baseUrl e buildRequestUrl()
-   *   2. Ajuste buildRequestHeaders()
-   *   3. Ajuste mapApiResponse() para o formato de retorno
+   * Provedor atual: IMEI.info (https://dash.dev.imei.info/api)
+   * Endpoint: GET /check/{service}/?API_KEY=...&imei=...
+   * O parâmetro "service" é o Service ID (integer). Usar 1 para checagem padrão.
+   * Docs: https://www.imei.info/api/imei/docs/
    */
-  baseUrl: "https://api.imeidb.xyz/v1/devices",
+  baseUrl: "https://dash.dev.imei.info/api",
 
-  /** Chave da API (lida do secret IMEI_API_KEY, null se não configurada) */
+  /** Service ID do IMEI.info (1 = checagem padrão) */
+  serviceId: 1,
+
+  /** Chave da API (lida do secret IMEI_API_KEY) */
   apiKey: Deno.env.get("IMEI_API_KEY") || null,
 
   /** Timeout da requisição em milissegundos */
-  timeoutMs: 8000,
+  timeoutMs: 15000,
 
   /** Método HTTP da API */
   method: "GET" as const,
@@ -57,38 +52,24 @@ const API_CONFIG = {
 
 /**
  * Monta a URL completa da requisição.
- * Ajuste conforme o padrão do provedor escolhido.
- *
- * Exemplos por provedor:
- *   imeidb.xyz:    `${baseUrl}/${tac}`
- *   imei.info:     `https://api.imei.info/check?imei=${fullImei}&apikey=${key}`
- *   imeicheck.net: `https://api.imeicheck.net/v1/tac/${tac}`
+ * IMEI.info: GET /check/{service}/?API_KEY={key}&imei={imei}
  */
-function buildRequestUrl(imei: string, tac: string): string {
-  // ── Provedor atual: imeidb.xyz (consulta por TAC, gratuito) ──
-  return `${API_CONFIG.baseUrl}/${tac}`;
+function buildRequestUrl(imei: string, _tac: string): string {
+  const params = new URLSearchParams();
+  if (API_CONFIG.apiKey) params.set("API_KEY", API_CONFIG.apiKey);
+  params.set("imei", imei);
+  return `${API_CONFIG.baseUrl}/check/${API_CONFIG.serviceId}/?${params.toString()}`;
 }
 
 /**
  * Monta os headers da requisição.
- * Adicione aqui Authorization, X-API-Key, etc. conforme o provedor.
- *
- * Exemplos:
- *   Bearer token:  { "Authorization": `Bearer ${API_CONFIG.apiKey}` }
- *   API Key header: { "X-API-Key": API_CONFIG.apiKey }
+ * IMEI.info usa API_KEY como query param, não precisa de header de auth.
  */
 function buildRequestHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
+  return {
     "Accept": "application/json",
     "User-Agent": "SmartRepairsHub/1.0",
   };
-
-  // Descomentar quando usar provedor pago com API key:
-  // if (API_CONFIG.apiKey) {
-  //   headers["Authorization"] = `Bearer ${API_CONFIG.apiKey}`;
-  // }
-
-  return headers;
 }
 
 /**
@@ -96,32 +77,24 @@ function buildRequestHeaders(): Record<string, string> {
  * MAPEAMENTO DA RESPOSTA DA API → CAMPOS INTERNOS
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Cada provedor retorna dados em formato diferente. Ajuste esta função
- * para mapear os campos da API para os campos do sistema.
+ * IMEI.info retorna estrutura como:
+ * {
+ *   "status": "success",
+ *   "imei": "351046973238759",
+ *   "brand": "Apple",
+ *   "name": "iPhone 7",
+ *   "model": "A1778",
+ *   "models": [...],
+ *   "device_spec": { ... },
+ *   ...
+ * }
  *
- * Campos internos esperados:
- *   - marca       → nome da fabricante (Apple, Samsung, Motorola)
- *   - modelo      → nome do modelo (iPhone 15 Pro Max, Galaxy S24)
- *   - cor         → cor do aparelho (Preto, Azul, Titanium)
- *   - capacidade  → armazenamento (128GB, 256GB, 512GB)
- *   - tipo        → tipo de dispositivo (smartphone, tablet)
- *
- * Exemplos de mapeamento por provedor:
- *
- *   imeidb.xyz:
- *     apiData.brand → marca
- *     apiData.name  → modelo
- *
- *   imei.info:
- *     apiData.device_image → ignorar
- *     apiData.brand_name   → marca
- *     apiData.model_name   → modelo
- *     apiData.device_name  → modelo (fallback)
- *
- *   imeicheck.net:
- *     apiData.manufacturer → marca
- *     apiData.model        → modelo
- *     apiData.storage      → capacidade
+ * Campos mapeados:
+ *   brand / brand_name         → marca
+ *   name / model_name          → modelo
+ *   device_spec.color          → cor
+ *   device_spec.storage        → capacidade
+ *   device_spec.type           → tipo
  */
 type MappedDevice = {
   marca?: string;
@@ -134,19 +107,21 @@ type MappedDevice = {
 function mapApiResponse(apiData: any): MappedDevice | null {
   if (!apiData) return null;
 
-  // ── Mapeamento para imeidb.xyz ──
-  // Formato: { brand: "Apple", name: "iPhone 15 Pro", type: "Smartphone", ... }
-  const marca = apiData.brand || apiData.manufacturer || apiData.brand_name;
-  const modelo = apiData.name || apiData.model || apiData.model_name || apiData.device_name;
+  // IMEI.info pode retornar { status: "fail" } em caso de erro
+  if (apiData.status === "fail" || apiData.error) return null;
+
+  const marca = apiData.brand || apiData.brand_name || apiData.manufacturer;
+  const modelo = apiData.name || apiData.model_name || apiData.device_name || apiData.model;
+  const spec = apiData.device_spec || {};
 
   if (!marca && !modelo) return null;
 
   return {
     marca: marca || undefined,
     modelo: modelo || undefined,
-    cor: apiData.color || apiData.colour || undefined,
-    capacidade: apiData.storage || apiData.capacity || apiData.internal_memory || undefined,
-    tipo: apiData.type || apiData.device_type || undefined,
+    cor: spec.color || spec.colour || apiData.color || undefined,
+    capacidade: spec.storage || spec.internal_memory || apiData.storage || undefined,
+    tipo: spec.type || apiData.type || apiData.device_type || undefined,
   };
 }
 
