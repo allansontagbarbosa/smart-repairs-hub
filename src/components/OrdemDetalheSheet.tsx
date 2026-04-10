@@ -81,6 +81,36 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
+  const { data: comissoesOS = [] } = useQuery({
+    queryKey: ["comissoes_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("comissoes")
+        .select("*, funcionarios ( nome )")
+        .eq("ordem_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
+  const { data: despesasOS = [] } = useQuery({
+    queryKey: ["despesas_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("contas_a_pagar")
+        .select("id, descricao, valor, status, fornecedores ( nome )")
+        .eq("ordem_servico_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
   const { data: pecasDisponiveis = [] } = useQuery({
     queryKey: ["pecas_disponiveis"],
     queryFn: async () => {
