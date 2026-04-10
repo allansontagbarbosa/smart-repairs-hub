@@ -536,6 +536,32 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Lucro por Loja */}
+      {kpis.lucroPorLoja.length > 0 && (
+        <div className="section-card">
+          <div className="section-header">
+            <h3 className="section-title flex items-center gap-2">
+              <Store className="h-4 w-4 text-muted-foreground" />
+              Lucro por Loja (Mês)
+            </h3>
+          </div>
+          <div className="p-4">
+            <div className="space-y-2">
+              {kpis.lucroPorLoja.map((l) => (
+                <div key={l.nome} className="flex items-center justify-between rounded-lg border px-4 py-2.5">
+                  <span className="text-sm font-medium">{l.nome}</span>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-muted-foreground">Receita: {fmt(l.receita)}</span>
+                    <span className="text-muted-foreground">Custos: {fmt(l.custo)}</span>
+                    <span className={`font-semibold ${l.lucro >= 0 ? "text-success" : "text-destructive"}`}>{fmt(l.lucro)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Status bar */}
       <div>
         <h2 className="section-title mb-3">Visão Rápida por Status</h2>
