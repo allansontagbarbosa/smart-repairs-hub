@@ -169,7 +169,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setTab("dados"); } }}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados"); } }}>
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Técnico</Button>
           </DialogTrigger>
