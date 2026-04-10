@@ -282,7 +282,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
           {/* Custo + SKU */}
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs">Custo unitário (R$)</Label><Input type="number" step="0.01" {...register("custo_unitario")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Código interno" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Auto se vazio" className="h-9 mt-1" /></div>
           </div>
 
           {/* Local + Fornecedor */}
