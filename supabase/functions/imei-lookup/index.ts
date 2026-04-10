@@ -35,7 +35,7 @@ const API_CONFIG = {
    * O parâmetro "service" é o Service ID (integer). Usar 1 para checagem padrão.
    * Docs: https://www.imei.info/api/imei/docs/
    */
-  baseUrl: "https://dash.dev.imei.info/api",
+  baseUrl: "https://api.imei.info/api",
 
   /** Service ID do IMEI.info (1 = checagem padrão) */
   serviceId: 1,
