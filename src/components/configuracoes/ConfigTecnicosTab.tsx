@@ -419,7 +419,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
 
             <div className="flex gap-2 mt-4 pt-3 border-t">
               <Button onClick={handleSave} className="flex-1">{editId ? "Salvar alterações" : "Cadastrar"}</Button>
-              <Button variant="outline" onClick={() => { setOpen(false); setEditId(null); setForm({ ...emptyForm }); }}>Cancelar</Button>
+              <Button variant="outline" onClick={() => { setOpen(false); setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); }}>Cancelar</Button>
             </div>
           </DialogContent>
         </Dialog>
