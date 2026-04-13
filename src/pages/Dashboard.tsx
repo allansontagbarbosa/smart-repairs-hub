@@ -282,9 +282,25 @@ export default function Dashboard() {
       lucroPorLoja.sort((a, b) => b.lucro - a.lucro);
     }
 
+    // Ajustes mensais (depreciação + impostos)
+    const allAjustes = ajustesMes ?? [];
+    const depreciacao = allAjustes
+      .filter((a: any) => a.tipo === "depreciacao")
+      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+    const impostos = allAjustes
+      .filter((a: any) => a.tipo === "impostos")
+      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+    const outrosAjustes = allAjustes
+      .filter((a: any) => a.tipo !== "depreciacao" && a.tipo !== "impostos")
+      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+
+    // Lucro líquido = Lucro real (EBITDA) - depreciação - impostos - outros
+    const lucroLiquido = lucroReal - depreciacao - impostos - outrosAjustes;
+
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
-      totalRecebimentos, lucroReal, ticketMedio,
+      totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
+      depreciacao, impostos, outrosAjustes,
       tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
@@ -292,7 +308,7 @@ export default function Dashboard() {
       totalFaturadas: ordensFaturadas.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
