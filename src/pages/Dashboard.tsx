@@ -2,6 +2,7 @@ import {
   Wrench, Clock, DollarSign, TrendingUp, CheckCircle, Loader2,
   AlertTriangle, Plus, Search, Package, Timer, Store,
   BarChart3, ArrowUpRight, ArrowDownRight, CreditCard, Users,
+  Receipt, Wallet,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,11 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { differenceInHours, startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { differenceInHours, startOfMonth, endOfMonth, subMonths, format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, CartesianGrid,
+  PieChart, Pie, Cell, CartesianGrid,
 } from "recharts";
 
 type OrderRow = {
@@ -56,10 +57,53 @@ async function fetchDashboardSummary() {
   };
 }
 
-const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+async function fetchContasPagas() {
+  const now = new Date();
+  const ms = startOfMonth(now);
+  const me = endOfMonth(now);
+  const { data, error } = await supabase
+    .from("contas_a_pagar")
+    .select("valor, data_pagamento, categoria")
+    .eq("status", "paga")
+    .gte("data_pagamento", ms.toISOString().split("T")[0])
+    .lte("data_pagamento", me.toISOString().split("T")[0]);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function fetchRecebimentosMes() {
+  const now = new Date();
+  const ms = startOfMonth(now);
+  const me = endOfMonth(now);
+  const { data, error } = await supabase
+    .from("recebimentos")
+    .select("valor, data_recebimento")
+    .gte("data_recebimento", ms.toISOString().split("T")[0])
+    .lte("data_recebimento", me.toISOString().split("T")[0]);
+  if (error) throw error;
+  return data ?? [];
+}
+
+async function fetchComissoesMes() {
+  const now = new Date();
+  const ms = startOfMonth(now);
+  const me = endOfMonth(now);
+  const { data, error } = await supabase
+    .from("comissoes")
+    .select("valor, status, created_at")
+    .gte("created_at", ms.toISOString())
+    .lte("created_at", me.toISOString());
+  if (error) throw error;
+  return data ?? [];
+}
+
+const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+const fmtShort = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+
 const CHART_COLORS = [
   "hsl(224, 76%, 48%)", "hsl(152, 55%, 42%)", "hsl(36, 90%, 52%)",
   "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
+  "hsl(320, 60%, 50%)", "hsl(170, 55%, 42%)",
 ];
 
 const statusColors: Record<string, string> = {
@@ -78,13 +122,30 @@ export default function Dashboard() {
   const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
   const [filtroLoja, setFiltroLoja] = useState("todas");
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
-  const [filtroPeriodo, setFiltroPeriodo] = useState("mes");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: summary, isLoading: loadingOrders } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: fetchDashboardSummary,
+    refetchInterval: 60000,
+  });
+
+  const { data: contasPagas } = useQuery({
+    queryKey: ["dashboard-contas-pagas"],
+    queryFn: fetchContasPagas,
+    refetchInterval: 60000,
+  });
+
+  const { data: recebimentosMes } = useQuery({
+    queryKey: ["dashboard-recebimentos-mes"],
+    queryFn: fetchRecebimentosMes,
+    refetchInterval: 60000,
+  });
+
+  const { data: comissoesMesData } = useQuery({
+    queryKey: ["dashboard-comissoes-mes"],
+    queryFn: fetchComissoesMes,
     refetchInterval: 60000,
   });
 
@@ -108,7 +169,6 @@ export default function Dashboard() {
     },
   });
 
-  // Filter orders by loja
   const filteredOrders = useMemo(() => {
     if (filtroLoja === "todas") return orders;
     return orders.filter(o => o.loja_id === filtroLoja);
@@ -116,32 +176,44 @@ export default function Dashboard() {
 
   const kpis = useMemo(() => {
     const now = new Date();
-    const hoje = now.toISOString().split("T")[0];
+    const hoje = startOfDay(now);
     const mesAtual = now.getMonth();
     const anoAtual = now.getFullYear();
 
     const ativas = filteredOrders.filter(o => o.status !== "entregue");
-    const ordensHoje = filteredOrders.filter(o => o.data_entrada.split("T")[0] === hoje);
+
+    // --- FINANCEIRO DO MÊS ---
     const ordensMes = filteredOrders.filter(o => {
       const d = new Date(o.data_entrada);
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     });
 
-    const faturamentoMes = ordensMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-    const custosMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+    // Faturamento: OS com status "pronto" ou "entregue" no mês
+    const ordensFaturadas = ordensMes.filter(o => o.status === "pronto" || o.status === "entregue");
+    const faturamentoMes = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
 
-    // Real profit: faturamento - peças - comissões - despesas
-    const comissoesTotal = comissoesPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
-    const despesasTotal = contasPendentes
-      .filter(c => c.data_vencimento?.startsWith(`${anoAtual}-${String(mesAtual + 1).padStart(2, "0")}`))
-      .reduce((s, c) => s + Number(c.valor ?? 0), 0);
-    const lucroMes = faturamentoMes - custosMes - comissoesTotal - despesasTotal;
+    // Custo de peças do mês
+    const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    const ordensComValorMes = ordensMes.filter(o => Number(o.valor ?? 0) > 0);
-    const ticketMedio = ordensComValorMes.length > 0
-      ? ordensComValorMes.reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensComValorMes.length
+    // Despesas pagas no mês (from dedicated query)
+    const despesasPagasMes = (contasPagas ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+
+    // Comissões do mês
+    const comissoesMes = (comissoesMesData ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+
+    // Recebimentos extras do mês
+    const totalRecebimentos = (recebimentosMes ?? []).reduce((s: number, r: any) => s + Number(r.valor ?? 0), 0);
+
+    // Lucro real = Faturamento - Peças - Despesas - Comissões + Recebimentos
+    const lucroReal = faturamentoMes - custosPecasMes - despesasPagasMes - comissoesMes + totalRecebimentos;
+
+    // Ticket médio
+    const ordensComValor = ordensFaturadas.filter(o => Number(o.valor ?? 0) > 0);
+    const ticketMedio = ordensComValor.length > 0
+      ? ordensComValor.reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensComValor.length
       : 0;
 
+    // --- OPERACIONAL ---
     const concluidas = filteredOrders.filter(o => o.data_conclusao);
     let tempoMedio = 0;
     if (concluidas.length > 0) {
@@ -163,10 +235,13 @@ export default function Dashboard() {
       statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
     }
 
-    const contasValor = contasPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
-    const comissoesValor = comissoesPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
+    const contasValor = contasPendentes.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const comissoesValor = comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
 
-    const estoqueBaixo = pecasEstoqueBaixo;
+    // Contas vencidas
+    const contasVencidas = contasPendentes.filter((c: any) =>
+      new Date(c.data_vencimento + "T23:59:59") < hoje
+    ).length;
 
     // Lucro por loja
     const lucroPorLoja: { nome: string; receita: number; custo: number; lucro: number }[] = [];
@@ -179,7 +254,6 @@ export default function Dashboard() {
           lucroPorLoja.push({ nome: loja.nome, receita: rec, custo: cst, lucro: rec - cst });
         }
       }
-      // Add orders without store
       const semLoja = ordensMes.filter(o => !o.loja_id);
       if (semLoja.length > 0) {
         const rec = semLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
@@ -192,13 +266,16 @@ export default function Dashboard() {
     }
 
     return {
-      faturamentoMes, lucroMes, ticketMedio, tempoMedio,
-      emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
-      contasValor, comissoesValor, estoqueBaixo,
+      faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
+      totalRecebimentos, lucroReal, ticketMedio,
+      tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
+      contasValor, comissoesValor, contasVencidas,
+      estoqueBaixo: pecasEstoqueBaixo,
       totalOrdensMes: ordensMes.length,
+      totalFaturadas: ordensFaturadas.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
@@ -211,7 +288,9 @@ export default function Dashboard() {
         const de = new Date(o.data_entrada);
         return de >= start && de <= end;
       });
-      const fat = mesOrdens.reduce((s, o) => s + Number(o.valor ?? 0), 0);
+      const fat = mesOrdens
+        .filter(o => o.status === "pronto" || o.status === "entregue")
+        .reduce((s, o) => s + Number(o.valor ?? 0), 0);
       const custo = mesOrdens.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
       meses.push({
         name: format(d, "MMM", { locale: ptBR }),
@@ -233,7 +312,7 @@ export default function Dashboard() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredOrders]);
 
-  // Chart: top serviços (marcas mais frequentes)
+  // Top marcas
   const topMarcas = useMemo(() => {
     const now = new Date();
     const mesOrdens = filteredOrders.filter(o => {
@@ -254,28 +333,27 @@ export default function Dashboard() {
   const alertasOS = useAlertas(filteredOrders);
 
   const allAlertas = useMemo<GenericAlert[]>(() => {
-    // Add financial alerts
     const finAlertas: GenericAlert[] = [];
     const hoje = new Date().toISOString().split("T")[0];
-    const contasHoje = contasPendentes.filter(c => c.data_vencimento === hoje);
-    const contasAtrasadas = contasPendentes.filter(c => c.data_vencimento < hoje);
+    const contasHoje = contasPendentes.filter((c: any) => c.data_vencimento === hoje);
+    const contasAtrasadas = contasPendentes.filter((c: any) => c.data_vencimento < hoje);
 
     if (contasAtrasadas.length > 0) {
       finAlertas.push({
         type: "danger",
-        message: `${contasAtrasadas.length} conta(s) a pagar atrasada(s) — total R$ ${contasAtrasadas.reduce((s, c) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
+        message: `${contasAtrasadas.length} conta(s) a pagar atrasada(s) — total R$ ${contasAtrasadas.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
       });
     }
     if (contasHoje.length > 0) {
       finAlertas.push({
         type: "warning",
-        message: `${contasHoje.length} conta(s) vencendo hoje — total R$ ${contasHoje.reduce((s, c) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
+        message: `${contasHoje.length} conta(s) vencendo hoje — total R$ ${contasHoje.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
       });
     }
     if (comissoesPendentes.length > 0) {
       finAlertas.push({
         type: "info",
-        message: `${comissoesPendentes.length} comissão(ões) pendente(s) — total R$ ${comissoesPendentes.reduce((s, c) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
+        message: `${comissoesPendentes.length} comissão(ões) pendente(s) — total R$ ${comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
       });
     }
 
@@ -284,7 +362,6 @@ export default function Dashboard() {
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
     const sendWhatsApp = (p: string, msg: string) => abrirWhatsApp(p, msg);
-
     const order = orders.find(o => o.id === orderId);
     const osLabel = `OS #${String(order?.numero ?? 0).padStart(3, "0")}`;
 
@@ -318,7 +395,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Header with filters */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Central de Controle</h1>
@@ -333,7 +410,7 @@ export default function Dashboard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas as lojas</SelectItem>
-                {lojas.map(l => (
+                {lojas.map((l: any) => (
                   <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
                 ))}
               </SelectContent>
@@ -355,69 +432,116 @@ export default function Dashboard() {
         />
       )}
 
-      {/* KPI Cards Row 1 - Financial */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-3">
-            <DollarSign className="h-4 w-4 text-primary" />
-            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{kpis.totalOrdensMes} OS</span>
+      {/* SEÇÃO 1 — FINANCEIRO DO MÊS */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Financeiro do Mês</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="stat-card">
+            <div className="flex items-center justify-between mb-3">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{kpis.totalFaturadas} OS</span>
+            </div>
+            <p className="stat-value">{fmt(kpis.faturamentoMes)}</p>
+            <p className="stat-label">Faturamento</p>
           </div>
-          <p className="stat-value">{fmt(kpis.faturamentoMes)}</p>
-          <p className="stat-label">Faturamento do mês</p>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between mb-3">
-            <TrendingUp className="h-4 w-4 text-success" />
-            {kpis.lucroMes >= 0
-              ? <ArrowUpRight className="h-3.5 w-3.5 text-success" />
-              : <ArrowDownRight className="h-3.5 w-3.5 text-destructive" />
-            }
+
+          <div className={`stat-card ${kpis.lucroReal >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
+            <div className="flex items-center justify-between mb-3">
+              <TrendingUp className={`h-4 w-4 ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`} />
+              {kpis.lucroReal >= 0
+                ? <ArrowUpRight className="h-3.5 w-3.5 text-success" />
+                : <ArrowDownRight className="h-3.5 w-3.5 text-destructive" />
+              }
+            </div>
+            <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroReal)}</p>
+            <p className="stat-label">Lucro real</p>
           </div>
-          <p className={`stat-value ${kpis.lucroMes >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroMes)}</p>
-          <p className="stat-label">Lucro do mês</p>
+
+          <div className="stat-card">
+            <DollarSign className="h-4 w-4 text-info mb-3" />
+            <p className="stat-value">{fmt(kpis.ticketMedio)}</p>
+            <p className="stat-label">Ticket médio</p>
+          </div>
+
+          <div className={`stat-card ${kpis.contasVencidas > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+            <CreditCard className={`h-4 w-4 mb-3 ${kpis.contasVencidas > 0 ? "text-destructive" : "text-warning"}`} />
+            <p className={`stat-value ${kpis.contasVencidas > 0 ? "text-destructive" : ""}`}>{fmt(kpis.contasValor)}</p>
+            <p className="stat-label">Contas a pagar{kpis.contasVencidas > 0 ? ` (${kpis.contasVencidas} vencida${kpis.contasVencidas > 1 ? "s" : ""})` : ""}</p>
+          </div>
         </div>
-        <div className="stat-card">
-          <CreditCard className="h-4 w-4 text-warning mb-3" />
-          <p className="stat-value">{fmt(kpis.contasValor)}</p>
-          <p className="stat-label">Contas a pagar</p>
+
+        {/* Breakdown row */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3">
+          <div className="stat-card py-3">
+            <Wallet className="h-3.5 w-3.5 text-success mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.totalRecebimentos)}</p>
+            <p className="stat-label">Recebimentos</p>
+          </div>
+          <div className="stat-card py-3">
+            <Package className="h-3.5 w-3.5 text-warning mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.custosPecasMes)}</p>
+            <p className="stat-label">Custo peças</p>
+          </div>
+          <div className="stat-card py-3">
+            <Receipt className="h-3.5 w-3.5 text-destructive mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.despesasPagasMes)}</p>
+            <p className="stat-label">Despesas pagas</p>
+          </div>
+          <div className="stat-card py-3">
+            <Users className="h-3.5 w-3.5 text-info mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.comissoesMes)}</p>
+            <p className="stat-label">Comissões</p>
+          </div>
+          <div className="stat-card py-3">
+            <Users className="h-3.5 w-3.5 text-warning mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.comissoesValor)}</p>
+            <p className="stat-label">Comissões pendentes</p>
+          </div>
         </div>
-        <div className="stat-card">
-          <Users className="h-4 w-4 text-info mb-3" />
-          <p className="stat-value">{fmt(kpis.comissoesValor)}</p>
-          <p className="stat-label">Comissões pendentes</p>
+
+        {/* Fórmula do lucro */}
+        <div className="section-card mt-3">
+          <div className="p-3">
+            <p className="text-xs text-muted-foreground">
+              <strong>Lucro real:</strong> Faturamento ({fmt(kpis.faturamentoMes)}) + Recebimentos ({fmt(kpis.totalRecebimentos)}) − Peças ({fmt(kpis.custosPecasMes)}) − Despesas ({fmt(kpis.despesasPagasMes)}) − Comissões ({fmt(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmt(kpis.lucroReal)}</strong>
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards Row 2 - Operational */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
-          <Wrench className="h-4 w-4 text-info mb-3" />
-          <p className="stat-value">{kpis.emAssistencia}</p>
-          <p className="stat-label">Em assistência</p>
-        </div>
-        <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia?status=pronto")}>
-          <CheckCircle className="h-4 w-4 text-success mb-3" />
-          <p className="stat-value">{kpis.aguardandoEntrega}</p>
-          <p className="stat-label">Prontos p/ entrega</p>
-        </div>
-        <div className={`stat-card ${kpis.emAtraso > 0 ? "border-destructive/30" : ""}`}>
-          <AlertTriangle className={`h-4 w-4 mb-3 ${kpis.emAtraso > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-          <p className={`stat-value ${kpis.emAtraso > 0 ? "text-destructive" : ""}`}>{kpis.emAtraso}</p>
-          <p className="stat-label">Em atraso</p>
-        </div>
-        <div className="stat-card">
-          <Timer className="h-4 w-4 text-muted-foreground mb-3" />
-          <p className="stat-value">{tempoMedioLabel}</p>
-          <p className="stat-label">Tempo médio reparo</p>
-        </div>
-        <div className={`stat-card ${kpis.estoqueBaixo > 0 ? "border-warning/30" : ""}`}>
-          <Package className={`h-4 w-4 mb-3 ${kpis.estoqueBaixo > 0 ? "text-warning" : "text-muted-foreground"}`} />
-          <p className={`stat-value ${kpis.estoqueBaixo > 0 ? "text-warning" : ""}`}>{kpis.estoqueBaixo}</p>
-          <p className="stat-label">Estoque baixo</p>
+      {/* SEÇÃO 2 — OPERACIONAL */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operacional</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
+            <Wrench className="h-4 w-4 text-info mb-3" />
+            <p className="stat-value">{kpis.emAssistencia}</p>
+            <p className="stat-label">Em assistência</p>
+          </div>
+          <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia?status=pronto")}>
+            <CheckCircle className="h-4 w-4 text-success mb-3" />
+            <p className="stat-value">{kpis.aguardandoEntrega}</p>
+            <p className="stat-label">Prontos p/ entrega</p>
+          </div>
+          <div className={`stat-card ${kpis.emAtraso > 0 ? "border-destructive/30" : ""}`}>
+            <AlertTriangle className={`h-4 w-4 mb-3 ${kpis.emAtraso > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+            <p className={`stat-value ${kpis.emAtraso > 0 ? "text-destructive" : ""}`}>{kpis.emAtraso}</p>
+            <p className="stat-label">Em atraso</p>
+          </div>
+          <div className="stat-card">
+            <Timer className="h-4 w-4 text-muted-foreground mb-3" />
+            <p className="stat-value">{tempoMedioLabel}</p>
+            <p className="stat-label">Tempo médio reparo</p>
+          </div>
+          <div className={`stat-card ${kpis.estoqueBaixo > 0 ? "border-warning/30" : ""}`}>
+            <Package className={`h-4 w-4 mb-3 ${kpis.estoqueBaixo > 0 ? "text-warning" : "text-muted-foreground"}`} />
+            <p className={`stat-value ${kpis.estoqueBaixo > 0 ? "text-warning" : ""}`}>{kpis.estoqueBaixo}</p>
+            <p className="stat-label">Estoque baixo</p>
+          </div>
         </div>
       </div>
 
-      {/* Charts Row */}
+      {/* SEÇÃO 3 — GRÁFICOS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue chart */}
         <div className="section-card">
@@ -436,7 +560,7 @@ export default function Dashboard() {
                 <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <RTooltip
                   contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(value: number) => [fmt(value)]}
+                  formatter={(value: number) => [fmtShort(value)]}
                 />
                 <Bar dataKey="faturamento" name="Faturamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="lucro" name="Lucro" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
@@ -529,9 +653,9 @@ export default function Dashboard() {
                 <div key={l.nome} className="flex items-center justify-between rounded-lg border px-4 py-2.5">
                   <span className="text-sm font-medium">{l.nome}</span>
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-muted-foreground">Receita: {fmt(l.receita)}</span>
-                    <span className="text-muted-foreground">Custos: {fmt(l.custo)}</span>
-                    <span className={`font-semibold ${l.lucro >= 0 ? "text-success" : "text-destructive"}`}>{fmt(l.lucro)}</span>
+                    <span className="text-muted-foreground">Receita: {fmtShort(l.receita)}</span>
+                    <span className="text-muted-foreground">Custos: {fmtShort(l.custo)}</span>
+                    <span className={`font-semibold ${l.lucro >= 0 ? "text-success" : "text-destructive"}`}>{fmtShort(l.lucro)}</span>
                   </div>
                 </div>
               ))}
@@ -542,7 +666,7 @@ export default function Dashboard() {
 
       {/* Status bar */}
       <div>
-        <h2 className="section-title mb-3">Visão Rápida por Status</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Visão por Status</h2>
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {(["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"] as const).map(status => {
             const count = status === "entregue"
