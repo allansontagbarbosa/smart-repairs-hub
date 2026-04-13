@@ -44,72 +44,19 @@ type OrderRow = {
   } | null;
 };
 
-async function fetchOrders() {
-  const { data, error } = await supabase
-    .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, imei, clientes ( nome, telefone ) )`)
-    .order("data_entrada", { ascending: false });
+async function fetchDashboardSummary() {
+  const { data, error } = await supabase.rpc("get_dashboard_summary");
   if (error) throw error;
-  return (data ?? []) as OrderRow[];
-}
-
-async function fetchPecas() {
-  const { data, error } = await supabase.from("estoque").select("id, nome, quantidade, quantidade_minima, categoria");
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchLojas() {
-  const { data, error } = await supabase.from("lojas").select("id, nome").eq("ativo", true);
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchContas() {
-  const { data, error } = await supabase.from("contas_a_pagar").select("*").eq("status", "pendente");
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchComissoes() {
-  const { data, error } = await supabase.from("comissoes").select("*").eq("status", "pendente");
-  if (error) throw error;
-  return data ?? [];
+  return data as {
+    ordens: OrderRow[];
+    estoque_baixo: number;
+    contas_pendentes: any[];
+    comissoes_pendentes: any[];
+    lojas: { id: string; nome: string }[];
+  };
 }
 
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
-const CHART_COLORS = [
-  "hsl(224, 76%, 48%)", "hsl(152, 55%, 42%)", "hsl(36, 90%, 52%)",
-  "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
-];
-
-
-
-const statusColors: Record<string, string> = {
-  recebido: "bg-muted-foreground",
-  em_analise: "bg-info",
-  aguardando_aprovacao: "bg-warning",
-  aprovado: "bg-success",
-  em_reparo: "bg-primary",
-  aguardando_peca: "bg-warning",
-  pronto: "bg-success",
-  entregue: "bg-muted-foreground/50",
-};
-
-export default function Dashboard() {
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
-  const [filtroLoja, setFiltroLoja] = useState("todas");
-  const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
-  const [filtroPeriodo, setFiltroPeriodo] = useState("mes");
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const { data: orders = [], isLoading: loadingOrders } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
-  const { data: pecas = [] } = useQuery({ queryKey: ["pecas"], queryFn: fetchPecas });
-  const { data: lojas = [] } = useQuery({ queryKey: ["lojas"], queryFn: fetchLojas });
-  const { data: contasPendentes = [] } = useQuery({ queryKey: ["contas-pendentes"], queryFn: fetchContas });
-  const { data: comissoesPendentes = [] } = useQuery({ queryKey: ["comissoes-pendentes"], queryFn: fetchComissoes });
 
   const entregarMutation = useMutation({
     mutationFn: async (orderId: string) => {
