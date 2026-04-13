@@ -451,9 +451,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-sm font-medium">{ordem.aparelhos?.marca} {ordem.aparelhos?.modelo}</span>
                     </div>
-                    {(ordem.aparelhos?.cor || ordem.aparelhos?.imei) && (
+                    {(ordem.aparelhos?.cor || ordem.aparelhos?.capacidade || ordem.aparelhos?.imei) && (
                       <p className="text-xs text-muted-foreground mt-1.5 pl-5">
-                        {[ordem.aparelhos.cor, ordem.aparelhos.imei && `IMEI: ${ordem.aparelhos.imei}`].filter(Boolean).join(" · ")}
+                        {[ordem.aparelhos.cor, ordem.aparelhos.capacidade, ordem.aparelhos.imei && `IMEI: ${ordem.aparelhos.imei}`].filter(Boolean).join(" · ")}
                       </p>
                     )}
                   </div>
