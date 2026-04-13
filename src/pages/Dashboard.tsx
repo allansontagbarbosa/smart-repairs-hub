@@ -468,7 +468,7 @@ export default function Dashboard() {
       {/* SEÇÃO 1 — FINANCEIRO DO MÊS */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Financeiro do Mês</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="stat-card">
             <div className="flex items-center justify-between mb-3">
               <DollarSign className="h-4 w-4 text-primary" />
@@ -488,7 +488,20 @@ export default function Dashboard() {
               )}
             </div>
             <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroReal)}</p>
-            <p className="stat-label">Lucro real (margem)</p>
+            <p className="stat-label">EBITDA (margem)</p>
+          </div>
+
+          <div className={`stat-card ${kpis.lucroLiquido >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
+            <div className="flex items-center justify-between mb-3">
+              <ArrowDownRight className={`h-4 w-4 ${kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}`} />
+              {kpis.faturamentoMes > 0 && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.lucroLiquido >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                  {((kpis.lucroLiquido / kpis.faturamentoMes) * 100).toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <p className={`stat-value ${kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroLiquido)}</p>
+            <p className="stat-label">Lucro líquido (margem)</p>
           </div>
 
           <div className="stat-card">
