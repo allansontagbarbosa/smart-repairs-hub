@@ -541,7 +541,12 @@ export default function Dashboard() {
                   )}
                 </div>
                 <p className={`stat-value ${textColor}`}>{fmt(kpis.lucroLiquido)}</p>
-                <p className="stat-label">Lucro líquido (margem)</p>
+                <p className="stat-label">{kpis.lucroLiquido < 0 ? "Prejuízo líquido" : "Lucro líquido (margem)"}</p>
+                {kpis.lucroLiquido < 0 && (
+                  <p className="text-[10px] text-destructive font-semibold mt-1">
+                    ⚠ Déficit de {fmt(Math.abs(kpis.lucroLiquido))}
+                  </p>
+                )}
               </div>
             );
           })()}
