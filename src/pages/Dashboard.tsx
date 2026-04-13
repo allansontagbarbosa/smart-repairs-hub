@@ -228,8 +228,13 @@ export default function Dashboard() {
     // Custo de peças do mês
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas pagas no mês (from dedicated query)
-    const despesasPagasMes = (contasPagas ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    // Despesas pagas no mês - separadas em fixas e variáveis
+    const allContasPagas = contasPagas ?? [];
+    const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const gastosFixos = allContasPagas
+      .filter((c: any) => c.categorias_financeiras?.tipo === "fixo")
+      .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const gastosVariaveis = despesasPagasMes - gastosFixos;
 
     // Comissões do mês
     const comissoesMes = (comissoesMesData ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
