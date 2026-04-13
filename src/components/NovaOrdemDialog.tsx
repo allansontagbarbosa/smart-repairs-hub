@@ -29,6 +29,7 @@ interface Props {
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const [showNewClient, setShowNewClient] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
   const queryClient = useQueryClient();
 
   const { data: clientes = [] } = useQuery({
@@ -85,6 +86,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         valor: valorStr ? parseFloat(valorStr) : null,
         data_entrada: new Date().toISOString(),
         tecnico: (fd.get("tecnico") as string) || null,
+        previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
       });
       if (osErr) throw osErr;
@@ -92,6 +94,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     },
     onSuccess: () => {
       setSelectedClientId("");
+      setPrevisaoEntrega(undefined);
       onOpenChange(false);
       toast.success("Ordem de Serviço criada!");
       onSuccess();
