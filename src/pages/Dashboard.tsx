@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { statusLabels } from "@/lib/status";
 import { useAlertas } from "@/hooks/useAlertas";
 import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";
@@ -80,7 +81,6 @@ const CHART_COLORS = [
   "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
 ];
 
-import { statusLabels } from "@/lib/status";
 
 
 const statusColors: Record<string, string> = {
