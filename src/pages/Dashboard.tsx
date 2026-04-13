@@ -97,6 +97,17 @@ async function fetchComissoesMes() {
   return data ?? [];
 }
 
+async function fetchAjustesMes() {
+  const now = new Date();
+  const anoMes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const { data, error } = await supabase
+    .from("ajustes_mensais")
+    .select("tipo, valor")
+    .eq("ano_mes", anoMes);
+  if (error) throw error;
+  return data ?? [];
+}
+
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtShort = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
@@ -146,6 +157,12 @@ export default function Dashboard() {
   const { data: comissoesMesData } = useQuery({
     queryKey: ["dashboard-comissoes-mes"],
     queryFn: fetchComissoesMes,
+    refetchInterval: 60000,
+  });
+
+  const { data: ajustesMes } = useQuery({
+    queryKey: ["dashboard-ajustes-mes"],
+    queryFn: fetchAjustesMes,
     refetchInterval: 60000,
   });
 
@@ -265,9 +282,25 @@ export default function Dashboard() {
       lucroPorLoja.sort((a, b) => b.lucro - a.lucro);
     }
 
+    // Ajustes mensais (depreciação + impostos)
+    const allAjustes = ajustesMes ?? [];
+    const depreciacao = allAjustes
+      .filter((a: any) => a.tipo === "depreciacao")
+      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+    const impostos = allAjustes
+      .filter((a: any) => a.tipo === "impostos")
+      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+    const outrosAjustes = allAjustes
+      .filter((a: any) => a.tipo !== "depreciacao" && a.tipo !== "impostos")
+      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+
+    // Lucro líquido = Lucro real (EBITDA) - depreciação - impostos - outros
+    const lucroLiquido = lucroReal - depreciacao - impostos - outrosAjustes;
+
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
-      totalRecebimentos, lucroReal, ticketMedio,
+      totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
+      depreciacao, impostos, outrosAjustes,
       tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
@@ -275,7 +308,7 @@ export default function Dashboard() {
       totalFaturadas: ordensFaturadas.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
@@ -435,7 +468,7 @@ export default function Dashboard() {
       {/* SEÇÃO 1 — FINANCEIRO DO MÊS */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Financeiro do Mês</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="stat-card">
             <div className="flex items-center justify-between mb-3">
               <DollarSign className="h-4 w-4 text-primary" />
@@ -455,7 +488,20 @@ export default function Dashboard() {
               )}
             </div>
             <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroReal)}</p>
-            <p className="stat-label">Lucro real (margem)</p>
+            <p className="stat-label">EBITDA (margem)</p>
+          </div>
+
+          <div className={`stat-card ${kpis.lucroLiquido >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
+            <div className="flex items-center justify-between mb-3">
+              <ArrowDownRight className={`h-4 w-4 ${kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}`} />
+              {kpis.faturamentoMes > 0 && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.lucroLiquido >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                  {((kpis.lucroLiquido / kpis.faturamentoMes) * 100).toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <p className={`stat-value ${kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroLiquido)}</p>
+            <p className="stat-label">Lucro líquido (margem)</p>
           </div>
 
           <div className="stat-card">
@@ -472,7 +518,7 @@ export default function Dashboard() {
         </div>
 
         {/* Breakdown row */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-3">
           <div className="stat-card py-3">
             <Wallet className="h-3.5 w-3.5 text-success mb-2" />
             <p className="text-sm font-semibold">{fmt(kpis.totalRecebimentos)}</p>
@@ -494,17 +540,30 @@ export default function Dashboard() {
             <p className="stat-label">Comissões</p>
           </div>
           <div className="stat-card py-3">
+            <Receipt className="h-3.5 w-3.5 text-muted-foreground mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.depreciacao)}</p>
+            <p className="stat-label">Depreciação</p>
+          </div>
+          <div className="stat-card py-3">
+            <CreditCard className="h-3.5 w-3.5 text-muted-foreground mb-2" />
+            <p className="text-sm font-semibold">{fmt(kpis.impostos)}</p>
+            <p className="stat-label">Impostos</p>
+          </div>
+          <div className="stat-card py-3">
             <Users className="h-3.5 w-3.5 text-warning mb-2" />
             <p className="text-sm font-semibold">{fmt(kpis.comissoesValor)}</p>
             <p className="stat-label">Comissões pendentes</p>
           </div>
         </div>
 
-        {/* Fórmula do lucro */}
+        {/* Fórmulas */}
         <div className="section-card mt-3">
-          <div className="p-3">
+          <div className="p-3 space-y-1">
             <p className="text-xs text-muted-foreground">
-              <strong>Lucro real:</strong> Faturamento ({fmt(kpis.faturamentoMes)}) + Recebimentos ({fmt(kpis.totalRecebimentos)}) − Peças ({fmt(kpis.custosPecasMes)}) − Despesas ({fmt(kpis.despesasPagasMes)}) − Comissões ({fmt(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmt(kpis.lucroReal)}</strong>
+              <strong>EBITDA:</strong> Faturamento ({fmt(kpis.faturamentoMes)}) + Recebimentos ({fmt(kpis.totalRecebimentos)}) − Peças ({fmt(kpis.custosPecasMes)}) − Despesas ({fmt(kpis.despesasPagasMes)}) − Comissões ({fmt(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmt(kpis.lucroReal)}</strong>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              <strong>Lucro líquido:</strong> EBITDA ({fmt(kpis.lucroReal)}) − Depreciação ({fmt(kpis.depreciacao)}) − Impostos ({fmt(kpis.impostos)}){kpis.outrosAjustes > 0 ? ` − Outros (${fmt(kpis.outrosAjustes)})` : ""} = <strong className={kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}>{fmt(kpis.lucroLiquido)}</strong>
             </p>
           </div>
         </div>
