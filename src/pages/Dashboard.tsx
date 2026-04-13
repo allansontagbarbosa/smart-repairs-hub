@@ -100,6 +100,7 @@ export default function Dashboard() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
   const [filtroLoja, setFiltroLoja] = useState("todas");
+  const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const [filtroPeriodo, setFiltroPeriodo] = useState("mes");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -585,6 +586,14 @@ export default function Dashboard() {
         open={novaOrdemOpen}
         onOpenChange={setNovaOrdemOpen}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["ordens"] })}
+      />
+      <ConfirmarEntregaDialog
+        entrega={entrega}
+        onConfirm={(id) => {
+          entregarMutation.mutate(id);
+          cancelar();
+        }}
+        onCancel={cancelar}
       />
     </div>
   );
