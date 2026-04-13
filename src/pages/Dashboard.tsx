@@ -1,6 +1,6 @@
 import {
   Wrench, Clock, DollarSign, TrendingUp, CheckCircle, Loader2,
-  AlertTriangle, Plus, Search, Package, Timer, Store,
+  AlertTriangle, Plus, Search, Package, Timer, Store, Smartphone,
   BarChart3, ArrowUpRight, ArrowDownRight, CreditCard, Users,
   Receipt, Wallet,
 } from "lucide-react";
@@ -334,6 +334,11 @@ export default function Dashboard() {
       estoqueBaixo: pecasEstoqueBaixo,
       totalOrdensMes: ordensMes.length,
       totalFaturadas: ordensFaturadas.length,
+      iphonesReparados: ordensMes.filter(o => {
+        const marca = (o.aparelhos as any)?.marca?.toLowerCase() ?? "";
+        const modelo = (o.aparelhos as any)?.modelo?.toLowerCase() ?? "";
+        return marca.includes("apple") || modelo.includes("iphone");
+      }).length,
       lucroPorLoja,
     };
   }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
@@ -723,6 +728,11 @@ export default function Dashboard() {
             <Wrench className="h-4 w-4 text-primary mb-3" />
             <p className="stat-value">{kpis.totalOrdensMes}</p>
             <p className="stat-label">Assistências no mês</p>
+          </div>
+          <div className="stat-card">
+            <Smartphone className="h-4 w-4 text-muted-foreground mb-3" />
+            <p className="stat-value">{kpis.iphonesReparados}</p>
+            <p className="stat-label">iPhones no mês</p>
           </div>
           <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
             <Wrench className="h-4 w-4 text-info mb-3" />
