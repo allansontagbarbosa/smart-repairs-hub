@@ -527,6 +527,7 @@ export type Database = {
           horario_funcionamento: string | null
           id: string
           logo_url: string | null
+          meta_gastos_mes: number | null
           moeda: string | null
           nome: string
           observacoes: string | null
@@ -545,6 +546,7 @@ export type Database = {
           horario_funcionamento?: string | null
           id?: string
           logo_url?: string | null
+          meta_gastos_mes?: number | null
           moeda?: string | null
           nome?: string
           observacoes?: string | null
@@ -563,6 +565,7 @@ export type Database = {
           horario_funcionamento?: string | null
           id?: string
           logo_url?: string | null
+          meta_gastos_mes?: number | null
           moeda?: string | null
           nome?: string
           observacoes?: string | null
