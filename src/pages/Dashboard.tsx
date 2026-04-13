@@ -729,7 +729,11 @@ export default function Dashboard() {
             <p className="stat-value">{kpis.totalOrdensMes}</p>
             <p className="stat-label">Assistências no mês</p>
           </div>
-          <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
+          <div className="stat-card">
+            <Smartphone className="h-4 w-4 text-muted-foreground mb-3" />
+            <p className="stat-value">{kpis.iphonesReparados}</p>
+            <p className="stat-label">iPhones no mês</p>
+          </div>
             <Wrench className="h-4 w-4 text-info mb-3" />
             <p className="stat-value">{kpis.emAssistencia}</p>
             <p className="stat-label">Em assistência</p>
