@@ -93,6 +93,7 @@ export default function Dashboard() {
   const comissoesPendentes = summary?.comissoes_pendentes ?? [];
   const lojas = summary?.lojas ?? [];
 
+  const entregarMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const { error } = await supabase
         .from("ordens_de_servico")
