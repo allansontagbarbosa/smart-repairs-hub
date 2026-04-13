@@ -176,6 +176,12 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  const { data: empresaConfig } = useQuery({
+    queryKey: ["dashboard-empresa-config"],
+    queryFn: fetchEmpresaConfig,
+    refetchInterval: 60000,
+  });
+
   const orders = summary?.ordens ?? [];
   const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
   const contasPendentes = summary?.contas_pendentes ?? [];
