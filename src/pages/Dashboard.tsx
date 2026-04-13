@@ -448,13 +448,14 @@ export default function Dashboard() {
           <div className={`stat-card ${kpis.lucroReal >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
             <div className="flex items-center justify-between mb-3">
               <TrendingUp className={`h-4 w-4 ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`} />
-              {kpis.lucroReal >= 0
-                ? <ArrowUpRight className="h-3.5 w-3.5 text-success" />
-                : <ArrowDownRight className="h-3.5 w-3.5 text-destructive" />
-              }
+              {kpis.faturamentoMes > 0 && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.lucroReal >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                  {((kpis.lucroReal / kpis.faturamentoMes) * 100).toFixed(1)}%
+                </span>
+              )}
             </div>
             <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroReal)}</p>
-            <p className="stat-label">Lucro real</p>
+            <p className="stat-label">Lucro real (margem)</p>
           </div>
 
           <div className="stat-card">
