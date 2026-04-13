@@ -26,39 +26,9 @@ type ClienteComStats = {
 };
 
 async function fetchClientes(): Promise<ClienteComStats[]> {
-  // Fetch clients
-  const { data: clientes, error } = await supabase
-    .from("clientes")
-    .select("*")
-    .order("nome");
+  const { data, error } = await supabase.rpc("get_clientes_com_stats");
   if (error) throw error;
-
-  // Fetch order stats per client (via aparelhos)
-  const { data: ordens } = await supabase
-    .from("ordens_de_servico")
-    .select("aparelho_id, valor, data_entrada, aparelhos!inner(cliente_id)");
-
-  const statsMap = new Map<string, { count: number; total: number; lastDate: string | null }>();
-
-  (ordens ?? []).forEach((o: any) => {
-    const cid = o.aparelhos?.cliente_id;
-    if (!cid) return;
-    const prev = statsMap.get(cid) ?? { count: 0, total: 0, lastDate: null };
-    prev.count++;
-    prev.total += Number(o.valor ?? 0);
-    if (!prev.lastDate || o.data_entrada > prev.lastDate) prev.lastDate = o.data_entrada;
-    statsMap.set(cid, prev);
-  });
-
-  return clientes.map((c) => {
-    const stats = statsMap.get(c.id) ?? { count: 0, total: 0, lastDate: null };
-    return {
-      ...c,
-      total_os: stats.count,
-      ultimo_atendimento: stats.lastDate,
-      total_gasto: stats.total,
-    };
-  });
+  return (data ?? []) as ClienteComStats[];
 }
 
 export default function Clientes() {
