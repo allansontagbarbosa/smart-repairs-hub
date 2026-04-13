@@ -14,6 +14,7 @@ import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";
 import { AlertsBanner } from "@/components/AlertsBanner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +66,7 @@ export default function Assistencia() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["ordens"],
@@ -278,7 +280,17 @@ export default function Assistencia() {
                               <DropdownMenuItem
                                 key={s}
                                 disabled={s === order.status}
-                                onClick={() => updateStatusMutation.mutate({ id: order.id, status: s })}
+                                onClick={() => {
+                                  if (s === "entregue") {
+                                    pedirConfirmacao({
+                                      orderId: order.id,
+                                      numero: order.numero,
+                                      clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                                    });
+                                  } else {
+                                    updateStatusMutation.mutate({ id: order.id, status: s });
+                                  }
+                                }}
                                 className="text-xs"
                               >
                                 {statusLabels[s]}
@@ -330,7 +342,11 @@ export default function Assistencia() {
                               size="icon"
                               className="h-7 w-7 text-success hover:text-success"
                               title="Marcar como Entregue"
-                              onClick={() => updateStatusMutation.mutate({ id: order.id, status: "entregue" })}
+                              onClick={() => pedirConfirmacao({
+                                orderId: order.id,
+                                numero: order.numero,
+                                clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                              })}
                             >
                               <Truck className="h-3.5 w-3.5" />
                             </Button>
@@ -361,6 +377,14 @@ export default function Assistencia() {
       )}
 
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
+      <ConfirmarEntregaDialog
+        entrega={entrega}
+        onConfirm={(id) => {
+          updateStatusMutation.mutate({ id, status: "entregue" });
+          cancelar();
+        }}
+        onCancel={cancelar}
+      />
     </div>
   );
 }
