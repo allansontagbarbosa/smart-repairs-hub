@@ -28,6 +28,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [addingPart, setAddingPart] = useState(false);
   const [selectedPecaId, setSelectedPecaId] = useState("");
   const [pecaQtd, setPecaQtd] = useState(1);
+  const [editingDiag, setEditingDiag] = useState(false);
+  const [diagValue, setDiagValue] = useState("");
+  const [editingServico, setEditingServico] = useState(false);
+  const [servicoValue, setServicoValue] = useState("");
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
 
