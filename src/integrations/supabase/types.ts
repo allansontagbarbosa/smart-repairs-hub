@@ -1705,6 +1705,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_clientes_com_stats: {
+        Args: never
+        Returns: {
+          cpf: string
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          observacoes: string
+          telefone: string
+          total_gasto: number
+          total_os: number
+          ultimo_atendimento: string
+          whatsapp: string
+        }[]
+      }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
