@@ -752,6 +752,14 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           </>
         )}
       </SheetContent>
+      <ConfirmarEntregaDialog
+        entrega={entrega}
+        onConfirm={(id) => {
+          changeStatus.mutate("entregue");
+          cancelar();
+        }}
+        onCancel={cancelar}
+      />
     </Sheet>
   );
 }
