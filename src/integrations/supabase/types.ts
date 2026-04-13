@@ -146,6 +146,7 @@ export type Database = {
           status: string
           telefone: string
           updated_at: string
+          user_id: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -160,6 +161,7 @@ export type Database = {
           status?: string
           telefone: string
           updated_at?: string
+          user_id?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -174,6 +176,7 @@ export type Database = {
           status?: string
           telefone?: string
           updated_at?: string
+          user_id?: string | null
           whatsapp?: string | null
         }
         Relationships: []
@@ -1699,7 +1702,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_internal_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       status_comissao: "pendente" | "liberada" | "paga"
