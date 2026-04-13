@@ -607,7 +607,64 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* SEÇÃO 2 — OPERACIONAL */}
+      {/* SEÇÃO 2 — GASTOS E PREVISÕES */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Gastos e Previsões</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="stat-card">
+            <Receipt className="h-4 w-4 text-muted-foreground mb-3" />
+            <p className="stat-value">{fmt(kpis.gastosFixos)}</p>
+            <p className="stat-label">Gastos fixos</p>
+          </div>
+          <div className="stat-card">
+            <Receipt className="h-4 w-4 text-warning mb-3" />
+            <p className="stat-value">{fmt(kpis.gastosVariaveis)}</p>
+            <p className="stat-label">Gastos variáveis</p>
+          </div>
+          <div className="stat-card">
+            <DollarSign className="h-4 w-4 text-info mb-3" />
+            <p className="stat-value">{fmt(kpis.despesasPagasMes)}</p>
+            <p className="stat-label">Total gastos do mês</p>
+          </div>
+          <div className={`stat-card ${kpis.metaGastos > 0 && kpis.despesasPagasMes > kpis.metaGastos ? "border-destructive/20 bg-destructive/5" : ""}`}>
+            <AlertTriangle className={`h-4 w-4 mb-3 ${kpis.metaGastos > 0 && kpis.despesasPagasMes > kpis.metaGastos ? "text-destructive" : "text-muted-foreground"}`} />
+            <p className="stat-value">{kpis.metaGastos > 0 ? fmt(kpis.metaGastos) : "Não definida"}</p>
+            <p className="stat-label">Meta de gastos</p>
+          </div>
+        </div>
+
+        {/* Barra de progresso gastos vs meta */}
+        {kpis.metaGastos > 0 && (
+          <div className="section-card mt-3">
+            <div className="p-3">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-muted-foreground">Gastos vs Meta</span>
+                <span className={`font-semibold ${kpis.despesasPagasMes > kpis.metaGastos ? "text-destructive" : kpis.despesasPagasMes > kpis.metaGastos * 0.8 ? "text-warning" : "text-success"}`}>
+                  {((kpis.despesasPagasMes / kpis.metaGastos) * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    kpis.despesasPagasMes > kpis.metaGastos
+                      ? "bg-destructive"
+                      : kpis.despesasPagasMes > kpis.metaGastos * 0.8
+                        ? "bg-warning"
+                        : "bg-success"
+                  }`}
+                  style={{ width: `${Math.min((kpis.despesasPagasMes / kpis.metaGastos) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{fmt(kpis.despesasPagasMes)} gastos</span>
+                <span>{fmt(kpis.metaGastos)} meta</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SEÇÃO 3 — OPERACIONAL */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operacional</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
