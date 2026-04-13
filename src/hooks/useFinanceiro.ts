@@ -267,16 +267,18 @@ export function useFinanceiro() {
       receitaMes,
       custosPecasMes,
       despesasPagasMes,
+      recebimentosMes,
       despesasPorCategoria,
       evolucaoMensal,
       contasVencidas: contasVencidas.length,
       comissoesPendentesCount: comissoesPendentes.length,
     };
-  }, [contas.data, comissoes.data, ordens.data]);
+  }, [contas.data, comissoes.data, ordens.data, recebimentos.data]);
 
   return {
     contas: contas.data ?? [],
     comissoes: comissoes.data ?? [],
+    recebimentos: recebimentos.data ?? [],
     categorias: categorias.data ?? [],
     centros: centros.data ?? [],
     funcionarios: funcionarios.data ?? [],
