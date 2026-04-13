@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";
@@ -89,12 +90,7 @@ export default function Assistencia() {
 
   const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
     if (!phone) return toast.error("Cliente sem telefone cadastrado");
-    const clean = phone.replace(/\D/g, "");
-    const full = clean.startsWith("55") ? clean : `55${clean}`;
-    const msg = encodeURIComponent(
-      `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}. Por favor, entre em contato conosco.`
-    );
-    window.open(`https://wa.me/${full}?text=${msg}`, "_blank");
+    abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}. Por favor, entre em contato conosco.`);
   };
 
   const getNextStatus = (current: Status): Status | null => {

@@ -6,6 +6,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { statusLabels } from "@/lib/status";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 import { useAlertas } from "@/hooks/useAlertas";
 import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";
@@ -298,11 +299,7 @@ export default function Dashboard() {
   }, [alertasOS, alertasPecas, contasPendentes, comissoesPendentes]);
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
-    const sendWhatsApp = (p: string, msg: string) => {
-      const clean = p.replace(/\D/g, "");
-      const full = clean.startsWith("55") ? clean : `55${clean}`;
-      window.open(`https://wa.me/${full}?text=${encodeURIComponent(msg)}`, "_blank");
-    };
+    const sendWhatsApp = (p: string, msg: string) => abrirWhatsApp(p, msg);
 
     const order = orders.find(o => o.id === orderId);
     const osLabel = `OS #${String(order?.numero ?? 0).padStart(3, "0")}`;
