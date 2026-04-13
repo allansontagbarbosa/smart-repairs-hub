@@ -1306,6 +1306,7 @@ export type Database = {
           prazo_vencido: boolean
           previsao_entrega: string | null
           prioridade: string
+          referencia_lote: string | null
           servico_realizado: string | null
           status: Database["public"]["Enums"]["status_ordem"]
           tecnico: string | null
@@ -1339,6 +1340,7 @@ export type Database = {
           prazo_vencido?: boolean
           previsao_entrega?: string | null
           prioridade?: string
+          referencia_lote?: string | null
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
@@ -1372,6 +1374,7 @@ export type Database = {
           prazo_vencido?: boolean
           previsao_entrega?: string | null
           prioridade?: string
+          referencia_lote?: string | null
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
