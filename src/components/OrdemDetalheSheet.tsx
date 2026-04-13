@@ -486,9 +486,107 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Serviço</p>
                   <div className="space-y-2">
-                    <InfoRow label="Defeito" value={ordem.defeito_relatado} />
-                    <InfoRow label="Diagnóstico" value={ordem.diagnostico ?? "—"} />
-                    <InfoRow label="Serviço realizado" value={ordem.servico_realizado ?? "—"} />
+                    <InfoRow label="Defeito relatado" value={ordem.defeito_relatado} />
+
+                    {/* Diagnóstico técnico - inline editable, visible after "recebido" */}
+                    {ordem.status !== "recebido" && (
+                      <div className="py-1.5 border-b">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-muted-foreground">Diagnóstico técnico</span>
+                          {ordem.status !== "entregue" && !editingDiag && (
+                            <button
+                              type="button"
+                              onClick={() => { setEditingDiag(true); setDiagValue(ordem.diagnostico ?? ""); }}
+                              className="text-xs text-info hover:underline inline-flex items-center gap-1"
+                            >
+                              <Pencil className="h-3 w-3" />{ordem.diagnostico ? "Editar" : "Adicionar"}
+                            </button>
+                          )}
+                        </div>
+                        {editingDiag ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={diagValue}
+                              onChange={(e) => setDiagValue(e.target.value)}
+                              rows={2}
+                              className="resize-none text-sm"
+                              placeholder="O que o técnico identificou..."
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="flex-1"
+                                disabled={saveEdit.isPending}
+                                onClick={async () => {
+                                  const { error } = await supabase.from("ordens_de_servico").update({ diagnostico: diagValue || null }).eq("id", ordem.id);
+                                  if (error) { toast.error("Erro ao salvar"); return; }
+                                  queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+                                  setEditingDiag(false);
+                                  toast.success("Diagnóstico salvo!");
+                                }}
+                              >
+                                <Check className="h-3 w-3 mr-1" />Salvar
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingDiag(false)}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-medium text-right">{ordem.diagnostico || "—"}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Serviço realizado - inline editable, visible when pronto/entregue */}
+                    {(ordem.status === "pronto" || ordem.status === "entregue") && (
+                      <div className="py-1.5 border-b last:border-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-muted-foreground">Serviço realizado</span>
+                          {ordem.status !== "entregue" && !editingServico && (
+                            <button
+                              type="button"
+                              onClick={() => { setEditingServico(true); setServicoValue(ordem.servico_realizado ?? ""); }}
+                              className="text-xs text-info hover:underline inline-flex items-center gap-1"
+                            >
+                              <Pencil className="h-3 w-3" />{ordem.servico_realizado ? "Editar" : "Adicionar"}
+                            </button>
+                          )}
+                        </div>
+                        {editingServico ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={servicoValue}
+                              onChange={(e) => setServicoValue(e.target.value)}
+                              rows={2}
+                              className="resize-none text-sm"
+                              placeholder="Descreva o que foi feito..."
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="flex-1"
+                                disabled={saveEdit.isPending}
+                                onClick={async () => {
+                                  const { error } = await supabase.from("ordens_de_servico").update({ servico_realizado: servicoValue || null }).eq("id", ordem.id);
+                                  if (error) { toast.error("Erro ao salvar"); return; }
+                                  queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+                                  setEditingServico(false);
+                                  toast.success("Serviço realizado salvo!");
+                                }}
+                              >
+                                <Check className="h-3 w-3 mr-1" />Salvar
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingServico(false)}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-medium text-right">{ordem.servico_realizado || "—"}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
