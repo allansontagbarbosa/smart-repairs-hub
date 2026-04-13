@@ -63,12 +63,22 @@ async function fetchContasPagas() {
   const me = endOfMonth(now);
   const { data, error } = await supabase
     .from("contas_a_pagar")
-    .select("valor, data_pagamento, categoria")
+    .select("valor, data_pagamento, categoria, categoria_financeira_id, categorias_financeiras ( tipo )")
     .eq("status", "paga")
     .gte("data_pagamento", ms.toISOString().split("T")[0])
     .lte("data_pagamento", me.toISOString().split("T")[0]);
   if (error) throw error;
   return data ?? [];
+}
+
+async function fetchEmpresaConfig() {
+  const { data, error } = await supabase
+    .from("empresa_config")
+    .select("meta_gastos_mes")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 async function fetchRecebimentosMes() {
