@@ -8,16 +8,8 @@ import { usePortalCliente, usePortalOrdens, usePortalHistorico } from "@/hooks/u
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const statusLabels: Record<string, string> = {
-  recebido: "Recebido",
-  em_analise: "Em Análise",
-  aguardando_aprovacao: "Aguardando Aprovação",
-  aprovado: "Aprovado",
-  em_reparo: "Em Reparo",
-  aguardando_peca: "Aguardando Peça",
-  pronto: "Pronto para Retirada",
-  entregue: "Entregue",
-};
+import { statusLabelsCliente as statusLabels } from "@/lib/status";
+
 
 const statusColors: Record<string, { dot: string; bg: string; text: string }> = {
   recebido: { dot: "bg-muted-foreground", bg: "bg-muted", text: "text-muted-foreground" },

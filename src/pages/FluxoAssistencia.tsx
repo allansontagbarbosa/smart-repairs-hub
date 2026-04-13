@@ -8,30 +8,8 @@ import { cn } from "@/lib/utils";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { calcularPrioridade } from "@/lib/prioridade";
 import type { Database } from "@/integrations/supabase/types";
+import { statusFlow, statusLabels, type Status } from "@/lib/status";
 
-type Status = Database["public"]["Enums"]["status_ordem"];
-
-const statusFlow: Status[] = [
-  "recebido",
-  "em_analise",
-  "aguardando_aprovacao",
-  "aprovado",
-  "em_reparo",
-  "aguardando_peca",
-  "pronto",
-  "entregue",
-];
-
-const statusLabels: Record<Status, string> = {
-  recebido: "Recebido",
-  em_analise: "Em Análise",
-  aguardando_aprovacao: "Aguard. Aprovação",
-  aprovado: "Aprovado",
-  em_reparo: "Em Reparo",
-  aguardando_peca: "Aguard. Peça",
-  pronto: "Pronto",
-  entregue: "Entregue",
-};
 
 const statusHeaderColors: Record<Status, string> = {
   recebido: "bg-muted-foreground/20",

@@ -12,17 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { statusFlow, statusLabels, type Status } from "@/lib/status";
 
 
 
-type Status = Database["public"]["Enums"]["status_ordem"];
-
-const statusFlow: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"];
-const statusLabels: Record<Status, string> = {
-  recebido: "Recebido", em_analise: "Em Análise", aguardando_aprovacao: "Aguard. Aprovação",
-  aprovado: "Aprovado", em_reparo: "Em Reparo", aguardando_peca: "Aguard. Peça",
-  pronto: "Pronto", entregue: "Entregue",
-};
 
 interface Props {
   orderId: string | null;

@@ -80,16 +80,8 @@ const CHART_COLORS = [
   "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
 ];
 
-const statusLabels: Record<string, string> = {
-  recebido: "Recebido",
-  em_analise: "Em Análise",
-  aguardando_aprovacao: "Aguard. Aprovação",
-  aprovado: "Aprovado",
-  em_reparo: "Em Reparo",
-  aguardando_peca: "Aguard. Peça",
-  pronto: "Pronto",
-  entregue: "Entregue",
-};
+import { statusLabels } from "@/lib/status";
+
 
 const statusColors: Record<string, string> = {
   recebido: "bg-muted-foreground",
