@@ -97,6 +97,17 @@ async function fetchComissoesMes() {
   return data ?? [];
 }
 
+async function fetchAjustesMes() {
+  const now = new Date();
+  const anoMes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const { data, error } = await supabase
+    .from("ajustes_mensais")
+    .select("tipo, valor")
+    .eq("ano_mes", anoMes);
+  if (error) throw error;
+  return data ?? [];
+}
+
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtShort = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
 
