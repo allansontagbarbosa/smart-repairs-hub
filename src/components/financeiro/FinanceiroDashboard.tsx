@@ -86,11 +86,16 @@ export function FinanceiroDashboard({ kpis }: Props) {
       </div>
 
       {/* KPI Cards - Row 2: Profit breakdown */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className="stat-card border-success/20 bg-success-muted">
           <Wallet className="h-4 w-4 text-success mb-3" />
           <p className="stat-value text-success">{fmtCurrency(kpis.receitaMes)}</p>
-          <p className="stat-label">Receita do mês</p>
+          <p className="stat-label">Receita OS do mês</p>
+        </div>
+        <div className="stat-card border-success/20 bg-success-muted">
+          <Receipt className="h-4 w-4 text-success mb-3" />
+          <p className="stat-value text-success">{fmtCurrency(kpis.recebimentosMes)}</p>
+          <p className="stat-label">Recebimentos extras</p>
         </div>
         <div className="stat-card">
           <Package className="h-4 w-4 text-warning mb-3" />
@@ -127,7 +132,7 @@ export function FinanceiroDashboard({ kpis }: Props) {
       <div className="section-card">
         <div className="p-4">
           <p className="text-xs text-muted-foreground">
-            <strong>Fórmula do lucro real:</strong> Receita ({fmtCurrency(kpis.receitaMes)}) − Peças ({fmtCurrency(kpis.custosPecasMes)}) − Despesas ({fmtCurrency(kpis.despesasPagasMes)}) − Comissões ({fmtCurrency(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmtCurrency(kpis.lucroReal)}</strong>
+            <strong>Fórmula do lucro real:</strong> Receita OS ({fmtCurrency(kpis.receitaMes)}) + Recebimentos ({fmtCurrency(kpis.recebimentosMes)}) − Peças ({fmtCurrency(kpis.custosPecasMes)}) − Despesas ({fmtCurrency(kpis.despesasPagasMes)}) − Comissões ({fmtCurrency(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmtCurrency(kpis.lucroReal)}</strong>
           </p>
         </div>
       </div>
