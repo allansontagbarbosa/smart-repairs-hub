@@ -63,12 +63,22 @@ async function fetchContasPagas() {
   const me = endOfMonth(now);
   const { data, error } = await supabase
     .from("contas_a_pagar")
-    .select("valor, data_pagamento, categoria")
+    .select("valor, data_pagamento, categoria, categoria_financeira_id, categorias_financeiras ( tipo )")
     .eq("status", "paga")
     .gte("data_pagamento", ms.toISOString().split("T")[0])
     .lte("data_pagamento", me.toISOString().split("T")[0]);
   if (error) throw error;
   return data ?? [];
+}
+
+async function fetchEmpresaConfig() {
+  const { data, error } = await supabase
+    .from("empresa_config")
+    .select("meta_gastos_mes")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 async function fetchRecebimentosMes() {
@@ -166,6 +176,12 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  const { data: empresaConfig } = useQuery({
+    queryKey: ["dashboard-empresa-config"],
+    queryFn: fetchEmpresaConfig,
+    refetchInterval: 60000,
+  });
+
   const orders = summary?.ordens ?? [];
   const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
   const contasPendentes = summary?.contas_pendentes ?? [];
@@ -212,8 +228,13 @@ export default function Dashboard() {
     // Custo de peças do mês
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas pagas no mês (from dedicated query)
-    const despesasPagasMes = (contasPagas ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    // Despesas pagas no mês - separadas em fixas e variáveis
+    const allContasPagas = contasPagas ?? [];
+    const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const gastosFixos = allContasPagas
+      .filter((c: any) => c.categorias_financeiras?.tipo === "fixo")
+      .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const gastosVariaveis = despesasPagasMes - gastosFixos;
 
     // Comissões do mês
     const comissoesMes = (comissoesMesData ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
@@ -297,10 +318,13 @@ export default function Dashboard() {
     // Lucro líquido = Lucro real (EBITDA) - depreciação - impostos - outros
     const lucroLiquido = lucroReal - depreciacao - impostos - outrosAjustes;
 
+    const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
+
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
       totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
       depreciacao, impostos, outrosAjustes,
+      gastosFixos, gastosVariaveis, metaGastos,
       tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
@@ -308,7 +332,7 @@ export default function Dashboard() {
       totalFaturadas: ordensFaturadas.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
@@ -583,7 +607,64 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* SEÇÃO 2 — OPERACIONAL */}
+      {/* SEÇÃO 2 — GASTOS E PREVISÕES */}
+      <div>
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Gastos e Previsões</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="stat-card">
+            <Receipt className="h-4 w-4 text-muted-foreground mb-3" />
+            <p className="stat-value">{fmt(kpis.gastosFixos)}</p>
+            <p className="stat-label">Gastos fixos</p>
+          </div>
+          <div className="stat-card">
+            <Receipt className="h-4 w-4 text-warning mb-3" />
+            <p className="stat-value">{fmt(kpis.gastosVariaveis)}</p>
+            <p className="stat-label">Gastos variáveis</p>
+          </div>
+          <div className="stat-card">
+            <DollarSign className="h-4 w-4 text-info mb-3" />
+            <p className="stat-value">{fmt(kpis.despesasPagasMes)}</p>
+            <p className="stat-label">Total gastos do mês</p>
+          </div>
+          <div className={`stat-card ${kpis.metaGastos > 0 && kpis.despesasPagasMes > kpis.metaGastos ? "border-destructive/20 bg-destructive/5" : ""}`}>
+            <AlertTriangle className={`h-4 w-4 mb-3 ${kpis.metaGastos > 0 && kpis.despesasPagasMes > kpis.metaGastos ? "text-destructive" : "text-muted-foreground"}`} />
+            <p className="stat-value">{kpis.metaGastos > 0 ? fmt(kpis.metaGastos) : "Não definida"}</p>
+            <p className="stat-label">Meta de gastos</p>
+          </div>
+        </div>
+
+        {/* Barra de progresso gastos vs meta */}
+        {kpis.metaGastos > 0 && (
+          <div className="section-card mt-3">
+            <div className="p-3">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-muted-foreground">Gastos vs Meta</span>
+                <span className={`font-semibold ${kpis.despesasPagasMes > kpis.metaGastos ? "text-destructive" : kpis.despesasPagasMes > kpis.metaGastos * 0.8 ? "text-warning" : "text-success"}`}>
+                  {((kpis.despesasPagasMes / kpis.metaGastos) * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    kpis.despesasPagasMes > kpis.metaGastos
+                      ? "bg-destructive"
+                      : kpis.despesasPagasMes > kpis.metaGastos * 0.8
+                        ? "bg-warning"
+                        : "bg-success"
+                  }`}
+                  style={{ width: `${Math.min((kpis.despesasPagasMes / kpis.metaGastos) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{fmt(kpis.despesasPagasMes)} gastos</span>
+                <span>{fmt(kpis.metaGastos)} meta</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SEÇÃO 3 — OPERACIONAL */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operacional</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
