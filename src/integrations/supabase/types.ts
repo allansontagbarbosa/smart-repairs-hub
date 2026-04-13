@@ -1721,6 +1721,7 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      get_dashboard_summary: { Args: never; Returns: Json }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
