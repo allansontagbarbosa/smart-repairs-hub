@@ -7,13 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
-type Status = Database["public"]["Enums"]["status_ordem"];
+import { statusLabelsCliente as statusLabels, type Status } from "@/lib/status";
 
-const statusLabels: Record<Status, string> = {
-  recebido: "Recebido", em_analise: "Em Análise", aguardando_aprovacao: "Aguardando Aprovação",
-  aprovado: "Aprovado", em_reparo: "Em Reparo", aguardando_peca: "Aguardando Peça",
-  pronto: "Pronto para Retirada", entregue: "Entregue",
-};
 
 const statusDescriptions: Record<Status, string> = {
   recebido: "Seu aparelho foi recebido e está na fila de atendimento.",

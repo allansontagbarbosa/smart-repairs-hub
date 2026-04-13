@@ -10,16 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const statusLabels: Record<string, string> = {
-  recebido: "Recebido",
-  em_analise: "Em Análise",
-  aguardando_aprovacao: "Aguardando Aprovação",
-  aprovado: "Aprovado",
-  em_reparo: "Em Reparo",
-  aguardando_peca: "Aguardando Peça",
-  pronto: "Pronto",
-  entregue: "Entregue",
-};
+import { statusLabelsCliente as statusLabels } from "@/lib/status";
+
 
 const statusColors: Record<string, string> = {
   recebido: "bg-muted text-muted-foreground",
