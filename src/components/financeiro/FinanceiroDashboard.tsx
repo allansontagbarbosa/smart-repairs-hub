@@ -33,6 +33,7 @@ interface Props {
     custosPecasMes: number;
     despesasPagasMes: number;
     comissoesMes: number;
+    recebimentosMes: number;
     despesasPorCategoria: Record<string, number>;
     evolucaoMensal: { mes: string; despesas: number; receita: number }[];
     contasVencidas: number;

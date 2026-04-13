@@ -7,10 +7,11 @@ import { useFinanceiro } from "@/hooks/useFinanceiro";
 import { FinanceiroDashboard } from "@/components/financeiro/FinanceiroDashboard";
 import { ContasPagar } from "@/components/financeiro/ContasPagar";
 import { Comissoes } from "@/components/financeiro/Comissoes";
+import { Recebimentos } from "@/components/financeiro/Recebimentos";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 export default function Financeiro() {
-  const { contas, comissoes, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro();
+  const { contas, comissoes, recebimentos, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const { data: tiposServico = [] } = useQuery({
@@ -29,11 +30,11 @@ export default function Financeiro() {
     <div className="space-y-5 md:space-y-6">
       <div className="page-header">
         <h1 className="page-title">Financeiro</h1>
-        <p className="page-subtitle">Contas, comissões e visão de lucro</p>
+        <p className="page-subtitle">Contas, recebimentos, comissões e visão de lucro</p>
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="contas">
             Contas
@@ -43,6 +44,7 @@ export default function Financeiro() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="recebimentos">Recebimentos</TabsTrigger>
           <TabsTrigger value="comissoes">
             Comissões
             {kpis.comissoesPendentesCount > 0 && (
@@ -66,6 +68,10 @@ export default function Financeiro() {
             lojas={lojas}
             ordens={ordens}
           />
+        </TabsContent>
+
+        <TabsContent value="recebimentos">
+          <Recebimentos recebimentos={recebimentos} ordens={ordens} />
         </TabsContent>
 
         <TabsContent value="comissoes">
