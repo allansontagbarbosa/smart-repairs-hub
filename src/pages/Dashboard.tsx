@@ -53,6 +53,7 @@ async function fetchDashboardSummary() {
     contas_pendentes: any[];
     comissoes_pendentes: any[];
     lojas: { id: string; nome: string }[];
+  };
 }
 
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
@@ -102,7 +103,7 @@ export default function Dashboard() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast.success("Ordem marcada como entregue!");
     },
   });
@@ -165,7 +166,7 @@ export default function Dashboard() {
     const contasValor = contasPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
     const comissoesValor = comissoesPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
 
-    const estoqueBaixo = pecas.filter(p => p.quantidade_minima > 0 && p.quantidade <= p.quantidade_minima).length;
+    const estoqueBaixo = pecasEstoqueBaixo;
 
     // Lucro por loja
     const lucroPorLoja: { nome: string; receita: number; custo: number; lucro: number }[] = [];
@@ -197,7 +198,7 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecas, lojas]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
@@ -251,7 +252,6 @@ export default function Dashboard() {
   }, [filteredOrders]);
 
   const alertasOS = useAlertas(filteredOrders);
-  const alertasPecas = useAlertasPecas(pecas);
 
   const allAlertas = useMemo<GenericAlert[]>(() => {
     // Add financial alerts
@@ -279,8 +279,8 @@ export default function Dashboard() {
       });
     }
 
-    return [...finAlertas, ...alertasOS, ...alertasPecas];
-  }, [alertasOS, alertasPecas, contasPendentes, comissoesPendentes]);
+    return [...finAlertas, ...alertasOS];
+  }, [alertasOS, contasPendentes, comissoesPendentes]);
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
     const sendWhatsApp = (p: string, msg: string) => abrirWhatsApp(p, msg);
