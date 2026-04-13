@@ -567,7 +567,7 @@ export default function Dashboard() {
       <NovaOrdemDialog
         open={novaOrdemOpen}
         onOpenChange={setNovaOrdemOpen}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["ordens"] })}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] })}
       />
       <ConfirmarEntregaDialog
         entrega={entrega}
