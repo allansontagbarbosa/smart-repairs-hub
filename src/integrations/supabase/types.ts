@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ajustes_mensais: {
+        Row: {
+          ano_mes: string
+          created_at: string
+          descricao: string | null
+          id: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ano_mes: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ano_mes?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       aparelhos: {
         Row: {
           capacidade: string | null
