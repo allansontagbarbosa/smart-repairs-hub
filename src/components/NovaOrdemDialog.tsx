@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Loader2, UserPlus } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Loader2, UserPlus, CalendarIcon } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 import { toast } from "sonner";
@@ -24,6 +29,7 @@ interface Props {
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const [showNewClient, setShowNewClient] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
   const queryClient = useQueryClient();
 
   const { data: clientes = [] } = useQuery({
@@ -80,6 +86,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         valor: valorStr ? parseFloat(valorStr) : null,
         data_entrada: new Date().toISOString(),
         tecnico: (fd.get("tecnico") as string) || null,
+        previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
       });
       if (osErr) throw osErr;
@@ -87,6 +94,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     },
     onSuccess: () => {
       setSelectedClientId("");
+      setPrevisaoEntrega(undefined);
       onOpenChange(false);
       toast.success("Ordem de Serviço criada!");
       onSuccess();
@@ -235,11 +243,38 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                 <Label className="text-xs text-muted-foreground">Valor estimado (R$)</Label>
                 <Input name="valor" type="number" step="0.01" min="0" placeholder="0,00" className="mt-1 h-9" />
               </div>
-              <div className="flex items-end">
-                <div className="rounded-lg bg-muted/50 px-3 py-2 w-full text-center">
-                  <p className="text-xs text-muted-foreground">Status inicial</p>
-                  <p className="text-sm font-medium">Recebido</p>
-                </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "mt-1 h-9 w-full justify-start text-left font-normal",
+                        !previsaoEntrega && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {previsaoEntrega ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={previsaoEntrega}
+                      onSelect={setPrevisaoEntrega}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="mt-3 flex items-end">
+              <div className="rounded-lg bg-muted/50 px-3 py-2 w-full text-center">
+                <p className="text-xs text-muted-foreground">Status inicial</p>
+                <p className="text-sm font-medium">Recebido</p>
               </div>
             </div>
           </div>
