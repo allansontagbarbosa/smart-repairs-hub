@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
+import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 
 
 
@@ -28,6 +29,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [selectedPecaId, setSelectedPecaId] = useState("");
   const [pecaQtd, setPecaQtd] = useState(1);
   const queryClient = useQueryClient();
+  const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["ordem", orderId],
@@ -325,7 +327,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Button
                     size="sm"
                     className="flex-1"
-                    onClick={() => changeStatus.mutate(nextStatus)}
+                    onClick={() => {
+                      if (nextStatus === "entregue") {
+                        pedirConfirmacao({
+                          orderId: ordem.id,
+                          numero: ordem.numero,
+                          clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                        });
+                      } else {
+                        changeStatus.mutate(nextStatus);
+                      }
+                    }}
                     disabled={changeStatus.isPending}
                   >
                     {changeStatus.isPending ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : <ChevronRight className="h-3 w-3 mr-1" />}
@@ -346,7 +358,11 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => changeStatus.mutate("entregue")}
+                    onClick={() => pedirConfirmacao({
+                      orderId: ordem.id,
+                      numero: ordem.numero,
+                      clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                    })}
                     disabled={changeStatus.isPending}
                   >
                     <Check className="h-3 w-3 mr-1" />Entregar
@@ -368,7 +384,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <Label className="text-xs text-muted-foreground">Mudar para qualquer status</Label>
                 <Select
                   value={ordem.status}
-                  onValueChange={(v) => changeStatus.mutate(v as Status)}
+                  onValueChange={(v) => {
+                    if (v === "entregue") {
+                      pedirConfirmacao({
+                        orderId: ordem.id,
+                        numero: ordem.numero,
+                        clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                      });
+                    } else {
+                      changeStatus.mutate(v as Status);
+                    }
+                  }}
                   disabled={changeStatus.isPending}
                 >
                   <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -726,6 +752,14 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           </>
         )}
       </SheetContent>
+      <ConfirmarEntregaDialog
+        entrega={entrega}
+        onConfirm={(id) => {
+          changeStatus.mutate("entregue");
+          cancelar();
+        }}
+        onCancel={cancelar}
+      />
     </Sheet>
   );
 }
