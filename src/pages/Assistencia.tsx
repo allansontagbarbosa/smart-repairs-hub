@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Loader2, LayoutGrid, MessageCircle, ChevronRight, CheckCircle, Truck, AlertTriangle, Clock, CircleDot } from "lucide-react";
+import { Plus, Search, Loader2, LayoutGrid, MessageCircle, ChevronRight, CheckCircle, Truck, AlertTriangle, Clock, CircleDot, PackageOpen } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,7 +155,7 @@ export default function Assistencia() {
           </Link>
           <Link to="/assistencia/lote">
             <Button size="sm" variant="outline">
-              <LayoutGrid className="h-4 w-4 mr-1.5" />Entrada em Lote
+              <PackageOpen className="h-4 w-4 mr-1.5" />Entrada em Lote
             </Button>
           </Link>
           <Button size="sm" onClick={() => setDialogOpen(true)}>
