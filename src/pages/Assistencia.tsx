@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Loader2, LayoutGrid, MessageCircle, ChevronRight, CheckCircle, Truck, AlertTriangle, Clock, CircleDot } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -59,9 +59,13 @@ function PrioridadeBadge({ nivel, motivo }: { nivel: Prioridade; motivo: string 
 
 export default function Assistencia() {
   const [searchParams] = useSearchParams();
-  const initialStatus = searchParams.get("status") || "todos";
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>(initialStatus);
+  const [filterStatus, setFilterStatus] = useState<string>("todos");
+
+  useEffect(() => {
+    const status = searchParams.get("status");
+    setFilterStatus(status || "todos");
+  }, [searchParams]);
   const [filterPrioridade, setFilterPrioridade] = useState<string>("todas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
