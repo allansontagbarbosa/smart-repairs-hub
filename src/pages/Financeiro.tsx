@@ -8,6 +8,7 @@ import { FinanceiroDashboard } from "@/components/financeiro/FinanceiroDashboard
 import { ContasPagar } from "@/components/financeiro/ContasPagar";
 import { Comissoes } from "@/components/financeiro/Comissoes";
 import { Recebimentos } from "@/components/financeiro/Recebimentos";
+import { FluxoCaixa } from "@/components/financeiro/FluxoCaixa";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 export default function Financeiro() {
@@ -30,11 +31,12 @@ export default function Financeiro() {
     <div className="space-y-5 md:space-y-6">
       <div className="page-header">
         <h1 className="page-title">Financeiro</h1>
-        <p className="page-subtitle">Contas, recebimentos, comissões e visão de lucro</p>
+        <p className="page-subtitle">Fluxo de caixa, contas, recebimentos e comissões</p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+      <Tabs defaultValue="fluxo" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+          <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="contas">
             Contas
@@ -54,6 +56,10 @@ export default function Financeiro() {
             )}
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="fluxo">
+          <FluxoCaixa contas={contas} comissoes={comissoes} recebimentos={recebimentos} ordens={ordens} />
+        </TabsContent>
 
         <TabsContent value="dashboard">
           <FinanceiroDashboard kpis={kpis} />
