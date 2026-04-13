@@ -1559,6 +1559,67 @@ export type Database = {
           },
         ]
       }
+      recebimentos: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          data_recebimento: string
+          descricao: string
+          forma_pagamento: string
+          id: string
+          loja_id: string | null
+          observacoes: string | null
+          ordem_servico_id: string | null
+          valor: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          data_recebimento: string
+          descricao: string
+          forma_pagamento?: string
+          id?: string
+          loja_id?: string | null
+          observacoes?: string | null
+          ordem_servico_id?: string | null
+          valor: number
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          data_recebimento?: string
+          descricao?: string
+          forma_pagamento?: string
+          id?: string
+          loja_id?: string | null
+          observacoes?: string | null
+          ordem_servico_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_ordem_servico: {
         Row: {
           ativo: boolean
