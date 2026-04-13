@@ -1,0 +1,1 @@
+ALTER TABLE public.ordens_de_servico ADD COLUMN referencia_lote text;
