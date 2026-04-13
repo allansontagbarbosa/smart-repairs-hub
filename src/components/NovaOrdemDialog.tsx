@@ -243,11 +243,38 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                 <Label className="text-xs text-muted-foreground">Valor estimado (R$)</Label>
                 <Input name="valor" type="number" step="0.01" min="0" placeholder="0,00" className="mt-1 h-9" />
               </div>
-              <div className="flex items-end">
-                <div className="rounded-lg bg-muted/50 px-3 py-2 w-full text-center">
-                  <p className="text-xs text-muted-foreground">Status inicial</p>
-                  <p className="text-sm font-medium">Recebido</p>
-                </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "mt-1 h-9 w-full justify-start text-left font-normal",
+                        !previsaoEntrega && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {previsaoEntrega ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={previsaoEntrega}
+                      onSelect={setPrevisaoEntrega}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="mt-3 flex items-end">
+              <div className="rounded-lg bg-muted/50 px-3 py-2 w-full text-center">
+                <p className="text-xs text-muted-foreground">Status inicial</p>
+                <p className="text-sm font-medium">Recebido</p>
               </div>
             </div>
           </div>
