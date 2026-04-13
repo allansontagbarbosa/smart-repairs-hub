@@ -153,6 +153,11 @@ export default function Assistencia() {
             <LayoutGrid className="h-3.5 w-3.5" />
             Kanban
           </Link>
+          <Link to="/assistencia/lote">
+            <Button size="sm" variant="outline">
+              <LayoutGrid className="h-4 w-4 mr-1.5" />Entrada em Lote
+            </Button>
+          </Link>
           <Button size="sm" onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" />Nova Ordem
           </Button>
