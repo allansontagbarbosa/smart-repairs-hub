@@ -334,6 +334,11 @@ export default function Dashboard() {
       estoqueBaixo: pecasEstoqueBaixo,
       totalOrdensMes: ordensMes.length,
       totalFaturadas: ordensFaturadas.length,
+      iphonesReparados: ordensMes.filter(o => {
+        const marca = (o.aparelhos as any)?.marca?.toLowerCase() ?? "";
+        const modelo = (o.aparelhos as any)?.modelo?.toLowerCase() ?? "";
+        return marca.includes("apple") || modelo.includes("iphone");
+      }).length,
       lucroPorLoja,
     };
   }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
