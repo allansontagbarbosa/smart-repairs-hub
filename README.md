@@ -36,6 +36,15 @@ Sistema de gestão para assistência técnica de dispositivos móveis. Inclui co
 
 > ⚠️ **Nunca commite o arquivo `.env` com credenciais reais.** Use `.env.example` como referência.
 
+### Login com Google (Portal do Cliente)
+
+Para habilitar o login com Google no portal do cliente:
+
+1. Acesse o painel do Supabase → **Authentication** → **Providers** → **Google**
+2. Ative o provider
+3. Configure o **Client ID** e **Client Secret** obtidos no [Google Cloud Console](https://console.cloud.google.com/)
+4. Adicione as URLs de redirecionamento autorizadas conforme indicado no painel do Supabase
+
 ## Estrutura
 
 - `/src/pages` — Páginas do sistema (Dashboard, Assistência, Financeiro, etc.)
