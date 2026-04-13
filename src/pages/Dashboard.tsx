@@ -320,12 +320,15 @@ export default function Dashboard() {
 
     const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
     const metaFaturamento = Number(empresaConfig?.meta_faturamento_mes ?? 0);
+    const margemLiquida = faturamentoMes > 0 ? lucroLiquido / faturamentoMes : 0;
+    const previsaoLucroLiquido = metaFaturamento > 0 ? metaFaturamento * margemLiquida : 0;
 
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
       totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
       depreciacao, impostos, outrosAjustes,
       gastosFixos, gastosVariaveis, metaGastos, metaFaturamento,
+      previsaoLucroLiquido, margemLiquida,
       tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
@@ -633,6 +636,20 @@ export default function Dashboard() {
                 <span>{fmt(kpis.faturamentoMes)} faturado</span>
                 <span>{fmt(kpis.metaFaturamento)} meta</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Previsão de lucro líquido */}
+        {kpis.metaFaturamento > 0 && kpis.faturamentoMes > 0 && (
+          <div className="section-card mt-3">
+            <div className="p-3 flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                <strong>Previsão de lucro líquido:</strong> Meta faturamento ({fmt(kpis.metaFaturamento)}) × Margem atual ({(kpis.margemLiquida * 100).toFixed(1)}%)
+              </div>
+              <span className={`text-sm font-bold ${kpis.previsaoLucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
+                {fmt(kpis.previsaoLucroLiquido)}
+              </span>
             </div>
           </div>
         )}
