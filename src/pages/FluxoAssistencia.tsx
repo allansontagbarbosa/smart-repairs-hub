@@ -117,10 +117,7 @@ export default function FluxoAssistencia() {
 
   const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
     if (!phone) return toast.error("Cliente sem telefone");
-    const clean = phone.replace(/\D/g, "");
-    const full = clean.startsWith("55") ? clean : `55${clean}`;
-    const msg = encodeURIComponent(`Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}.`);
-    window.open(`https://wa.me/${full}?text=${msg}`, "_blank");
+    abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}.`);
   };
 
   if (isLoading) {
