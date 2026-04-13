@@ -9,7 +9,7 @@ import { statusLabels } from "@/lib/status";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { useAlertas } from "@/hooks/useAlertas";
-import { useAlertasPecas } from "@/hooks/useAlertasPecas";
+
 import { AlertsBanner } from "@/components/AlertsBanner";
 import type { GenericAlert } from "@/components/AlertsBanner";
 import { useState, useMemo } from "react";
