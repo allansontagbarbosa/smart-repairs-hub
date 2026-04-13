@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       aparelhos: {
         Row: {
+          capacidade: string | null
           cliente_id: string
           cor: string | null
           created_at: string
@@ -26,6 +27,7 @@ export type Database = {
           observacoes: string | null
         }
         Insert: {
+          capacidade?: string | null
           cliente_id: string
           cor?: string | null
           created_at?: string
@@ -36,6 +38,7 @@ export type Database = {
           observacoes?: string | null
         }
         Update: {
+          capacidade?: string | null
           cliente_id?: string
           cor?: string | null
           created_at?: string
