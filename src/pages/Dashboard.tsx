@@ -160,6 +160,12 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  const { data: ajustesMes } = useQuery({
+    queryKey: ["dashboard-ajustes-mes"],
+    queryFn: fetchAjustesMes,
+    refetchInterval: 60000,
+  });
+
   const orders = summary?.ordens ?? [];
   const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
   const contasPendentes = summary?.contas_pendentes ?? [];
