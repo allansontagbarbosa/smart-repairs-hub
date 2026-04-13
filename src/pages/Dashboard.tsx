@@ -491,18 +491,32 @@ export default function Dashboard() {
             <p className="stat-label">EBITDA (margem)</p>
           </div>
 
-          <div className={`stat-card ${kpis.lucroLiquido >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
-            <div className="flex items-center justify-between mb-3">
-              <ArrowDownRight className={`h-4 w-4 ${kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}`} />
-              {kpis.faturamentoMes > 0 && (
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.lucroLiquido >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                  {((kpis.lucroLiquido / kpis.faturamentoMes) * 100).toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <p className={`stat-value ${kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroLiquido)}</p>
-            <p className="stat-label">Lucro líquido (margem)</p>
-          </div>
+          {(() => {
+            const margemPct = kpis.faturamentoMes > 0 ? (kpis.lucroLiquido / kpis.faturamentoMes) * 100 : 0;
+            // Verde ≥ 15%, Amarelo 0-15%, Vermelho < 0%
+            const faixa = margemPct >= 15 ? "success" : margemPct >= 0 ? "warning" : "destructive";
+            const borderBg = faixa === "success"
+              ? "border-success/20 bg-success-muted"
+              : faixa === "warning"
+                ? "border-warning/30 bg-warning-muted"
+                : "border-destructive/20 bg-destructive/5";
+            const textColor = faixa === "success" ? "text-success" : faixa === "warning" ? "text-warning" : "text-destructive";
+            const badgeBg = faixa === "success" ? "bg-success/10 text-success" : faixa === "warning" ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive";
+            return (
+              <div className={`stat-card ${borderBg}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <ArrowDownRight className={`h-4 w-4 ${textColor}`} />
+                  {kpis.faturamentoMes > 0 && (
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeBg}`}>
+                      {margemPct.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+                <p className={`stat-value ${textColor}`}>{fmt(kpis.lucroLiquido)}</p>
+                <p className="stat-label">Lucro líquido (margem)</p>
+              </div>
+            );
+          })()}
 
           <div className="stat-card">
             <DollarSign className="h-4 w-4 text-info mb-3" />
