@@ -9,7 +9,7 @@ import { statusLabels } from "@/lib/status";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { useAlertas } from "@/hooks/useAlertas";
-import { useAlertasPecas } from "@/hooks/useAlertasPecas";
+
 import { AlertsBanner } from "@/components/AlertsBanner";
 import type { GenericAlert } from "@/components/AlertsBanner";
 import { useState, useMemo } from "react";
@@ -44,37 +44,16 @@ type OrderRow = {
   } | null;
 };
 
-async function fetchOrders() {
-  const { data, error } = await supabase
-    .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, imei, clientes ( nome, telefone ) )`)
-    .order("data_entrada", { ascending: false });
+async function fetchDashboardSummary() {
+  const { data, error } = await supabase.rpc("get_dashboard_summary");
   if (error) throw error;
-  return (data ?? []) as OrderRow[];
-}
-
-async function fetchPecas() {
-  const { data, error } = await supabase.from("estoque").select("id, nome, quantidade, quantidade_minima, categoria");
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchLojas() {
-  const { data, error } = await supabase.from("lojas").select("id, nome").eq("ativo", true);
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchContas() {
-  const { data, error } = await supabase.from("contas_a_pagar").select("*").eq("status", "pendente");
-  if (error) throw error;
-  return data ?? [];
-}
-
-async function fetchComissoes() {
-  const { data, error } = await supabase.from("comissoes").select("*").eq("status", "pendente");
-  if (error) throw error;
-  return data ?? [];
+  return data as {
+    ordens: OrderRow[];
+    estoque_baixo: number;
+    contas_pendentes: any[];
+    comissoes_pendentes: any[];
+    lojas: { id: string; nome: string }[];
+  };
 }
 
 const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
@@ -82,8 +61,6 @@ const CHART_COLORS = [
   "hsl(224, 76%, 48%)", "hsl(152, 55%, 42%)", "hsl(36, 90%, 52%)",
   "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
 ];
-
-
 
 const statusColors: Record<string, string> = {
   recebido: "bg-muted-foreground",
@@ -105,11 +82,17 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: orders = [], isLoading: loadingOrders } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
-  const { data: pecas = [] } = useQuery({ queryKey: ["pecas"], queryFn: fetchPecas });
-  const { data: lojas = [] } = useQuery({ queryKey: ["lojas"], queryFn: fetchLojas });
-  const { data: contasPendentes = [] } = useQuery({ queryKey: ["contas-pendentes"], queryFn: fetchContas });
-  const { data: comissoesPendentes = [] } = useQuery({ queryKey: ["comissoes-pendentes"], queryFn: fetchComissoes });
+  const { data: summary, isLoading: loadingOrders } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: fetchDashboardSummary,
+    refetchInterval: 60000,
+  });
+
+  const orders = summary?.ordens ?? [];
+  const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
+  const contasPendentes = summary?.contas_pendentes ?? [];
+  const comissoesPendentes = summary?.comissoes_pendentes ?? [];
+  const lojas = summary?.lojas ?? [];
 
   const entregarMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -120,7 +103,7 @@ export default function Dashboard() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       toast.success("Ordem marcada como entregue!");
     },
   });
@@ -183,7 +166,7 @@ export default function Dashboard() {
     const contasValor = contasPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
     const comissoesValor = comissoesPendentes.reduce((s, c) => s + Number(c.valor ?? 0), 0);
 
-    const estoqueBaixo = pecas.filter(p => p.quantidade_minima > 0 && p.quantidade <= p.quantidade_minima).length;
+    const estoqueBaixo = pecasEstoqueBaixo;
 
     // Lucro por loja
     const lucroPorLoja: { nome: string; receita: number; custo: number; lucro: number }[] = [];
@@ -215,7 +198,7 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecas, lojas]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
@@ -269,7 +252,6 @@ export default function Dashboard() {
   }, [filteredOrders]);
 
   const alertasOS = useAlertas(filteredOrders);
-  const alertasPecas = useAlertasPecas(pecas);
 
   const allAlertas = useMemo<GenericAlert[]>(() => {
     // Add financial alerts
@@ -297,8 +279,8 @@ export default function Dashboard() {
       });
     }
 
-    return [...finAlertas, ...alertasOS, ...alertasPecas];
-  }, [alertasOS, alertasPecas, contasPendentes, comissoesPendentes]);
+    return [...finAlertas, ...alertasOS];
+  }, [alertasOS, contasPendentes, comissoesPendentes]);
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
     const sendWhatsApp = (p: string, msg: string) => abrirWhatsApp(p, msg);
@@ -585,7 +567,7 @@ export default function Dashboard() {
       <NovaOrdemDialog
         open={novaOrdemOpen}
         onOpenChange={setNovaOrdemOpen}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["ordens"] })}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] })}
       />
       <ConfirmarEntregaDialog
         entrega={entrega}
