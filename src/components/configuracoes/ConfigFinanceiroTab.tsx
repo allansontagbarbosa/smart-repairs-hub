@@ -92,51 +92,53 @@ function CrudSection({ title, items, queryKey, table, fields }: { title: string;
   );
 }
 
-function MetaGastosCard() {
+function MetasCard() {
   const qc = useQueryClient();
   const { data: config } = useQuery({
     queryKey: ["empresa_config_meta"],
     queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("id, meta_gastos_mes").limit(1).maybeSingle();
+      const { data } = await supabase.from("empresa_config").select("id, meta_gastos_mes, meta_faturamento_mes").limit(1).maybeSingle();
       return data;
     },
   });
 
-  const [valor, setValor] = useState("");
+  const [metaGastos, setMetaGastos] = useState("");
+  const [metaFaturamento, setMetaFaturamento] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (config?.meta_gastos_mes != null) {
-      setValor(String(config.meta_gastos_mes));
-    }
+    if (config?.meta_gastos_mes != null) setMetaGastos(String(config.meta_gastos_mes));
+    if (config?.meta_faturamento_mes != null) setMetaFaturamento(String(config.meta_faturamento_mes));
   }, [config]);
 
   const handleSave = async () => {
     if (!config?.id) return;
     setSaving(true);
-    await supabase.from("empresa_config").update({ meta_gastos_mes: Number(valor) || 0 } as any).eq("id", config.id);
+    await supabase.from("empresa_config").update({
+      meta_gastos_mes: Number(metaGastos) || 0,
+      meta_faturamento_mes: Number(metaFaturamento) || 0,
+    } as any).eq("id", config.id);
     qc.invalidateQueries({ queryKey: ["empresa_config_meta"] });
     qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
-    toast.success("Meta de gastos atualizada");
+    toast.success("Metas atualizadas");
     setSaving(false);
   };
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Meta de Gastos Mensal</CardTitle>
+        <CardTitle className="text-sm font-medium">Metas Mensais</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div>
-          <Label>Valor da meta (R$)</Label>
-          <Input
-            type="number"
-            step="0.01"
-            placeholder="Ex: 5000.00"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-          />
-          <p className="text-[10px] text-muted-foreground mt-1">Orçamento máximo de gastos por mês. Aparece no Dashboard como barra de progresso.</p>
+          <Label>Meta de gastos (R$)</Label>
+          <Input type="number" step="0.01" placeholder="Ex: 5000.00" value={metaGastos} onChange={(e) => setMetaGastos(e.target.value)} />
+          <p className="text-[10px] text-muted-foreground mt-1">Orçamento máximo de gastos por mês.</p>
+        </div>
+        <div>
+          <Label>Meta de faturamento (R$)</Label>
+          <Input type="number" step="0.01" placeholder="Ex: 20000.00" value={metaFaturamento} onChange={(e) => setMetaFaturamento(e.target.value)} />
+          <p className="text-[10px] text-muted-foreground mt-1">Meta de receita mensal. Aparece no Dashboard como barra de progresso.</p>
         </div>
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
           <Save className="h-3.5 w-3.5" /> Salvar
@@ -149,7 +151,7 @@ function MetaGastosCard() {
 export function ConfigFinanceiroTab({ categoriasFinanceiras, centrosCusto, formasPagamento }: Props) {
   return (
     <div className="space-y-4">
-      <MetaGastosCard />
+      <MetasCard />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <CrudSection title="Categorias Financeiras" items={categoriasFinanceiras} queryKey="categorias_financeiras" table="categorias_financeiras" fields={[{ key: "nome", label: "Nome" }, { key: "tipo", label: "Tipo (fixo/variavel)" }]} />
         <CrudSection title="Centros de Custo" items={centrosCusto} queryKey="centros_custo" table="centros_custo" fields={[{ key: "nome", label: "Nome" }, { key: "descricao", label: "Descrição" }]} />
