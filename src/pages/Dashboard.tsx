@@ -606,9 +606,37 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-      </div>
 
-      {/* SEÇÃO 2 — GASTOS E PREVISÕES */}
+        {/* Barra de progresso faturamento vs meta */}
+        {kpis.metaFaturamento > 0 && (
+          <div className="section-card mt-3">
+            <div className="p-3">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="text-muted-foreground">Faturamento vs Meta</span>
+                <span className={`font-semibold ${kpis.faturamentoMes >= kpis.metaFaturamento ? "text-success" : kpis.faturamentoMes >= kpis.metaFaturamento * 0.6 ? "text-warning" : "text-destructive"}`}>
+                  {((kpis.faturamentoMes / kpis.metaFaturamento) * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    kpis.faturamentoMes >= kpis.metaFaturamento
+                      ? "bg-success"
+                      : kpis.faturamentoMes >= kpis.metaFaturamento * 0.6
+                        ? "bg-warning"
+                        : "bg-destructive"
+                  }`}
+                  style={{ width: `${Math.min((kpis.faturamentoMes / kpis.metaFaturamento) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{fmt(kpis.faturamentoMes)} faturado</span>
+                <span>{fmt(kpis.metaFaturamento)} meta</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Gastos e Previsões</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
