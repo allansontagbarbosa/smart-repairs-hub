@@ -64,6 +64,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
           marca: fd.get("marca") as string,
           modelo: fd.get("modelo") as string,
           cor: (fd.get("cor") as string) || null,
+          capacidade: (fd.get("capacidade") as string) || null,
           imei: (fd.get("imei") as string) || null,
         })
         .select()
