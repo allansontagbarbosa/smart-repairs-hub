@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wrench, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -60,18 +59,21 @@ export default function PortalLogin() {
     }
   };
 
+  // Para o login com Google funcionar, é necessário:
+  // 1. Acessar o painel do Supabase → Authentication → Providers → Google
+  // 2. Ativar o provider e configurar Client ID e Client Secret do Google Cloud Console
   const handleGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/portal",
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/portal",
+      },
     });
-    if (result.error) {
-      toast({ title: "Erro", description: String(result.error), variant: "destructive" });
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
       setLoading(false);
-      return;
     }
-    if (result.redirected) return;
-    navigate("/portal");
   };
 
   return (
