@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { statusLabels } from "@/lib/status";
 import { abrirWhatsApp } from "@/lib/whatsapp";
+import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { useAlertas } from "@/hooks/useAlertas";
 import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";
@@ -309,7 +310,12 @@ export default function Dashboard() {
     } else if ((action === "cobrar_aprovacao" || action === "cobrar") && phone) {
       sendWhatsApp(phone, `Olá! O serviço referente à ${osLabel} está aguardando sua aprovação. Por favor, entre em contato conosco.`);
     } else if (action === "entregar") {
-      entregarMutation.mutate(orderId);
+      const order2 = orders.find(o => o.id === orderId);
+      pedirConfirmacao({
+        orderId,
+        numero: order2?.numero ?? 0,
+        clienteNome: order2?.aparelhos?.clientes?.nome ?? "—",
+      });
     } else if (action === "verificar_status") {
       setSelectedOrderId(orderId);
     }
