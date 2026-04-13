@@ -56,9 +56,43 @@ async function fetchDashboardSummary() {
   };
 }
 
-const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
+const CHART_COLORS = [
+  "hsl(224, 76%, 48%)", "hsl(152, 55%, 42%)", "hsl(36, 90%, 52%)",
+  "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
+];
 
-  const entregarMutation = useMutation({
+const statusColors: Record<string, string> = {
+  recebido: "bg-muted-foreground",
+  em_analise: "bg-info",
+  aguardando_aprovacao: "bg-warning",
+  aprovado: "bg-success",
+  em_reparo: "bg-primary",
+  aguardando_peca: "bg-warning",
+  pronto: "bg-success",
+  entregue: "bg-muted-foreground/50",
+};
+
+export default function Dashboard() {
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
+  const [filtroLoja, setFiltroLoja] = useState("todas");
+  const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
+  const [filtroPeriodo, setFiltroPeriodo] = useState("mes");
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: summary, isLoading: loadingOrders } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: fetchDashboardSummary,
+    refetchInterval: 60000,
+  });
+
+  const orders = summary?.ordens ?? [];
+  const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
+  const contasPendentes = summary?.contas_pendentes ?? [];
+  const comissoesPendentes = summary?.comissoes_pendentes ?? [];
+  const lojas = summary?.lojas ?? [];
+
     mutationFn: async (orderId: string) => {
       const { error } = await supabase
         .from("ordens_de_servico")
