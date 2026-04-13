@@ -103,6 +103,15 @@ async function fetchOrdens() {
   return data ?? [];
 }
 
+async function fetchRecebimentos() {
+  const { data, error } = await supabase
+    .from("recebimentos")
+    .select("*")
+    .order("data_recebimento", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 async function fetchFornecedores() {
   const { data, error } = await supabase
     .from("fornecedores")
