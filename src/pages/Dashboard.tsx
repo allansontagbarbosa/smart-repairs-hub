@@ -318,10 +318,13 @@ export default function Dashboard() {
     // Lucro líquido = Lucro real (EBITDA) - depreciação - impostos - outros
     const lucroLiquido = lucroReal - depreciacao - impostos - outrosAjustes;
 
+    const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
+
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
       totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
       depreciacao, impostos, outrosAjustes,
+      gastosFixos, gastosVariaveis, metaGastos,
       tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
@@ -329,7 +332,7 @@ export default function Dashboard() {
       totalFaturadas: ordensFaturadas.length,
       lucroPorLoja,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes]);
+  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
