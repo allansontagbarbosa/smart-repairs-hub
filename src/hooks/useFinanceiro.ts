@@ -142,6 +142,7 @@ export function useFinanceiro() {
   const ordens = useQuery({ queryKey: ["ordens_fin"], queryFn: fetchOrdens });
   const fornecedores = useQuery({ queryKey: ["fornecedores_fin"], queryFn: fetchFornecedores });
   const lojas = useQuery({ queryKey: ["lojas_fin"], queryFn: fetchLojas });
+  const recebimentos = useQuery({ queryKey: ["recebimentos"], queryFn: fetchRecebimentos });
 
   const isLoading = contas.isLoading || comissoes.isLoading || ordens.isLoading;
 
@@ -157,6 +158,7 @@ export function useFinanceiro() {
     const allContas = contas.data ?? [];
     const allComissoes = comissoes.data ?? [];
     const allOrdens = ordens.data ?? [];
+    const allRecebimentos = recebimentos.data ?? [];
 
     // Contas a pagar
     const contasPendentes = allContas.filter(c => c.status === "pendente" || c.status === "vencida");
@@ -207,8 +209,14 @@ export function useFinanceiro() {
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    // Lucro REAL: receita - custos peças - despesas pagas - comissões do mês
-    const lucroReal = receitaMes - custosPecasMes - despesasPagasMes - comissoesMes;
+    // Recebimentos extras do mês
+    const recebimentosMes = allRecebimentos.filter(r => {
+      const d = new Date(r.data_recebimento + "T12:00:00");
+      return d >= monthStart && d <= monthEnd;
+    }).reduce((s, r) => s + Number(r.valor), 0);
+
+    // Lucro REAL: receita - custos peças - despesas pagas - comissões + recebimentos extras
+    const lucroReal = receitaMes - custosPecasMes - despesasPagasMes - comissoesMes + recebimentosMes;
 
     // Despesas por categoria
     const despesasPorCategoria: Record<string, number> = {};
