@@ -718,7 +718,12 @@ export default function Dashboard() {
       {/* SEÇÃO 3 — OPERACIONAL */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operacional</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="stat-card">
+            <Wrench className="h-4 w-4 text-primary mb-3" />
+            <p className="stat-value">{kpis.totalOrdensMes}</p>
+            <p className="stat-label">Assistências no mês</p>
+          </div>
           <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
             <Wrench className="h-4 w-4 text-info mb-3" />
             <p className="stat-value">{kpis.emAssistencia}</p>
