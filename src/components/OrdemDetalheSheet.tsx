@@ -327,7 +327,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Button
                     size="sm"
                     className="flex-1"
-                    onClick={() => changeStatus.mutate(nextStatus)}
+                    onClick={() => {
+                      if (nextStatus === "entregue") {
+                        pedirConfirmacao({
+                          orderId: ordem.id,
+                          numero: ordem.numero,
+                          clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                        });
+                      } else {
+                        changeStatus.mutate(nextStatus);
+                      }
+                    }}
                     disabled={changeStatus.isPending}
                   >
                     {changeStatus.isPending ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : <ChevronRight className="h-3 w-3 mr-1" />}
@@ -348,7 +358,11 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => changeStatus.mutate("entregue")}
+                    onClick={() => pedirConfirmacao({
+                      orderId: ordem.id,
+                      numero: ordem.numero,
+                      clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                    })}
                     disabled={changeStatus.isPending}
                   >
                     <Check className="h-3 w-3 mr-1" />Entregar
@@ -370,7 +384,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <Label className="text-xs text-muted-foreground">Mudar para qualquer status</Label>
                 <Select
                   value={ordem.status}
-                  onValueChange={(v) => changeStatus.mutate(v as Status)}
+                  onValueChange={(v) => {
+                    if (v === "entregue") {
+                      pedirConfirmacao({
+                        orderId: ordem.id,
+                        numero: ordem.numero,
+                        clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                      });
+                    } else {
+                      changeStatus.mutate(v as Status);
+                    }
+                  }}
                   disabled={changeStatus.isPending}
                 >
                   <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
