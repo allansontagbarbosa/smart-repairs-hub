@@ -6,6 +6,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { statusLabels } from "@/lib/status";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 import { useAlertas } from "@/hooks/useAlertas";
 import { useAlertasPecas } from "@/hooks/useAlertasPecas";
 import { AlertsBanner } from "@/components/AlertsBanner";

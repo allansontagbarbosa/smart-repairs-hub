@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";

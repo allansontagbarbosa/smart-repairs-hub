@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, Loader2, MessageCircle, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { calcularPrioridade } from "@/lib/prioridade";
