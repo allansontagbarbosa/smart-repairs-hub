@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
+import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 
 
 
@@ -28,6 +29,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [selectedPecaId, setSelectedPecaId] = useState("");
   const [pecaQtd, setPecaQtd] = useState(1);
   const queryClient = useQueryClient();
+  const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["ordem", orderId],
