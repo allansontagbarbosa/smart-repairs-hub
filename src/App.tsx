@@ -15,6 +15,8 @@ import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
 import ConsultaCliente from "./pages/ConsultaCliente";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import { AuthGuard } from "@/components/AuthGuard";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
@@ -52,9 +54,13 @@ const App = () => (
             <Route path="/portal" element={<PortalGuard><PortalDashboard /></PortalGuard>} />
             <Route path="/portal/ordem/:id" element={<PortalGuard><PortalOrdemDetalhe /></PortalGuard>} />
 
+            {/* Login interno */}
+            <Route path="/login" element={<Login />} />
+
             {/* Internal system with sidebar */}
             <Route path="*" element={
-              <AppLayout>
+              <AuthGuard>
+                <AppLayout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/assistencia" element={<Assistencia />} />
@@ -67,6 +73,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
+              </AuthGuard>
             } />
           </Routes>
         </BrowserRouter>
