@@ -41,15 +41,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 size="sm"
                 variant="ghost"
                 className="h-7 text-xs gap-1.5 shrink-0"
-                onClick={() => {
-                  navigate("/assistencia");
-                  // Set filter to "pronto" via URL search params
-                  const url = new URL(window.location.href);
-                  url.searchParams.set("status", "pronto");
-                  window.history.replaceState({}, "", url.pathname + "?status=pronto");
-                  // Force reload to pick up the param
-                  navigate("/assistencia?status=pronto");
-                }}
+                onClick={() => navigate("/assistencia?status=pronto")}
               >
                 <CheckCircle className="h-3 w-3" /> Prontos
               </Button>
