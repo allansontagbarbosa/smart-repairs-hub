@@ -74,7 +74,7 @@ async function fetchContasPagas() {
 async function fetchEmpresaConfig() {
   const { data, error } = await supabase
     .from("empresa_config")
-    .select("meta_gastos_mes")
+    .select("meta_gastos_mes, meta_faturamento_mes")
     .limit(1)
     .maybeSingle();
   if (error) throw error;
@@ -319,12 +319,13 @@ export default function Dashboard() {
     const lucroLiquido = lucroReal - depreciacao - impostos - outrosAjustes;
 
     const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
+    const metaFaturamento = Number(empresaConfig?.meta_faturamento_mes ?? 0);
 
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
       totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
       depreciacao, impostos, outrosAjustes,
-      gastosFixos, gastosVariaveis, metaGastos,
+      gastosFixos, gastosVariaveis, metaGastos, metaFaturamento,
       tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
