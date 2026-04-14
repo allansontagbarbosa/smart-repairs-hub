@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
