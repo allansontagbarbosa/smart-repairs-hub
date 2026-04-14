@@ -2294,6 +2294,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_demo_user: {
+        Args: { p_email: string; p_user_id: string }
+        Returns: undefined
+      }
       get_clientes_com_stats: {
         Args: never
         Returns: {
