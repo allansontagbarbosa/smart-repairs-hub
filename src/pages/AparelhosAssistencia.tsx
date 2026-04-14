@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Package } from "lucide-react";
+import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Package, Printer } from "lucide-react";
 import { EntradaAparelhoDialog } from "@/components/estoque/EntradaAparelhoDialog";
 import { EntradaLoteDialog } from "@/components/estoque/EntradaLoteDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAparelhosAssistencia, type AparelhoAssistencia } from "@/hooks/useAparelhosAssistencia";
+import { printEtiquetaOS } from "@/lib/printEtiqueta";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const statusLabels: Record<string, string> = {
   recebido: "Recebido",
