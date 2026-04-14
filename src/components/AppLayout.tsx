@@ -5,8 +5,9 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
-import { Plus, Search, CheckCircle } from "lucide-react";
+import { Plus, Search, CheckCircle, Moon, Sun } from "lucide-react";
 import { NotificacoesBell } from "@/components/NotificacoesBell";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [novaOSOpen, setNovaOSOpen] = useState(false);
