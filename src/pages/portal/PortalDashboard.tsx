@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
-  Wrench, LogOut, Smartphone, Clock, CheckCircle2, Package,
+  LogOut, Smartphone, Clock, CheckCircle2, Package,
   DollarSign, ChevronRight, Store, Filter, Search,
 } from "lucide-react";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalLojas, usePortalOrdens, type PortalOrdem } from "@/hooks/usePortalData";
 import { Button } from "@/components/ui/button";
@@ -208,13 +209,8 @@ function PortalHeader({ user, onSignOut }: { user: any; onSignOut: () => void })
     <header className="border-b bg-card sticky top-0 z-10">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Wrench className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold tracking-tight">CellFix</p>
-            <p className="text-[10px] text-muted-foreground">Portal do Cliente</p>
-          </div>
+          <MobileFixLogo size="sm" />
+          <p className="text-[10px] text-muted-foreground ml-1">Portal do Cliente</p>
         </div>
         <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={onSignOut}>
           <LogOut className="h-3.5 w-3.5" />

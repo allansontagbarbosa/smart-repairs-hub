@@ -1,4 +1,5 @@
 import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut } from "lucide-react";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
@@ -72,14 +73,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="flex flex-col h-full">
-        <div className={`flex items-center gap-2.5 px-4 pt-5 pb-4 ${collapsed ? "justify-center px-2" : ""}`}>
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-sidebar-accent">
-            <Wrench className="h-4 w-4 text-sidebar-ring" />
-          </div>
-          {!collapsed && (
-            <span className="text-base font-semibold text-sidebar-primary tracking-tight">
-              CellFix
-            </span>
+        <div className={`flex items-center justify-center px-4 pt-5 pb-4 ${collapsed ? "px-2" : ""}`}>
+          {collapsed ? (
+            <MobileFixLogo iconOnly />
+          ) : (
+            <MobileFixLogo size="sm" />
           )}
         </div>
 
