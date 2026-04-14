@@ -193,3 +193,29 @@
     @apply text-sm font-semibold;
   }
 }
+
+/* Compact density mode */
+body.compact .stat-card {
+  @apply p-2.5 md:p-3;
+}
+body.compact .data-table th {
+  @apply px-3 py-1.5;
+}
+body.compact .data-table td {
+  @apply px-3 py-2;
+}
+body.compact .section-header {
+  @apply px-3 py-2.5;
+}
+
+/* Print: always white background */
+@media print {
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --muted-foreground: 0 0% 30%;
+    --border: 0 0% 85%;
+  }
+}
