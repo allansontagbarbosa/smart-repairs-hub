@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Pencil, Search, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/usePermissoes";
+import { format } from "date-fns";
 
 interface Props {
   userProfiles: any[];
@@ -18,35 +22,107 @@ interface Props {
   funcionarios: any[];
 }
 
+const MODULOS_CRUD = [
+  { key: "assistencia", label: "Assistência" },
+  { key: "financeiro", label: "Financeiro" },
+  { key: "pecas", label: "Peças" },
+  { key: "clientes", label: "Clientes" },
+];
+
+const MODULOS_BOOL = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "relatorios", label: "Relatórios" },
+  { key: "configuracoes", label: "Configurações" },
+  { key: "fila_ia", label: "Fila IA" },
+];
+
+const ACOES = ["ver", "criar", "editar", "excluir"] as const;
+
+function buildDefaultPermissoes() {
+  const p: any = {};
+  for (const m of MODULOS_CRUD) p[m.key] = { ver: false, criar: false, editar: false, excluir: false };
+  for (const m of MODULOS_BOOL) p[m.key] = false;
+  return p;
+}
+
 export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: Props) {
   const qc = useQueryClient();
+  const { isAdmin } = usePermissoes();
   const [search, setSearch] = useState("");
   const [openPerfil, setOpenPerfil] = useState(false);
-  const [perfilForm, setPerfilForm] = useState<any>({ nome_perfil: "", descricao: "", ativo: true });
+  const [perfilForm, setPerfilForm] = useState<any>({ nome_perfil: "", descricao: "", ativo: true, permissoes: buildDefaultPermissoes() });
   const [perfilEditId, setPerfilEditId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [showAudit, setShowAudit] = useState(false);
 
   const filteredProfiles = userProfiles.filter((u) =>
     u.nome_exibicao?.toLowerCase().includes(search.toLowerCase())
   );
 
+  useEffect(() => {
+    if (isAdmin && showAudit) {
+      supabase
+        .from("auditoria")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .then(({ data }) => setAuditLogs(data || []));
+    }
+  }, [isAdmin, showAudit]);
+
   const handleSavePerfil = async () => {
     if (!perfilForm.nome_perfil) { toast.error("Nome é obrigatório"); return; }
+    const payload = {
+      nome_perfil: perfilForm.nome_perfil,
+      descricao: perfilForm.descricao,
+      ativo: perfilForm.ativo,
+      permissoes: perfilForm.permissoes,
+    };
     if (perfilEditId) {
-      await supabase.from("perfis_acesso").update(perfilForm).eq("id", perfilEditId);
+      await supabase.from("perfis_acesso").update(payload).eq("id", perfilEditId);
     } else {
-      await supabase.from("perfis_acesso").insert(perfilForm);
+      await supabase.from("perfis_acesso").insert(payload);
     }
     qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
     toast.success("Perfil salvo");
     setOpenPerfil(false);
-    setPerfilForm({ nome_perfil: "", descricao: "", ativo: true });
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setPerfilForm({ nome_perfil: "", descricao: "", ativo: true, permissoes: buildDefaultPermissoes() });
     setPerfilEditId(null);
   };
 
   const handleEditPerfil = (p: any) => {
-    setPerfilForm({ nome_perfil: p.nome_perfil, descricao: p.descricao || "", ativo: p.ativo });
+    setPerfilForm({
+      nome_perfil: p.nome_perfil,
+      descricao: p.descricao || "",
+      ativo: p.ativo,
+      permissoes: p.permissoes || buildDefaultPermissoes(),
+    });
     setPerfilEditId(p.id);
     setOpenPerfil(true);
+  };
+
+  const toggleCrudPerm = (modulo: string, acao: string) => {
+    setPerfilForm((prev: any) => ({
+      ...prev,
+      permissoes: {
+        ...prev.permissoes,
+        [modulo]: {
+          ...prev.permissoes[modulo],
+          [acao]: !prev.permissoes[modulo]?.[acao],
+        },
+      },
+    }));
+  };
+
+  const toggleBoolPerm = (modulo: string) => {
+    setPerfilForm((prev: any) => ({
+      ...prev,
+      permissoes: { ...prev.permissoes, [modulo]: !prev.permissoes[modulo] },
+    }));
   };
 
   const handleUpdateUserProfile = async (profileId: string, updates: any) => {
@@ -63,16 +139,55 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Shield className="h-4 w-4" />Perfis de Acesso
           </CardTitle>
-          <Dialog open={openPerfil} onOpenChange={(v) => { setOpenPerfil(v); if (!v) { setPerfilEditId(null); setPerfilForm({ nome_perfil: "", descricao: "", ativo: true }); } }}>
+          <Dialog open={openPerfil} onOpenChange={(v) => { setOpenPerfil(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" />Novo Perfil</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{perfilEditId ? "Editar" : "Novo"} Perfil</DialogTitle></DialogHeader>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div><Label>Nome *</Label><Input value={perfilForm.nome_perfil} onChange={(e) => setPerfilForm((p: any) => ({ ...p, nome_perfil: e.target.value }))} placeholder="Ex: Administrador" /></div>
                 <div><Label>Descrição</Label><Input value={perfilForm.descricao} onChange={(e) => setPerfilForm((p: any) => ({ ...p, descricao: e.target.value }))} /></div>
                 <div className="flex items-center gap-2"><Switch checked={perfilForm.ativo} onCheckedChange={(v) => setPerfilForm((p: any) => ({ ...p, ativo: v }))} /><Label>Ativo</Label></div>
+
+                <Separator />
+                <Label className="text-sm font-semibold">Permissões por módulo</Label>
+
+                {/* Boolean modules */}
+                <div className="grid grid-cols-2 gap-2">
+                  {MODULOS_BOOL.map((m) => (
+                    <div key={m.key} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={!!perfilForm.permissoes?.[m.key]}
+                        onCheckedChange={() => toggleBoolPerm(m.key)}
+                      />
+                      <span className="text-sm">{m.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                {/* CRUD modules */}
+                <div className="space-y-3">
+                  {MODULOS_CRUD.map((m) => (
+                    <div key={m.key}>
+                      <span className="text-sm font-medium">{m.label}</span>
+                      <div className="flex gap-4 mt-1">
+                        {ACOES.map((a) => (
+                          <div key={a} className="flex items-center gap-1.5">
+                            <Checkbox
+                              checked={!!perfilForm.permissoes?.[m.key]?.[a]}
+                              onCheckedChange={() => toggleCrudPerm(m.key, a)}
+                            />
+                            <span className="text-xs capitalize">{a}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <Button onClick={handleSavePerfil} className="w-full">{perfilEditId ? "Salvar" : "Cadastrar"}</Button>
               </div>
             </DialogContent>
@@ -148,10 +263,11 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                           </SelectContent>
                         </Select>
                         <Button
-                          variant="ghost" size="sm" className="h-7 text-xs"
+                          variant="ghost" size="icon" className="h-7 w-7"
+                          title={u.ativo ? "Desativar acesso" : "Ativar acesso"}
                           onClick={() => handleUpdateUserProfile(u.id, { ativo: !u.ativo })}
                         >
-                          {u.ativo ? "Desativar" : "Ativar"}
+                          {u.ativo ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
                     </td>
@@ -165,6 +281,51 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
           </div>
         </CardContent>
       </Card>
+
+      {/* Audit Log — admin only */}
+      {isAdmin && (
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <History className="h-4 w-4" />Log de Auditoria
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setShowAudit(!showAudit)}>
+              {showAudit ? "Ocultar" : "Exibir"}
+            </Button>
+          </CardHeader>
+          {showAudit && (
+            <CardContent className="p-0">
+              <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left p-2 font-medium">Data</th>
+                      <th className="text-left p-2 font-medium">Usuário</th>
+                      <th className="text-left p-2 font-medium">Ação</th>
+                      <th className="text-left p-2 font-medium">Tabela</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} className="border-b last:border-0">
+                        <td className="p-2 text-muted-foreground whitespace-nowrap">
+                          {log.created_at ? format(new Date(log.created_at), "dd/MM HH:mm") : "—"}
+                        </td>
+                        <td className="p-2">{log.user_nome || "Sistema"}</td>
+                        <td className="p-2 capitalize">{log.acao}</td>
+                        <td className="p-2 text-muted-foreground">{log.tabela}</td>
+                      </tr>
+                    ))}
+                    {auditLogs.length === 0 && (
+                      <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Nenhum registro</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

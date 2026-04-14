@@ -2,6 +2,7 @@ import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, 
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
+import { usePermissoes, type Permissoes } from "@/hooks/usePermissoes";
 import {
   Sidebar,
   SidebarContent,
@@ -14,20 +15,23 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Assistência", url: "/assistencia", icon: Wrench, badgeKey: "assistencia" as const },
-  { title: "Aparelhos", url: "/aparelhos", icon: Smartphone },
-  { title: "Peças", url: "/pecas", icon: Cpu, badgeKey: "pecas" as const },
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign, badgeKey: "financeiro" as const },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart2 },
-  { title: "Clientes", url: "/clientes", icon: Users },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, permissao: "dashboard" as keyof Permissoes },
+  { title: "Assistência", url: "/assistencia", icon: Wrench, badgeKey: "assistencia" as const, permissao: "assistencia" as keyof Permissoes },
+  { title: "Aparelhos", url: "/aparelhos", icon: Smartphone, permissao: "assistencia" as keyof Permissoes },
+  { title: "Peças", url: "/pecas", icon: Cpu, badgeKey: "pecas" as const, permissao: "pecas" as keyof Permissoes },
+  { title: "Financeiro", url: "/financeiro", icon: DollarSign, badgeKey: "financeiro" as const, permissao: "financeiro" as keyof Permissoes },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart2, permissao: "relatorios" as keyof Permissoes },
+  { title: "Clientes", url: "/clientes", icon: Users, permissao: "clientes" as keyof Permissoes },
+  { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { badgeCounts } = useNotificacoes();
+  const { can } = usePermissoes();
+
+  const visibleItems = items.filter((item) => can(item.permissao, "ver"));
 
   return (
     <Sidebar collapsible="icon">
@@ -52,7 +56,7 @@ export function AppSidebar() {
         <SidebarGroup className="flex-1">
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
+              {visibleItems.map((item) => {
                 const badge = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
                 return (
                   <SidebarMenuItem key={item.title}>

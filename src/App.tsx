@@ -5,11 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
 import FilaIA from "./pages/FilaIA";
-
 import Pecas from "./pages/Pecas";
 import AparelhosAssistencia from "./pages/AparelhosAssistencia";
 import Configuracoes from "./pages/Configuracoes";
@@ -18,6 +18,7 @@ import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
 import ConsultaCliente from "./pages/ConsultaCliente";
 import NotFound from "./pages/NotFound";
+import SemAcesso from "./pages/SemAcesso";
 import Login from "./pages/Login";
 import { AuthGuard } from "@/components/AuthGuard";
 import PortalLogin from "./pages/portal/PortalLogin";
@@ -65,16 +66,17 @@ const App = () => (
               <AuthGuard>
                 <AppLayout>
                 <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/assistencia" element={<Assistencia />} />
-                  <Route path="/assistencia/fluxo" element={<FluxoAssistencia />} />
-                  <Route path="/assistencia/fila-ia" element={<FilaIA />} />
-                  <Route path="/aparelhos" element={<AparelhosAssistencia />} />
-                  <Route path="/pecas" element={<Pecas />} />
-                  <Route path="/financeiro" element={<Financeiro />} />
-                  <Route path="/clientes" element={<Clientes />} />
-                  <Route path="/relatorios" element={<Relatorios />} />
-                  <Route path="/configuracoes" element={<Configuracoes />} />
+                  <Route path="/" element={<ProtectedRoute permissao="dashboard"><Dashboard /></ProtectedRoute>} />
+                  <Route path="/assistencia" element={<ProtectedRoute permissao="assistencia.ver"><Assistencia /></ProtectedRoute>} />
+                  <Route path="/assistencia/fluxo" element={<ProtectedRoute permissao="assistencia.ver"><FluxoAssistencia /></ProtectedRoute>} />
+                  <Route path="/assistencia/fila-ia" element={<ProtectedRoute permissao="fila_ia"><FilaIA /></ProtectedRoute>} />
+                  <Route path="/aparelhos" element={<ProtectedRoute permissao="assistencia.ver"><AparelhosAssistencia /></ProtectedRoute>} />
+                  <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
+                  <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
+                  <Route path="/clientes" element={<ProtectedRoute permissao="clientes.ver"><Clientes /></ProtectedRoute>} />
+                  <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
+                  <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
+                  <Route path="/sem-acesso" element={<SemAcesso />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
