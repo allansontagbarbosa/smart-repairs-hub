@@ -3,7 +3,7 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package,
-  CalendarClock, SortAsc, Filter, Printer,
+  CalendarClock, SortAsc, Filter, Printer, Brain,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -557,6 +557,9 @@ export default function Assistencia() {
             <TooltipContent>Atualizar</TooltipContent>
           </Tooltip>
 
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/assistencia/fila-ia"><Brain className="h-4 w-4 mr-1" /> Fila IA</Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
           </Button>
