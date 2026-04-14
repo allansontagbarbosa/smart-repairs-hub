@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Wrench, Search, Hash } from "lucide-react";
+import { Search, Hash } from "lucide-react";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Input } from "@/components/ui/input";
@@ -128,13 +129,8 @@ export default function PortalLogin() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-2.5">
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary">
-            <Wrench className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold tracking-tight">CellFix</p>
-            <p className="text-[10px] text-muted-foreground">Portal do Cliente</p>
-          </div>
+          <MobileFixLogo size="sm" />
+          <p className="text-[10px] text-muted-foreground ml-1">Portal do Cliente</p>
         </div>
       </header>
 

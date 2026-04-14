@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wrench, UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus } from "lucide-react";
+import { UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 
 const DEMO_EMAIL = "demo@smartrepairs.com";
 const DEMO_PASSWORD = "Demo@123";
@@ -190,17 +191,16 @@ export default function Login() {
     if (newMode === "forgot") setResetEmail(email);
   };
 
-  const companyName = empresa?.nome || "Smart Repairs";
+  const companyName = empresa?.nome || "MobileFix";
   const anyLoading = loading || demoLoading || googleLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Wrench className="h-6 w-6 text-primary" />
+          <div className="mx-auto">
+            <MobileFixLogo size="md" showTagline />
           </div>
-          <CardTitle className="text-2xl">{companyName}</CardTitle>
           <CardDescription>
             {mode === "forgot"
               ? "Informe seu email para recuperar a senha"

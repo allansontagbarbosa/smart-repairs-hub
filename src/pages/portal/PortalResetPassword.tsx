@@ -44,11 +44,8 @@ export default function PortalResetPassword() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="flex items-center justify-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Wrench className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-semibold">CellFix</span>
+        <div className="flex items-center justify-center">
+          <MobileFixLogo size="sm" />
         </div>
         <h1 className="text-xl font-semibold text-center">Nova senha</h1>
         <form onSubmit={handleSubmit} className="space-y-3">

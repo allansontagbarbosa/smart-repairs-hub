@@ -118,13 +118,8 @@ export default function ConsultaCliente() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-2.5">
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary">
-            <Wrench className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold tracking-tight">CellFix</p>
-            <p className="text-[10px] text-muted-foreground">Acompanhe seu aparelho</p>
-          </div>
+          <MobileFixLogo size="sm" />
+          <p className="text-[10px] text-muted-foreground ml-1">Acompanhe seu aparelho</p>
         </div>
       </header>
 
