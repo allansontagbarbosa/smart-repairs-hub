@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2 } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
@@ -19,6 +19,7 @@ const items = [
   { title: "Assistência", url: "/assistencia", icon: Wrench, badgeKey: "assistencia" as const, permissao: "assistencia" as keyof Permissoes },
   { title: "Aparelhos", url: "/aparelhos", icon: Smartphone, permissao: "assistencia" as keyof Permissoes },
   { title: "Peças", url: "/pecas", icon: Cpu, badgeKey: "pecas" as const, permissao: "pecas" as keyof Permissoes },
+  { title: "Fornecedores", url: "/fornecedores", icon: Truck, permissao: "pecas" as keyof Permissoes },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, badgeKey: "financeiro" as const, permissao: "financeiro" as keyof Permissoes },
   { title: "Relatórios", url: "/relatorios", icon: BarChart2, permissao: "relatorios" as keyof Permissoes },
   { title: "Clientes", url: "/clientes", icon: Users, permissao: "clientes" as keyof Permissoes },

@@ -159,6 +159,54 @@ export type Database = {
           },
         ]
       }
+      avaliacoes_fornecedor: {
+        Row: {
+          comentario: string | null
+          created_at: string | null
+          fornecedor_id: string
+          id: string
+          nota_prazo: number | null
+          nota_preco: number | null
+          nota_qualidade: number | null
+          pedido_id: string | null
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string | null
+          fornecedor_id: string
+          id?: string
+          nota_prazo?: number | null
+          nota_preco?: number | null
+          nota_qualidade?: number | null
+          pedido_id?: string | null
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string | null
+          fornecedor_id?: string
+          id?: string
+          nota_prazo?: number | null
+          nota_preco?: number | null
+          nota_qualidade?: number | null
+          pedido_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_fornecedor_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_fornecedor_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_financeiras: {
         Row: {
           ativo: boolean
@@ -1783,6 +1831,104 @@ export type Database = {
             columns: ["peca_id"]
             isOneToOne: false
             referencedRelation: "estoque"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_compra: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_pedido: string
+          data_previsao: string | null
+          data_recebimento: string | null
+          fornecedor_id: string
+          id: string
+          observacoes: string | null
+          status: string
+          updated_at: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_pedido?: string
+          data_previsao?: string | null
+          data_recebimento?: string | null
+          fornecedor_id: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_pedido?: string
+          data_previsao?: string | null
+          data_recebimento?: string | null
+          fornecedor_id?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_compra_itens: {
+        Row: {
+          created_at: string | null
+          custo_unitario: number
+          estoque_item_id: string | null
+          id: string
+          nome_item: string
+          pedido_id: string
+          quantidade: number
+          quantidade_recebida: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_unitario?: number
+          estoque_item_id?: string | null
+          id?: string
+          nome_item: string
+          pedido_id: string
+          quantidade?: number
+          quantidade_recebida?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_unitario?: number
+          estoque_item_id?: string | null
+          id?: string
+          nome_item?: string
+          pedido_id?: string
+          quantidade?: number
+          quantidade_recebida?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_itens_estoque_item_id_fkey"
+            columns: ["estoque_item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_compra_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_compra"
             referencedColumns: ["id"]
           },
         ]

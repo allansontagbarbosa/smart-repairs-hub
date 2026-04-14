@@ -16,6 +16,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
+import Fornecedores from "./pages/Fornecedores";
 import ConsultaCliente from "./pages/ConsultaCliente";
 import NotFound from "./pages/NotFound";
 import SemAcesso from "./pages/SemAcesso";
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
                   <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
                   <Route path="/clientes" element={<ProtectedRoute permissao="clientes.ver"><Clientes /></ProtectedRoute>} />
+                  <Route path="/fornecedores" element={<ProtectedRoute permissao="pecas.ver"><Fornecedores /></ProtectedRoute>} />
                   <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
                   <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                   <Route path="/sem-acesso" element={<SemAcesso />} />
