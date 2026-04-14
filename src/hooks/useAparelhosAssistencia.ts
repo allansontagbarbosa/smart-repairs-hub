@@ -30,8 +30,8 @@ async function fetchAparelhosAssistencia() {
     .from("ordens_de_servico")
     .select(`
       id, numero, status, data_entrada, tecnico, previsao_entrega, prazo_vencido,
-      loja_id, funcionario_id,
-      aparelhos!inner ( marca, modelo, cor, imei, cliente_id, clientes!inner ( nome ) ),
+      loja_id, funcionario_id, defeito_relatado, valor,
+      aparelhos!inner ( marca, modelo, cor, imei, capacidade, cliente_id, clientes!inner ( nome, telefone ) ),
       lojas ( nome ),
       funcionarios ( nome )
     `)
@@ -45,11 +45,14 @@ async function fetchAparelhosAssistencia() {
     os_id: os.id,
     os_numero: os.numero,
     cliente_nome: os.aparelhos?.clientes?.nome ?? "—",
+    cliente_telefone: os.aparelhos?.clientes?.telefone ?? "",
     loja_nome: os.lojas?.nome ?? null,
     aparelho_marca: os.aparelhos?.marca ?? "",
     aparelho_modelo: os.aparelhos?.modelo ?? "",
     aparelho_cor: os.aparelhos?.cor ?? null,
     aparelho_imei: os.aparelhos?.imei ?? null,
+    aparelho_capacidade: os.aparelhos?.capacidade ?? null,
+    defeito_relatado: os.defeito_relatado ?? "",
     data_entrada: os.data_entrada,
     status: os.status,
     tecnico: os.tecnico,
@@ -58,6 +61,7 @@ async function fetchAparelhosAssistencia() {
     prazo_vencido: os.prazo_vencido,
     loja_id: os.loja_id,
     funcionario_id: os.funcionario_id,
+    valor: os.valor,
   })) as AparelhoAssistencia[];
 }
 
