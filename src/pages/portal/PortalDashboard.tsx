@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Wrench, LogOut, Smartphone, Clock, CheckCircle2, Package,
-  DollarSign, ChevronRight, Store, Filter,
+  DollarSign, ChevronRight, Store, Filter, Search,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalLojas, usePortalOrdens, type PortalOrdem } from "@/hooks/usePortalData";
@@ -31,6 +31,13 @@ function fmt(v: number | null | undefined) {
 export default function PortalDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // If not logged in, redirect to portal login (search page)
+  if (!user) {
+    navigate("/portal/login", { replace: true });
+    return null;
+  }
+
   const { data: cliente, isLoading: loadingCliente } = usePortalCliente();
   const { data: lojas = [] } = usePortalLojas(cliente?.id);
   const [lojaFilter, setLojaFilter] = useState("todas");
@@ -45,7 +52,6 @@ export default function PortalDashboard() {
   const prontos = ordens.filter((o) => o.status === "pronto");
   const entregues = ordens.filter((o) => o.status === "entregue");
   const totalAberto = ordens.reduce((sum, o) => sum + (o.valor_pendente ?? ((o.valor ?? 0) - (o.valor_pago ?? 0))), 0);
-  const totalPago = ordens.reduce((sum, o) => sum + (o.valor_pago ?? 0), 0);
 
   if (loadingCliente) {
     return (
@@ -66,6 +72,10 @@ export default function PortalDashboard() {
             Seu email ({user?.email}) ainda não está vinculado a um cadastro de cliente.
             Entre em contato com a assistência para vincular sua conta.
           </p>
+          <Button variant="outline" onClick={() => navigate("/portal/login")}>
+            <Search className="h-4 w-4 mr-2" />
+            Consultar por número da OS
+          </Button>
         </div>
       </div>
     );
@@ -76,13 +86,11 @@ export default function PortalDashboard() {
       <PortalHeader user={user} onSignOut={signOut} />
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-5">
-        {/* Greeting */}
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Olá, {cliente.nome.split(" ")[0]}!</h1>
           <p className="text-sm text-muted-foreground">Acompanhe seus aparelhos na assistência</p>
         </div>
 
-        {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryCard icon={Clock} label="Em andamento" value={emAndamento.length} color="text-info" />
           <SummaryCard icon={CheckCircle2} label="Prontos" value={prontos.length} color="text-success" />
@@ -90,7 +98,6 @@ export default function PortalDashboard() {
           <SummaryCard icon={DollarSign} label="Em aberto" value={fmt(totalAberto)} color="text-warning" />
         </div>
 
-        {/* Filters */}
         <div className="flex gap-2 flex-wrap">
           {lojas.length > 1 && (
             <Select value={lojaFilter} onValueChange={setLojaFilter}>
@@ -120,7 +127,6 @@ export default function PortalDashboard() {
           </Select>
         </div>
 
-        {/* Store summary (multi-store) */}
         {lojas.length > 1 && lojaFilter === "todas" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {lojas.map((loja) => {
@@ -147,7 +153,6 @@ export default function PortalDashboard() {
           </div>
         )}
 
-        {/* Orders list */}
         {loadingOrdens ? (
           <div className="py-8 flex justify-center">
             <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
