@@ -345,11 +345,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         if (pecErr) throw pecErr;
       }
     },
-    onSuccess: () => {
-      toast.success("Ordem de Serviço criada!");
+    onSuccess: (ordem) => {
+      toast.success(`OS #${String(ordem?.numero || 0).padStart(3, "0")} criada!`);
       queryClient.invalidateQueries({ queryKey: ["estoque_pecas_disponiveis"] });
-      resetAll();
-      onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
+      setStep("sucesso");
       onSuccess();
     },
     onError: (e: Error) => toast.error(e.message),
