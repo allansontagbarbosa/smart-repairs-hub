@@ -856,6 +856,39 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 )}
 
+                {/* Avaliação do cliente */}
+                {avaliacao && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Avaliação do cliente</p>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex gap-0.5 mb-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} className={cn("h-4 w-4", n <= avaliacao.nota ? "fill-amber-400 text-amber-400" : "text-border")} />
+                        ))}
+                        <span className="text-xs text-muted-foreground ml-2">{avaliacao.nota}/5</span>
+                      </div>
+                      {avaliacao.comentario && <p className="text-xs text-muted-foreground mt-1">"{avaliacao.comentario}"</p>}
+                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(avaliacao.created_at).toLocaleDateString("pt-BR")}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Share link */}
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => {
+                      const link = `${window.location.origin}/portal/login?os=${ordem.numero}`;
+                      navigator.clipboard.writeText(link);
+                      toast.success("Link copiado!");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1.5" /> Compartilhar link do portal
+                  </Button>
+                </div>
+
                 {/* Histórico */}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Histórico</p>
