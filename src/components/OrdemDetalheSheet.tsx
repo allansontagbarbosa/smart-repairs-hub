@@ -97,6 +97,20 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
+  const { data: avaliacao } = useQuery({
+    queryKey: ["avaliacao_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return null;
+      const { data } = await supabase
+        .from("avaliacoes")
+        .select("id, nota, comentario, created_at")
+        .eq("ordem_id", orderId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
   // Fetch tipos_servico and funcionarios for commission preview
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico_os"],
