@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Smartphone, Wrench, Clock, DollarSign,
   Store, User, FileText, CheckCircle2, LogOut,
-  Check, X, Loader2, AlertCircle, Star, Printer, Share2, Copy,
+  Check, X, Loader2, AlertCircle, Star, Printer, Share2, Copy, Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalOrdens, usePortalHistorico } from "@/hooks/usePortalData";
@@ -80,6 +80,19 @@ export default function PortalOrdemDetalhe() {
       const { data } = await supabase
         .from("avaliacoes")
         .select("id, nota, comentario, created_at")
+        .eq("ordem_id", id!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: garantia } = useQuery({
+    queryKey: ["garantia_portal", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("garantias")
+        .select("*")
         .eq("ordem_id", id!)
         .maybeSingle();
       return data;
@@ -349,6 +362,22 @@ export default function PortalOrdemDetalhe() {
           {(ordem as any).previsao_entrega && <DetailRow icon={Clock} label="Previsão" value={fmtDate((ordem as any).previsao_entrega)} highlight />}
           {ordem.valor != null && <DetailRow icon={DollarSign} label="Valor" value={fmt(ordem.valor)} />}
         </div>
+
+        {/* Garantia card for delivered orders */}
+        {ordem.status === "entregue" && garantia && garantia.status === "ativa" && (() => {
+          const fim = new Date(garantia.data_fim);
+          const diasRestantes = Math.ceil((fim.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+          if (diasRestantes <= 0) return null;
+          return (
+            <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Shield className="h-5 w-5 text-success" />
+                <p className="text-sm font-semibold">Seu aparelho está na garantia até {fim.toLocaleDateString("pt-BR")}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Em caso de problemas, entre em contato conosco.</p>
+            </div>
+          );
+        })()}
 
         {ordem.status === "entregue" && !existingAvaliacao && (
           <div className="rounded-xl border bg-card p-5 space-y-4">
