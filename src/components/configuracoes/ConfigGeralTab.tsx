@@ -146,7 +146,42 @@ export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
         </CardContent>
       </Card>
 
-      {/* Sticky save bar */}
+      {/* Card 5: Aparência */}
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Monitor className="h-4 w-4 text-primary" />
+            Aparência
+          </CardTitle>
+          <CardDescription className="text-xs">Preferências visuais da interface</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Label className="mb-2 block">Tema</Label>
+            <RadioGroup value={theme} onValueChange={(v) => setTheme(v as any)} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem value="light" id="t-light" /><Label htmlFor="t-light" className="font-normal">Claro</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="dark" id="t-dark" /><Label htmlFor="t-dark" className="font-normal">Escuro</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="system" id="t-system" /><Label htmlFor="t-system" className="font-normal">Sistema (automático)</Label></div>
+            </RadioGroup>
+          </div>
+          <div>
+            <Label className="mb-2 block">Tamanho da fonte</Label>
+            <RadioGroup value={fontSize} onValueChange={(v) => setFontSize(v as any)} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem value="sm" id="f-sm" /><Label htmlFor="f-sm" className="font-normal">Pequeno</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="md" id="f-md" /><Label htmlFor="f-md" className="font-normal">Médio</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="lg" id="f-lg" /><Label htmlFor="f-lg" className="font-normal">Grande</Label></div>
+            </RadioGroup>
+          </div>
+          <div>
+            <Label className="mb-2 block">Densidade da interface</Label>
+            <RadioGroup value={density} onValueChange={(v) => setDensity(v as any)} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem value="comfortable" id="d-comf" /><Label htmlFor="d-comf" className="font-normal">Confortável</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="compact" id="d-comp" /><Label htmlFor="d-comp" className="font-normal">Compacto</Label></div>
+            </RadioGroup>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t -mx-4 md:-mx-6 px-4 md:px-6 py-3 flex justify-end">
         <Button onClick={handleSave} disabled={saveEmpresa.isPending} size="sm">
           <Save className="h-4 w-4 mr-1.5" />
