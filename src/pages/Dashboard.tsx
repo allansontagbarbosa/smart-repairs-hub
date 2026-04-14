@@ -74,11 +74,21 @@ async function fetchContasPagas() {
 async function fetchEmpresaConfig() {
   const { data, error } = await supabase
     .from("empresa_config")
-    .select("meta_gastos_mes, meta_faturamento_mes")
+    .select("meta_gastos_mes, meta_faturamento_mes, numero_socios, percentual_reserva_empresa")
     .limit(1)
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+async function fetchSocios() {
+  const { data, error } = await supabase
+    .from("socios")
+    .select("id, nome, ordem")
+    .eq("ativo", true)
+    .order("ordem");
+  if (error) throw error;
+  return data ?? [];
 }
 
 async function fetchRecebimentosMes() {
