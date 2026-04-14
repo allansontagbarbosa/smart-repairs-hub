@@ -16,6 +16,7 @@ import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
+import Fornecedores from "./pages/Fornecedores";
 import ConsultaCliente from "./pages/ConsultaCliente";
 import NotFound from "./pages/NotFound";
 import SemAcesso from "./pages/SemAcesso";
