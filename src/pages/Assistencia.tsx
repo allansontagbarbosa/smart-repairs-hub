@@ -3,7 +3,7 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, PackageOpen, ArrowUpDown, RefreshCw, Package,
-  CalendarClock, SortAsc, Filter,
+  CalendarClock, SortAsc, Filter, Printer,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +27,7 @@ import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { differenceInDays, format, isToday, isYesterday, isThisWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { printEtiquetaOS } from "@/lib/printEtiqueta";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 
 async function fetchOrders() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data;
