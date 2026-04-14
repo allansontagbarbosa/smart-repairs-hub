@@ -516,7 +516,7 @@ export default function Assistencia() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Assistência Técnica</h1>
+          <h1 className="text-xl font-bold">Serviços</h1>
           <p className="text-sm text-muted-foreground">
             {sorted.length} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : " ativas"}
           </p>
@@ -550,45 +550,8 @@ export default function Assistencia() {
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["ordens"] })}
       />
 
-      {(countCritica > 0 || countAtencao > 0) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {countCritica > 0 && (
-            <button
-              onClick={() => setFilterPrioridade(filterPrioridade === "critica" ? "todas" : "critica")}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                filterPrioridade === "critica"
-                  ? "bg-destructive text-destructive-foreground border-destructive"
-                  : "bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/20"
-              }`}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {countCritica} urgente{countCritica > 1 ? "s" : ""}
-            </button>
-          )}
-          {countAtencao > 0 && (
-            <button
-              onClick={() => setFilterPrioridade(filterPrioridade === "atencao" ? "todas" : "atencao")}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                filterPrioridade === "atencao"
-                  ? "bg-warning text-warning-foreground border-warning"
-                  : "bg-warning/10 text-warning border-warning/30 hover:bg-warning/20"
-              }`}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {countAtencao} atenção
-            </button>
-          )}
-          {filterPrioridade !== "todas" && (
-            <button onClick={() => setFilterPrioridade("todas")} className="text-xs text-muted-foreground hover:text-foreground underline">
-              Limpar filtro
-            </button>
-          )}
-        </div>
-      )}
 
-      {alertas.length > 0 && (
-        <AlertsBanner alertas={alertas} />
-      )}
+
 
       <div className="space-y-2">
         <div className="relative">
