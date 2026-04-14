@@ -368,22 +368,7 @@ export default function Dashboard() {
     <div className="space-y-6 md:space-y-8">
 
       {/* ── HEADER ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold">Central de Controle</h1>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <Button size="sm" variant="outline" onClick={() => navigate("/configuracoes")} className="gap-1.5 h-8 text-xs">
-            <Settings className="h-3.5 w-3.5" /> Config
-          </Button>
-          <Button size="sm" onClick={() => navigate("/nova-os")} className="gap-1.5 h-8 text-xs">
-            <Plus className="h-3.5 w-3.5" /> Nova OS
-          </Button>
-        </div>
-      </div>
+      <h1 className="text-xl font-bold">Dashboard</h1>
 
 
       {/* ══════════════════════════════════════════════════════════════════════
