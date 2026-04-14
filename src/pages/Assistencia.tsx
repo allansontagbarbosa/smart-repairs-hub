@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
-  CircleDot, PackageOpen, ArrowUpDown, RefreshCw, Package,
+  CircleDot, ArrowUpDown, RefreshCw, Package,
   CalendarClock, SortAsc, Filter, Printer,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -559,11 +559,6 @@ export default function Assistencia() {
 
           <Button variant="outline" size="sm" asChild>
             <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/assistencia/lote">
-              <PackageOpen className="h-4 w-4 mr-1" /> Lote
-            </Link>
           </Button>
           <Button size="sm" onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-1" /> Nova Ordem
