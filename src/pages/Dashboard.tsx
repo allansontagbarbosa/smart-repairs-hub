@@ -1,31 +1,36 @@
-import {
-  Wrench, Clock, DollarSign, TrendingUp, CheckCircle, Loader2,
-  AlertTriangle, Plus, Search, Package, Timer, Store, Smartphone,
-  BarChart3, ArrowUpRight, ArrowDownRight, CreditCard, Users,
-  Receipt, Wallet,
-} from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Plus, AlertTriangle, Clock, CheckCircle, TrendingUp,
+  TrendingDown, Wrench, Smartphone, DollarSign, Package,
+  Users, Target, BarChart2, AlertCircle, ChevronRight,
+  Settings, Store, Loader2, Timer, Receipt, CreditCard,
+  Wallet, ArrowDownRight, BarChart3,
+} from "lucide-react";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, differenceInHours } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
+  ResponsiveContainer, PieChart, Pie, Cell,
+} from "recharts";
 import { statusLabels } from "@/lib/status";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { useAlertas } from "@/hooks/useAlertas";
-
 import { AlertsBanner } from "@/components/AlertsBanner";
 import type { GenericAlert } from "@/components/AlertsBanner";
-import { useState, useMemo } from "react";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { differenceInHours, startOfMonth, endOfMonth, subMonths, format, startOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, CartesianGrid,
-} from "recharts";
+
+// ─── TIPOS ────────────────────────────────────────────────────────────────────
 
 type OrderRow = {
   id: string;
@@ -44,6 +49,133 @@ type OrderRow = {
     clientes?: { nome: string; telefone: string } | null;
   } | null;
 };
+
+// ─── STATUS HELPERS ───────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  recebido: "Recebido",
+  em_analise: "Em Análise",
+  aguardando_aprovacao: "Aguard. Aprovação",
+  aprovado: "Aprovado",
+  em_reparo: "Em Reparo",
+  aguardando_peca: "Aguard. Peça",
+  pronto: "Pronto",
+  entregue: "Entregue",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  recebido: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  em_analise: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  aguardando_aprovacao: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  aprovado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  em_reparo: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  aguardando_peca: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  pronto: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  entregue: "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400",
+};
+
+const statusDotColors: Record<string, string> = {
+  recebido: "bg-muted-foreground",
+  em_analise: "bg-info",
+  aguardando_aprovacao: "bg-warning",
+  aprovado: "bg-success",
+  em_reparo: "bg-primary",
+  aguardando_peca: "bg-warning",
+  pronto: "bg-success",
+  entregue: "bg-muted-foreground/50",
+};
+
+const isFaturado = (s: string) => s === "pronto" || s === "entregue";
+const isAguardando = (s: string) =>
+  ["recebido", "em_analise", "em_reparo"].includes(s);
+const isAtrasado = (s: string, prazo: string | null | undefined) => {
+  if (!prazo) return false;
+  return new Date(prazo) < new Date() && !isFaturado(s);
+};
+const isIphone = (modelo: string) =>
+  /iphone|apple/i.test(modelo || "");
+
+// ─── FORMATAÇÃO ───────────────────────────────────────────────────────────────
+
+const brl = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+const pct = (v: number) => `${v.toFixed(1)}%`;
+
+const CHART_COLORS = [
+  "hsl(224, 76%, 48%)", "hsl(152, 55%, 42%)", "hsl(36, 90%, 52%)",
+  "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
+  "hsl(320, 60%, 50%)", "hsl(170, 55%, 42%)",
+];
+
+// ─── COMPONENTES AUXILIARES ───────────────────────────────────────────────────
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  color = "text-foreground",
+  bg = "bg-card",
+  badge,
+  iconColor = "text-primary",
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+  bg?: string;
+  badge?: React.ReactNode;
+  iconColor?: string;
+}) {
+  return (
+    <div className={`stat-card ${bg}`}>
+      <div className="flex items-center justify-between mb-3">
+        <Icon className={`h-4 w-4 ${iconColor}`} />
+        {badge}
+      </div>
+      <p className={`stat-value ${color}`}>{value}</p>
+      <p className="stat-label">{label}</p>
+      {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+      {children}
+    </h2>
+  );
+}
+
+function AlertCard({
+  type,
+  message,
+}: {
+  type: "warn" | "ok" | "error";
+  message: string;
+}) {
+  const styles = {
+    warn: "border-warning/30 bg-warning-muted text-warning",
+    ok: "border-success/20 bg-success-muted text-success",
+    error: "border-destructive/20 bg-destructive/5 text-destructive",
+  };
+  const icons = {
+    warn: <AlertTriangle className="h-3.5 w-3.5 shrink-0" />,
+    ok: <CheckCircle className="h-3.5 w-3.5 shrink-0" />,
+    error: <AlertCircle className="h-3.5 w-3.5 shrink-0" />,
+  };
+  return (
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${styles[type]}`}>
+      {icons[type]}
+      {message}
+    </div>
+  );
+}
+
+// ─── DATA FETCHING ────────────────────────────────────────────────────────────
 
 async function fetchDashboardSummary() {
   const { data, error } = await supabase.rpc("get_dashboard_summary");
@@ -128,35 +260,19 @@ async function fetchAjustesMes() {
   return data ?? [];
 }
 
-const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-const fmtShort = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`;
-
-const CHART_COLORS = [
-  "hsl(224, 76%, 48%)", "hsl(152, 55%, 42%)", "hsl(36, 90%, 52%)",
-  "hsl(212, 72%, 52%)", "hsl(0, 72%, 51%)", "hsl(280, 60%, 50%)",
-  "hsl(320, 60%, 50%)", "hsl(170, 55%, 42%)",
-];
-
-const statusColors: Record<string, string> = {
-  recebido: "bg-muted-foreground",
-  em_analise: "bg-info",
-  aguardando_aprovacao: "bg-warning",
-  aprovado: "bg-success",
-  em_reparo: "bg-primary",
-  aguardando_peca: "bg-warning",
-  pronto: "bg-success",
-  entregue: "bg-muted-foreground/50",
-};
+// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
   const [filtroLoja, setFiltroLoja] = useState("todas");
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: summary, isLoading: loadingOrders } = useQuery({
+  // ── QUERIES ──────────────────────────────────────────────────────────────
+
+  const { data: summary, isLoading } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: fetchDashboardSummary,
     refetchInterval: 60000,
@@ -223,6 +339,8 @@ export default function Dashboard() {
     return orders.filter(o => o.loja_id === filtroLoja);
   }, [orders, filtroLoja]);
 
+  // ── CÁLCULOS ────────────────────────────────────────────────────────────
+
   const kpis = useMemo(() => {
     const now = new Date();
     const hoje = startOfDay(now);
@@ -231,20 +349,15 @@ export default function Dashboard() {
 
     const ativas = filteredOrders.filter(o => o.status !== "entregue");
 
-    // --- FINANCEIRO DO MÊS ---
     const ordensMes = filteredOrders.filter(o => {
       const d = new Date(o.data_entrada);
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     });
 
-    // Faturamento: OS com status "pronto" ou "entregue" no mês
-    const ordensFaturadas = ordensMes.filter(o => o.status === "pronto" || o.status === "entregue");
-    const faturamentoMes = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-
-    // Custo de peças do mês
+    const ordensFaturadas = ordensMes.filter(o => isFaturado(o.status));
+    const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas pagas no mês - separadas em fixas e variáveis
     const allContasPagas = contasPagas ?? [];
     const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosFixos = allContasPagas
@@ -252,38 +365,59 @@ export default function Dashboard() {
       .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosVariaveis = despesasPagasMes - gastosFixos;
 
-    // Comissões do mês
     const comissoesMes = (comissoesMesData ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
-
-    // Recebimentos extras do mês
     const totalRecebimentos = (recebimentosMes ?? []).reduce((s: number, r: any) => s + Number(r.valor ?? 0), 0);
 
-    // Lucro real = Faturamento - Peças - Despesas - Comissões + Recebimentos
-    const lucroReal = faturamentoMes - custosPecasMes - despesasPagasMes - comissoesMes + totalRecebimentos;
+    // EBITDA
+    const ebitda = faturamento - custosPecasMes - despesasPagasMes - comissoesMes + totalRecebimentos;
+    const ebitdaMargem = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
+
+    // Ajustes mensais
+    const allAjustes = ajustesMes ?? [];
+    const depreciacao = allAjustes.filter((a: any) => a.tipo === "depreciacao").reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+    const impostos = allAjustes.filter((a: any) => a.tipo === "impostos").reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+    const outrosAjustes = allAjustes.filter((a: any) => a.tipo !== "depreciacao" && a.tipo !== "impostos").reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
+
+    // Lucro líquido
+    const ll = ebitda - depreciacao - impostos - outrosAjustes;
+    const llMargem = faturamento > 0 ? (ll / faturamento) * 100 : 0;
 
     // Ticket médio
     const ordensComValor = ordensFaturadas.filter(o => Number(o.valor ?? 0) > 0);
-    const ticketMedio = ordensComValor.length > 0
+    const ticket = ordensComValor.length > 0
       ? ordensComValor.reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensComValor.length
       : 0;
 
-    // --- OPERACIONAL ---
+    const llPorAssist = ordensMes.length > 0 ? ll / ordensMes.length : 0;
+
+    // Metas
+    const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
+    const metaFaturamento = Number(empresaConfig?.meta_faturamento_mes ?? 0);
+    const reservaPct = Number(empresaConfig?.percentual_reserva_empresa ?? 10);
+    const nSocios = Number(empresaConfig?.numero_socios ?? 1) || 1;
+
+    const prevLl = metaFaturamento > 0 && faturamento > 0 ? metaFaturamento * (ll / faturamento) : 0;
+    const totalGastos = custosPecasMes + despesasPagasMes + depreciacao + impostos;
+    const metaPct = metaGastos > 0 ? Math.min(100, (totalGastos / metaGastos) * 100) : 0;
+
+    // Distribuição
+    const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
+    const lucroDistrib = ll > 0 ? ll - reservaVal : 0;
+    const lucroSocio = lucroDistrib / Math.max(1, nSocios);
+
+    // Operacional
     const concluidas = filteredOrders.filter(o => o.data_conclusao);
     let tempoMedio = 0;
     if (concluidas.length > 0) {
-      const totalHoras = concluidas.reduce((s, o) => {
-        return s + differenceInHours(new Date(o.data_conclusao!), new Date(o.data_entrada));
-      }, 0);
+      const totalHoras = concluidas.reduce((s, o) => s + differenceInHours(new Date(o.data_conclusao!), new Date(o.data_entrada)), 0);
       tempoMedio = Math.round(totalHoras / concluidas.length);
     }
 
-    const emAtraso = ativas.filter(o =>
-      o.previsao_entrega && new Date(o.previsao_entrega) < now && o.status !== "pronto"
-    ).length;
-
+    const emAtraso = ativas.filter(o => o.previsao_entrega && new Date(o.previsao_entrega) < now && o.status !== "pronto").length;
     const emAssistencia = ativas.filter(o => !["pronto"].includes(o.status)).length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
-    const aguardandoReparo = ativas.filter(o => ["recebido", "em_analise", "em_reparo"].includes(o.status)).length;
+    const aguardandoReparo = ativas.filter(o => isAguardando(o.status)).length;
+    const emReparo = ativas.filter(o => o.status === "em_reparo").length;
 
     const statusCounts: Record<string, number> = {};
     for (const o of ativas) {
@@ -292,11 +426,13 @@ export default function Dashboard() {
 
     const contasValor = contasPendentes.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const comissoesValor = comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const contasVencidas = contasPendentes.filter((c: any) => new Date(c.data_vencimento + "T23:59:59") < hoje).length;
 
-    // Contas vencidas
-    const contasVencidas = contasPendentes.filter((c: any) =>
-      new Date(c.data_vencimento + "T23:59:59") < hoje
-    ).length;
+    const iphonesReparados = ordensMes.filter(o => {
+      const marca = (o.aparelhos as any)?.marca?.toLowerCase() ?? "";
+      const modelo = (o.aparelhos as any)?.modelo?.toLowerCase() ?? "";
+      return marca.includes("apple") || modelo.includes("iphone");
+    }).length;
 
     // Lucro por loja
     const lucroPorLoja: { nome: string; receita: number; custo: number; lucro: number }[] = [];
@@ -305,65 +441,35 @@ export default function Dashboard() {
         const ordensLoja = ordensMes.filter(o => o.loja_id === loja.id);
         const rec = ordensLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
         const cst = ordensLoja.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
-        if (rec > 0 || cst > 0) {
-          lucroPorLoja.push({ nome: loja.nome, receita: rec, custo: cst, lucro: rec - cst });
-        }
+        if (rec > 0 || cst > 0) lucroPorLoja.push({ nome: loja.nome, receita: rec, custo: cst, lucro: rec - cst });
       }
       const semLoja = ordensMes.filter(o => !o.loja_id);
       if (semLoja.length > 0) {
         const rec = semLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
         const cst = semLoja.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
-        if (rec > 0 || cst > 0) {
-          lucroPorLoja.push({ nome: "Sem loja", receita: rec, custo: cst, lucro: rec - cst });
-        }
+        if (rec > 0 || cst > 0) lucroPorLoja.push({ nome: "Sem loja", receita: rec, custo: cst, lucro: rec - cst });
       }
       lucroPorLoja.sort((a, b) => b.lucro - a.lucro);
     }
 
-    // Ajustes mensais (depreciação + impostos)
-    const allAjustes = ajustesMes ?? [];
-    const depreciacao = allAjustes
-      .filter((a: any) => a.tipo === "depreciacao")
-      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
-    const impostos = allAjustes
-      .filter((a: any) => a.tipo === "impostos")
-      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
-    const outrosAjustes = allAjustes
-      .filter((a: any) => a.tipo !== "depreciacao" && a.tipo !== "impostos")
-      .reduce((s: number, a: any) => s + Number(a.valor ?? 0), 0);
-
-    // Lucro líquido = Lucro real (EBITDA) - depreciação - impostos - outros
-    const lucroLiquido = lucroReal - depreciacao - impostos - outrosAjustes;
-
-    const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
-    const metaFaturamento = Number(empresaConfig?.meta_faturamento_mes ?? 0);
-    const margemLiquida = faturamentoMes > 0 ? lucroLiquido / faturamentoMes : 0;
-    const previsaoLucroLiquido = metaFaturamento > 0 ? metaFaturamento * margemLiquida : 0;
-
     return {
-      faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
-      totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
-      lucroPorOS: ordensMes.length > 0 ? lucroLiquido / ordensMes.length : 0,
-      depreciacao, impostos, outrosAjustes,
-      gastosFixos, gastosVariaveis, metaGastos, metaFaturamento,
-      previsaoLucroLiquido, margemLiquida,
-      tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, aguardandoReparo, statusCounts,
-      contasValor, comissoesValor, contasVencidas,
+      faturamento, custosPecasMes, despesasPagasMes, comissoesMes,
+      totalRecebimentos, ebitda, ebitdaMargem, ll, llMargem,
+      depreciacao, impostos, outrosAjustes, gastosFixos, gastosVariaveis,
+      ticket, llPorAssist, prevLl, totalGastos, metaGastos, metaFaturamento,
+      metaPct, reservaPct, nSocios, reservaVal, lucroDistrib, lucroSocio,
+      tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, aguardandoReparo, emReparo,
+      statusCounts, contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
       totalOrdensMes: ordensMes.length,
       totalFaturadas: ordensFaturadas.length,
-      iphonesReparados: ordensMes.filter(o => {
-        const marca = (o.aparelhos as any)?.marca?.toLowerCase() ?? "";
-        const modelo = (o.aparelhos as any)?.modelo?.toLowerCase() ?? "";
-        return marca.includes("apple") || modelo.includes("iphone");
-      }).length,
-      lucroPorLoja,
+      iphonesReparados, lucroPorLoja,
     };
   }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
-    const meses: { name: string; faturamento: number; lucro: number }[] = [];
+    const meses: { mes: string; faturamento: number; lucro: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(new Date(), i);
       const start = startOfMonth(d);
@@ -372,12 +478,10 @@ export default function Dashboard() {
         const de = new Date(o.data_entrada);
         return de >= start && de <= end;
       });
-      const fat = mesOrdens
-        .filter(o => o.status === "pronto" || o.status === "entregue")
-        .reduce((s, o) => s + Number(o.valor ?? 0), 0);
+      const fat = mesOrdens.filter(o => isFaturado(o.status)).reduce((s, o) => s + Number(o.valor ?? 0), 0);
       const custo = mesOrdens.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
       meses.push({
-        name: format(d, "MMM", { locale: ptBR }),
+        mes: format(d, "MMM", { locale: ptBR }),
         faturamento: fat,
         lucro: fat - custo,
       });
@@ -390,7 +494,7 @@ export default function Dashboard() {
     const ativas = filteredOrders.filter(o => o.status !== "entregue");
     const counts: Record<string, number> = {};
     for (const o of ativas) {
-      const label = statusLabels[o.status] || o.status;
+      const label = STATUS_LABELS[o.status] || o.status;
       counts[label] = (counts[label] || 0) + 1;
     }
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
@@ -408,12 +512,17 @@ export default function Dashboard() {
       const marca = o.aparelhos?.marca ?? "Outros";
       counts[marca] = (counts[marca] || 0) + 1;
     }
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, value]) => ({ name, value }));
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value }));
   }, [filteredOrders]);
 
+  // OS Urgentes
+  const osUrgentes = useMemo(() => {
+    return filteredOrders.filter(
+      o => isAtrasado(o.status, o.previsao_entrega) || o.status === "aguardando_aprovacao"
+    );
+  }, [filteredOrders]);
+
+  // Alertas
   const alertasOS = useAlertas(filteredOrders);
 
   const allAlertas = useMemo<GenericAlert[]>(() => {
@@ -421,51 +530,63 @@ export default function Dashboard() {
     const hoje = new Date().toISOString().split("T")[0];
     const contasHoje = contasPendentes.filter((c: any) => c.data_vencimento === hoje);
     const contasAtrasadas = contasPendentes.filter((c: any) => c.data_vencimento < hoje);
-
     if (contasAtrasadas.length > 0) {
-      finAlertas.push({
-        type: "danger",
-        message: `${contasAtrasadas.length} conta(s) a pagar atrasada(s) — total R$ ${contasAtrasadas.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
-      });
+      finAlertas.push({ type: "danger", message: `${contasAtrasadas.length} conta(s) a pagar atrasada(s) — total R$ ${contasAtrasadas.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}` });
     }
     if (contasHoje.length > 0) {
-      finAlertas.push({
-        type: "warning",
-        message: `${contasHoje.length} conta(s) vencendo hoje — total R$ ${contasHoje.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
-      });
+      finAlertas.push({ type: "warning", message: `${contasHoje.length} conta(s) vencendo hoje — total R$ ${contasHoje.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}` });
     }
     if (comissoesPendentes.length > 0) {
-      finAlertas.push({
-        type: "info",
-        message: `${comissoesPendentes.length} comissão(ões) pendente(s) — total R$ ${comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}`,
-      });
+      finAlertas.push({ type: "info", message: `${comissoesPendentes.length} comissão(ões) pendente(s) — total R$ ${comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}` });
     }
-
     return [...finAlertas, ...alertasOS];
   }, [alertasOS, contasPendentes, comissoesPendentes]);
 
   const handleAlertAction = (action: string, orderId: string, phone?: string) => {
-    const sendWhatsApp = (p: string, msg: string) => abrirWhatsApp(p, msg);
     const order = orders.find(o => o.id === orderId);
     const osLabel = `OS #${String(order?.numero ?? 0).padStart(3, "0")}`;
-
     if ((action === "whatsapp_retirada" || action === "whatsapp") && phone) {
-      sendWhatsApp(phone, `Olá! Informamos que o serviço referente à ${osLabel} está pronto para retirada. Aguardamos seu contato!`);
+      abrirWhatsApp(phone, `Olá! Informamos que o serviço referente à ${osLabel} está pronto para retirada. Aguardamos seu contato!`);
     } else if ((action === "cobrar_aprovacao" || action === "cobrar") && phone) {
-      sendWhatsApp(phone, `Olá! O serviço referente à ${osLabel} está aguardando sua aprovação. Por favor, entre em contato conosco.`);
+      abrirWhatsApp(phone, `Olá! O serviço referente à ${osLabel} está aguardando sua aprovação. Por favor, entre em contato conosco.`);
     } else if (action === "entregar") {
-      const order2 = orders.find(o => o.id === orderId);
-      pedirConfirmacao({
-        orderId,
-        numero: order2?.numero ?? 0,
-        clienteNome: order2?.aparelhos?.clientes?.nome ?? "—",
-      });
+      pedirConfirmacao({ orderId, numero: order?.numero ?? 0, clienteNome: order?.aparelhos?.clientes?.nome ?? "—" });
     } else if (action === "verificar_status") {
       setSelectedOrderId(orderId);
     }
   };
 
-  if (loadingOrders) {
+  const socios = sociosList ?? [];
+  const tempoMedioLabel = kpis.tempoMedio < 24 ? `${kpis.tempoMedio}h` : `${Math.round(kpis.tempoMedio / 24)}d`;
+
+  // ── ALERTAS AUTOMÁTICOS ──────────────────────────────────────────────────
+
+  const alertas = useMemo(() => {
+    const list: { type: "warn" | "ok" | "error"; message: string }[] = [];
+    if (kpis.ll < 0)
+      list.push({ type: "error", message: `Prejuízo de ${brl(Math.abs(kpis.ll))} este mês — revise os custos com urgência.` });
+    if (kpis.llMargem >= 0 && kpis.llMargem < 10)
+      list.push({ type: "warn", message: `Margem líquida baixa (${pct(kpis.llMargem)}) — atenção aos custos.` });
+    if (kpis.faturamento > 0 && kpis.custosPecasMes / kpis.faturamento > 0.4)
+      list.push({ type: "warn", message: `Custo de peças acima de 40% do faturamento — avalie a margem por serviço.` });
+    if (kpis.aguardandoReparo > 20)
+      list.push({ type: "warn", message: `${kpis.aguardandoReparo} aparelhos aguardando reparo — risco de insatisfação.` });
+    if (kpis.emAtraso > 0)
+      list.push({ type: "warn", message: `${kpis.emAtraso} OS com prazo vencido.` });
+    if (kpis.metaGastos > 0 && kpis.totalGastos > kpis.metaGastos)
+      list.push({ type: "warn", message: `Gastos ultrapassaram a meta mensal de ${brl(kpis.metaGastos)}.` });
+    if (kpis.ll > 0 && kpis.llMargem >= 20)
+      list.push({ type: "ok", message: `Ótima performance! Margem líquida de ${pct(kpis.llMargem)} este mês.` });
+    if (kpis.ticket > 250)
+      list.push({ type: "ok", message: `Ticket médio saudável de ${brl(kpis.ticket)} por OS.` });
+    return list;
+  }, [kpis]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  if (isLoading) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -473,17 +594,16 @@ export default function Dashboard() {
     );
   }
 
-  const tempoMedioLabel = kpis.tempoMedio < 24
-    ? `${kpis.tempoMedio}h`
-    : `${Math.round(kpis.tempoMedio / 24)}d`;
-
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Header */}
+
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="page-title">Central de Controle</h1>
-          <p className="page-subtitle">Visão completa do negócio</p>
+          <p className="page-subtitle">
+            {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           {lojas.length > 0 && (
@@ -500,481 +620,446 @@ export default function Dashboard() {
               </SelectContent>
             </Select>
           )}
+          <Button size="sm" variant="outline" onClick={() => navigate("/configuracoes")} className="gap-1.5 h-8 text-xs">
+            <Settings className="h-3.5 w-3.5" /> Config
+          </Button>
           <Button size="sm" onClick={() => setNovaOrdemOpen(true)} className="gap-1.5 h-8 text-xs">
             <Plus className="h-3.5 w-3.5" /> Nova OS
           </Button>
         </div>
       </div>
 
-      {/* Alerts */}
+      {/* Alerts Banner */}
       {allAlertas.length > 0 && (
-        <AlertsBanner
-          alertas={allAlertas}
-          max={5}
-          onClickAlert={setSelectedOrderId}
-          onAction={handleAlertAction}
-        />
+        <AlertsBanner alertas={allAlertas} max={5} onClickAlert={setSelectedOrderId} onAction={handleAlertAction} />
       )}
 
-      {/* SEÇÃO 1 — FINANCEIRO DO MÊS */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Financeiro do Mês</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <div className="stat-card">
-            <div className="flex items-center justify-between mb-3">
-              <DollarSign className="h-4 w-4 text-primary" />
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{kpis.totalFaturadas} OS</span>
-            </div>
-            <p className="stat-value">{fmt(kpis.faturamentoMes)}</p>
-            <p className="stat-label">Faturamento</p>
-          </div>
-
-          <div className={`stat-card ${kpis.lucroReal >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
-            <div className="flex items-center justify-between mb-3">
-              <TrendingUp className={`h-4 w-4 ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`} />
-              {kpis.faturamentoMes > 0 && (
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.lucroReal >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                  {((kpis.lucroReal / kpis.faturamentoMes) * 100).toFixed(1)}%
-                </span>
-              )}
-            </div>
-            <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroReal)}</p>
-            <p className="stat-label">EBITDA (margem)</p>
-          </div>
-
-          {(() => {
-            const margemPct = kpis.faturamentoMes > 0 ? (kpis.lucroLiquido / kpis.faturamentoMes) * 100 : 0;
-            // Verde ≥ 15%, Amarelo 0-15%, Vermelho < 0%
-            const faixa = margemPct >= 15 ? "success" : margemPct >= 0 ? "warning" : "destructive";
-            const borderBg = faixa === "success"
-              ? "border-success/20 bg-success-muted"
-              : faixa === "warning"
-                ? "border-warning/30 bg-warning-muted"
-                : "border-destructive/20 bg-destructive/5";
-            const textColor = faixa === "success" ? "text-success" : faixa === "warning" ? "text-warning" : "text-destructive";
-            const badgeBg = faixa === "success" ? "bg-success/10 text-success" : faixa === "warning" ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive";
+      {/* ── OS URGENTES ── */}
+      {osUrgentes.length > 0 && (
+        <div className="space-y-1.5">
+          <SectionTitle>OS Urgentes</SectionTitle>
+          {osUrgentes.slice(0, 5).map(o => {
+            const clienteNome = o.aparelhos?.clientes?.nome ?? "—";
+            const modelo = o.aparelhos?.modelo ?? "—";
+            const atrasado = isAtrasado(o.status, o.previsao_entrega);
             return (
-              <div className={`stat-card ${borderBg}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <ArrowDownRight className={`h-4 w-4 ${textColor}`} />
-                  {kpis.faturamentoMes > 0 && (
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeBg}`}>
-                      {margemPct.toFixed(1)}%
-                    </span>
-                  )}
+              <div
+                key={o.id}
+                onClick={() => setSelectedOrderId(o.id)}
+                className={`flex items-start justify-between rounded-lg border px-3 py-2.5 cursor-pointer hover:brightness-95 transition-all ${
+                  atrasado
+                    ? "border-destructive/20 bg-destructive/5"
+                    : "border-warning/30 bg-warning-muted"
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className={`h-4 w-4 mt-0.5 shrink-0 ${atrasado ? "text-destructive" : "text-warning"}`} />
+                  <div>
+                    <p className="text-xs font-semibold">
+                      #{String(o.numero).padStart(3, "0")} — {modelo} de {clienteNome}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {atrasado ? "⚠️ Prazo vencido" : "💰 Aguardando aprovação do cliente"}
+                    </p>
+                  </div>
                 </div>
-                <p className={`stat-value ${textColor}`}>{fmt(kpis.lucroLiquido)}</p>
-                <p className="stat-label">{kpis.lucroLiquido < 0 ? "Prejuízo líquido" : "Lucro líquido (margem)"}</p>
-                {kpis.lucroLiquido < 0 && (
-                  <p className="text-[10px] text-destructive font-semibold mt-1">
-                    ⚠ Déficit de {fmt(Math.abs(kpis.lucroLiquido))}
-                  </p>
-                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </div>
             );
-          })()}
+          })}
+        </div>
+      )}
 
-          <div className="stat-card">
-            <DollarSign className="h-4 w-4 text-info mb-3" />
-            <p className="stat-value">{fmt(kpis.ticketMedio)}</p>
-            <p className="stat-label">Ticket médio</p>
-          </div>
+      {/* ══════════════════════════════════════════════════════════════════════
+          SEÇÃO 1 — FINANCEIRO DO MÊS
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div>
+        <SectionTitle>Financeiro do mês</SectionTitle>
 
-          <div className={`stat-card ${kpis.lucroPorOS < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-            <ArrowDownRight className={`h-4 w-4 mb-3 ${kpis.lucroPorOS >= 0 ? "text-success" : "text-destructive"}`} />
-            <p className={`stat-value ${kpis.lucroPorOS >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroPorOS)}</p>
-            <p className="stat-label">Lucro líq. por OS</p>
-          </div>
-
-          <div className={`stat-card ${kpis.contasVencidas > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-            <CreditCard className={`h-4 w-4 mb-3 ${kpis.contasVencidas > 0 ? "text-destructive" : "text-warning"}`} />
-            <p className={`stat-value ${kpis.contasVencidas > 0 ? "text-destructive" : ""}`}>{fmt(kpis.contasValor)}</p>
-            <p className="stat-label">Contas a pagar{kpis.contasVencidas > 0 ? ` (${kpis.contasVencidas} vencida${kpis.contasVencidas > 1 ? "s" : ""})` : ""}</p>
-          </div>
+        {/* Linha 1: Faturamento, EBITDA, Lucro Líquido, Saúde Financeira */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard
+            icon={DollarSign}
+            label="Faturamento"
+            value={brl(kpis.faturamento)}
+            iconColor="text-primary"
+            badge={
+              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                {kpis.totalFaturadas} OS
+              </span>
+            }
+          />
+          <MetricCard
+            icon={TrendingUp}
+            label="EBITDA"
+            value={brl(kpis.ebitda)}
+            color={kpis.ebitda >= 0 ? "text-success" : "text-destructive"}
+            iconColor={kpis.ebitda >= 0 ? "text-success" : "text-destructive"}
+            badge={
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.ebitda >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                {pct(kpis.ebitdaMargem)}
+              </span>
+            }
+          />
+          <MetricCard
+            icon={kpis.ll >= 0 ? TrendingUp : TrendingDown}
+            label="Lucro líquido"
+            value={brl(kpis.ll)}
+            sub={`margem ${pct(kpis.llMargem)}`}
+            color={kpis.ll >= 0 ? "text-success" : "text-destructive"}
+            iconColor={kpis.ll >= 0 ? "text-success" : "text-destructive"}
+            badge={
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${kpis.ll >= 0 ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                {pct(kpis.llMargem)}
+              </span>
+            }
+          />
+          <MetricCard
+            icon={Target}
+            label="Saúde financeira"
+            value={kpis.llMargem >= 20 ? "Excelente" : kpis.llMargem >= 10 ? "Saudável" : kpis.llMargem >= 0 ? "Atenção" : "Prejuízo"}
+            color={kpis.llMargem >= 20 ? "text-success" : kpis.llMargem >= 10 ? "text-info" : kpis.llMargem >= 0 ? "text-warning" : "text-destructive"}
+            iconColor={kpis.llMargem >= 10 ? "text-success" : "text-warning"}
+          />
         </div>
 
-        {/* Breakdown row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-3">
-          <div className="stat-card py-3">
-            <Wallet className="h-3.5 w-3.5 text-success mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.totalRecebimentos)}</p>
-            <p className="stat-label">Recebimentos</p>
-          </div>
-          <div className="stat-card py-3">
-            <Package className="h-3.5 w-3.5 text-warning mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.custosPecasMes)}</p>
-            <p className="stat-label">Custo peças</p>
-          </div>
-          <div className="stat-card py-3">
-            <Receipt className="h-3.5 w-3.5 text-destructive mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.despesasPagasMes)}</p>
-            <p className="stat-label">Despesas pagas</p>
-          </div>
-          <div className="stat-card py-3">
-            <Users className="h-3.5 w-3.5 text-info mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.comissoesMes)}</p>
-            <p className="stat-label">Comissões</p>
-          </div>
-          <div className="stat-card py-3">
-            <Receipt className="h-3.5 w-3.5 text-muted-foreground mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.depreciacao)}</p>
-            <p className="stat-label">Depreciação</p>
-          </div>
-          <div className="stat-card py-3">
-            <CreditCard className="h-3.5 w-3.5 text-muted-foreground mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.impostos)}</p>
-            <p className="stat-label">Impostos</p>
-          </div>
-          <div className="stat-card py-3">
-            <Users className="h-3.5 w-3.5 text-warning mb-2" />
-            <p className="text-sm font-semibold">{fmt(kpis.comissoesValor)}</p>
-            <p className="stat-label">Comissões pendentes</p>
-          </div>
+        {/* Linha 2: Peças, Fixos, Depreciação, Impostos, Ticket */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
+          <MetricCard
+            icon={Package}
+            label="Custo de peças"
+            value={brl(kpis.custosPecasMes)}
+            sub={kpis.faturamento > 0 ? `${pct((kpis.custosPecasMes / kpis.faturamento) * 100)} do fat.` : undefined}
+            iconColor="text-warning"
+          />
+          <MetricCard
+            icon={Receipt}
+            label="Gastos fixos"
+            value={brl(kpis.gastosFixos)}
+            iconColor="text-muted-foreground"
+          />
+          <MetricCard
+            icon={Receipt}
+            label="Depreciação"
+            value={brl(kpis.depreciacao)}
+            iconColor="text-muted-foreground"
+          />
+          <MetricCard
+            icon={CreditCard}
+            label="Impostos"
+            value={brl(kpis.impostos)}
+            iconColor="text-muted-foreground"
+          />
+          <MetricCard
+            icon={DollarSign}
+            label="Ticket médio"
+            value={brl(kpis.ticket)}
+            iconColor="text-info"
+          />
+          <MetricCard
+            icon={ArrowDownRight}
+            label="Lucro líq./OS"
+            value={brl(kpis.llPorAssist)}
+            color={kpis.llPorAssist >= 0 ? "text-success" : "text-destructive"}
+            iconColor={kpis.llPorAssist >= 0 ? "text-success" : "text-destructive"}
+          />
         </div>
 
-        {/* Fórmulas */}
+        {/* Fórmula resumida */}
         <div className="section-card mt-3">
           <div className="p-3 space-y-1">
             <p className="text-xs text-muted-foreground">
-              <strong>EBITDA:</strong> Faturamento ({fmt(kpis.faturamentoMes)}) + Recebimentos ({fmt(kpis.totalRecebimentos)}) − Peças ({fmt(kpis.custosPecasMes)}) − Despesas ({fmt(kpis.despesasPagasMes)}) − Comissões ({fmt(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmt(kpis.lucroReal)}</strong>
+              <strong>EBITDA:</strong>{" "}
+              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Outros ({brl(kpis.gastosVariaveis)}) ={" "}
+              <strong className={kpis.ebitda >= 0 ? "text-success" : "text-destructive"}>{brl(kpis.ebitda)}</strong>
             </p>
             <p className="text-xs text-muted-foreground">
-              <strong>Lucro líquido:</strong> EBITDA ({fmt(kpis.lucroReal)}) − Depreciação ({fmt(kpis.depreciacao)}) − Impostos ({fmt(kpis.impostos)}){kpis.outrosAjustes > 0 ? ` − Outros (${fmt(kpis.outrosAjustes)})` : ""} = <strong className={kpis.lucroLiquido >= 0 ? "text-success" : "text-destructive"}>{fmt(kpis.lucroLiquido)}</strong>
+              <strong>Lucro líquido:</strong>{" "}
+              EBITDA ({brl(kpis.ebitda)}) − Depreciação ({brl(kpis.depreciacao)}) − Impostos ({brl(kpis.impostos)}) ={" "}
+              <strong className={kpis.ll >= 0 ? "text-success" : "text-destructive"}>{brl(kpis.ll)}</strong>
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Barra de progresso faturamento vs meta */}
-        {kpis.metaFaturamento > 0 && (
-          <div className="section-card mt-3">
-            <div className="p-3">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-muted-foreground">Faturamento vs Meta</span>
-                <span className={`font-semibold ${kpis.faturamentoMes >= kpis.metaFaturamento ? "text-success" : kpis.faturamentoMes >= kpis.metaFaturamento * 0.6 ? "text-warning" : "text-destructive"}`}>
-                  {((kpis.faturamentoMes / kpis.metaFaturamento) * 100).toFixed(0)}%
-                </span>
+      {/* ══════════════════════════════════════════════════════════════════════
+          SEÇÃO 2 — GASTOS E PREVISÕES
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div>
+        <SectionTitle>Gastos e previsões</SectionTitle>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard icon={Receipt} label="Total gastos do mês" value={brl(kpis.totalGastos)} iconColor="text-destructive" />
+          <MetricCard icon={Receipt} label="Gastos variáveis" value={brl(kpis.gastosVariaveis)} iconColor="text-warning" />
+          <MetricCard
+            icon={Target}
+            label="Previsão faturamento"
+            value={kpis.metaFaturamento > 0 ? brl(kpis.metaFaturamento) : "Não definida"}
+            sub={kpis.metaFaturamento > 0 && kpis.faturamento > 0 ? `${pct((kpis.faturamento / kpis.metaFaturamento) * 100)} realizado` : undefined}
+            iconColor="text-info"
+            color={kpis.metaFaturamento > 0 ? "text-info" : "text-muted-foreground"}
+          />
+          <MetricCard
+            icon={TrendingUp}
+            label="Previsão lucro líq."
+            value={kpis.prevLl > 0 ? brl(kpis.prevLl) : "—"}
+            sub={kpis.metaFaturamento > 0 ? `margem estimada ${pct(kpis.llMargem)}` : undefined}
+            color={kpis.prevLl > 0 ? "text-success" : "text-muted-foreground"}
+            iconColor="text-success"
+          />
+        </div>
+
+        {/* Barra de progresso: gastos vs meta */}
+        <div className="section-card mt-3">
+          <div className="p-3">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <div className="flex items-center gap-2">
+                <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground font-medium">Gastos vs meta mensal</span>
               </div>
-              <div className="h-3 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    kpis.faturamentoMes >= kpis.metaFaturamento
-                      ? "bg-success"
-                      : kpis.faturamentoMes >= kpis.metaFaturamento * 0.6
-                        ? "bg-warning"
-                        : "bg-destructive"
-                  }`}
-                  style={{ width: `${Math.min((kpis.faturamentoMes / kpis.metaFaturamento) * 100, 100)}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>{fmt(kpis.faturamentoMes)} faturado</span>
-                <span>{fmt(kpis.metaFaturamento)} meta</span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{brl(kpis.totalGastos)}</span>
+                <span className="text-muted-foreground">/ {kpis.metaGastos > 0 ? brl(kpis.metaGastos) : "sem meta"}</span>
               </div>
             </div>
+            {kpis.metaGastos > 0 ? (
+              <>
+                <Progress
+                  value={kpis.metaPct}
+                  className={`h-3 ${kpis.metaPct > 100 ? "[&>div]:bg-destructive" : kpis.metaPct > 80 ? "[&>div]:bg-warning" : "[&>div]:bg-success"}`}
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>{pct(kpis.metaPct)} utilizado</span>
+                  <span className={
+                    kpis.totalGastos > kpis.metaGastos
+                      ? "text-destructive font-medium"
+                      : kpis.totalGastos > kpis.metaGastos * 0.8
+                        ? "text-warning font-medium"
+                        : "text-success font-medium"
+                  }>
+                    {kpis.totalGastos > kpis.metaGastos
+                      ? `${brl(kpis.totalGastos - kpis.metaGastos)} acima da meta`
+                      : `${brl(kpis.metaGastos - kpis.totalGastos)} disponível`}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Configure uma meta em{" "}
+                <span onClick={() => navigate("/configuracoes")} className="text-primary underline cursor-pointer">
+                  Configurações
+                </span>
+              </p>
+            )}
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Previsão de lucro líquido */}
-        {kpis.metaFaturamento > 0 && kpis.faturamentoMes > 0 && (
-          <div className="section-card mt-3">
-            <div className="p-3 flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                <strong>Previsão de lucro líquido:</strong> Meta faturamento ({fmt(kpis.metaFaturamento)}) × Margem atual ({(kpis.margemLiquida * 100).toFixed(1)}%)
-              </div>
-              <span className={`text-sm font-bold ${kpis.previsaoLucroLiquido >= 0 ? "text-success" : "text-destructive"}`}>
-                {fmt(kpis.previsaoLucroLiquido)}
+      {/* ══════════════════════════════════════════════════════════════════════
+          SEÇÃO 3 — OPERACIONAL
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div>
+        <SectionTitle>Operacional</SectionTitle>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <MetricCard icon={Wrench} label="Assistências no mês" value={String(kpis.totalOrdensMes)} iconColor="text-primary" />
+          <MetricCard
+            icon={Smartphone}
+            label="iPhones"
+            value={String(kpis.iphonesReparados)}
+            sub={kpis.totalOrdensMes > 0 ? pct((kpis.iphonesReparados / kpis.totalOrdensMes) * 100) : "—"}
+            iconColor="text-muted-foreground"
+          />
+          <MetricCard
+            icon={Clock}
+            label="Aguardando reparo"
+            value={String(kpis.aguardandoReparo)}
+            color={kpis.aguardandoReparo > 20 ? "text-warning" : "text-foreground"}
+            iconColor={kpis.aguardandoReparo > 20 ? "text-warning" : "text-muted-foreground"}
+          />
+          <MetricCard icon={Wrench} label="Em reparo" value={String(kpis.emReparo)} iconColor="text-info" />
+          <MetricCard
+            icon={CheckCircle}
+            label="Prontos p/ entrega"
+            value={String(kpis.aguardandoEntrega)}
+            iconColor="text-success"
+          />
+          <MetricCard
+            icon={AlertTriangle}
+            label="Em atraso"
+            value={String(kpis.emAtraso)}
+            color={kpis.emAtraso > 0 ? "text-destructive" : "text-foreground"}
+            iconColor={kpis.emAtraso > 0 ? "text-destructive" : "text-muted-foreground"}
+          />
+        </div>
+
+        {/* Lucro por assistência + Custo médio */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+          <MetricCard
+            icon={DollarSign}
+            label="Lucro líq. / assistência"
+            value={brl(kpis.llPorAssist)}
+            color={kpis.llPorAssist >= 0 ? "text-success" : "text-destructive"}
+            iconColor={kpis.llPorAssist >= 0 ? "text-success" : "text-destructive"}
+          />
+          <MetricCard
+            icon={Package}
+            label="Custo médio / OS"
+            value={brl(kpis.totalOrdensMes > 0 ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalOrdensMes : 0)}
+            sub="peças + fixos"
+            iconColor="text-muted-foreground"
+          />
+          <MetricCard
+            icon={Timer}
+            label="Tempo médio reparo"
+            value={tempoMedioLabel}
+            iconColor="text-muted-foreground"
+          />
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SEÇÃO 4 — DISTRIBUIÇÃO DO LUCRO
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div>
+        <SectionTitle>Distribuição do lucro</SectionTitle>
+
+        <div className="section-card">
+          <div className="p-4 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Lucro por sócio</span>
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                {pct(kpis.reservaPct)} reservado para empresa
               </span>
             </div>
-          </div>
-        )}
-      </div>
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Gastos e Previsões</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="stat-card">
-            <Receipt className="h-4 w-4 text-muted-foreground mb-3" />
-            <p className="stat-value">{fmt(kpis.gastosFixos)}</p>
-            <p className="stat-label">Gastos fixos</p>
-          </div>
-          <div className="stat-card">
-            <Receipt className="h-4 w-4 text-warning mb-3" />
-            <p className="stat-value">{fmt(kpis.gastosVariaveis)}</p>
-            <p className="stat-label">Gastos variáveis</p>
-          </div>
-          <div className="stat-card">
-            <DollarSign className="h-4 w-4 text-info mb-3" />
-            <p className="stat-value">{fmt(kpis.despesasPagasMes)}</p>
-            <p className="stat-label">Total gastos do mês</p>
-          </div>
-          <div className={`stat-card ${kpis.metaGastos > 0 && kpis.despesasPagasMes > kpis.metaGastos ? "border-destructive/20 bg-destructive/5" : ""}`}>
-            <AlertTriangle className={`h-4 w-4 mb-3 ${kpis.metaGastos > 0 && kpis.despesasPagasMes > kpis.metaGastos ? "text-destructive" : "text-muted-foreground"}`} />
-            <p className="stat-value">{kpis.metaGastos > 0 ? fmt(kpis.metaGastos) : "Não definida"}</p>
-            <p className="stat-label">Meta de gastos</p>
+
+            {kpis.ll <= 0 ? (
+              <p className="text-xs text-muted-foreground">Sem lucro a distribuir este mês.</p>
+            ) : (
+              <>
+                {/* Barra visual da divisão */}
+                <div className="flex rounded-full overflow-hidden h-3">
+                  <div className="bg-warning" style={{ width: `${kpis.reservaPct}%` }} />
+                  <div className="bg-success" style={{ width: `${100 - kpis.reservaPct}%` }} />
+                </div>
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-warning inline-block" />
+                    Reserva empresa {brl(kpis.reservaVal)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-success inline-block" />
+                    Distribuível {brl(kpis.lucroDistrib)}
+                  </span>
+                </div>
+
+                {/* Sócios */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
+                  {Array.from({ length: kpis.nSocios }).map((_, i) => {
+                    const socio = socios[i];
+                    const nome = socio?.nome?.trim() || `Sócio ${i + 1}`;
+                    return (
+                      <div key={i} className="stat-card border-success/20 bg-success-muted py-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-7 w-7 rounded-full bg-success/20 text-success flex items-center justify-center text-xs font-bold">
+                            {nome[0]?.toUpperCase() || String(i + 1)}
+                          </div>
+                          <span className="text-xs font-medium text-muted-foreground">{nome}</span>
+                        </div>
+                        <p className="text-sm font-bold text-success">{brl(kpis.lucroSocio)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={() => navigate("/configuracoes")}
+              className="mt-3 text-xs text-primary flex items-center gap-1 hover:underline"
+            >
+              <Settings className="h-3 w-3" /> Editar sócios e reserva
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Barra de progresso gastos vs meta */}
-        {kpis.metaGastos > 0 && (
-          <div className="section-card mt-3">
-            <div className="p-3">
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="text-muted-foreground">Gastos vs Meta</span>
-                <span className={`font-semibold ${kpis.despesasPagasMes > kpis.metaGastos ? "text-destructive" : kpis.despesasPagasMes > kpis.metaGastos * 0.8 ? "text-warning" : "text-success"}`}>
-                  {((kpis.despesasPagasMes / kpis.metaGastos) * 100).toFixed(0)}%
+      {/* ══════════════════════════════════════════════════════════════════════
+          SEÇÃO 5 — ALERTAS AUTOMÁTICOS
+      ══════════════════════════════════════════════════════════════════════ */}
+      {alertas.length > 0 && (
+        <div>
+          <SectionTitle>Alertas automáticos</SectionTitle>
+          <div className="space-y-1.5">
+            {alertas.map((a, i) => (
+              <AlertCard key={i} type={a.type} message={a.message} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SEÇÃO 6 — GRÁFICO — FATURAMENTO x LUCRO (6 meses)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div>
+        <SectionTitle>Faturamento x Lucro</SectionTitle>
+        <div className="section-card">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-primary inline-block" />
+                  Faturamento
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-success inline-block" />
+                  Lucro
                 </span>
               </div>
-              <div className="h-3 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    kpis.despesasPagasMes > kpis.metaGastos
-                      ? "bg-destructive"
-                      : kpis.despesasPagasMes > kpis.metaGastos * 0.8
-                        ? "bg-warning"
-                        : "bg-success"
-                  }`}
-                  style={{ width: `${Math.min((kpis.despesasPagasMes / kpis.metaGastos) * 100, 100)}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                <span>{fmt(kpis.despesasPagasMes)} gastos</span>
-                <span>{fmt(kpis.metaGastos)} meta</span>
-              </div>
+              <span className="text-[10px] text-muted-foreground">Últimos 6 meses</span>
+            </div>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={faturamentoChart} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)} />
+                  <RTooltip
+                    formatter={(value: number) => [brl(value)]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                  />
+                  <Bar dataKey="faturamento" name="Faturamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="lucro" name="Lucro" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* SEÇÃO 3 — OPERACIONAL */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          ORDENS POR STATUS
+      ══════════════════════════════════════════════════════════════════════ */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operacional</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="stat-card">
-            <Wrench className="h-4 w-4 text-primary mb-3" />
-            <p className="stat-value">{kpis.totalOrdensMes}</p>
-            <p className="stat-label">Assistências no mês</p>
-          </div>
-          <div className="stat-card">
-            <Smartphone className="h-4 w-4 text-muted-foreground mb-3" />
-            <p className="stat-value">{kpis.iphonesReparados}</p>
-            <p className="stat-label">iPhones no mês</p>
-          </div>
-          <div className="stat-card">
-            <Clock className="h-4 w-4 text-warning mb-3" />
-            <p className="stat-value">{kpis.aguardandoReparo}</p>
-            <p className="stat-label">Aguardando reparo</p>
-          </div>
-          <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
-            <Wrench className="h-4 w-4 text-info mb-3" />
-            <p className="stat-value">{kpis.emAssistencia}</p>
-            <p className="stat-label">Em assistência</p>
-          </div>
-          <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia?status=pronto")}>
-            <CheckCircle className="h-4 w-4 text-success mb-3" />
-            <p className="stat-value">{kpis.aguardandoEntrega}</p>
-            <p className="stat-label">Prontos p/ entrega</p>
-          </div>
-          <div className={`stat-card ${kpis.emAtraso > 0 ? "border-destructive/30" : ""}`}>
-            <AlertTriangle className={`h-4 w-4 mb-3 ${kpis.emAtraso > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-            <p className={`stat-value ${kpis.emAtraso > 0 ? "text-destructive" : ""}`}>{kpis.emAtraso}</p>
-            <p className="stat-label">Em atraso</p>
-          </div>
-          <div className="stat-card">
-            <Timer className="h-4 w-4 text-muted-foreground mb-3" />
-            <p className="stat-value">{tempoMedioLabel}</p>
-            <p className="stat-label">Tempo médio reparo</p>
-          </div>
-          <div className={`stat-card ${kpis.estoqueBaixo > 0 ? "border-warning/30" : ""}`}>
-            <Package className={`h-4 w-4 mb-3 ${kpis.estoqueBaixo > 0 ? "text-warning" : "text-muted-foreground"}`} />
-            <p className={`stat-value ${kpis.estoqueBaixo > 0 ? "text-warning" : ""}`}>{kpis.estoqueBaixo}</p>
-            <p className="stat-label">Estoque baixo</p>
-          </div>
-        </div>
-      </div>
-
-      {/* SEÇÃO 4 — DISTRIBUIÇÃO DO LUCRO */}
-      {(() => {
-        const numSocios = Number(empresaConfig?.numero_socios ?? 1) || 1;
-        const pctReserva = Number(empresaConfig?.percentual_reserva_empresa ?? 10);
-        const lucro = kpis.lucroLiquido;
-        const reserva = lucro > 0 ? lucro * (pctReserva / 100) : 0;
-        const lucroDistribuivel = lucro > 0 ? lucro - reserva : 0;
-        const lucroPorSocio = numSocios > 0 ? lucroDistribuivel / numSocios : 0;
-        const socios = sociosList ?? [];
-
-        if (lucro <= 0 && numSocios <= 1) return null;
-
-        return (
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Distribuição do Lucro</h2>
-            <div className="section-card">
-              <div className="p-4 space-y-3">
-                {/* Summary */}
-                <div className="flex flex-wrap gap-4 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Lucro líquido: </span>
-                    <strong className={lucro >= 0 ? "text-success" : "text-destructive"}>{fmt(lucro)}</strong>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Reserva empresa ({pctReserva}%): </span>
-                    <strong>{fmt(reserva)}</strong>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Distribuível: </span>
-                    <strong className="text-success">{fmt(lucroDistribuivel)}</strong>
-                  </div>
-                </div>
-
-                {/* Partners */}
-                {lucro > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {Array.from({ length: numSocios }, (_, i) => {
-                      const socio = socios[i];
-                      const nome = socio?.nome?.trim() || `Sócio ${i + 1}`;
-                      return (
-                        <div key={i} className="stat-card border-success/20 bg-success-muted py-3">
-                          <Users className="h-3.5 w-3.5 text-success mb-2" />
-                          <p className="text-sm font-bold text-success">{fmt(lucroPorSocio)}</p>
-                          <p className="stat-label">{nome}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Sem lucro a distribuir neste mês.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* SEÇÃO 5 — ALERTAS AUTOMÁTICOS */}
-      {(() => {
-        const alerts: { type: "success" | "warning" | "destructive"; msg: string }[] = [];
-        const pctDespesas = kpis.faturamentoMes > 0 ? (kpis.despesasPagasMes / kpis.faturamentoMes) * 100 : 0;
-
-        // Despesas > 40% do faturamento
-        if (kpis.faturamentoMes > 0 && pctDespesas > 40) {
-          alerts.push({ type: "destructive", msg: `Despesas representam ${pctDespesas.toFixed(0)}% do faturamento (acima de 40%)` });
-        } else if (kpis.faturamentoMes > 0) {
-          alerts.push({ type: "success", msg: `Despesas em ${pctDespesas.toFixed(0)}% do faturamento — dentro do limite` });
-        }
-
-        // Fila de aparelhos > 20
-        if (kpis.aguardandoReparo > 20) {
-          alerts.push({ type: "warning", msg: `${kpis.aguardandoReparo} aparelhos aguardando reparo — fila acima de 20` });
-        } else {
-          alerts.push({ type: "success", msg: `Fila de reparo sob controle: ${kpis.aguardandoReparo} aparelhos` });
-        }
-
-        // Prejuízo
-        if (kpis.lucroLiquido < 0) {
-          alerts.push({ type: "destructive", msg: `Prejuízo de ${fmt(Math.abs(kpis.lucroLiquido))} no mês — atenção!` });
-        } else if (kpis.lucroLiquido > 0) {
-          alerts.push({ type: "success", msg: `Lucro positivo de ${fmt(kpis.lucroLiquido)} — performance saudável` });
-        }
-
-        // Contas vencidas
-        if (kpis.contasVencidas > 0) {
-          alerts.push({ type: "destructive", msg: `${kpis.contasVencidas} conta${kpis.contasVencidas > 1 ? "s" : ""} vencida${kpis.contasVencidas > 1 ? "s" : ""}` });
-        }
-
-        // Em atraso
-        if (kpis.emAtraso > 0) {
-          alerts.push({ type: "warning", msg: `${kpis.emAtraso} OS em atraso` });
-        }
-
-        // Estoque baixo
-        if (kpis.estoqueBaixo > 0) {
-          alerts.push({ type: "warning", msg: `${kpis.estoqueBaixo} ite${kpis.estoqueBaixo > 1 ? "ns" : "m"} com estoque baixo` });
-        }
-
-        const iconMap = {
-          success: <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />,
-          warning: <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />,
-          destructive: <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />,
-        };
-        const bgMap = {
-          success: "border-success/20 bg-success-muted",
-          warning: "border-warning/30 bg-warning-muted",
-          destructive: "border-destructive/20 bg-destructive/5",
-        };
-        const textMap = {
-          success: "text-success",
-          warning: "text-warning",
-          destructive: "text-destructive",
-        };
-
-        return (
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Alertas Automáticos</h2>
-            <div className="space-y-1.5">
-              {alerts.map((a, i) => (
-                <div key={i} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${bgMap[a.type]} ${textMap[a.type]}`}>
-                  {iconMap[a.type]}
-                  {a.msg}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* SEÇÃO 6 — GRÁFICOS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Revenue chart */}
+        <SectionTitle>Ordens por status</SectionTitle>
         <div className="section-card">
-          <div className="section-header">
-            <h3 className="section-title flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              Faturamento x Lucro
-            </h3>
-            <span className="text-xs text-muted-foreground">Últimos 6 meses</span>
-          </div>
-          <div className="p-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={faturamentoChart} barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <RTooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                  formatter={(value: number) => [fmtShort(value)]}
-                />
-                <Bar dataKey="faturamento" name="Faturamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="lucro" name="Lucro" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Status distribution */}
-        <div className="section-card">
-          <div className="section-header">
-            <h3 className="section-title">Ordens por Status</h3>
-            <span className="text-xs text-muted-foreground">{filteredOrders.filter(o => o.status !== "entregue").length} ativas</span>
-          </div>
-          <div className="p-4 h-56 flex items-center">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-muted-foreground">
+                {filteredOrders.filter(o => o.status !== "entregue").length} ativas
+              </span>
+            </div>
             {statusChart.length > 0 ? (
               <div className="flex items-center gap-6 w-full">
                 <ResponsiveContainer width="50%" height={180}>
                   <PieChart>
-                    <Pie
-                      data={statusChart}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={70}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
+                    <Pie data={statusChart} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
                       {statusChart.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <RTooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                    />
+                    <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex-1 space-y-1.5">
@@ -1007,9 +1092,7 @@ export default function Dashboard() {
               <BarChart data={topMarcas} layout="vertical" barSize={20}>
                 <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <RTooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                />
+                <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
                 <Bar dataKey="value" name="Ordens" fill="hsl(var(--info))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -1032,9 +1115,9 @@ export default function Dashboard() {
                 <div key={l.nome} className="flex items-center justify-between rounded-lg border px-4 py-2.5">
                   <span className="text-sm font-medium">{l.nome}</span>
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-muted-foreground">Receita: {fmtShort(l.receita)}</span>
-                    <span className="text-muted-foreground">Custos: {fmtShort(l.custo)}</span>
-                    <span className={`font-semibold ${l.lucro >= 0 ? "text-success" : "text-destructive"}`}>{fmtShort(l.lucro)}</span>
+                    <span className="text-muted-foreground">Receita: {brl(l.receita)}</span>
+                    <span className="text-muted-foreground">Custos: {brl(l.custo)}</span>
+                    <span className={`font-semibold ${l.lucro >= 0 ? "text-success" : "text-destructive"}`}>{brl(l.lucro)}</span>
                   </div>
                 </div>
               ))}
@@ -1043,9 +1126,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Status bar */}
+      {/* Visão por Status */}
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Visão por Status</h2>
+        <SectionTitle>Visão por Status</SectionTitle>
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {(["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"] as const).map(status => {
             const count = status === "entregue"
@@ -1057,27 +1140,21 @@ export default function Dashboard() {
                 onClick={() => navigate(`/assistencia?status=${status}`)}
                 className="stat-card cursor-pointer hover:shadow-md transition-shadow text-center py-3 px-2"
               >
-                <div className={`w-2 h-2 rounded-full ${statusColors[status]} mx-auto mb-2`} />
+                <div className={`w-2 h-2 rounded-full ${statusDotColors[status]} mx-auto mb-2`} />
                 <p className="text-lg font-semibold">{count}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{statusLabels[status]}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{STATUS_LABELS[status]}</p>
               </div>
             );
           })}
         </div>
       </div>
 
+      {/* Modals */}
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
-      <NovaOrdemDialog
-        open={novaOrdemOpen}
-        onOpenChange={setNovaOrdemOpen}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] })}
-      />
+      <NovaOrdemDialog open={novaOrdemOpen} onOpenChange={setNovaOrdemOpen} onSuccess={() => queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] })} />
       <ConfirmarEntregaDialog
         entrega={entrega}
-        onConfirm={(id) => {
-          entregarMutation.mutate(id);
-          cancelar();
-        }}
+        onConfirm={(id) => { entregarMutation.mutate(id); cancelar(); }}
         onCancel={cancelar}
       />
     </div>
