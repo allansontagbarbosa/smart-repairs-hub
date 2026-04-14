@@ -373,6 +373,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <Check className="h-3 w-3 mr-1" />Entregar
                   </Button>
                 )}
+                <EtiquetaOS
+                  data={{
+                    numero: ordem.numero,
+                    clienteNome: ordem.aparelhos?.clientes?.nome || "",
+                    clienteTelefone: ordem.aparelhos?.clientes?.telefone || "",
+                    marca: ordem.aparelhos?.marca || "",
+                    modelo: ordem.aparelhos?.modelo || "",
+                    capacidade: ordem.aparelhos?.capacidade || null,
+                    defeitos: ordem.defeito_relatado || "",
+                    dataEntrada: ordem.data_entrada,
+                    previsaoEntrega: ordem.previsao_entrega,
+                    valor: ordem.valor,
+                    imei: ordem.aparelhos?.imei || null,
+                    tecnicoAtribuido: ordem.tecnico || null,
+                  }}
+                />
                 <Button
                   size="sm"
                   variant="ghost"
