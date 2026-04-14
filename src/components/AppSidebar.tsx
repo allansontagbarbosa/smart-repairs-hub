@@ -20,6 +20,7 @@ const items = [
   { title: "Aparelhos", url: "/aparelhos", icon: Smartphone },
   { title: "Peças", url: "/pecas", icon: Cpu },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart2, badgeKey: "os_atrasadas" as const },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
