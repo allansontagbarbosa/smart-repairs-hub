@@ -3,7 +3,7 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package,
-  CalendarClock, SortAsc, Filter, Printer, Brain,
+  CalendarClock, SortAsc, Filter, Printer, Brain, Shield,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +28,8 @@ import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { differenceInDays, format, isToday, isYesterday, isThisWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
+import { GarantiasTab } from "@/components/GarantiasTab";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -573,67 +575,79 @@ export default function Assistencia() {
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["ordens"] })}
       />
 
+      <Tabs defaultValue="ordens" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="ordens">Ordens de Serviço</TabsTrigger>
+          <TabsTrigger value="garantias" className="gap-1.5">
+            <Shield className="h-3.5 w-3.5" /> Garantias
+          </TabsTrigger>
+        </TabsList>
 
-
-
-      <div className="space-y-2">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por cliente, telefone, aparelho ou nº OS..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <StatusChips counts={statusCounts} active={filterStatus} onChange={setFilterStatus} />
-      </div>
-
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <SortAsc className="h-3.5 w-3.5" /> Ordenar:
-          </span>
-          <SortBtn label="Prioridade" k="prioridade" />
-          <SortBtn label="Data entrada" k="data_entrada" />
-          <SortBtn label="Previsão" k="previsao_entrega" />
-          <SortBtn label="Valor" k="valor" />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAgrupar((v) => !v)}
-            className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${
-              agrupar
-                ? "bg-primary/10 text-primary border-primary/30 font-medium"
-                : "text-muted-foreground border-border hover:bg-muted"
-            }`}
-          >
-            <Filter className="h-3 w-3" />
-            Agrupar por data
-          </button>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : agrupar && grupos ? (
-        <div className="space-y-6">
-          {Array.from(grupos.entries()).map(([grupo, items]) => (
-            <div key={grupo}>
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-sm font-semibold text-foreground">{grupo} ({items.length})</h3>
-              </div>
-              <Tabela items={items} />
+        <TabsContent value="ordens" className="space-y-4">
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, telefone, aparelho ou nº OS..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-          ))}
-        </div>
-      ) : (
-        <Tabela items={sorted} />
-      )}
+
+            <StatusChips counts={statusCounts} active={filterStatus} onChange={setFilterStatus} />
+          </div>
+
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <SortAsc className="h-3.5 w-3.5" /> Ordenar:
+              </span>
+              <SortBtn label="Prioridade" k="prioridade" />
+              <SortBtn label="Data entrada" k="data_entrada" />
+              <SortBtn label="Previsão" k="previsao_entrega" />
+              <SortBtn label="Valor" k="valor" />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAgrupar((v) => !v)}
+                className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${
+                  agrupar
+                    ? "bg-primary/10 text-primary border-primary/30 font-medium"
+                    : "text-muted-foreground border-border hover:bg-muted"
+                }`}
+              >
+                <Filter className="h-3 w-3" />
+                Agrupar por data
+              </button>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : agrupar && grupos ? (
+            <div className="space-y-6">
+              {Array.from(grupos.entries()).map(([grupo, items]) => (
+                <div key={grupo}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-sm font-semibold text-foreground">{grupo} ({items.length})</h3>
+                  </div>
+                  <Tabela items={items} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Tabela items={sorted} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="garantias">
+          <GarantiasTab />
+        </TabsContent>
+      </Tabs>
 
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       <ConfirmarEntregaDialog

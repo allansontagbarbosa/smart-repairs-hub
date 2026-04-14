@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2 } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
@@ -104,6 +104,20 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       const { data } = await supabase
         .from("avaliacoes")
         .select("id, nota, comentario, created_at")
+        .eq("ordem_id", orderId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
+  const { data: garantia } = useQuery({
+    queryKey: ["garantia_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return null;
+      const { data } = await supabase
+        .from("garantias")
+        .select("*")
         .eq("ordem_id", orderId)
         .maybeSingle();
       return data;
@@ -853,6 +867,37 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-2">Observações internas</p>
                     <p className="text-sm bg-muted/50 rounded-lg p-3">{ordem.observacoes}</p>
+                  </div>
+                )}
+
+                {/* Garantia */}
+                {garantia && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Garantia</p>
+                    {(() => {
+                      const hoje = new Date();
+                      const fim = new Date(garantia.data_fim);
+                      const diasRestantes = Math.ceil((fim.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+                      const isAtiva = garantia.status === "ativa" && diasRestantes > 0;
+                      const isVencendo = isAtiva && diasRestantes <= 30;
+                      const isVencida = diasRestantes <= 0 || garantia.status === "vencida";
+                      const isUtilizada = garantia.status === "utilizada";
+                      const borderColor = isUtilizada ? "border-muted" : isVencida ? "border-destructive/30" : isVencendo ? "border-warning/30" : "border-success/30";
+                      const bgColor = isUtilizada ? "bg-muted/30" : isVencida ? "bg-destructive/5" : isVencendo ? "bg-warning/5" : "bg-success/5";
+                      return (
+                        <div className={cn("rounded-lg border p-3", borderColor, bgColor)}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Shield className={cn("h-4 w-4", isUtilizada ? "text-muted-foreground" : isVencida ? "text-destructive" : isVencendo ? "text-warning" : "text-success")} />
+                            <span className="text-sm font-medium">
+                              {isUtilizada ? "Utilizada" : isVencida ? "Vencida" : isVencendo ? `Vencendo — ${diasRestantes} dias` : `Ativa — ${diasRestantes} dias restantes`}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Válida até {new Date(garantia.data_fim).toLocaleDateString("pt-BR")} ({garantia.dias_garantia} dias)
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 

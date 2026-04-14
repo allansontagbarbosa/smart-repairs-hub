@@ -1065,6 +1065,47 @@ export type Database = {
         }
         Relationships: []
       }
+      garantias: {
+        Row: {
+          created_at: string | null
+          data_fim: string
+          data_inicio: string
+          dias_garantia: number
+          id: string
+          observacoes: string | null
+          ordem_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_fim: string
+          data_inicio: string
+          dias_garantia?: number
+          id?: string
+          observacoes?: string | null
+          ordem_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string | null
+          data_fim?: string
+          data_inicio?: string
+          dias_garantia?: number
+          id?: string
+          observacoes?: string | null
+          ordem_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garantias_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historico_ordens: {
         Row: {
           created_at: string
@@ -1493,10 +1534,12 @@ export type Database = {
           motivo_reprovacao: string | null
           numero: number
           observacoes: string | null
+          os_origem_id: string | null
           prazo_vencido: boolean
           previsao_entrega: string | null
           prioridade: string
           referencia_lote: string | null
+          retrabalho: boolean
           servico_realizado: string | null
           status: Database["public"]["Enums"]["status_ordem"]
           tecnico: string | null
@@ -1527,10 +1570,12 @@ export type Database = {
           motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
+          os_origem_id?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
           prioridade?: string
           referencia_lote?: string | null
+          retrabalho?: boolean
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
@@ -1561,10 +1606,12 @@ export type Database = {
           motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
+          os_origem_id?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
           prioridade?: string
           referencia_lote?: string | null
+          retrabalho?: boolean
           servico_realizado?: string | null
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
@@ -1602,6 +1649,13 @@ export type Database = {
             columns: ["loja_id"]
             isOneToOne: false
             referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_de_servico_os_origem_id_fkey"
+            columns: ["os_origem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
           {
