@@ -192,6 +192,12 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  const { data: sociosList } = useQuery({
+    queryKey: ["dashboard-socios"],
+    queryFn: fetchSocios,
+    refetchInterval: 60000,
+  });
+
   const orders = summary?.ordens ?? [];
   const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
   const contasPendentes = summary?.contas_pendentes ?? [];
