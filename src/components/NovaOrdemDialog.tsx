@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Loader2, UserPlus, CalendarIcon, Smartphone, Search,
   CheckCircle2, AlertCircle, XCircle, ChevronRight,
-  User, Wrench, ClipboardList, X, Plus, Minus, Package,
+  User, Wrench, ClipboardList, X, Plus, Minus, Package, Printer,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { EtiquetaOS } from "@/components/EtiquetaOS";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -43,7 +44,7 @@ interface ImeiResult {
   duplicate?: { table: string; info: string } | null;
 }
 
-type Step = "cliente" | "aparelho" | "servico";
+type Step = "cliente" | "aparelho" | "servico" | "sucesso";
 
 const STEPS: { key: Step; label: string; icon: typeof User }[] = [
   { key: "cliente",  label: "Cliente",  icon: User },
@@ -106,6 +107,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const [tecnico, setTecnico] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
+  const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
 
   const imeiRef = useRef<HTMLInputElement>(null);
 
@@ -216,6 +218,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     setTecnico("");
     setLocalizacao("");
     setPrevisaoEntrega(undefined);
+    setCreatedOS(null);
   }
 
   function handleClose(v: boolean) {
@@ -315,8 +318,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
-      }).select("id").single();
+      }).select("id, numero").single();
       if (osErr) throw osErr;
+      return ordem;
 
       // 3. Inserir os_defeitos
       if (defeitosSelecionados.length > 0) {
@@ -343,11 +347,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         if (pecErr) throw pecErr;
       }
     },
-    onSuccess: () => {
-      toast.success("Ordem de Serviço criada!");
+    onSuccess: (ordem) => {
+      toast.success(`OS #${String(ordem?.numero || 0).padStart(3, "0")} criada!`);
       queryClient.invalidateQueries({ queryKey: ["estoque_pecas_disponiveis"] });
-      resetAll();
-      onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
+      setStep("sucesso");
       onSuccess();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -858,6 +863,48 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                 >
                   {createOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                   Criar Ordem de Serviço
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step: Sucesso ── */}
+          {step === "sucesso" && createdOS && (
+            <div className="space-y-4 py-4">
+              <div className="text-center space-y-2">
+                <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+                <h3 className="text-lg font-semibold">
+                  OS #{String(createdOS.numero).padStart(3, "0")} criada com sucesso!
+                </h3>
+              </div>
+
+              <EtiquetaOS
+                data={{
+                  numero: createdOS.numero,
+                  clienteNome: clienteSelecionado?.nome || "",
+                  clienteTelefone: clienteSelecionado?.telefone || "",
+                  marca,
+                  modelo,
+                  capacidade: capacidade || null,
+                  defeitos: defeitoRelatado,
+                  dataEntrada: new Date().toISOString(),
+                  previsaoEntrega: previsaoEntrega?.toISOString() || null,
+                  valor: valorTotal || null,
+                  imei: imei.replace(/\D/g, "") || null,
+                  tecnicoAtribuido: tecnico || null,
+                }}
+              />
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    resetAll();
+                    onOpenChange(false);
+                  }}
+                >
+                  Fechar
                 </Button>
               </div>
             </div>

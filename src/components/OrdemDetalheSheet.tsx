@@ -10,10 +10,11 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
+import { EtiquetaOS } from "@/components/EtiquetaOS";
 
 
 
@@ -372,6 +373,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <Check className="h-3 w-3 mr-1" />Entregar
                   </Button>
                 )}
+                <EtiquetaOS
+                  data={{
+                    numero: ordem.numero,
+                    clienteNome: ordem.aparelhos?.clientes?.nome || "",
+                    clienteTelefone: ordem.aparelhos?.clientes?.telefone || "",
+                    marca: ordem.aparelhos?.marca || "",
+                    modelo: ordem.aparelhos?.modelo || "",
+                    capacidade: ordem.aparelhos?.capacidade || null,
+                    defeitos: ordem.defeito_relatado || "",
+                    dataEntrada: ordem.data_entrada,
+                    previsaoEntrega: ordem.previsao_entrega,
+                    valor: ordem.valor,
+                    imei: ordem.aparelhos?.imei || null,
+                    tecnicoAtribuido: ordem.tecnico || null,
+                  }}
+                />
                 <Button
                   size="sm"
                   variant="ghost"
