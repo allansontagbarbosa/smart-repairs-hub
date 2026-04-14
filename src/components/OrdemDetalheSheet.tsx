@@ -10,11 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
+import { cn } from "@/lib/utils";
 
 
 
@@ -91,6 +92,20 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         .eq("ordem_id", orderId)
         .order("created_at", { ascending: false });
       if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId,
+  });
+
+  const { data: avaliacao } = useQuery({
+    queryKey: ["avaliacao_os", orderId],
+    queryFn: async () => {
+      if (!orderId) return null;
+      const { data } = await supabase
+        .from("avaliacoes")
+        .select("id, nota, comentario, created_at")
+        .eq("ordem_id", orderId)
+        .maybeSingle();
       return data;
     },
     enabled: !!orderId,
@@ -840,6 +855,39 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <p className="text-sm bg-muted/50 rounded-lg p-3">{ordem.observacoes}</p>
                   </div>
                 )}
+
+                {/* Avaliação do cliente */}
+                {avaliacao && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Avaliação do cliente</p>
+                    <div className="rounded-lg border p-3">
+                      <div className="flex gap-0.5 mb-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star key={n} className={cn("h-4 w-4", n <= avaliacao.nota ? "fill-amber-400 text-amber-400" : "text-border")} />
+                        ))}
+                        <span className="text-xs text-muted-foreground ml-2">{avaliacao.nota}/5</span>
+                      </div>
+                      {avaliacao.comentario && <p className="text-xs text-muted-foreground mt-1">"{avaliacao.comentario}"</p>}
+                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(avaliacao.created_at).toLocaleDateString("pt-BR")}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Share link */}
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => {
+                      const link = `${window.location.origin}/portal/login?os=${ordem.numero}`;
+                      navigator.clipboard.writeText(link);
+                      toast.success("Link copiado!");
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1.5" /> Compartilhar link do portal
+                  </Button>
+                </div>
 
                 {/* Histórico */}
                 <div>
