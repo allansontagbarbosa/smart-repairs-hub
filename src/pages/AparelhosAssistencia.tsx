@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Package } from "lucide-react";
+import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Package, Printer } from "lucide-react";
 import { EntradaAparelhoDialog } from "@/components/estoque/EntradaAparelhoDialog";
 import { EntradaLoteDialog } from "@/components/estoque/EntradaLoteDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAparelhosAssistencia, type AparelhoAssistencia } from "@/hooks/useAparelhosAssistencia";
+import { printEtiquetaOS } from "@/lib/printEtiqueta";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const statusLabels: Record<string, string> = {
   recebido: "Recebido",
@@ -190,6 +192,7 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                 <th>Status</th>
                 <th className="hidden md:table-cell">Técnico</th>
                 <th className="hidden lg:table-cell">Prazo</th>
+                <th className="w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -218,10 +221,35 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                   <td className="hidden lg:table-cell text-sm text-muted-foreground">
                     {a.previsao_entrega ? format(new Date(a.previsao_entrega), "dd/MM/yy", { locale: ptBR }) : "—"}
                   </td>
+                  <td className="px-2 py-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => printEtiquetaOS({
+                            numero: a.os_numero,
+                            clienteNome: a.cliente_nome,
+                            clienteTelefone: a.cliente_telefone,
+                            marca: a.aparelho_marca,
+                            modelo: a.aparelho_modelo,
+                            capacidade: a.aparelho_capacidade,
+                            defeitos: a.defeito_relatado,
+                            dataEntrada: a.data_entrada,
+                            previsaoEntrega: a.previsao_entrega,
+                            valor: a.valor,
+                            imei: a.aparelho_imei,
+                            tecnicoAtribuido: a.tecnico ?? a.funcionario_nome,
+                          })}
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Imprimir Etiqueta</TooltipContent>
+                    </Tooltip>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} className="text-center text-muted-foreground py-10 text-sm">Nenhum aparelho encontrado</td></tr>
+                <tr><td colSpan={10} className="text-center text-muted-foreground py-10 text-sm">Nenhum aparelho encontrado</td></tr>
               )}
             </tbody>
           </table>
