@@ -583,6 +583,89 @@ export type Database = {
         }
         Relationships: []
       }
+      entradas_estoque: {
+        Row: {
+          created_at: string
+          data_compra: string
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          id: string
+          numero_nota: string | null
+          observacoes: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_compra?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero_nota?: string | null
+          observacoes?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_compra?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero_nota?: string | null
+          observacoes?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_estoque_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entradas_estoque_itens: {
+        Row: {
+          created_at: string
+          custo_unitario: number
+          entrada_id: string
+          estoque_item_id: string
+          id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario: number
+          entrada_id: string
+          estoque_item_id: string
+          id?: string
+          quantidade: number
+        }
+        Update: {
+          created_at?: string
+          custo_unitario?: number
+          entrada_id?: string
+          estoque_item_id?: string
+          id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entradas_estoque_itens_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: false
+            referencedRelation: "entradas_estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entradas_estoque_itens_estoque_item_id_fkey"
+            columns: ["estoque_item_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque: {
         Row: {
           categoria: string | null
