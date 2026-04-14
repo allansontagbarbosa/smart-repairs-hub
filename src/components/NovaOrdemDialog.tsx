@@ -1,21 +1,26 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, UserPlus, CalendarIcon } from "lucide-react";
+import {
+  Loader2, UserPlus, CalendarIcon, Smartphone, Search,
+  CheckCircle2, AlertCircle, XCircle, ChevronRight,
+  User, Wrench, ClipboardList,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
-
 import { toast } from "sonner";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
@@ -26,28 +31,109 @@ interface Props {
   onSuccess: () => void;
 }
 
+type ImeiStatus = "idle" | "loading" | "found" | "partial" | "not_found" | "error" | "duplicate";
+
+interface ImeiResult {
+  status: ImeiStatus;
+  marca?: string;
+  modelo?: string;
+  cor?: string;
+  capacidade?: string;
+  message?: string;
+  duplicate?: { table: string; info: string } | null;
+}
+
+type Step = "cliente" | "aparelho" | "servico";
+
+const STEPS: { key: Step; label: string; icon: typeof User }[] = [
+  { key: "cliente",  label: "Cliente",  icon: User },
+  { key: "aparelho", label: "Aparelho", icon: Smartphone },
+  { key: "servico",  label: "Serviço",  icon: Wrench },
+];
+
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
+  const queryClient = useQueryClient();
+
+  const [step, setStep] = useState<Step>("cliente");
+
   const [showNewClient, setShowNewClient] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [newClientNome, setNewClientNome] = useState("");
+  const [newClientTelefone, setNewClientTelefone] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+
+  const [imei, setImei] = useState("");
+  const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
+  const [marca, setMarca] = useState("");
+  const [modelo, setModelo] = useState("");
+  const [cor, setCor] = useState("");
+  const [capacidade, setCapacidade] = useState("");
+  const [senhaDesbloqueio, setSenhaDesbloqueio] = useState("");
+  const [acessorios, setAcessorios] = useState("");
+
+  const [defeito, setDefeito] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+  const [valor, setValor] = useState("");
+  const [tecnico, setTecnico] = useState("");
+  const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
-  const queryClient = useQueryClient();
+
+  const imeiRef = useRef<HTMLInputElement>(null);
+
+  function resetAll() {
+    setStep("cliente");
+    setShowNewClient(false);
+    setSelectedClientId("");
+    setNewClientNome("");
+    setNewClientTelefone("");
+    setNewClientEmail("");
+    setClientSearch("");
+    setImei("");
+    setImeiResult({ status: "idle" });
+    setMarca("");
+    setModelo("");
+    setCor("");
+    setCapacidade("");
+    setSenhaDesbloqueio("");
+    setAcessorios("");
+    setDefeito("");
+    setObservacoes("");
+    setValor("");
+    setTecnico("");
+    setLocalizacao("");
+    setPrevisaoEntrega(undefined);
+  }
+
+  function handleClose(v: boolean) {
+    if (!v) resetAll();
+    onOpenChange(v);
+  }
 
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clientes").select("*").order("nome");
+      const { data, error } = await supabase
+        .from("clientes").select("*").order("nome");
       if (error) throw error;
       return data;
     },
   });
 
+  const clientesFiltrados = clientes.filter((c) =>
+    !clientSearch ||
+    c.nome.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    (c.telefone || "").includes(clientSearch)
+  );
+
+  const clienteSelecionado = clientes.find((c) => c.id === selectedClientId);
+
   const createClientMutation = useMutation({
-    mutationFn: async (form: { nome: string; telefone: string }) => {
+    mutationFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .insert({ nome: form.nome, telefone: form.telefone })
-        .select()
-        .single();
+        .insert({ nome: newClientNome, telefone: newClientTelefone, email: newClientEmail || null })
+        .select().single();
       if (error) throw error;
       return data;
     },
@@ -55,256 +141,596 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
       queryClient.invalidateQueries({ queryKey: ["clientes"] });
       setSelectedClientId(data.id);
       setShowNewClient(false);
+      toast.success("Cliente cadastrado!");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
+  async function consultarImei() {
+    const digits = imei.replace(/\D/g, "");
+    if (digits.length !== 15) {
+      toast.error("IMEI deve ter 15 dígitos");
+      return;
+    }
+    setImeiResult({ status: "loading" });
+    try {
+      const { data, error } = await supabase.functions.invoke("imei-lookup", {
+        body: { imei: digits },
+      });
+      if (error) throw error;
+
+      const result = data as ImeiResult & { status: string; duplicate?: { table: string; info: string } | null };
+
+      if (result.status === "error" && result.duplicate) {
+        setImeiResult({ status: "duplicate", message: result.message, duplicate: result.duplicate });
+        return;
+      }
+      if (result.status === "error") {
+        setImeiResult({ status: "error", message: result.message });
+        return;
+      }
+      if (result.status === "not_found") {
+        setImeiResult({ status: "not_found", message: result.message });
+        return;
+      }
+
+      if (result.marca) setMarca(result.marca);
+      if (result.modelo) setModelo(result.modelo);
+      if (result.cor) setCor(result.cor);
+      if (result.capacidade) setCapacidade(result.capacidade);
+
+      setImeiResult({
+        status: result.status as ImeiStatus,
+        marca: result.marca,
+        modelo: result.modelo,
+        cor: result.cor,
+        capacidade: result.capacidade,
+      });
+
+      toast.success(`Aparelho identificado: ${result.marca} ${result.modelo}`);
+    } catch (e: any) {
+      setImeiResult({ status: "error", message: "Erro ao consultar IMEI" });
+      toast.error("Erro ao consultar IMEI");
+    }
+  }
+
   const createOrderMutation = useMutation({
-    mutationFn: async (fd: FormData) => {
-      const clienteId = selectedClientId;
-      if (!clienteId) throw new Error("Selecione um cliente");
+    mutationFn: async () => {
+      if (!selectedClientId) throw new Error("Selecione um cliente");
+      if (!marca || !modelo) throw new Error("Marca e modelo são obrigatórios");
+      if (!defeito) throw new Error("Descreva o defeito");
 
       const { data: aparelho, error: apErr } = await supabase
         .from("aparelhos")
         .insert({
-          cliente_id: clienteId,
-          marca: fd.get("marca") as string,
-          modelo: fd.get("modelo") as string,
-          cor: (fd.get("cor") as string) || null,
-          capacidade: (fd.get("capacidade") as string) || null,
-          imei: (fd.get("imei") as string) || null,
+          cliente_id: selectedClientId,
+          marca,
+          modelo,
+          cor: cor || null,
+          capacidade: capacidade || null,
+          imei: imei.replace(/\D/g, "") || null,
         })
-        .select()
-        .single();
+        .select().single();
       if (apErr) throw apErr;
-
-      const valorStr = fd.get("valor") as string;
 
       const { error: osErr } = await supabase.from("ordens_de_servico").insert({
         aparelho_id: aparelho.id,
-        defeito_relatado: fd.get("defeito") as string,
-        observacoes: (fd.get("observacoes") as string) || null,
-        valor: valorStr ? parseFloat(valorStr) : null,
+        defeito_relatado: defeito,
+        observacoes: observacoes || null,
+        valor: valor ? parseFloat(valor) : null,
         data_entrada: new Date().toISOString(),
-        tecnico: (fd.get("tecnico") as string) || null,
+        tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
       });
       if (osErr) throw osErr;
-
     },
     onSuccess: () => {
-      setSelectedClientId("");
-      setPrevisaoEntrega(undefined);
-      onOpenChange(false);
       toast.success("Ordem de Serviço criada!");
+      resetAll();
+      onOpenChange(false);
       onSuccess();
     },
-    onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Erro ao criar OS");
-    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    createOrderMutation.mutate(new FormData(e.currentTarget));
-  };
+  const canAdvanceCliente = !!selectedClientId;
+  const canAdvanceAparelho = !!marca && !!modelo;
+  const canSubmit = canAdvanceCliente && canAdvanceAparelho && !!defeito;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+
+        <DialogHeader className="px-5 pt-5 pb-3 border-b">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            Nova Ordem de Serviço
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-          {/* ── 1. Cliente ── */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">1. Cliente</p>
-              <button
-                type="button"
-                onClick={() => setShowNewClient(!showNewClient)}
-                className="inline-flex items-center gap-1 text-xs text-info hover:underline"
-              >
-                <UserPlus className="h-3 w-3" />
-                {showNewClient ? "Cancelar" : "Novo cliente"}
-              </button>
-            </div>
+        <div className="flex items-center justify-center gap-1 px-5 py-3 border-b bg-muted/30">
+          {STEPS.map((s, i) => {
+            const isActive = step === s.key;
+            const isDone =
+              (s.key === "cliente" && canAdvanceCliente && step !== "cliente") ||
+              (s.key === "aparelho" && canAdvanceAparelho && step === "servico");
+            return (
+              <div key={s.key} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (s.key === "aparelho" && !canAdvanceCliente) return;
+                    if (s.key === "servico" && !canAdvanceAparelho) return;
+                    setStep(s.key);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs font-medium transition-colors px-1 py-0.5 rounded",
+                    isActive ? "text-primary" : isDone ? "text-green-600" : "text-muted-foreground",
+                  )}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <span className="flex items-center justify-center h-4 w-4 rounded-full border text-[10px]">
+                      {i + 1}
+                    </span>
+                  )}
+                  {s.label}
+                </button>
+                {i < STEPS.length - 1 && (
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 mx-1" />
+                )}
+              </div>
+            );
+          })}
+        </div>
 
-            {showNewClient ? (
-              <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Nome</Label>
-                    <Input name="novo_nome" required placeholder="Nome completo" className="mt-1 h-8 text-sm" />
+        <div className="px-5 pb-5 pt-3 space-y-4">
+
+          {step === "cliente" && (
+            <div className="space-y-3">
+              {!showNewClient ? (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome ou telefone..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="pl-9 h-9 text-sm"
+                    />
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Telefone / WhatsApp</Label>
-                    <Input name="novo_telefone" required placeholder="(00) 00000-0000" className="mt-1 h-8 text-sm" />
+
+                  <div className="max-h-48 overflow-y-auto rounded-lg border divide-y">
+                    {clientesFiltrados.length === 0 ? (
+                      <p className="text-center text-xs text-muted-foreground py-6">
+                        Nenhum cliente encontrado
+                      </p>
+                    ) : (
+                      clientesFiltrados.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedClientId(c.id)}
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50",
+                            selectedClientId === c.id && "bg-primary/5 border-l-2 border-l-primary"
+                          )}
+                        >
+                          <div>
+                            <p className="font-medium text-sm">{c.nome}</p>
+                            <p className="text-xs text-muted-foreground">{c.telefone}</p>
+                          </div>
+                          {selectedClientId === c.id && (
+                            <CheckCircle2 className="h-4 w-4 text-primary" />
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNewClient(true)}
+                    className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Cadastrar novo cliente
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-3 p-3 rounded-lg border bg-muted/20">
+                  <p className="text-sm font-semibold">Novo cliente</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Nome completo *</Label>
+                      <Input
+                        value={newClientNome}
+                        onChange={(e) => setNewClientNome(e.target.value)}
+                        placeholder="João Silva"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Telefone / WhatsApp *</Label>
+                      <Input
+                        value={newClientTelefone}
+                        onChange={(e) => setNewClientTelefone(e.target.value)}
+                        placeholder="(19) 99999-9999"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">E-mail</Label>
+                      <Input
+                        value={newClientEmail}
+                        onChange={(e) => setNewClientEmail(e.target.value)}
+                        placeholder="opcional"
+                        className="mt-1 h-8 text-sm"
+                        type="email"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      disabled={!newClientNome || !newClientTelefone || createClientMutation.isPending}
+                      onClick={() => createClientMutation.mutate()}
+                    >
+                      {createClientMutation.isPending
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        : <UserPlus className="h-3.5 w-3.5 mr-1" />}
+                      Cadastrar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowNewClient(false)}
+                    >
+                      Cancelar
+                    </Button>
                   </div>
                 </div>
+              )}
+
+              {clienteSelecionado && (
+                <div className="flex items-center gap-2 p-2.5 rounded-lg border bg-primary/5">
+                  <User className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">{clienteSelecionado.nome}</p>
+                    <p className="text-xs text-muted-foreground">{clienteSelecionado.telefone}</p>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                className="w-full"
+                disabled={!canAdvanceCliente}
+                onClick={() => setStep("aparelho")}
+              >
+                Próximo — Aparelho <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          {step === "aparelho" && (
+            <div className="space-y-4">
+
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  IMEI — identificação automática
+                </Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Smartphone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      ref={imeiRef}
+                      value={imei}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "").slice(0, 15);
+                        setImei(v);
+                        if (imeiResult.status !== "idle") setImeiResult({ status: "idle" });
+                      }}
+                      placeholder="Digite os 15 dígitos do IMEI"
+                      className="pl-8 h-9 font-mono text-sm tracking-wider"
+                      maxLength={15}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <Button size="sm" variant="outline" onClick={consultarImei} disabled={imeiResult.status === "loading" || imei.length !== 15}>
+                    {imeiResult.status === "loading"
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      : <Search className="h-3.5 w-3.5 mr-1" />}
+                    Consultar
+                  </Button>
+                </div>
+
+                {imei.length > 0 && imei.length < 15 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {imei.length}/15 dígitos
+                  </p>
+                )}
+
+                {imeiResult.status === "found" && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-green-50 border border-green-200 text-green-800">
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium">Aparelho identificado via API</p>
+                      <p className="text-xs">
+                        {imeiResult.marca} {imeiResult.modelo}
+                        {imeiResult.capacidade ? ` · ${imeiResult.capacidade}` : ""}
+                        {imeiResult.cor ? ` · ${imeiResult.cor}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {imeiResult.status === "partial" && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium">Identificado parcialmente — confira os dados</p>
+                      <p className="text-xs">{imeiResult.marca} {imeiResult.modelo}</p>
+                    </div>
+                  </div>
+                )}
+                {imeiResult.status === "not_found" && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-muted/50 border text-muted-foreground">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <p className="text-xs">
+                      IMEI não identificado — preencha os dados manualmente abaixo.
+                    </p>
+                  </div>
+                )}
+                {imeiResult.status === "duplicate" && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 border border-red-200 text-red-800">
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium">IMEI já cadastrado</p>
+                      {imeiResult.duplicate && <p className="text-xs">{imeiResult.duplicate.info}</p>}
+                    </div>
+                  </div>
+                )}
+                {imeiResult.status === "error" && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 border border-red-200 text-red-800">
+                    <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <p className="text-xs">
+                      {imeiResult.message || "Erro ao consultar IMEI"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Marca *</Label>
+                  <Input
+                    value={marca}
+                    onChange={(e) => setMarca(e.target.value)}
+                    placeholder="Apple, Samsung..."
+                    className="mt-1 h-9"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Modelo *</Label>
+                  <Input
+                    value={modelo}
+                    onChange={(e) => setModelo(e.target.value)}
+                    placeholder="iPhone 15, S24..."
+                    className="mt-1 h-9"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Cor</Label>
+                  <Input
+                    value={cor}
+                    onChange={(e) => setCor(e.target.value)}
+                    placeholder="Preto, Branco..."
+                    className="mt-1 h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Capacidade</Label>
+                  <Input
+                    value={capacidade}
+                    onChange={(e) => setCapacidade(e.target.value)}
+                    placeholder="128GB, 256GB..."
+                    className="mt-1 h-9"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground">Senha / padrão de desbloqueio</Label>
+                <Input
+                  value={senhaDesbloqueio}
+                  onChange={(e) => setSenhaDesbloqueio(e.target.value)}
+                  placeholder="Fornecida pelo cliente (opcional)"
+                  className="mt-1 h-9"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground">Acessórios recebidos</Label>
+                <Input
+                  value={acessorios}
+                  onChange={(e) => setAcessorios(e.target.value)}
+                  placeholder="Cabo, capa, carregador..."
+                  className="mt-1 h-9"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="outline"
                   size="sm"
-                  className="w-full"
-                  disabled={createClientMutation.isPending}
-                  onClick={(e) => {
-                    const container = (e.target as HTMLElement).closest(".rounded-lg")!;
-                    const nome = (container.querySelector('[name="novo_nome"]') as HTMLInputElement)?.value;
-                    const telefone = (container.querySelector('[name="novo_telefone"]') as HTMLInputElement)?.value;
-                    if (nome && telefone) createClientMutation.mutate({ nome, telefone });
-                  }}
+                  onClick={() => setStep("cliente")}
                 >
-                  {createClientMutation.isPending ? <Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> : null}
-                  Cadastrar e selecionar
+                  Voltar
+                </Button>
+                <Button
+                  className="flex-1"
+                  disabled={!canAdvanceAparelho}
+                  onClick={() => setStep("servico")}
+                >
+                  Próximo — Serviço <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
-            ) : (
-              <Select value={selectedClientId} onValueChange={setSelectedClientId} required>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome} — {c.telefone}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* ── 2. Aparelho ── */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">2. Aparelho</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Marca *</Label>
-                <Input name="marca" required placeholder="Apple, Samsung..." className="mt-1 h-9" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Modelo *</Label>
-                <Input name="modelo" required placeholder="iPhone 15, S24..." className="mt-1 h-9" />
-              </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Cor</Label>
-                <Input name="cor" placeholder="Preto" className="mt-1 h-9" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Capacidade</Label>
-                <Input name="capacidade" placeholder="128GB" className="mt-1 h-9" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">IMEI (opcional)</Label>
-                <Input name="imei" placeholder="000000000000000" className="mt-1 h-9" />
-              </div>
-            </div>
-          </div>
+          )}
 
-          <Separator />
+          {step === "servico" && (
+            <div className="space-y-4">
 
-          {/* ── 3. Problema ── */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">3. Problema</p>
-            <div>
-              <Label className="text-xs text-muted-foreground">Defeito relatado *</Label>
-              <Textarea
-                name="defeito"
-                required
-                placeholder="Descreva o problema principal do aparelho..."
-                rows={3}
-                className="mt-1 resize-none text-sm"
-              />
-            </div>
-            <div className="mt-3">
-              <Label className="text-xs text-muted-foreground">Observações</Label>
-              <Textarea
-                name="observacoes"
-                placeholder="Anotações adicionais, acessórios entregues..."
-                rows={2}
-                className="mt-1 resize-none text-sm"
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* ── 4. Serviço ── */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">4. Serviço</p>
-            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground">Valor estimado (R$)</Label>
-                <Input name="valor" type="number" step="0.01" min="0" placeholder="0,00" className="mt-1 h-9" />
+                <Label className="text-xs text-muted-foreground">Defeito relatado *</Label>
+                <Textarea
+                  value={defeito}
+                  onChange={(e) => setDefeito(e.target.value)}
+                  placeholder="Descreva o problema principal do aparelho..."
+                  rows={3}
+                  className="mt-1 resize-none text-sm"
+                  required
+                />
               </div>
+
               <div>
-                <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "mt-1 h-9 w-full justify-start text-left font-normal",
-                        !previsaoEntrega && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {previsaoEntrega ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={previsaoEntrega}
-                      onSelect={setPrevisaoEntrega}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
+                <Label className="text-xs text-muted-foreground">Observações internas</Label>
+                <Textarea
+                  value={observacoes}
+                  onChange={(e) => setObservacoes(e.target.value)}
+                  placeholder="Riscos, danos pré-existentes, condições do aparelho..."
+                  rows={2}
+                  className="mt-1 resize-none text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Valor do serviço (R$)</Label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                    <Input
+                      value={valor}
+                      onChange={(e) => setValor(e.target.value)}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      className="pl-8 h-9"
                     />
-                  </PopoverContent>
-                </Popover>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "mt-1 h-9 w-full justify-start text-left font-normal text-sm",
+                          !previsaoEntrega && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {previsaoEntrega
+                          ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR })
+                          : "Selecione"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={previsaoEntrega}
+                        onSelect={setPrevisaoEntrega}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-            </div>
-            <div className="mt-3 flex items-end">
-              <div className="rounded-lg bg-muted/50 px-3 py-2 w-full text-center">
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Técnico responsável</Label>
+                  <Input
+                    value={tecnico}
+                    onChange={(e) => setTecnico(e.target.value)}
+                    placeholder="Nome do técnico"
+                    className="mt-1 h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Localização</Label>
+                  <Input
+                    value={localizacao}
+                    onChange={(e) => setLocalizacao(e.target.value)}
+                    placeholder="Bancada, gaveta 3..."
+                    className="mt-1 h-9"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">Status inicial</p>
-                <p className="text-sm font-medium">Recebido</p>
+                <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                  Recebido
+                </span>
+              </div>
+
+              <div className="rounded-lg border bg-muted/20 px-3 py-2.5 space-y-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resumo</p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Cliente</span>
+                  <span className="font-medium">{clienteSelecionado?.nome}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Aparelho</span>
+                  <span className="font-medium">{marca} {modelo}</span>
+                </div>
+                {imei && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">IMEI</span>
+                    <span className="font-mono text-muted-foreground">{imei}</span>
+                  </div>
+                )}
+                {valor && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Valor</span>
+                    <span className="font-medium text-green-600">R$ {parseFloat(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStep("aparelho")}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  disabled={!canSubmit || createOrderMutation.isPending}
+                  onClick={() => createOrderMutation.mutate()}
+                >
+                  {createOrderMutation.isPending
+                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                  Criar Ordem de Serviço
+                </Button>
               </div>
             </div>
-          </div>
+          )}
 
-          <Separator />
-
-          {/* ── 5. Controle Interno ── */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">5. Controle Interno</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Localização</Label>
-                <Input name="localizacao" placeholder="Bancada, Técnico 1..." className="mt-1 h-9" />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Técnico responsável</Label>
-                <Input name="tecnico" placeholder="Nome do técnico" className="mt-1 h-9" />
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Data de entrada registrada automaticamente ao criar.
-            </p>
-          </div>
-
-          {/* ── Submit ── */}
-          <Button type="submit" className="w-full" disabled={createOrderMutation.isPending || !selectedClientId}>
-            {createOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            Criar Ordem de Serviço
-          </Button>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
