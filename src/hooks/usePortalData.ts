@@ -10,6 +10,7 @@ export type PortalOrdem = {
   valor: number | null;
   valor_pago: number | null;
   valor_pendente: number | null;
+  custo_pecas: number | null;
   data_entrada: string;
   previsao_entrega: string | null;
   data_entrega: string | null;
