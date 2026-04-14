@@ -371,6 +371,7 @@ export default function Dashboard() {
       {/* ── HEADER ── */}
       <h1 className="text-xl font-bold">Dashboard</h1>
 
+      <OnboardingWelcome />
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 1 — FINANCEIRO DO MÊS
