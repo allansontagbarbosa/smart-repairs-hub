@@ -4,7 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   Loader2, UserPlus, CalendarIcon, Smartphone, Search,
   CheckCircle2, AlertCircle, XCircle, ChevronRight,
-  User, Wrench, ClipboardList, X, Plus, Minus, Package,
+  User, Wrench, ClipboardList, X, Plus, Minus, Package, Printer,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -217,6 +217,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     setTecnico("");
     setLocalizacao("");
     setPrevisaoEntrega(undefined);
+    setCreatedOS(null);
   }
 
   function handleClose(v: boolean) {
