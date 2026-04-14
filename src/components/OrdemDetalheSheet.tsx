@@ -373,8 +373,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <Check className="h-3 w-3 mr-1" />Entregar
                   </Button>
                 )}
-                <EtiquetaOS
-                  data={{
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => printEtiquetaOS({
                     numero: ordem.numero,
                     clienteNome: ordem.aparelhos?.clientes?.nome || "",
                     clienteTelefone: ordem.aparelhos?.clientes?.telefone || "",
@@ -387,8 +389,11 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     valor: ordem.valor,
                     imei: ordem.aparelhos?.imei || null,
                     tecnicoAtribuido: ordem.tecnico || null,
-                  }}
-                />
+                  })}
+                >
+                  <Printer className="h-3.5 w-3.5 mr-1" />
+                  Etiqueta
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
