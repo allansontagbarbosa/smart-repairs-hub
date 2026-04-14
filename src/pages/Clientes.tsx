@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Phone, Loader2, Pencil, MessageCircle } from "lucide-react";
+import { Plus, Search, Phone, Loader2, Pencil, MessageCircle, Users } from "lucide-react";
 import { ClienteHistorico } from "@/components/ClienteHistoricoSheet";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
