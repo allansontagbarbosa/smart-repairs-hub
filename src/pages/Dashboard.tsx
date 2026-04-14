@@ -848,7 +848,79 @@ export default function Dashboard() {
         );
       })()}
 
-      {/* SEÇÃO 5 — GRÁFICOS */}
+      {/* SEÇÃO 5 — ALERTAS AUTOMÁTICOS */}
+      {(() => {
+        const alerts: { type: "success" | "warning" | "destructive"; msg: string }[] = [];
+        const pctDespesas = kpis.faturamentoMes > 0 ? (kpis.despesasPagasMes / kpis.faturamentoMes) * 100 : 0;
+
+        // Despesas > 40% do faturamento
+        if (kpis.faturamentoMes > 0 && pctDespesas > 40) {
+          alerts.push({ type: "destructive", msg: `Despesas representam ${pctDespesas.toFixed(0)}% do faturamento (acima de 40%)` });
+        } else if (kpis.faturamentoMes > 0) {
+          alerts.push({ type: "success", msg: `Despesas em ${pctDespesas.toFixed(0)}% do faturamento — dentro do limite` });
+        }
+
+        // Fila de aparelhos > 20
+        if (kpis.aguardandoReparo > 20) {
+          alerts.push({ type: "warning", msg: `${kpis.aguardandoReparo} aparelhos aguardando reparo — fila acima de 20` });
+        } else {
+          alerts.push({ type: "success", msg: `Fila de reparo sob controle: ${kpis.aguardandoReparo} aparelhos` });
+        }
+
+        // Prejuízo
+        if (kpis.lucroLiquido < 0) {
+          alerts.push({ type: "destructive", msg: `Prejuízo de ${fmt(Math.abs(kpis.lucroLiquido))} no mês — atenção!` });
+        } else if (kpis.lucroLiquido > 0) {
+          alerts.push({ type: "success", msg: `Lucro positivo de ${fmt(kpis.lucroLiquido)} — performance saudável` });
+        }
+
+        // Contas vencidas
+        if (kpis.contasVencidas > 0) {
+          alerts.push({ type: "destructive", msg: `${kpis.contasVencidas} conta${kpis.contasVencidas > 1 ? "s" : ""} vencida${kpis.contasVencidas > 1 ? "s" : ""}` });
+        }
+
+        // Em atraso
+        if (kpis.emAtraso > 0) {
+          alerts.push({ type: "warning", msg: `${kpis.emAtraso} OS em atraso` });
+        }
+
+        // Estoque baixo
+        if (kpis.estoqueBaixo > 0) {
+          alerts.push({ type: "warning", msg: `${kpis.estoqueBaixo} ite${kpis.estoqueBaixo > 1 ? "ns" : "m"} com estoque baixo` });
+        }
+
+        const iconMap = {
+          success: <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />,
+          warning: <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />,
+          destructive: <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />,
+        };
+        const bgMap = {
+          success: "border-success/20 bg-success-muted",
+          warning: "border-warning/30 bg-warning-muted",
+          destructive: "border-destructive/20 bg-destructive/5",
+        };
+        const textMap = {
+          success: "text-success",
+          warning: "text-warning",
+          destructive: "text-destructive",
+        };
+
+        return (
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Alertas Automáticos</h2>
+            <div className="space-y-1.5">
+              {alerts.map((a, i) => (
+                <div key={i} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${bgMap[a.type]} ${textMap[a.type]}`}>
+                  {iconMap[a.type]}
+                  {a.msg}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* SEÇÃO 6 — GRÁFICOS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue chart */}
         <div className="section-card">
