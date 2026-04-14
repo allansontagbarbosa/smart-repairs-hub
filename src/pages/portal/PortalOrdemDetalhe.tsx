@@ -102,7 +102,7 @@ export default function PortalOrdemDetalhe() {
   if (!ordem) {
     return (
       <div className="min-h-screen bg-background">
-        <Header onBack={() => navigate(user ? "/portal" : "/portal/login")} user={user} onSignOut={signOut} />
+        <Header onBack={() => navigate("/portal/login")} user={user} onSignOut={signOut} />
         <div className="flex items-center justify-center py-20">
           <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
@@ -186,11 +186,11 @@ export default function PortalOrdemDetalhe() {
     setRatingSaving(false);
   };
 
-  const shareLink = `${window.location.origin}/portal/login?os=${ordem.numero}`;
+  const shareLink = `${window.location.origin}/portal/ordem/${ordem.id}`;
 
   return (
     <div className="min-h-screen bg-background pb-8">
-      <Header onBack={() => navigate(user ? "/portal" : "/portal/login")} user={user} onSignOut={signOut} />
+      <Header onBack={() => navigate("/portal/login")} user={user} onSignOut={signOut} />
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
         <div className="rounded-xl border bg-card p-5">
