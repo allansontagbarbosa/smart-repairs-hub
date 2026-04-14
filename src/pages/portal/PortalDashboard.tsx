@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import {
   Wrench, LogOut, Smartphone, Clock, CheckCircle2, Package,
   DollarSign, ChevronRight, Store, Filter, Search,
@@ -31,18 +31,16 @@ function fmt(v: number | null | undefined) {
 export default function PortalDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-
-  // If not logged in, redirect to portal login (search page)
-  if (!user) {
-    navigate("/portal/login", { replace: true });
-    return null;
-  }
-
   const { data: cliente, isLoading: loadingCliente } = usePortalCliente();
   const { data: lojas = [] } = usePortalLojas(cliente?.id);
   const [lojaFilter, setLojaFilter] = useState("todas");
   const [statusFilter, setStatusFilter] = useState("todos");
   const { data: ordens = [], isLoading: loadingOrdens } = usePortalOrdens(cliente?.id, lojaFilter);
+
+  // If not logged in, redirect to portal login (search page)
+  if (!user) {
+    return <Navigate to="/portal/login" replace />;
+  }
 
   const filtered = statusFilter === "todos"
     ? ordens
