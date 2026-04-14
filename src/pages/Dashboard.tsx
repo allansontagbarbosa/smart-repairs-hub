@@ -267,6 +267,7 @@ export default function Dashboard() {
 
     const emAssistencia = ativas.filter(o => !["pronto"].includes(o.status)).length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
+    const aguardandoReparo = ativas.filter(o => ["recebido", "em_analise", "em_reparo"].includes(o.status)).length;
 
     const statusCounts: Record<string, number> = {};
     for (const o of ativas) {
