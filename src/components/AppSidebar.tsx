@@ -1,8 +1,14 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
 import { usePermissoes, type Permissoes } from "@/hooks/usePermissoes";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -26,11 +32,40 @@ const items = [
   { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
 ];
 
+function getInitials(name: string): string {
+  return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+}
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { badgeCounts } = useNotificacoes();
   const { can } = usePermissoes();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const { data: profile } = useQuery({
+    queryKey: ['sidebar-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('nome_exibicao, funcionario_id, funcionarios(nome, cargo)')
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const nome = (profile as any)?.funcionarios?.nome || profile?.nome_exibicao || user?.email?.split("@")[0] || "Usuário";
+  const email = user?.email || "";
+  const iniciais = getInitials(nome);
+
+  const handleLogout = async () => {
+    if (!confirm("Deseja sair do sistema?")) return;
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
 
   const visibleItems = items.filter((item) => can(item.permissao, "ver"));
 
@@ -91,11 +126,42 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Bottom section */}
-        <div className={`px-3 pb-4 pt-2 border-t border-sidebar-border ${collapsed ? "flex justify-center" : "flex items-center gap-2"}`}>
-          <ThemeToggle collapsed={collapsed} />
-          {!collapsed && (
-            <span className="text-[11px] text-sidebar-muted">Tema</span>
+        {/* Bottom section — user + theme + logout */}
+        <div className="border-t border-sidebar-border px-3 pb-3 pt-3 space-y-2">
+          {!collapsed ? (
+            <>
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
+                  {iniciais}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-sidebar-foreground truncate">{nome}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{email}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <ThemeToggle collapsed={false} />
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={handleLogout}>
+                  <LogOut className="h-3 w-3" />
+                  Sair
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <ThemeToggle collapsed={true} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={handleLogout} className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold hover:bg-destructive/10 hover:text-destructive transition-colors">
+                    {iniciais}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{nome}</p>
+                  <p className="text-xs text-muted-foreground">Clique para sair</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           )}
         </div>
       </SidebarContent>

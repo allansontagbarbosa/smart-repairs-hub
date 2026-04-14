@@ -97,7 +97,7 @@ function MetasCard() {
   const { data: config } = useQuery({
     queryKey: ["empresa_config_meta"],
     queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("id, meta_gastos_mes, meta_faturamento_mes, numero_socios, percentual_reserva_empresa").limit(1).maybeSingle();
+      const { data } = await supabase.from("empresa_config").select("*").limit(1).maybeSingle();
       return data;
     },
   });
@@ -114,14 +114,23 @@ function MetasCard() {
   const [metaFaturamento, setMetaFaturamento] = useState("");
   const [numSocios, setNumSocios] = useState("1");
   const [pctReserva, setPctReserva] = useState("10");
+  const [gastosFix, setGastosFix] = useState("");
+  const [depreciacao, setDepreciacao] = useState("");
+  const [impostos, setImpostos] = useState("");
+  const [outrosGastos, setOutrosGastos] = useState("");
   const [socioNomes, setSocioNomes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (config?.meta_gastos_mes != null) setMetaGastos(String(config.meta_gastos_mes));
-    if (config?.meta_faturamento_mes != null) setMetaFaturamento(String(config.meta_faturamento_mes));
-    if (config?.numero_socios != null) setNumSocios(String(config.numero_socios));
-    if (config?.percentual_reserva_empresa != null) setPctReserva(String(config.percentual_reserva_empresa));
+    if (!config) return;
+    setMetaGastos(String(config.meta_gastos_mes ?? ""));
+    setMetaFaturamento(String(config.meta_faturamento_mes ?? ""));
+    setNumSocios(String(config.numero_socios ?? 1));
+    setPctReserva(String(config.percentual_reserva_empresa ?? 10));
+    setGastosFix(String((config as any).gastos_fixos_mensais ?? ""));
+    setDepreciacao(String((config as any).depreciacao_mensal ?? ""));
+    setImpostos(String((config as any).impostos_mensal ?? ""));
+    setOutrosGastos(String((config as any).outros_gastos ?? ""));
   }, [config]);
 
   useEffect(() => {
@@ -141,6 +150,10 @@ function MetasCard() {
       meta_faturamento_mes: Number(metaFaturamento) || 0,
       numero_socios: ns,
       percentual_reserva_empresa: Number(pctReserva) || 0,
+      gastos_fixos_mensais: Number(gastosFix) || 0,
+      depreciacao_mensal: Number(depreciacao) || 0,
+      impostos_mensal: Number(impostos) || 0,
+      outros_gastos: Number(outrosGastos) || 0,
     } as any).eq("id", config.id);
 
     // Sync socios
@@ -153,7 +166,6 @@ function MetasCard() {
         await supabase.from("socios").insert({ nome, ordem: i } as any);
       }
     }
-    // Deactivate extras
     for (let i = ns; i < existing.length; i++) {
       await supabase.from("socios").update({ ativo: false } as any).eq("id", existing[i].id);
     }
@@ -180,6 +192,28 @@ function MetasCard() {
           <div>
             <Label>Meta de faturamento (R$)</Label>
             <Input type="number" step="0.01" placeholder="Ex: 20000.00" value={metaFaturamento} onChange={(e) => setMetaFaturamento(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="border-t pt-3 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Gastos Operacionais</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Gastos fixos mensais (R$)</Label>
+              <Input type="number" step="0.01" value={gastosFix} onChange={(e) => setGastosFix(e.target.value)} />
+            </div>
+            <div>
+              <Label>Depreciação mensal (R$)</Label>
+              <Input type="number" step="0.01" value={depreciacao} onChange={(e) => setDepreciacao(e.target.value)} />
+            </div>
+            <div>
+              <Label>Impostos / IR mensal (R$)</Label>
+              <Input type="number" step="0.01" value={impostos} onChange={(e) => setImpostos(e.target.value)} />
+            </div>
+            <div>
+              <Label>Outros gastos operacionais (R$)</Label>
+              <Input type="number" step="0.01" value={outrosGastos} onChange={(e) => setOutrosGastos(e.target.value)} />
+            </div>
           </div>
         </div>
 
