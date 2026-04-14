@@ -82,8 +82,9 @@ export function useNotificacoes() {
     fetchNotificacoes();
     fetchBadgeCounts();
 
+    const channelName = `notificacoes-rt-${Date.now()}`;
     const channel = supabase
-      .channel("notificacoes-realtime")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "notificacoes" }, () => {
         fetchNotificacoes();
       })
