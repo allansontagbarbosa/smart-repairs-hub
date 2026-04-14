@@ -266,6 +266,7 @@ function getSubtitle(id: string): string {
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
     produtos: "Cadastro mãe de produtos para uso em todo o sistema",
     servicos: "Tipos de serviço, valores e comissões padrão",
+    defeitos: "Tipos de defeito, categorias e valores de mão de obra",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
     tecnicos: "Equipe técnica, especialidades e comissões",
