@@ -1407,6 +1407,39 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          lida: boolean
+          mensagem: string
+          referencia_id: string | null
+          referencia_tabela: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean
+          mensagem: string
+          referencia_id?: string | null
+          referencia_tabela?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean
+          mensagem?: string
+          referencia_id?: string | null
+          referencia_tabela?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       ordens_de_servico: {
         Row: {
           aparelho_id: string

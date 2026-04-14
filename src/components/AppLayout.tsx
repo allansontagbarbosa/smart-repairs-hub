@@ -5,7 +5,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
-import { Plus, Search, MessageCircle, CheckCircle } from "lucide-react";
+import { Plus, Search, CheckCircle } from "lucide-react";
+import { NotificacoesBell } from "@/components/NotificacoesBell";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [novaOSOpen, setNovaOSOpen] = useState(false);
@@ -45,6 +46,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <CheckCircle className="h-3 w-3" /> Prontos
               </Button>
+            </div>
+            <div className="ml-auto">
+              <NotificacoesBell />
             </div>
           </header>
           <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
