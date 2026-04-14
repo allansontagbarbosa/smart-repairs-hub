@@ -531,7 +531,9 @@ export type Database = {
           meta_gastos_mes: number | null
           moeda: string | null
           nome: string
+          numero_socios: number | null
           observacoes: string | null
+          percentual_reserva_empresa: number | null
           telefone: string | null
           updated_at: string
         }
@@ -551,7 +553,9 @@ export type Database = {
           meta_gastos_mes?: number | null
           moeda?: string | null
           nome?: string
+          numero_socios?: number | null
           observacoes?: string | null
+          percentual_reserva_empresa?: number | null
           telefone?: string | null
           updated_at?: string
         }
@@ -571,7 +575,9 @@ export type Database = {
           meta_gastos_mes?: number | null
           moeda?: string | null
           nome?: string
+          numero_socios?: number | null
           observacoes?: string | null
+          percentual_reserva_empresa?: number | null
           telefone?: string | null
           updated_at?: string
         }
@@ -1658,6 +1664,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      socios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       status_ordem_servico: {
         Row: {
