@@ -88,6 +88,38 @@ export type Database = {
           },
         ]
       }
+      avaliacoes: {
+        Row: {
+          comentario: string | null
+          created_at: string | null
+          id: string
+          nota: number
+          ordem_id: string
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string | null
+          id?: string
+          nota: number
+          ordem_id: string
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string | null
+          id?: string
+          nota?: number
+          ordem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_financeiras: {
         Row: {
           ativo: boolean
