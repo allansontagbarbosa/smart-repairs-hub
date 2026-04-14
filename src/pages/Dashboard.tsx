@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -370,6 +371,7 @@ export default function Dashboard() {
       {/* ── HEADER ── */}
       <h1 className="text-xl font-bold">Dashboard</h1>
 
+      <OnboardingWelcome />
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 1 — FINANCEIRO DO MÊS

@@ -144,7 +144,7 @@ export default function Login() {
     setDemoLoading(true);
     setError("");
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email: DEMO_EMAIL,
       password: DEMO_PASSWORD,
     });
@@ -153,13 +153,6 @@ export default function Login() {
       setDemoLoading(false);
       setError("Conta demo não configurada. Contate o administrador.");
       return;
-    }
-
-    if (data?.user) {
-      await supabase.rpc("ensure_demo_user" as any, {
-        p_user_id: data.user.id,
-        p_email: DEMO_EMAIL,
-      });
     }
 
     setDemoLoading(false);
