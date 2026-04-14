@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
-import { format } from "date-fns";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Loader2, UserPlus, CalendarIcon, Smartphone, Search,
   CheckCircle2, AlertCircle, XCircle, ChevronRight,
-  User, Wrench, ClipboardList,
+  User, Wrench, ClipboardList, X, Plus, Minus, Package,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,11 +51,28 @@ const STEPS: { key: Step; label: string; icon: typeof User }[] = [
   { key: "servico",  label: "Serviço",  icon: Wrench },
 ];
 
+interface DefeitoSelecionado {
+  id: string;
+  nome: string;
+  categoria: string;
+  valor_mao_obra: number;
+}
+
+interface PecaSelecionada {
+  id: string;
+  nome: string;
+  quantidade: number;
+  custo_unitario: number;
+  preco_venda: number;
+  estoque_disponivel: number;
+}
+
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<Step>("cliente");
 
+  // Cliente
   const [showNewClient, setShowNewClient] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [newClientNome, setNewClientNome] = useState("");
@@ -63,6 +80,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const [newClientEmail, setNewClientEmail] = useState("");
   const [clientSearch, setClientSearch] = useState("");
 
+  // Aparelho
   const [imei, setImei] = useState("");
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [marca, setMarca] = useState("");
@@ -72,15 +90,107 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const [senhaDesbloqueio, setSenhaDesbloqueio] = useState("");
   const [acessorios, setAcessorios] = useState("");
 
-  const [defeito, setDefeito] = useState("");
+  // Serviço — defeitos
+  const [defeitoSearch, setDefeitoSearch] = useState("");
+  const [defeitosFocused, setDefeitosFocused] = useState(false);
+  const [defeitosSelecionados, setDefeitosSelecionados] = useState<DefeitoSelecionado[]>([]);
+
+  // Serviço — peças
+  const [pecaSearch, setPecaSearch] = useState("");
+  const [pecasFocused, setPecasFocused] = useState(false);
+  const [pecasSelecionadas, setPecasSelecionadas] = useState<PecaSelecionada[]>([]);
+
+  // Serviço — outros
+  const [maoObraAdicional, setMaoObraAdicional] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [valor, setValor] = useState("");
   const [tecnico, setTecnico] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
 
   const imeiRef = useRef<HTMLInputElement>(null);
 
+  // Auto-set previsão when entering step servico
+  useEffect(() => {
+    if (step === "servico" && !previsaoEntrega) {
+      setPrevisaoEntrega(addDays(new Date(), 2));
+    }
+  }, [step]);
+
+  // ── Queries ──
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clientes").select("*").order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: tiposDefeito = [] } = useQuery({
+    queryKey: ["tipos_defeito"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tipos_defeito")
+        .select("*")
+        .eq("ativo", true)
+        .order("categoria")
+        .order("nome");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: pecasEstoque = [] } = useQuery({
+    queryKey: ["estoque_pecas_disponiveis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estoque_itens")
+        .select("*, estoque_categorias:categoria_id ( nome ), marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
+        .eq("tipo_item", "peca")
+        .is("deleted_at", null)
+        .gt("quantidade", 0)
+        .order("nome_personalizado");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // ── Derived ──
+  const clientesFiltrados = clientes.filter((c) =>
+    !clientSearch ||
+    c.nome.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    (c.telefone || "").includes(clientSearch)
+  );
+  const clienteSelecionado = clientes.find((c) => c.id === selectedClientId);
+
+  const defeitosFiltrados = useMemo(() => {
+    const selectedIds = new Set(defeitosSelecionados.map(d => d.id));
+    return tiposDefeito.filter(d =>
+      !selectedIds.has(d.id) &&
+      (!defeitoSearch || d.nome.toLowerCase().includes(defeitoSearch.toLowerCase()) || d.categoria.toLowerCase().includes(defeitoSearch.toLowerCase()))
+    );
+  }, [tiposDefeito, defeitoSearch, defeitosSelecionados]);
+
+  const pecasFiltradas = useMemo(() => {
+    const selectedIds = new Set(pecasSelecionadas.map(p => p.id));
+    return pecasEstoque.filter(p =>
+      !selectedIds.has(p.id) &&
+      (!pecaSearch || 
+        (p.nome_personalizado || "").toLowerCase().includes(pecaSearch.toLowerCase()) ||
+        (p.sku || "").toLowerCase().includes(pecaSearch.toLowerCase()))
+    );
+  }, [pecasEstoque, pecaSearch, pecasSelecionadas]);
+
+  // ── Valores calculados ──
+  const totalMaoObraDefeitos = defeitosSelecionados.reduce((s, d) => s + d.valor_mao_obra, 0);
+  const totalPecas = pecasSelecionadas.reduce((s, p) => s + p.preco_venda * p.quantidade, 0);
+  const custoPecas = pecasSelecionadas.reduce((s, p) => s + p.custo_unitario * p.quantidade, 0);
+  const adicional = parseFloat(maoObraAdicional) || 0;
+  const valorTotal = totalMaoObraDefeitos + totalPecas + adicional;
+
+  const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
+
+  // ── Reset ──
   function resetAll() {
     setStep("cliente");
     setShowNewClient(false);
@@ -97,9 +207,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     setCapacidade("");
     setSenhaDesbloqueio("");
     setAcessorios("");
-    setDefeito("");
+    setDefeitoSearch("");
+    setDefeitosSelecionados([]);
+    setPecaSearch("");
+    setPecasSelecionadas([]);
+    setMaoObraAdicional("");
     setObservacoes("");
-    setValor("");
     setTecnico("");
     setLocalizacao("");
     setPrevisaoEntrega(undefined);
@@ -110,24 +223,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     onOpenChange(v);
   }
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clientes").select("*").order("nome");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const clientesFiltrados = clientes.filter((c) =>
-    !clientSearch ||
-    c.nome.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    (c.telefone || "").includes(clientSearch)
-  );
-
-  const clienteSelecionado = clientes.find((c) => c.id === selectedClientId);
-
+  // ── Mutations ──
   const createClientMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -158,9 +254,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         body: { imei: digits },
       });
       if (error) throw error;
-
       const result = data as ImeiResult & { status: string; duplicate?: { table: string; info: string } | null };
-
       if (result.status === "error" && result.duplicate) {
         setImeiResult({ status: "duplicate", message: result.message, duplicate: result.duplicate });
         return;
@@ -173,12 +267,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         setImeiResult({ status: "not_found", message: result.message });
         return;
       }
-
       if (result.marca) setMarca(result.marca);
       if (result.modelo) setModelo(result.modelo);
       if (result.cor) setCor(result.cor);
       if (result.capacidade) setCapacidade(result.capacidade);
-
       setImeiResult({
         status: result.status as ImeiStatus,
         marca: result.marca,
@@ -186,9 +278,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         cor: result.cor,
         capacidade: result.capacidade,
       });
-
       toast.success(`Aparelho identificado: ${result.marca} ${result.modelo}`);
-    } catch (e: any) {
+    } catch {
       setImeiResult({ status: "error", message: "Erro ao consultar IMEI" });
       toast.error("Erro ao consultar IMEI");
     }
@@ -198,14 +289,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     mutationFn: async () => {
       if (!selectedClientId) throw new Error("Selecione um cliente");
       if (!marca || !modelo) throw new Error("Marca e modelo são obrigatórios");
-      if (!defeito) throw new Error("Descreva o defeito");
+      if (defeitosSelecionados.length === 0) throw new Error("Selecione ao menos um defeito");
 
+      // 1. Criar aparelho
       const { data: aparelho, error: apErr } = await supabase
         .from("aparelhos")
         .insert({
           cliente_id: selectedClientId,
-          marca,
-          modelo,
+          marca, modelo,
           cor: cor || null,
           capacidade: capacidade || null,
           imei: imei.replace(/\D/g, "") || null,
@@ -213,20 +304,48 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         .select().single();
       if (apErr) throw apErr;
 
-      const { error: osErr } = await supabase.from("ordens_de_servico").insert({
+      // 2. Criar OS
+      const { data: ordem, error: osErr } = await supabase.from("ordens_de_servico").insert({
         aparelho_id: aparelho.id,
-        defeito_relatado: defeito,
+        defeito_relatado: defeitoRelatado,
         observacoes: observacoes || null,
-        valor: valor ? parseFloat(valor) : null,
+        valor: valorTotal || null,
+        custo_pecas: custoPecas || 0,
         data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
-      });
+      }).select("id").single();
       if (osErr) throw osErr;
+
+      // 3. Inserir os_defeitos
+      if (defeitosSelecionados.length > 0) {
+        const { error: defErr } = await supabase.from("os_defeitos").insert(
+          defeitosSelecionados.map(d => ({
+            ordem_id: ordem.id,
+            defeito_id: d.id,
+            nome: d.nome,
+          }))
+        );
+        if (defErr) throw defErr;
+      }
+
+      // 4. Inserir pecas_utilizadas
+      if (pecasSelecionadas.length > 0) {
+        const { error: pecErr } = await supabase.from("pecas_utilizadas").insert(
+          pecasSelecionadas.map(p => ({
+            ordem_id: ordem.id,
+            peca_id: p.id,
+            quantidade: p.quantidade,
+            custo_unitario: p.custo_unitario,
+          }))
+        );
+        if (pecErr) throw pecErr;
+      }
     },
     onSuccess: () => {
       toast.success("Ordem de Serviço criada!");
+      queryClient.invalidateQueries({ queryKey: ["estoque_pecas_disponiveis"] });
       resetAll();
       onOpenChange(false);
       onSuccess();
@@ -234,9 +353,46 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // ── Validação ──
   const canAdvanceCliente = !!selectedClientId;
   const canAdvanceAparelho = !!marca && !!modelo;
-  const canSubmit = canAdvanceCliente && canAdvanceAparelho && !!defeito;
+  const canSubmit = canAdvanceCliente && canAdvanceAparelho && defeitosSelecionados.length > 0;
+
+  // ── Helpers peças ──
+  function getPecaNome(p: typeof pecasEstoque[number]) {
+    if (p.nome_personalizado) return p.nome_personalizado;
+    const marcaNome = (p as any).marcas?.nome || "";
+    const modeloNome = (p as any).modelos?.nome || "";
+    return [marcaNome, modeloNome].filter(Boolean).join(" ") || `Peça ${p.sku || p.id.slice(0, 6)}`;
+  }
+
+  function addPeca(p: typeof pecasEstoque[number]) {
+    setPecasSelecionadas(prev => [...prev, {
+      id: p.id,
+      nome: getPecaNome(p),
+      quantidade: 1,
+      custo_unitario: Number(p.custo_unitario ?? 0),
+      preco_venda: Number(p.preco_venda ?? 0),
+      estoque_disponivel: p.quantidade,
+    }]);
+    setPecaSearch("");
+  }
+
+  function updatePecaQtd(id: string, delta: number) {
+    setPecasSelecionadas(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      const newQtd = Math.max(1, Math.min(p.estoque_disponivel, p.quantidade + delta));
+      return { ...p, quantidade: newQtd };
+    }));
+  }
+
+  function removePeca(id: string) {
+    setPecasSelecionadas(prev => prev.filter(p => p.id !== id));
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -249,6 +405,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
           </DialogTitle>
         </DialogHeader>
 
+        {/* Stepper */}
         <div className="flex items-center justify-center gap-1 px-5 py-3 border-b bg-muted/30">
           {STEPS.map((s, i) => {
             const isActive = step === s.key;
@@ -288,6 +445,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
 
         <div className="px-5 pb-5 pt-3 space-y-4">
 
+          {/* ═══ STEP 1 — CLIENTE ═══ */}
           {step === "cliente" && (
             <div className="space-y-3">
               {!showNewClient ? (
@@ -301,17 +459,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                       className="pl-9 h-9 text-sm"
                     />
                   </div>
-
                   <div className="max-h-48 overflow-y-auto rounded-lg border divide-y">
                     {clientesFiltrados.length === 0 ? (
-                      <p className="text-center text-xs text-muted-foreground py-6">
-                        Nenhum cliente encontrado
-                      </p>
+                      <p className="text-center text-xs text-muted-foreground py-6">Nenhum cliente encontrado</p>
                     ) : (
                       clientesFiltrados.map((c) => (
                         <button
-                          key={c.id}
-                          type="button"
+                          key={c.id} type="button"
                           onClick={() => setSelectedClientId(c.id)}
                           className={cn(
                             "w-full flex items-center justify-between px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50",
@@ -322,19 +476,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                             <p className="font-medium text-sm">{c.nome}</p>
                             <p className="text-xs text-muted-foreground">{c.telefone}</p>
                           </div>
-                          {selectedClientId === c.id && (
-                            <CheckCircle2 className="h-4 w-4 text-primary" />
-                          )}
+                          {selectedClientId === c.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
                         </button>
                       ))
                     )}
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowNewClient(true)}
-                    className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline"
-                  >
+                  <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
                     <UserPlus className="h-3.5 w-3.5" /> Cadastrar novo cliente
                   </button>
                 </>
@@ -344,51 +491,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                   <div className="grid grid-cols-1 gap-2">
                     <div>
                       <Label className="text-xs text-muted-foreground">Nome completo *</Label>
-                      <Input
-                        value={newClientNome}
-                        onChange={(e) => setNewClientNome(e.target.value)}
-                        placeholder="João Silva"
-                        className="mt-1 h-8 text-sm"
-                      />
+                      <Input value={newClientNome} onChange={(e) => setNewClientNome(e.target.value)} placeholder="João Silva" className="mt-1 h-8 text-sm" />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Telefone / WhatsApp *</Label>
-                      <Input
-                        value={newClientTelefone}
-                        onChange={(e) => setNewClientTelefone(e.target.value)}
-                        placeholder="(19) 99999-9999"
-                        className="mt-1 h-8 text-sm"
-                      />
+                      <Input value={newClientTelefone} onChange={(e) => setNewClientTelefone(e.target.value)} placeholder="(19) 99999-9999" className="mt-1 h-8 text-sm" />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">E-mail</Label>
-                      <Input
-                        value={newClientEmail}
-                        onChange={(e) => setNewClientEmail(e.target.value)}
-                        placeholder="opcional"
-                        className="mt-1 h-8 text-sm"
-                        type="email"
-                      />
+                      <Input value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="opcional" className="mt-1 h-8 text-sm" type="email" />
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      disabled={!newClientNome || !newClientTelefone || createClientMutation.isPending}
-                      onClick={() => createClientMutation.mutate()}
-                    >
-                      {createClientMutation.isPending
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                        : <UserPlus className="h-3.5 w-3.5 mr-1" />}
+                    <Button size="sm" disabled={!newClientNome || !newClientTelefone || createClientMutation.isPending} onClick={() => createClientMutation.mutate()}>
+                      {createClientMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
                       Cadastrar
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setShowNewClient(false)}
-                    >
-                      Cancelar
-                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowNewClient(false)}>Cancelar</Button>
                   </div>
                 </div>
               )}
@@ -403,285 +522,302 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                 </div>
               )}
 
-              <Button
-                className="w-full"
-                disabled={!canAdvanceCliente}
-                onClick={() => setStep("aparelho")}
-              >
+              <Button className="w-full" disabled={!canAdvanceCliente} onClick={() => setStep("aparelho")}>
                 Próximo — Aparelho <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           )}
 
+          {/* ═══ STEP 2 — APARELHO ═══ */}
           {step === "aparelho" && (
             <div className="space-y-4">
-
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                  IMEI — identificação automática
-                </Label>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">IMEI — identificação automática</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Smartphone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      ref={imeiRef}
-                      value={imei}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, "").slice(0, 15);
-                        setImei(v);
-                        if (imeiResult.status !== "idle") setImeiResult({ status: "idle" });
-                      }}
-                      placeholder="Digite os 15 dígitos do IMEI"
-                      className="pl-8 h-9 font-mono text-sm tracking-wider"
-                      maxLength={15}
-                      inputMode="numeric"
+                      ref={imeiRef} value={imei}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 15); setImei(v); if (imeiResult.status !== "idle") setImeiResult({ status: "idle" }); }}
+                      placeholder="Digite os 15 dígitos do IMEI" className="pl-8 h-9 font-mono text-sm tracking-wider" maxLength={15} inputMode="numeric"
                     />
                   </div>
                   <Button size="sm" variant="outline" onClick={consultarImei} disabled={imeiResult.status === "loading" || imei.length !== 15}>
-                    {imeiResult.status === "loading"
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                      : <Search className="h-3.5 w-3.5 mr-1" />}
+                    {imeiResult.status === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Search className="h-3.5 w-3.5 mr-1" />}
                     Consultar
                   </Button>
                 </div>
-
-                {imei.length > 0 && imei.length < 15 && (
-                  <p className="text-[10px] text-muted-foreground">
-                    {imei.length}/15 dígitos
-                  </p>
-                )}
-
+                {imei.length > 0 && imei.length < 15 && <p className="text-[10px] text-muted-foreground">{imei.length}/15 dígitos</p>}
                 {imeiResult.status === "found" && (
                   <div className="flex items-start gap-2 p-2 rounded-lg bg-green-50 border border-green-200 text-green-800">
                     <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-xs font-medium">Aparelho identificado via API</p>
-                      <p className="text-xs">
-                        {imeiResult.marca} {imeiResult.modelo}
-                        {imeiResult.capacidade ? ` · ${imeiResult.capacidade}` : ""}
-                        {imeiResult.cor ? ` · ${imeiResult.cor}` : ""}
-                      </p>
+                      <p className="text-xs">{imeiResult.marca} {imeiResult.modelo}{imeiResult.capacidade ? ` · ${imeiResult.capacidade}` : ""}{imeiResult.cor ? ` · ${imeiResult.cor}` : ""}</p>
                     </div>
                   </div>
                 )}
                 {imeiResult.status === "partial" && (
                   <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800">
                     <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium">Identificado parcialmente — confira os dados</p>
-                      <p className="text-xs">{imeiResult.marca} {imeiResult.modelo}</p>
-                    </div>
+                    <div><p className="text-xs font-medium">Identificado parcialmente — confira os dados</p><p className="text-xs">{imeiResult.marca} {imeiResult.modelo}</p></div>
                   </div>
                 )}
                 {imeiResult.status === "not_found" && (
                   <div className="flex items-start gap-2 p-2 rounded-lg bg-muted/50 border text-muted-foreground">
                     <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <p className="text-xs">
-                      IMEI não identificado — preencha os dados manualmente abaixo.
-                    </p>
+                    <p className="text-xs">IMEI não identificado — preencha os dados manualmente abaixo.</p>
                   </div>
                 )}
                 {imeiResult.status === "duplicate" && (
                   <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 border border-red-200 text-red-800">
                     <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium">IMEI já cadastrado</p>
-                      {imeiResult.duplicate && <p className="text-xs">{imeiResult.duplicate.info}</p>}
-                    </div>
+                    <div><p className="text-xs font-medium">IMEI já cadastrado</p>{imeiResult.duplicate && <p className="text-xs">{imeiResult.duplicate.info}</p>}</div>
                   </div>
                 )}
                 {imeiResult.status === "error" && (
                   <div className="flex items-start gap-2 p-2 rounded-lg bg-red-50 border border-red-200 text-red-800">
                     <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <p className="text-xs">
-                      {imeiResult.message || "Erro ao consultar IMEI"}
-                    </p>
+                    <p className="text-xs">{imeiResult.message || "Erro ao consultar IMEI"}</p>
                   </div>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Marca *</Label>
-                  <Input
-                    value={marca}
-                    onChange={(e) => setMarca(e.target.value)}
-                    placeholder="Apple, Samsung..."
-                    className="mt-1 h-9"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Modelo *</Label>
-                  <Input
-                    value={modelo}
-                    onChange={(e) => setModelo(e.target.value)}
-                    placeholder="iPhone 15, S24..."
-                    className="mt-1 h-9"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Cor</Label>
-                  <Input
-                    value={cor}
-                    onChange={(e) => setCor(e.target.value)}
-                    placeholder="Preto, Branco..."
-                    className="mt-1 h-9"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Capacidade</Label>
-                  <Input
-                    value={capacidade}
-                    onChange={(e) => setCapacidade(e.target.value)}
-                    placeholder="128GB, 256GB..."
-                    className="mt-1 h-9"
-                  />
-                </div>
+                <div><Label className="text-xs text-muted-foreground">Marca *</Label><Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Apple, Samsung..." className="mt-1 h-9" required /></div>
+                <div><Label className="text-xs text-muted-foreground">Modelo *</Label><Input value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="iPhone 15, S24..." className="mt-1 h-9" required /></div>
+                <div><Label className="text-xs text-muted-foreground">Cor</Label><Input value={cor} onChange={(e) => setCor(e.target.value)} placeholder="Preto, Branco..." className="mt-1 h-9" /></div>
+                <div><Label className="text-xs text-muted-foreground">Capacidade</Label><Input value={capacidade} onChange={(e) => setCapacidade(e.target.value)} placeholder="128GB, 256GB..." className="mt-1 h-9" /></div>
               </div>
 
-              <div>
-                <Label className="text-xs text-muted-foreground">Senha / padrão de desbloqueio</Label>
-                <Input
-                  value={senhaDesbloqueio}
-                  onChange={(e) => setSenhaDesbloqueio(e.target.value)}
-                  placeholder="Fornecida pelo cliente (opcional)"
-                  className="mt-1 h-9"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs text-muted-foreground">Acessórios recebidos</Label>
-                <Input
-                  value={acessorios}
-                  onChange={(e) => setAcessorios(e.target.value)}
-                  placeholder="Cabo, capa, carregador..."
-                  className="mt-1 h-9"
-                />
-              </div>
+              <div><Label className="text-xs text-muted-foreground">Senha / padrão de desbloqueio</Label><Input value={senhaDesbloqueio} onChange={(e) => setSenhaDesbloqueio(e.target.value)} placeholder="Fornecida pelo cliente (opcional)" className="mt-1 h-9" /></div>
+              <div><Label className="text-xs text-muted-foreground">Acessórios recebidos</Label><Input value={acessorios} onChange={(e) => setAcessorios(e.target.value)} placeholder="Cabo, capa, carregador..." className="mt-1 h-9" /></div>
 
               <div className="flex gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStep("cliente")}
-                >
-                  Voltar
-                </Button>
-                <Button
-                  className="flex-1"
-                  disabled={!canAdvanceAparelho}
-                  onClick={() => setStep("servico")}
-                >
-                  Próximo — Serviço <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setStep("cliente")}>Voltar</Button>
+                <Button className="flex-1" disabled={!canAdvanceAparelho} onClick={() => setStep("servico")}>Próximo — Serviço <ChevronRight className="h-4 w-4 ml-1" /></Button>
               </div>
             </div>
           )}
 
+          {/* ═══ STEP 3 — SERVIÇO ═══ */}
           {step === "servico" && (
             <div className="space-y-4">
 
-              <div>
-                <Label className="text-xs text-muted-foreground">Defeito relatado *</Label>
-                <Textarea
-                  value={defeito}
-                  onChange={(e) => setDefeito(e.target.value)}
-                  placeholder="Descreva o problema principal do aparelho..."
-                  rows={3}
-                  className="mt-1 resize-none text-sm"
-                  required
-                />
+              {/* ── Defeitos ── */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Defeitos *</Label>
+
+                {/* Tags selecionadas */}
+                {defeitosSelecionados.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {defeitosSelecionados.map(d => (
+                      <span key={d.id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                        {d.nome}
+                        <button type="button" onClick={() => setDefeitosSelecionados(prev => prev.filter(x => x.id !== d.id))} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar defeito..."
+                    value={defeitoSearch}
+                    onChange={(e) => setDefeitoSearch(e.target.value)}
+                    onFocus={() => setDefeitosFocused(true)}
+                    onBlur={() => setTimeout(() => setDefeitosFocused(false), 200)}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+
+                {/* Dropdown */}
+                {defeitosFocused && defeitosFiltrados.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto rounded-lg border divide-y bg-popover shadow-md">
+                    {defeitosFiltrados.slice(0, 15).map(d => (
+                      <button
+                        key={d.id} type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setDefeitosSelecionados(prev => [...prev, {
+                            id: d.id, nome: d.nome, categoria: d.categoria, valor_mao_obra: Number(d.valor_mao_obra),
+                          }]);
+                          setDefeitoSearch("");
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
+                      >
+                        <div>
+                          <p className="text-sm">{d.nome}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{d.categoria}</p>
+                        </div>
+                        <span className="text-xs font-medium text-green-600">
+                          R$ {Number(d.valor_mao_obra).toFixed(2)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* ── Peças ── */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Package className="h-3.5 w-3.5" /> Peças utilizadas
+                </Label>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar peça no estoque..."
+                    value={pecaSearch}
+                    onChange={(e) => setPecaSearch(e.target.value)}
+                    onFocus={() => setPecasFocused(true)}
+                    onBlur={() => setTimeout(() => setPecasFocused(false), 200)}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+
+                {pecasFocused && pecasFiltradas.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto rounded-lg border divide-y bg-popover shadow-md">
+                    {pecasFiltradas.slice(0, 15).map(p => (
+                      <button
+                        key={p.id} type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => addPeca(p)}
+                        className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
+                      >
+                        <div>
+                          <p className="text-sm">{getPecaNome(p)}</p>
+                          <p className="text-[10px] text-muted-foreground">Estoque: {p.quantidade} | SKU: {p.sku || "—"}</p>
+                        </div>
+                        <span className="text-xs font-medium text-green-600">
+                          R$ {Number(p.preco_venda ?? 0).toFixed(2)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Peças selecionadas */}
+                {pecasSelecionadas.length > 0 && (
+                  <div className="rounded-lg border divide-y">
+                    {pecasSelecionadas.map(p => (
+                      <div key={p.id} className="flex items-center justify-between px-3 py-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{p.nome}</p>
+                          <p className="text-[10px] text-muted-foreground">R$ {p.preco_venda.toFixed(2)} / un</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 ml-2">
+                          <button type="button" onClick={() => updatePecaQtd(p.id, -1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="text-xs font-medium w-6 text-center">{p.quantidade}</span>
+                          <button type="button" onClick={() => updatePecaQtd(p.id, 1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
+                            <Plus className="h-3 w-3" />
+                          </button>
+                          <button type="button" onClick={() => removePeca(p.id)} className="h-6 w-6 flex items-center justify-center rounded border text-destructive hover:bg-destructive/10 ml-1">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <span className="text-xs font-medium ml-3 w-16 text-right">
+                          R$ {(p.preco_venda * p.quantidade).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Mão de obra adicional ── */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Mão de obra adicional (R$)</Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                  <Input
+                    value={maoObraAdicional}
+                    onChange={(e) => setMaoObraAdicional(e.target.value)}
+                    type="number" step="0.01" min="0"
+                    placeholder="0,00" className="pl-8 h-9"
+                  />
+                </div>
+              </div>
+
+              {/* ── Breakdown de valor ── */}
+              {(defeitosSelecionados.length > 0 || pecasSelecionadas.length > 0 || adicional > 0) && (
+                <div className="rounded-lg border bg-muted/20 px-3 py-2.5 space-y-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Valor do serviço</p>
+                  {totalMaoObraDefeitos > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Mão de obra ({defeitosSelecionados.length} defeito{defeitosSelecionados.length > 1 ? "s" : ""})</span>
+                      <span>R$ {totalMaoObraDefeitos.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {totalPecas > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Peças ({pecasSelecionadas.length})</span>
+                      <span>R$ {totalPecas.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {adicional > 0 && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Adicional</span>
+                      <span>R$ {adicional.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-1 mt-1 flex justify-between text-sm font-semibold">
+                    <span>Total</span>
+                    <span className="text-green-600">R$ {valorTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Observações ── */}
               <div>
                 <Label className="text-xs text-muted-foreground">Observações internas</Label>
                 <Textarea
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
                   placeholder="Riscos, danos pré-existentes, condições do aparelho..."
-                  rows={2}
-                  className="mt-1 resize-none text-sm"
+                  rows={2} className="mt-1 resize-none text-sm"
                 />
               </div>
 
+              {/* ── Previsão + Técnico ── */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Valor do serviço (R$)</Label>
-                  <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                    <Input
-                      value={valor}
-                      onChange={(e) => setValor(e.target.value)}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0,00"
-                      className="pl-8 h-9"
-                    />
-                  </div>
-                </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className={cn(
-                          "mt-1 h-9 w-full justify-start text-left font-normal text-sm",
-                          !previsaoEntrega && "text-muted-foreground"
-                        )}
+                        className={cn("mt-1 h-9 w-full justify-start text-left font-normal text-sm", !previsaoEntrega && "text-muted-foreground")}
                       >
                         <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {previsaoEntrega
-                          ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR })
-                          : "Selecione"}
+                        {previsaoEntrega ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={previsaoEntrega}
-                        onSelect={setPrevisaoEntrega}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
+                      <Calendar mode="single" selected={previsaoEntrega} onSelect={setPrevisaoEntrega} disabled={(date) => date < new Date()} initialFocus className="p-3 pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Técnico responsável</Label>
-                  <Input
-                    value={tecnico}
-                    onChange={(e) => setTecnico(e.target.value)}
-                    placeholder="Nome do técnico"
-                    className="mt-1 h-9"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Localização</Label>
-                  <Input
-                    value={localizacao}
-                    onChange={(e) => setLocalizacao(e.target.value)}
-                    placeholder="Bancada, gaveta 3..."
-                    className="mt-1 h-9"
-                  />
+                  <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Nome do técnico" className="mt-1 h-9" />
                 </div>
               </div>
 
+              {/* ── Status ── */}
               <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">Status inicial</p>
-                <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                  Recebido
-                </span>
+                <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Recebido</span>
               </div>
 
+              {/* ── Resumo ── */}
               <div className="rounded-lg border bg-muted/20 px-3 py-2.5 space-y-1">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resumo</p>
                 <div className="flex justify-between text-xs">
@@ -698,32 +834,29 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
                     <span className="font-mono text-muted-foreground">{imei}</span>
                   </div>
                 )}
-                {valor && (
+                {defeitosSelecionados.length > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Defeitos</span>
+                    <span className="font-medium text-right max-w-[60%] truncate">{defeitoRelatado}</span>
+                  </div>
+                )}
+                {valorTotal > 0 && (
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">Valor</span>
-                    <span className="font-medium text-green-600">R$ {parseFloat(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    <span className="font-medium text-green-600">R$ {valorTotal.toFixed(2)}</span>
                   </div>
                 )}
               </div>
 
+              {/* ── Actions ── */}
               <div className="flex gap-2 pt-1">
+                <Button type="button" variant="outline" size="sm" onClick={() => setStep("aparelho")}>Voltar</Button>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStep("aparelho")}
-                >
-                  Voltar
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
+                  type="button" className="flex-1"
                   disabled={!canSubmit || createOrderMutation.isPending}
                   onClick={() => createOrderMutation.mutate()}
                 >
-                  {createOrderMutation.isPending
-                    ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                  {createOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                   Criar Ordem de Serviço
                 </Button>
               </div>
