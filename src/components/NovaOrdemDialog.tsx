@@ -316,8 +316,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
         tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
-      }).select("id").single();
+      }).select("id, numero").single();
       if (osErr) throw osErr;
+      return ordem;
 
       // 3. Inserir os_defeitos
       if (defeitosSelecionados.length > 0) {
