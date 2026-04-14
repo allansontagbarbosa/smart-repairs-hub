@@ -43,7 +43,7 @@ interface ImeiResult {
   duplicate?: { table: string; info: string } | null;
 }
 
-type Step = "cliente" | "aparelho" | "servico";
+type Step = "cliente" | "aparelho" | "servico" | "sucesso";
 
 const STEPS: { key: Step; label: string; icon: typeof User }[] = [
   { key: "cliente",  label: "Cliente",  icon: User },
@@ -106,6 +106,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
   const [tecnico, setTecnico] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
+  const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
 
   const imeiRef = useRef<HTMLInputElement>(null);
 
