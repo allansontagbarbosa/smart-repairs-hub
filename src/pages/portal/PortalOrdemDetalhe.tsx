@@ -1,15 +1,21 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Smartphone, Wrench, Clock, DollarSign,
   Store, User, FileText, CheckCircle2, LogOut,
+  Check, X, Loader2, AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalOrdens, usePortalHistorico } from "@/hooks/usePortalData";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 
 import { statusLabelsCliente as statusLabels } from "@/lib/status";
-
 
 const statusColors: Record<string, { dot: string; bg: string; text: string }> = {
   recebido: { dot: "bg-muted-foreground", bg: "bg-muted", text: "text-muted-foreground" },
@@ -36,9 +42,13 @@ export default function PortalOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
   const { data: cliente } = usePortalCliente();
   const { data: ordens = [] } = usePortalOrdens(cliente?.id);
   const { data: historico = [], isLoading: loadingHist } = usePortalHistorico(id);
+
+  const [approvalState, setApprovalState] = useState<"idle" | "confirming_approve" | "confirming_reject" | "approved" | "rejected" | "saving">("idle");
+  const [rejectReason, setRejectReason] = useState("");
 
   const ordem = ordens.find((o) => o.id === id);
 
@@ -55,6 +65,125 @@ export default function PortalOrdemDetalhe() {
 
   const currentStepIdx = steps.indexOf(ordem.status);
   const valorPendente = ordem.valor_pendente ?? ((ordem.valor ?? 0) - (ordem.valor_pago ?? 0));
+  const isAguardandoAprovacao = ordem.status === "aguardando_aprovacao";
+  const aparelhoNome = ordem.aparelhos ? `${ordem.aparelhos.marca} ${ordem.aparelhos.modelo}` : "Aparelho";
+
+  const handleApprove = async () => {
+    setApprovalState("saving");
+    try {
+      const { error: e1 } = await supabase
+        .from("ordens_de_servico")
+        .update({
+          status: "aprovado" as any,
+          aprovacao_orcamento: "aprovado",
+          data_aprovacao: new Date().toISOString(),
+        })
+        .eq("id", ordem.id);
+      if (e1) throw e1;
+
+      await supabase.from("historico_ordens").insert({
+        ordem_id: ordem.id,
+        status_anterior: "aguardando_aprovacao",
+        status_novo: "aprovado",
+        descricao: "Orçamento aprovado pelo cliente via portal",
+      });
+
+      // Try to send WhatsApp notification
+      try {
+        const { data: template } = await supabase
+          .from("templates_mensagem")
+          .select("mensagem")
+          .eq("evento", "orcamento_aprovado")
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (template) {
+          const { data: empresaConfig } = await supabase
+            .from("empresa_config")
+            .select("telefone")
+            .limit(1)
+            .maybeSingle();
+
+          if (empresaConfig?.telefone) {
+            const msg = template.mensagem
+              .replace("{cliente}", cliente?.nome ?? "Cliente")
+              .replace("{valor}", fmt(ordem.valor))
+              .replace("{numero}", String(ordem.numero).padStart(3, "0"))
+              .replace("{aparelho}", aparelhoNome);
+            abrirWhatsApp(empresaConfig.telefone, msg);
+          }
+        }
+      } catch {}
+
+      queryClient.invalidateQueries({ queryKey: ["portal-ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["portal-historico"] });
+      setApprovalState("approved");
+      toast.success("Orçamento aprovado!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao aprovar orçamento");
+      setApprovalState("idle");
+    }
+  };
+
+  const handleReject = async () => {
+    setApprovalState("saving");
+    try {
+      const { error: e1 } = await supabase
+        .from("ordens_de_servico")
+        .update({
+          status: "recebido" as any,
+          aprovacao_orcamento: "recusado",
+          motivo_reprovacao: rejectReason || null,
+        })
+        .eq("id", ordem.id);
+      if (e1) throw e1;
+
+      await supabase.from("historico_ordens").insert({
+        ordem_id: ordem.id,
+        status_anterior: "aguardando_aprovacao",
+        status_novo: "recebido",
+        descricao: "Orçamento recusado pelo cliente via portal",
+        observacao: rejectReason || null,
+      });
+
+      // Try to send WhatsApp notification
+      try {
+        const { data: template } = await supabase
+          .from("templates_mensagem")
+          .select("mensagem")
+          .eq("evento", "orcamento_recusado")
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (template) {
+          const { data: empresaConfig } = await supabase
+            .from("empresa_config")
+            .select("telefone")
+            .limit(1)
+            .maybeSingle();
+
+          if (empresaConfig?.telefone) {
+            const msg = template.mensagem
+              .replace("{cliente}", cliente?.nome ?? "Cliente")
+              .replace("{numero}", String(ordem.numero).padStart(3, "0"))
+              .replace("{aparelho}", aparelhoNome)
+              .replace("{motivo}", rejectReason || "Não informado");
+            abrirWhatsApp(empresaConfig.telefone, msg);
+          }
+        }
+      } catch {}
+
+      queryClient.invalidateQueries({ queryKey: ["portal-ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["portal-historico"] });
+      setApprovalState("rejected");
+      toast.success("Orçamento recusado");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao recusar orçamento");
+      setApprovalState("idle");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -74,7 +203,7 @@ export default function PortalOrdemDetalhe() {
               statusColors[ordem.status]?.text,
             )}>
               <span className={cn("h-2 w-2 rounded-full", statusColors[ordem.status]?.dot)} />
-              {statusLabels[ordem.status] ?? ordem.status}
+              {statusLabels[ordem.status as keyof typeof statusLabels] ?? ordem.status}
             </span>
           </div>
         </div>
@@ -89,9 +218,7 @@ export default function PortalOrdemDetalhe() {
               return (
                 <div key={step} className="flex flex-col items-center flex-1">
                   <div className="flex items-center w-full">
-                    {i > 0 && (
-                      <div className={cn("h-0.5 flex-1", done ? "bg-success" : "bg-border")} />
-                    )}
+                    {i > 0 && <div className={cn("h-0.5 flex-1", done ? "bg-success" : "bg-border")} />}
                     <div className={cn(
                       "h-5 w-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold",
                       isCurrent ? "bg-success text-success-foreground ring-2 ring-success/30" :
@@ -100,9 +227,7 @@ export default function PortalOrdemDetalhe() {
                     )}>
                       {done ? "✓" : i + 1}
                     </div>
-                    {i < steps.length - 1 && (
-                      <div className={cn("h-0.5 flex-1", i < currentStepIdx ? "bg-success" : "bg-border")} />
-                    )}
+                    {i < steps.length - 1 && <div className={cn("h-0.5 flex-1", i < currentStepIdx ? "bg-success" : "bg-border")} />}
                   </div>
                   <span className={cn(
                     "text-[8px] sm:text-[9px] mt-1.5 text-center leading-tight",
@@ -116,10 +241,133 @@ export default function PortalOrdemDetalhe() {
           </div>
         </div>
 
+        {/* Approval card */}
+        {isAguardandoAprovacao && approvalState !== "approved" && approvalState !== "rejected" && (
+          <div className="rounded-xl border-2 border-warning/50 bg-warning/5 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-warning" />
+              <p className="text-sm font-semibold">Orçamento aguardando sua aprovação</p>
+            </div>
+
+            {/* Defects */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Problema relatado:</p>
+              <p className="text-sm">{ordem.defeito_relatado}</p>
+            </div>
+
+            {/* Financial breakdown */}
+            <div className="space-y-1.5">
+              {ordem.custo_pecas != null && Number(ordem.custo_pecas) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Peças</span>
+                  <span className="font-medium">{fmt(ordem.custo_pecas)}</span>
+                </div>
+              )}
+              {ordem.valor != null && (
+                <>
+                  {Number(ordem.custo_pecas ?? 0) > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Mão de obra</span>
+                      <span className="font-medium">{fmt((ordem.valor ?? 0) - (ordem.custo_pecas ?? 0))}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-1.5 mt-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-semibold">Total</span>
+                      <span className="font-bold text-base">{fmt(ordem.valor)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {ordem.previsao_entrega && (
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Previsão de entrega:</span>
+                <span className="font-medium">{fmtDate(ordem.previsao_entrega)}</span>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {approvalState === "idle" && (
+              <div className="flex gap-2 pt-1">
+                <Button className="flex-1" onClick={() => setApprovalState("confirming_approve")}>
+                  <Check className="h-4 w-4 mr-2" /> Aprovar Orçamento
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setApprovalState("confirming_reject")}>
+                  <X className="h-4 w-4 mr-2" /> Recusar
+                </Button>
+              </div>
+            )}
+
+            {/* Confirm approve */}
+            {approvalState === "confirming_approve" && (
+              <div className="space-y-3 pt-1">
+                <p className="text-sm text-center">
+                  Confirma a aprovação do serviço por <strong>{fmt(ordem.valor)}</strong>?
+                </p>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={handleApprove}>
+                    <Check className="h-4 w-4 mr-2" /> Confirmar Aprovação
+                  </Button>
+                  <Button variant="ghost" onClick={() => setApprovalState("idle")}>Voltar</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Confirm reject */}
+            {approvalState === "confirming_reject" && (
+              <div className="space-y-3 pt-1">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Motivo da recusa (opcional)</p>
+                  <Textarea
+                    placeholder="Descreva o motivo..."
+                    rows={2}
+                    className="resize-none"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="destructive" className="flex-1" onClick={handleReject}>
+                    <X className="h-4 w-4 mr-2" /> Confirmar Recusa
+                  </Button>
+                  <Button variant="ghost" onClick={() => setApprovalState("idle")}>Voltar</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Saving */}
+            {approvalState === "saving" && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Success states */}
+        {approvalState === "approved" && (
+          <div className="rounded-xl border-2 border-success/50 bg-success/5 p-5 text-center space-y-2">
+            <CheckCircle2 className="h-8 w-8 text-success mx-auto" />
+            <p className="font-semibold">Orçamento aprovado!</p>
+            <p className="text-sm text-muted-foreground">Seu aparelho entrará em reparo em breve.</p>
+          </div>
+        )}
+
+        {approvalState === "rejected" && (
+          <div className="rounded-xl border-2 border-muted bg-muted/30 p-5 text-center space-y-2">
+            <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
+            <p className="font-semibold">Entendido.</p>
+            <p className="text-sm text-muted-foreground">Entre em contato para combinar a retirada do aparelho.</p>
+          </div>
+        )}
+
         {/* Device details */}
         <div className="rounded-xl border bg-card p-5 space-y-3">
           <p className="text-xs font-medium text-muted-foreground mb-1">Detalhes</p>
-          <DetailRow icon={Smartphone} label="Aparelho" value={`${ordem.aparelhos?.marca} ${ordem.aparelhos?.modelo}${ordem.aparelhos?.cor ? ` (${ordem.aparelhos.cor})` : ""}`} />
+          <DetailRow icon={Smartphone} label="Aparelho" value={`${aparelhoNome}${ordem.aparelhos?.cor ? ` (${ordem.aparelhos.cor})` : ""}`} />
           <DetailRow icon={FileText} label="Problema" value={ordem.defeito_relatado} />
           {ordem.lojas && <DetailRow icon={Store} label="Loja" value={ordem.lojas.nome} />}
           {ordem.tecnico && <DetailRow icon={User} label="Técnico" value={ordem.tecnico} />}
@@ -172,30 +420,38 @@ export default function PortalOrdemDetalhe() {
             <p className="text-xs text-muted-foreground">Nenhum registro ainda</p>
           ) : (
             <div className="space-y-0">
-              {historico.map((h, i) => (
-                <div key={h.id} className="flex gap-3 py-2">
-                  <div className="flex flex-col items-center">
-                    <div className={cn(
-                      "h-2.5 w-2.5 rounded-full mt-1",
-                      i === historico.length - 1 ? "bg-success" : "bg-border"
-                    )} />
-                    {i < historico.length - 1 && <div className="flex-1 w-px bg-border" />}
+              {historico.map((h, i) => {
+                const isApproval = h.descricao?.includes("aprovado pelo cliente") || h.descricao?.includes("recusado pelo cliente");
+                return (
+                  <div key={h.id} className="flex gap-3 py-2">
+                    <div className="flex flex-col items-center">
+                      <div className={cn(
+                        "h-2.5 w-2.5 rounded-full mt-1",
+                        isApproval ? "bg-warning" :
+                        i === historico.length - 1 ? "bg-success" : "bg-border"
+                      )} />
+                      {i < historico.length - 1 && <div className="flex-1 w-px bg-border" />}
+                    </div>
+                    <div className="pb-1">
+                      <p className="text-sm font-medium">
+                        {statusLabels[h.status_novo as keyof typeof statusLabels] ?? h.status_novo}
+                      </p>
+                      {h.descricao && (
+                        <p className={cn("text-xs mt-0.5", isApproval ? "text-warning font-medium" : "text-muted-foreground")}>
+                          {h.descricao}
+                        </p>
+                      )}
+                      {h.observacao && <p className="text-xs text-muted-foreground mt-0.5">{h.observacao}</p>}
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {new Date(h.created_at).toLocaleString("pt-BR", {
+                          day: "2-digit", month: "2-digit", year: "2-digit",
+                          hour: "2-digit", minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
                   </div>
-                  <div className="pb-1">
-                    <p className="text-sm font-medium">
-                      {statusLabels[h.status_novo] ?? h.status_novo}
-                    </p>
-                    {h.observacao && <p className="text-xs text-muted-foreground mt-0.5">{h.observacao}</p>}
-                    {h.descricao && <p className="text-xs text-muted-foreground mt-0.5">{h.descricao}</p>}
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {new Date(h.created_at).toLocaleString("pt-BR", {
-                        day: "2-digit", month: "2-digit", year: "2-digit",
-                        hour: "2-digit", minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
