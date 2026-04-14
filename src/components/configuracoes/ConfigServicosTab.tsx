@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 
 interface Props { tiposServico: any[] }
 
-const emptyForm = { nome: "", descricao: "", valor_padrao: null as number | null, comissao_padrao: null as number | null, ativo: true };
+const emptyForm = { nome: "", descricao: "", valor_padrao: null as number | null, comissao_padrao: null as number | null, ativo: true, tipo_comissao: "fixa" };
 
 export function ConfigServicosTab({ tiposServico }: Props) {
   const qc = useQueryClient();
@@ -29,7 +30,13 @@ export function ConfigServicosTab({ tiposServico }: Props) {
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
-    const payload = { ...form, valor_padrao: Number(form.valor_padrao) || 0, comissao_padrao: Number(form.comissao_padrao) || 0 };
+    const payload = {
+      nome: form.nome,
+      descricao: form.descricao || null,
+      valor_padrao: Number(form.valor_padrao) || 0,
+      comissao_padrao: Number(form.comissao_padrao) || 0,
+      ativo: form.ativo,
+    };
     if (editId) {
       await supabase.from("tipos_servico").update(payload).eq("id", editId);
     } else {
@@ -41,7 +48,14 @@ export function ConfigServicosTab({ tiposServico }: Props) {
   };
 
   const handleEdit = (s: any) => {
-    setForm({ nome: s.nome, descricao: s.descricao || "", valor_padrao: s.valor_padrao || null, comissao_padrao: s.comissao_padrao || null, ativo: s.ativo });
+    setForm({
+      nome: s.nome,
+      descricao: s.descricao || "",
+      valor_padrao: s.valor_padrao || null,
+      comissao_padrao: s.comissao_padrao || null,
+      ativo: s.ativo,
+      tipo_comissao: "fixa",
+    });
     setEditId(s.id); setOpen(true);
   };
 
@@ -68,8 +82,25 @@ export function ConfigServicosTab({ tiposServico }: Props) {
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
               <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => set("descricao", e.target.value)} rows={2} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Valor padrão</Label><CurrencyInput value={form.valor_padrao} onValueChange={(v) => set("valor_padrao", v)} /></div>
-                <div><Label>Comissão padrão</Label><CurrencyInput value={form.comissao_padrao} onValueChange={(v) => set("comissao_padrao", v)} /></div>
+                <div><Label>Valor padrão (R$)</Label><CurrencyInput value={form.valor_padrao} onValueChange={(v) => set("valor_padrao", v)} /></div>
+                <div>
+                  <Label>Tipo de comissão</Label>
+                  <Select value={form.tipo_comissao} onValueChange={(v) => set("tipo_comissao", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixa">Fixo (R$)</SelectItem>
+                      <SelectItem value="percentual">Percentual (%)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Comissão padrão ({form.tipo_comissao === "percentual" ? "%" : "R$"})</Label>
+                {form.tipo_comissao === "percentual" ? (
+                  <Input type="number" step="0.5" min="0" max="100" value={form.comissao_padrao ?? ""} onChange={(e) => set("comissao_padrao", e.target.value)} />
+                ) : (
+                  <CurrencyInput value={form.comissao_padrao} onValueChange={(v) => set("comissao_padrao", v)} />
+                )}
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} /><Label>Ativo</Label></div>
               <Button onClick={handleSave} className="w-full">{editId ? "Salvar" : "Cadastrar"}</Button>

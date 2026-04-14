@@ -639,12 +639,16 @@ export type Database = {
           cnpj_cpf: string | null
           cor_principal: string | null
           created_at: string
+          depreciacao_mensal: number | null
+          dias_garantia: number | null
           email: string | null
           endereco: string | null
           estado: string | null
           formato_data: string | null
+          gastos_fixos_mensais: number | null
           horario_funcionamento: string | null
           id: string
+          impostos_mensal: number | null
           logo_url: string | null
           meta_faturamento_mes: number | null
           meta_gastos_mes: number | null
@@ -652,6 +656,7 @@ export type Database = {
           nome: string
           numero_socios: number | null
           observacoes: string | null
+          outros_gastos: number | null
           percentual_reserva_empresa: number | null
           telefone: string | null
           updated_at: string
@@ -661,12 +666,16 @@ export type Database = {
           cnpj_cpf?: string | null
           cor_principal?: string | null
           created_at?: string
+          depreciacao_mensal?: number | null
+          dias_garantia?: number | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
           formato_data?: string | null
+          gastos_fixos_mensais?: number | null
           horario_funcionamento?: string | null
           id?: string
+          impostos_mensal?: number | null
           logo_url?: string | null
           meta_faturamento_mes?: number | null
           meta_gastos_mes?: number | null
@@ -674,6 +683,7 @@ export type Database = {
           nome?: string
           numero_socios?: number | null
           observacoes?: string | null
+          outros_gastos?: number | null
           percentual_reserva_empresa?: number | null
           telefone?: string | null
           updated_at?: string
@@ -683,12 +693,16 @@ export type Database = {
           cnpj_cpf?: string | null
           cor_principal?: string | null
           created_at?: string
+          depreciacao_mensal?: number | null
+          dias_garantia?: number | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
           formato_data?: string | null
+          gastos_fixos_mensais?: number | null
           horario_funcionamento?: string | null
           id?: string
+          impostos_mensal?: number | null
           logo_url?: string | null
           meta_faturamento_mes?: number | null
           meta_gastos_mes?: number | null
@@ -696,6 +710,7 @@ export type Database = {
           nome?: string
           numero_socios?: number | null
           observacoes?: string | null
+          outros_gastos?: number | null
           percentual_reserva_empresa?: number | null
           telefone?: string | null
           updated_at?: string
