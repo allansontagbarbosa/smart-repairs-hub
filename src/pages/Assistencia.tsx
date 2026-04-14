@@ -523,8 +523,14 @@ export default function Assistencia() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center text-sm text-muted-foreground py-12">
-                    Nenhuma ordem encontrada
+                  <td colSpan={8} className="text-center py-16">
+                    <div className="flex flex-col items-center gap-3">
+                      <Wrench className="h-10 w-10 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">Nenhuma ordem de serviço encontrada</p>
+                      <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+                        <Plus className="h-4 w-4 mr-1" /> Nova Ordem
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               )}

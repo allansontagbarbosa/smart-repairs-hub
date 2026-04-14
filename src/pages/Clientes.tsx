@@ -164,7 +164,21 @@ export default function Clientes() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="text-center text-muted-foreground py-10 text-sm">Nenhum cliente encontrado</td></tr>
+                  <tr>
+                    <td colSpan={6} className="text-center py-16">
+                      <div className="flex flex-col items-center gap-3">
+                        <Users className="h-10 w-10 text-muted-foreground/30" />
+                        <p className="text-sm text-muted-foreground">
+                          {search ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado ainda"}
+                        </p>
+                        {!search && (
+                          <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+                            <Plus className="h-4 w-4 mr-1" /> Novo Cliente
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
