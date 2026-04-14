@@ -267,6 +267,7 @@ export default function Dashboard() {
 
     const emAssistencia = ativas.filter(o => !["pronto"].includes(o.status)).length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
+    const aguardandoReparo = ativas.filter(o => ["recebido", "em_analise", "em_reparo"].includes(o.status)).length;
 
     const statusCounts: Record<string, number> = {};
     for (const o of ativas) {
@@ -329,7 +330,7 @@ export default function Dashboard() {
       depreciacao, impostos, outrosAjustes,
       gastosFixos, gastosVariaveis, metaGastos, metaFaturamento,
       previsaoLucroLiquido, margemLiquida,
-      tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, statusCounts,
+      tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, aguardandoReparo, statusCounts,
       contasValor, comissoesValor, contasVencidas,
       estoqueBaixo: pecasEstoqueBaixo,
       totalOrdensMes: ordensMes.length,
@@ -733,6 +734,11 @@ export default function Dashboard() {
             <Smartphone className="h-4 w-4 text-muted-foreground mb-3" />
             <p className="stat-value">{kpis.iphonesReparados}</p>
             <p className="stat-label">iPhones no mês</p>
+          </div>
+          <div className="stat-card">
+            <Clock className="h-4 w-4 text-warning mb-3" />
+            <p className="stat-value">{kpis.aguardandoReparo}</p>
+            <p className="stat-label">Aguardando reparo</p>
           </div>
           <div className="stat-card cursor-pointer" onClick={() => navigate("/assistencia")}>
             <Wrench className="h-4 w-4 text-info mb-3" />
