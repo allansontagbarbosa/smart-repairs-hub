@@ -13,6 +13,7 @@ import FilaIA from "./pages/FilaIA";
 import Pecas from "./pages/Pecas";
 import AparelhosAssistencia from "./pages/AparelhosAssistencia";
 import Configuracoes from "./pages/Configuracoes";
+import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import Clientes from "./pages/Clientes";
 import ConsultaCliente from "./pages/ConsultaCliente";
@@ -72,6 +73,7 @@ const App = () => (
                   <Route path="/pecas" element={<Pecas />} />
                   <Route path="/financeiro" element={<Financeiro />} />
                   <Route path="/clientes" element={<Clientes />} />
+                  <Route path="/relatorios" element={<Relatorios />} />
                   <Route path="/configuracoes" element={<Configuracoes />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

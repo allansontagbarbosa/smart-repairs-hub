@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NavLink } from "@/components/NavLink";
@@ -20,6 +20,7 @@ const items = [
   { title: "Aparelhos", url: "/aparelhos", icon: Smartphone },
   { title: "Peças", url: "/pecas", icon: Cpu },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart2, badgeKey: "os_atrasadas" as const },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
@@ -35,6 +36,21 @@ export function AppSidebar() {
         .from("ordens_de_servico")
         .select("id", { count: "exact", head: true })
         .eq("status", "aguardando_aprovacao")
+        .is("deleted_at", null);
+      if (error) return 0;
+      return count ?? 0;
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: atrasadasCount = 0 } = useQuery({
+    queryKey: ["os-atrasadas-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("ordens_de_servico")
+        .select("id", { count: "exact", head: true })
+        .eq("prazo_vencido", true)
+        .not("status", "in", '("pronto","entregue")')
         .is("deleted_at", null);
       if (error) return 0;
       return count ?? 0;
@@ -66,7 +82,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const badge = item.badgeKey === "aguardando_aprovacao" ? aguardandoCount : 0;
+                const badge = item.badgeKey === "aguardando_aprovacao" ? aguardandoCount : item.badgeKey === "os_atrasadas" ? atrasadasCount : 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
