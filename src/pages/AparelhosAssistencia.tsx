@@ -192,6 +192,7 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                 <th>Status</th>
                 <th className="hidden md:table-cell">Técnico</th>
                 <th className="hidden lg:table-cell">Prazo</th>
+                <th className="w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -219,6 +220,31 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                   <td className="hidden md:table-cell text-sm text-muted-foreground">{a.funcionario_nome ?? a.tecnico ?? "—"}</td>
                   <td className="hidden lg:table-cell text-sm text-muted-foreground">
                     {a.previsao_entrega ? format(new Date(a.previsao_entrega), "dd/MM/yy", { locale: ptBR }) : "—"}
+                  </td>
+                  <td className="px-2 py-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => printEtiquetaOS({
+                            numero: a.os_numero,
+                            clienteNome: a.cliente_nome,
+                            clienteTelefone: a.cliente_telefone,
+                            marca: a.aparelho_marca,
+                            modelo: a.aparelho_modelo,
+                            capacidade: a.aparelho_capacidade,
+                            defeitos: a.defeito_relatado,
+                            dataEntrada: a.data_entrada,
+                            previsaoEntrega: a.previsao_entrega,
+                            valor: a.valor,
+                            imei: a.aparelho_imei,
+                            tecnicoAtribuido: a.tecnico ?? a.funcionario_nome,
+                          })}
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Imprimir Etiqueta</TooltipContent>
+                    </Tooltip>
                   </td>
                 </tr>
               ))}
