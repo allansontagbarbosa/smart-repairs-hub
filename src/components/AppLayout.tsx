@@ -1,19 +1,35 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
-import { Plus, Search, CheckCircle, Moon, Sun } from "lucide-react";
+import { Plus, Search, CheckCircle, Moon, Sun, Keyboard } from "lucide-react";
 import { NotificacoesBell } from "@/components/NotificacoesBell";
+import { GlobalSearch } from "@/components/GlobalSearch";
+import { ShortcutsHelp } from "@/components/ShortcutsHelp";
+import { MobileFAB } from "@/components/MobileFAB";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useTheme } from "@/contexts/ThemeContext";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [novaOSOpen, setNovaOSOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resolvedTheme, setTheme } = useTheme();
+
+  const handlers = useMemo(
+    () => ({
+      onNewOS: () => setNovaOSOpen(true),
+      onGlobalSearch: () => setSearchOpen(true),
+    }),
+    []
+  );
+
+  useKeyboardShortcuts(handlers);
 
   return (
     <SidebarProvider>
@@ -48,8 +64,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <CheckCircle className="h-3 w-3" /> Prontos
               </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs gap-1.5 shrink-0"
+                onClick={() => setSearchOpen(true)}
+              >
+                <Search className="h-3 w-3" />
+                <span className="hidden lg:inline">Buscar</span>
+                <kbd className="hidden lg:inline ml-1 rounded border bg-muted px-1 text-[10px] font-mono">⌘K</kbd>
+              </Button>
             </div>
             <div className="ml-auto flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hidden sm:inline-flex"
+                onClick={() => setShortcutsOpen(true)}
+                title="Atalhos de teclado"
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -68,10 +103,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+
       <NovaOrdemDialog
         open={novaOSOpen}
         onOpenChange={setNovaOSOpen}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["ordens"] })}
+      />
+
+      <GlobalSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        onNewOS={() => setNovaOSOpen(true)}
+      />
+
+      <ShortcutsHelp open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      <MobileFAB
+        onNewOS={() => setNovaOSOpen(true)}
+        onNewClient={() => navigate("/clientes")}
+        onNewEntrada={() => navigate("/pecas?tab=entradas")}
       />
     </SidebarProvider>
   );
