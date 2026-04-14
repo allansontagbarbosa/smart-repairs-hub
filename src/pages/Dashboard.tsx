@@ -327,12 +327,6 @@ export default function Dashboard() {
     return meses;
   }, [orders]);
 
-  // OS Urgentes
-  const osUrgentes = useMemo(() => {
-    return orders.filter(
-      o => isAtrasado(o.status, o.previsao_entrega) || o.status === "aguardando_aprovacao"
-    );
-  }, [orders]);
 
   // Alertas automáticos
   const alertas = useMemo(() => {
@@ -391,40 +385,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── OS URGENTES ── */}
-      {osUrgentes.length > 0 && (
-        <div className="space-y-1.5">
-          {osUrgentes.map(o => {
-            const clienteNome = o.aparelhos?.clientes?.nome ?? "—";
-            const modelo = o.aparelhos?.modelo ?? "—";
-            const atrasado = isAtrasado(o.status, o.previsao_entrega);
-            return (
-              <div
-                key={o.id}
-                onClick={() => navigate(`/os/${o.id}`)}
-                className={`flex items-start justify-between rounded-lg border px-3 py-2.5 cursor-pointer hover:brightness-95 transition-all ${
-                  atrasado
-                    ? "bg-red-50 border-red-200"
-                    : "bg-amber-50 border-amber-200"
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className={`h-4 w-4 mt-0.5 shrink-0 ${atrasado ? "text-red-500" : "text-amber-500"}`} />
-                  <div>
-                    <p className="text-xs font-semibold">
-                      #{String(o.numero).padStart(3, "0")} — {modelo} de {clienteNome}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {atrasado ? "⚠️ Prazo vencido" : "💰 Aguardando aprovação do cliente"}
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 1 — FINANCEIRO DO MÊS
