@@ -22,6 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { EtiquetaOS } from "@/components/EtiquetaOS";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
