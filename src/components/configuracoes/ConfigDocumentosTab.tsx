@@ -44,7 +44,7 @@ const sampleData: Record<string, string> = {
 function replaceVars(text: string): string {
   let result = text;
   Object.entries(sampleData).forEach(([key, val]) => {
-    result = result.replaceAll(key, val);
+    result = result.split(key).join(val);
   });
   return result;
 }
