@@ -43,6 +43,21 @@ export function AppSidebar() {
     refetchInterval: 30000,
   });
 
+  const { data: atrasadasCount = 0 } = useQuery({
+    queryKey: ["os-atrasadas-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("ordens_de_servico")
+        .select("id", { count: "exact", head: true })
+        .eq("prazo_vencido", true)
+        .not("status", "in", '("pronto","entregue")')
+        .is("deleted_at", null);
+      if (error) return 0;
+      return count ?? 0;
+    },
+    refetchInterval: 30000,
+  });
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="flex flex-col h-full">
