@@ -14,7 +14,7 @@ import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
-import { EtiquetaOS } from "@/components/EtiquetaOS";
+import { printEtiquetaOS } from "@/lib/printEtiqueta";
 
 
 
