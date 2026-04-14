@@ -88,6 +88,45 @@ export type Database = {
           },
         ]
       }
+      auditoria: {
+        Row: {
+          acao: string
+          created_at: string | null
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          id: string
+          ip: string | null
+          registro_id: string | null
+          tabela: string | null
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip?: string | null
+          registro_id?: string | null
+          tabela?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          id?: string
+          ip?: string | null
+          registro_id?: string | null
+          tabela?: string | null
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
           comentario: string | null
@@ -1755,6 +1794,7 @@ export type Database = {
           descricao: string | null
           id: string
           nome_perfil: string
+          permissoes: Json
           updated_at: string
         }
         Insert: {
@@ -1763,6 +1803,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome_perfil: string
+          permissoes?: Json
           updated_at?: string
         }
         Update: {
@@ -1771,6 +1812,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome_perfil?: string
+          permissoes?: Json
           updated_at?: string
         }
         Relationships: []
@@ -2123,6 +2165,7 @@ export type Database = {
         }[]
       }
       get_dashboard_summary: { Args: never; Returns: Json }
+      is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
