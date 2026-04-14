@@ -1,12 +1,21 @@
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEstoque } from "@/hooks/useEstoque";
 import { EstoqueDashboard } from "@/components/estoque/EstoqueDashboard";
 import { EstoqueList } from "@/components/estoque/EstoqueList";
 import { ConferenciaEstoque } from "@/components/estoque/ConferenciaEstoque";
+import { EntradasEstoque } from "@/components/estoque/EntradasEstoque";
 
 export default function Pecas() {
   const { itens, categorias, marcas, modelos, conferencias, isLoading, kpis } = useEstoque();
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [preSelectedItemId, setPreSelectedItemId] = useState<string | null>(null);
+
+  const handleRegistrarEntrada = (itemId: string) => {
+    setPreSelectedItemId(itemId);
+    setActiveTab("entradas");
+  };
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -21,8 +30,8 @@ export default function Pecas() {
         </p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="itens">
             Peças
@@ -32,15 +41,24 @@ export default function Pecas() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="entradas">Entradas</TabsTrigger>
           <TabsTrigger value="conferencia">Conferência</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
-          <EstoqueDashboard kpis={kpis} />
+          <EstoqueDashboard kpis={kpis} itens={itens} onRegistrarEntrada={handleRegistrarEntrada} />
         </TabsContent>
 
         <TabsContent value="itens">
           <EstoqueList itens={itens} categorias={categorias} marcas={marcas} modelos={modelos} />
+        </TabsContent>
+
+        <TabsContent value="entradas">
+          <EntradasEstoque
+            itens={itens}
+            preSelectedItemId={preSelectedItemId}
+            onClearPreSelected={() => setPreSelectedItemId(null)}
+          />
         </TabsContent>
 
         <TabsContent value="conferencia">
