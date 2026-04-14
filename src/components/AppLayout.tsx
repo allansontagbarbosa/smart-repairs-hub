@@ -12,6 +12,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [novaOSOpen, setNovaOSOpen] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { resolvedTheme, setTheme } = useTheme();
 
   return (
     <SidebarProvider>
@@ -47,7 +48,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <CheckCircle className="h-3 w-3" /> Prontos
               </Button>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              >
+                {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <NotificacoesBell />
             </div>
           </header>
