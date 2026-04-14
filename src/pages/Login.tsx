@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Wrench, UserCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
-const DEMO_EMAIL = "teste@smartrepairs.com";
-const DEMO_PASSWORD = "Teste@123";
+const DEMO_EMAIL = "demo@smartrepairs.com";
+const DEMO_PASSWORD = "Demo@123";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -20,34 +20,60 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const verifyInternalUser = async (userId: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("ativo", true)
+      .maybeSingle();
+    return !!data;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
     if (error) {
+      setLoading(false);
       toast({
         title: "Erro ao entrar",
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      navigate("/", { replace: true });
+      return;
     }
+
+    // Verify this user is an internal user (has user_profiles record)
+    const isInternal = await verifyInternalUser(data.user.id);
+    if (!isInternal) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast({
+        title: "Usuário não autorizado",
+        description: "Você não tem permissão para acessar o sistema. Entre em contato com o administrador.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(false);
+    navigate("/", { replace: true });
   };
 
   const handleDemo = async () => {
     setDemoLoading(true);
+    
     // Try to sign in first
-    let { error } = await supabase.auth.signInWithPassword({
+    let { data, error } = await supabase.auth.signInWithPassword({
       email: DEMO_EMAIL,
       password: DEMO_PASSWORD,
     });
 
-    // If user doesn't exist, create it then sign in
+    // If user doesn't exist, create it
     if (error) {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,
         options: { data: { full_name: "Usuário Demo" } },
@@ -63,7 +89,8 @@ export default function Login() {
         return;
       }
 
-      const { error: loginError } = await supabase.auth.signInWithPassword({
+      // Sign in after signup
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
         email: DEMO_EMAIL,
         password: DEMO_PASSWORD,
       });
@@ -77,6 +104,16 @@ export default function Login() {
         });
         return;
       }
+
+      data = loginData;
+    }
+
+    // Ensure demo user is properly linked as admin
+    if (data?.user) {
+      await supabase.rpc("ensure_demo_user" as any, {
+        p_user_id: data.user.id,
+        p_email: DEMO_EMAIL,
+      });
     }
 
     setDemoLoading(false);
@@ -140,6 +177,15 @@ export default function Login() {
             <UserCheck className="mr-2 h-4 w-4" />
             {demoLoading ? "Entrando..." : "Entrar como Demo"}
           </Button>
+
+          <div className="text-center pt-2">
+            <Link
+              to="/portal/login"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cliente? Acompanhe sua OS →
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
