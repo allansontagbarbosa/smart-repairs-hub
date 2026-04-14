@@ -327,6 +327,7 @@ export default function Dashboard() {
     return {
       faturamentoMes, custosPecasMes, despesasPagasMes, comissoesMes,
       totalRecebimentos, lucroReal, lucroLiquido, ticketMedio,
+      lucroPorOS: ordensMes.length > 0 ? lucroLiquido / ordensMes.length : 0,
       depreciacao, impostos, outrosAjustes,
       gastosFixos, gastosVariaveis, metaGastos, metaFaturamento,
       previsaoLucroLiquido, margemLiquida,
@@ -561,6 +562,12 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-info mb-3" />
             <p className="stat-value">{fmt(kpis.ticketMedio)}</p>
             <p className="stat-label">Ticket médio</p>
+          </div>
+
+          <div className={`stat-card ${kpis.lucroPorOS < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+            <ArrowDownRight className={`h-4 w-4 mb-3 ${kpis.lucroPorOS >= 0 ? "text-success" : "text-destructive"}`} />
+            <p className={`stat-value ${kpis.lucroPorOS >= 0 ? "text-success" : "text-destructive"}`}>{fmt(kpis.lucroPorOS)}</p>
+            <p className="stat-label">Lucro líq. por OS</p>
           </div>
 
           <div className={`stat-card ${kpis.contasVencidas > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
