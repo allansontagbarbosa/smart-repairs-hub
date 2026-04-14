@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wrench, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

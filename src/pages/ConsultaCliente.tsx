@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Search, Wrench, Smartphone, Clock, DollarSign, FileText, ChevronRight, ArrowLeft } from "lucide-react";
+import { Search, Smartphone, Clock, DollarSign, FileText, ChevronRight, ArrowLeft } from "lucide-react";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import {
-  Wrench, LogOut, Smartphone, Clock, CheckCircle2, Package,
+  LogOut, Smartphone, Clock, CheckCircle2, Package,
   DollarSign, ChevronRight, Store, Filter, Search,
 } from "lucide-react";
+import { MobileFixLogo } from "@/components/MobileFixLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalLojas, usePortalOrdens, type PortalOrdem } from "@/hooks/usePortalData";
 import { Button } from "@/components/ui/button";
