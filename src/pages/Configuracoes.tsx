@@ -2,13 +2,14 @@ import { useState, useMemo } from "react";
 import {
   Loader2, Building2, Package, Wrench, Truck, Users, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
-  ChevronRight, Menu, X, MapPin, Palette, Globe,
+  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
 import { ConfigProdutosTab } from "@/components/configuracoes/ConfigProdutosTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
+import { ConfigDefeitosTab } from "@/components/configuracoes/ConfigDefeitosTab";
 import { ConfigTecnicosTab } from "@/components/configuracoes/ConfigTecnicosTab";
 import { ConfigFinanceiroTab } from "@/components/configuracoes/ConfigFinanceiroTab";
 import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
@@ -43,6 +44,7 @@ const groups = [
     items: [
       { id: "produtos", label: "Produtos", icon: Package, keywords: ["produto", "sku", "catalogo", "item"] },
       { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao"] },
+      { id: "defeitos", label: "Defeitos", icon: AlertTriangle, keywords: ["defeito", "problema", "tipo", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
   },
