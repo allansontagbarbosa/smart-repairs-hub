@@ -144,7 +144,7 @@ export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
       <Button
         variant="outline"
         size="sm"
-        className="w-full mt-3 text-green-600 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950"
+        className="w-full mt-3"
         onClick={() => abrirWhatsApp(whatsappNum, `Olá ${cliente.nome}, tudo bem?`)}
       >
         <MessageCircle className="h-4 w-4 mr-2" />
