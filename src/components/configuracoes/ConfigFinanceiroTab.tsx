@@ -97,49 +97,122 @@ function MetasCard() {
   const { data: config } = useQuery({
     queryKey: ["empresa_config_meta"],
     queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("id, meta_gastos_mes, meta_faturamento_mes").limit(1).maybeSingle();
+      const { data } = await supabase.from("empresa_config").select("id, meta_gastos_mes, meta_faturamento_mes, numero_socios, percentual_reserva_empresa").limit(1).maybeSingle();
       return data;
+    },
+  });
+
+  const { data: socios, refetch: refetchSocios } = useQuery({
+    queryKey: ["config-socios"],
+    queryFn: async () => {
+      const { data } = await supabase.from("socios").select("*").eq("ativo", true).order("ordem");
+      return data ?? [];
     },
   });
 
   const [metaGastos, setMetaGastos] = useState("");
   const [metaFaturamento, setMetaFaturamento] = useState("");
+  const [numSocios, setNumSocios] = useState("1");
+  const [pctReserva, setPctReserva] = useState("10");
+  const [socioNomes, setSocioNomes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (config?.meta_gastos_mes != null) setMetaGastos(String(config.meta_gastos_mes));
     if (config?.meta_faturamento_mes != null) setMetaFaturamento(String(config.meta_faturamento_mes));
+    if (config?.numero_socios != null) setNumSocios(String(config.numero_socios));
+    if (config?.percentual_reserva_empresa != null) setPctReserva(String(config.percentual_reserva_empresa));
   }, [config]);
+
+  useEffect(() => {
+    if (socios) {
+      const n = Number(numSocios) || 1;
+      const nomes = Array.from({ length: n }, (_, i) => socios[i]?.nome ?? "");
+      setSocioNomes(nomes);
+    }
+  }, [socios, numSocios]);
 
   const handleSave = async () => {
     if (!config?.id) return;
     setSaving(true);
+    const ns = Number(numSocios) || 1;
     await supabase.from("empresa_config").update({
       meta_gastos_mes: Number(metaGastos) || 0,
       meta_faturamento_mes: Number(metaFaturamento) || 0,
+      numero_socios: ns,
+      percentual_reserva_empresa: Number(pctReserva) || 0,
     } as any).eq("id", config.id);
+
+    // Sync socios
+    const existing = socios ?? [];
+    for (let i = 0; i < ns; i++) {
+      const nome = socioNomes[i]?.trim() || "";
+      if (existing[i]) {
+        await supabase.from("socios").update({ nome, ordem: i } as any).eq("id", existing[i].id);
+      } else {
+        await supabase.from("socios").insert({ nome, ordem: i } as any);
+      }
+    }
+    // Deactivate extras
+    for (let i = ns; i < existing.length; i++) {
+      await supabase.from("socios").update({ ativo: false } as any).eq("id", existing[i].id);
+    }
+
     qc.invalidateQueries({ queryKey: ["empresa_config_meta"] });
     qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
-    toast.success("Metas atualizadas");
+    qc.invalidateQueries({ queryKey: ["dashboard-socios"] });
+    refetchSocios();
+    toast.success("Configurações atualizadas");
     setSaving(false);
   };
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Metas Mensais</CardTitle>
+        <CardTitle className="text-sm font-medium">Metas e Distribuição de Lucro</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div>
-          <Label>Meta de gastos (R$)</Label>
-          <Input type="number" step="0.01" placeholder="Ex: 5000.00" value={metaGastos} onChange={(e) => setMetaGastos(e.target.value)} />
-          <p className="text-[10px] text-muted-foreground mt-1">Orçamento máximo de gastos por mês.</p>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label>Meta de gastos (R$)</Label>
+            <Input type="number" step="0.01" placeholder="Ex: 5000.00" value={metaGastos} onChange={(e) => setMetaGastos(e.target.value)} />
+          </div>
+          <div>
+            <Label>Meta de faturamento (R$)</Label>
+            <Input type="number" step="0.01" placeholder="Ex: 20000.00" value={metaFaturamento} onChange={(e) => setMetaFaturamento(e.target.value)} />
+          </div>
         </div>
-        <div>
-          <Label>Meta de faturamento (R$)</Label>
-          <Input type="number" step="0.01" placeholder="Ex: 20000.00" value={metaFaturamento} onChange={(e) => setMetaFaturamento(e.target.value)} />
-          <p className="text-[10px] text-muted-foreground mt-1">Meta de receita mensal. Aparece no Dashboard como barra de progresso.</p>
+
+        <div className="border-t pt-3 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Distribuição do Lucro</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Número de sócios</Label>
+              <Input type="number" min="1" max="10" value={numSocios} onChange={(e) => setNumSocios(e.target.value)} />
+            </div>
+            <div>
+              <Label>Reserva da empresa (%)</Label>
+              <Input type="number" step="0.5" min="0" max="100" value={pctReserva} onChange={(e) => setPctReserva(e.target.value)} />
+              <p className="text-[10px] text-muted-foreground mt-1">% do lucro líquido reservado antes de dividir entre sócios.</p>
+            </div>
+          </div>
+
+          {Array.from({ length: Number(numSocios) || 1 }, (_, i) => (
+            <div key={i}>
+              <Label>Nome do Sócio {i + 1}</Label>
+              <Input
+                placeholder={`Sócio ${i + 1}`}
+                value={socioNomes[i] ?? ""}
+                onChange={(e) => {
+                  const copy = [...socioNomes];
+                  copy[i] = e.target.value;
+                  setSocioNomes(copy);
+                }}
+              />
+            </div>
+          ))}
         </div>
+
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
           <Save className="h-3.5 w-3.5" /> Salvar
         </Button>
