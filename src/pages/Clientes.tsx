@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Search, Phone, Mail, Loader2, Pencil, X, MessageCircle } from "lucide-react";
+import { Plus, Search, Phone, Loader2, Pencil, MessageCircle } from "lucide-react";
+import { ClienteHistorico } from "@/components/ClienteHistoricoSheet";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -182,38 +183,24 @@ export default function Clientes() {
 
       {/* Edit client sheet */}
       <Sheet open={!!editingClient} onOpenChange={(open) => { if (!open) setEditingClient(null); }}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
           {editingClient && (
             <>
               <SheetHeader className="pb-4">
-                <SheetTitle>Editar Cliente</SheetTitle>
+                <SheetTitle>{editingClient.nome}</SheetTitle>
               </SheetHeader>
+
+              <ClienteHistorico cliente={editingClient} />
+
+              <Separator className="my-4" />
+
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dados Cadastrais</p>
               <ClienteForm
                 defaultValues={editingClient}
                 onSubmit={(fd) => updateMutation.mutate({ id: editingClient.id, fd })}
                 isPending={updateMutation.isPending}
                 submitLabel="Salvar Alterações"
               />
-
-              <Separator className="my-5" />
-
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Resumo</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm py-1.5 border-b">
-                    <span className="text-muted-foreground">Ordens de serviço</span>
-                    <span className="font-medium">{editingClient.total_os}</span>
-                  </div>
-                  <div className="flex justify-between text-sm py-1.5 border-b">
-                    <span className="text-muted-foreground">Último atendimento</span>
-                    <span className="font-medium">{fmtDate(editingClient.ultimo_atendimento)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm py-1.5">
-                    <span className="text-muted-foreground">Total gasto</span>
-                    <span className="font-medium">{fmtCurrency(editingClient.total_gasto)}</span>
-                  </div>
-                </div>
-              </div>
             </>
           )}
         </SheetContent>
