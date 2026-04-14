@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function ConfigGeralTab({ empresa, saveEmpresa }: Props) {
+  const { theme, setTheme, fontSize, setFontSize, density, setDensity } = useTheme();
   const [form, setForm] = useState({
     nome: empresa?.nome || "",
     cnpj_cpf: empresa?.cnpj_cpf || "",
