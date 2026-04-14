@@ -97,7 +97,7 @@ export function usePortalOrdens(clienteId: string | undefined, lojaFilter?: stri
 
       let query = supabase
         .from("ordens_de_servico")
-        .select(`id, numero, status, defeito_relatado, valor, valor_pago, valor_pendente, data_entrada, previsao_entrega, data_entrega, data_conclusao, observacoes, tecnico, prioridade, aparelhos ( marca, modelo, cor, cliente_id ), lojas ( id, nome )`)
+        .select(`id, numero, status, defeito_relatado, valor, valor_pago, valor_pendente, custo_pecas, data_entrada, previsao_entrega, data_entrega, data_conclusao, observacoes, tecnico, prioridade, aparelhos ( marca, modelo, cor, cliente_id ), lojas ( id, nome )`)
         .in("aparelho_id", aparelhoIds)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
