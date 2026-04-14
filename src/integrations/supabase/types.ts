@@ -1465,6 +1465,45 @@ export type Database = {
           },
         ]
       }
+      os_defeitos: {
+        Row: {
+          created_at: string
+          defeito_id: string | null
+          id: string
+          nome: string
+          ordem_id: string
+        }
+        Insert: {
+          created_at?: string
+          defeito_id?: string | null
+          id?: string
+          nome: string
+          ordem_id: string
+        }
+        Update: {
+          created_at?: string
+          defeito_id?: string | null
+          id?: string
+          nome?: string
+          ordem_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_defeitos_defeito_id_fkey"
+            columns: ["defeito_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_defeito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_defeitos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pecas_utilizadas: {
         Row: {
           created_at: string
@@ -1749,6 +1788,33 @@ export type Database = {
           mensagem?: string
           titulo?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tipos_defeito: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          id: string
+          nome: string
+          valor_mao_obra: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          id?: string
+          nome: string
+          valor_mao_obra?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          valor_mao_obra?: number
         }
         Relationships: []
       }
