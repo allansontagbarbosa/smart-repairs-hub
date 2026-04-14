@@ -1,18 +1,15 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus, AlertTriangle, Clock, CheckCircle, TrendingUp,
   TrendingDown, Wrench, Smartphone, DollarSign, Package,
-  Users, Target, BarChart2, AlertCircle, ChevronRight,
-  Settings, Store, Loader2, Timer, Receipt, CreditCard,
-  Wallet, ArrowDownRight, BarChart3,
+  Users, Target, AlertCircle, ChevronRight,
+  Settings, Loader2, Timer, Receipt, CreditCard,
+  ArrowDownRight,
 } from "lucide-react";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,14 +17,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
-import { statusLabels } from "@/lib/status";
-import { abrirWhatsApp } from "@/lib/whatsapp";
-import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
-import { useAlertas } from "@/hooks/useAlertas";
-import { AlertsBanner } from "@/components/AlertsBanner";
-import type { GenericAlert } from "@/components/AlertsBanner";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
+import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { toast } from "sonner";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
@@ -67,22 +59,9 @@ const STATUS_COLORS: Record<string, string> = {
   recebido: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   em_analise: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   aguardando_aprovacao: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  aprovado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   em_reparo: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  aguardando_peca: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   pronto: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   entregue: "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400",
-};
-
-const statusDotColors: Record<string, string> = {
-  recebido: "bg-muted-foreground",
-  em_analise: "bg-info",
-  aguardando_aprovacao: "bg-warning",
-  aprovado: "bg-success",
-  em_reparo: "bg-primary",
-  aguardando_peca: "bg-warning",
-  pronto: "bg-success",
-  entregue: "bg-muted-foreground/50",
 };
 
 const isFaturado = (s: string) => s === "pronto" || s === "entregue";
@@ -266,7 +245,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
-  const [filtroLoja, setFiltroLoja] = useState("todas");
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const queryClient = useQueryClient();
 
@@ -315,10 +293,6 @@ export default function Dashboard() {
   });
 
   const orders = summary?.ordens ?? [];
-  const pecasEstoqueBaixo = summary?.estoque_baixo ?? 0;
-  const contasPendentes = summary?.contas_pendentes ?? [];
-  const comissoesPendentes = summary?.comissoes_pendentes ?? [];
-  const lojas = summary?.lojas ?? [];
 
   const entregarMutation = useMutation({
     mutationFn: async (orderId: string) => {
@@ -334,22 +308,16 @@ export default function Dashboard() {
     },
   });
 
-  const filteredOrders = useMemo(() => {
-    if (filtroLoja === "todas") return orders;
-    return orders.filter(o => o.loja_id === filtroLoja);
-  }, [orders, filtroLoja]);
-
   // ── CÁLCULOS ────────────────────────────────────────────────────────────
 
   const kpis = useMemo(() => {
     const now = new Date();
-    const hoje = startOfDay(now);
     const mesAtual = now.getMonth();
     const anoAtual = now.getFullYear();
 
-    const ativas = filteredOrders.filter(o => o.status !== "entregue");
+    const ativas = orders.filter(o => o.status !== "entregue");
 
-    const ordensMes = filteredOrders.filter(o => {
+    const ordensMes = orders.filter(o => {
       const d = new Date(o.data_entrada);
       return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
     });
@@ -406,7 +374,7 @@ export default function Dashboard() {
     const lucroSocio = lucroDistrib / Math.max(1, nSocios);
 
     // Operacional
-    const concluidas = filteredOrders.filter(o => o.data_conclusao);
+    const concluidas = orders.filter(o => o.data_conclusao);
     let tempoMedio = 0;
     if (concluidas.length > 0) {
       const totalHoras = concluidas.reduce((s, o) => s + differenceInHours(new Date(o.data_conclusao!), new Date(o.data_entrada)), 0);
@@ -414,19 +382,9 @@ export default function Dashboard() {
     }
 
     const emAtraso = ativas.filter(o => o.previsao_entrega && new Date(o.previsao_entrega) < now && o.status !== "pronto").length;
-    const emAssistencia = ativas.filter(o => !["pronto"].includes(o.status)).length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
     const aguardandoReparo = ativas.filter(o => isAguardando(o.status)).length;
     const emReparo = ativas.filter(o => o.status === "em_reparo").length;
-
-    const statusCounts: Record<string, number> = {};
-    for (const o of ativas) {
-      statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
-    }
-
-    const contasValor = contasPendentes.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
-    const comissoesValor = comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
-    const contasVencidas = contasPendentes.filter((c: any) => new Date(c.data_vencimento + "T23:59:59") < hoje).length;
 
     const iphonesReparados = ordensMes.filter(o => {
       const marca = (o.aparelhos as any)?.marca?.toLowerCase() ?? "";
@@ -434,38 +392,16 @@ export default function Dashboard() {
       return marca.includes("apple") || modelo.includes("iphone");
     }).length;
 
-    // Lucro por loja
-    const lucroPorLoja: { nome: string; receita: number; custo: number; lucro: number }[] = [];
-    if (lojas.length > 0) {
-      for (const loja of lojas) {
-        const ordensLoja = ordensMes.filter(o => o.loja_id === loja.id);
-        const rec = ordensLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-        const cst = ordensLoja.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
-        if (rec > 0 || cst > 0) lucroPorLoja.push({ nome: loja.nome, receita: rec, custo: cst, lucro: rec - cst });
-      }
-      const semLoja = ordensMes.filter(o => !o.loja_id);
-      if (semLoja.length > 0) {
-        const rec = semLoja.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-        const cst = semLoja.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
-        if (rec > 0 || cst > 0) lucroPorLoja.push({ nome: "Sem loja", receita: rec, custo: cst, lucro: rec - cst });
-      }
-      lucroPorLoja.sort((a, b) => b.lucro - a.lucro);
-    }
-
     return {
-      faturamento, custosPecasMes, despesasPagasMes, comissoesMes,
-      totalRecebimentos, ebitda, ebitdaMargem, ll, llMargem,
-      depreciacao, impostos, outrosAjustes, gastosFixos, gastosVariaveis,
+      faturamento, custosPecasMes, despesasPagasMes, gastosFixos, gastosVariaveis,
+      ebitda, ebitdaMargem, ll, llMargem, depreciacao, impostos, outrosAjustes,
       ticket, llPorAssist, prevLl, totalGastos, metaGastos, metaFaturamento,
       metaPct, reservaPct, nSocios, reservaVal, lucroDistrib, lucroSocio,
-      tempoMedio, emAtraso, emAssistencia, aguardandoEntrega, aguardandoReparo, emReparo,
-      statusCounts, contasValor, comissoesValor, contasVencidas,
-      estoqueBaixo: pecasEstoqueBaixo,
-      totalOrdensMes: ordensMes.length,
-      totalFaturadas: ordensFaturadas.length,
-      iphonesReparados, lucroPorLoja,
+      tempoMedio, emAtraso, aguardandoEntrega, aguardandoReparo, emReparo,
+      totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
+      iphonesReparados,
     };
-  }, [filteredOrders, contasPendentes, comissoesPendentes, pecasEstoqueBaixo, lojas, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
+  }, [orders, contasPagas, recebimentosMes, comissoesMesData, ajustesMes, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses
   const faturamentoChart = useMemo(() => {
@@ -474,7 +410,7 @@ export default function Dashboard() {
       const d = subMonths(new Date(), i);
       const start = startOfMonth(d);
       const end = endOfMonth(d);
-      const mesOrdens = filteredOrders.filter(o => {
+      const mesOrdens = orders.filter(o => {
         const de = new Date(o.data_entrada);
         return de >= start && de <= end;
       });
@@ -487,80 +423,16 @@ export default function Dashboard() {
       });
     }
     return meses;
-  }, [filteredOrders]);
-
-  // Chart: serviços por status
-  const statusChart = useMemo(() => {
-    const ativas = filteredOrders.filter(o => o.status !== "entregue");
-    const counts: Record<string, number> = {};
-    for (const o of ativas) {
-      const label = STATUS_LABELS[o.status] || o.status;
-      counts[label] = (counts[label] || 0) + 1;
-    }
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [filteredOrders]);
-
-  // Top marcas
-  const topMarcas = useMemo(() => {
-    const now = new Date();
-    const mesOrdens = filteredOrders.filter(o => {
-      const d = new Date(o.data_entrada);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-    const counts: Record<string, number> = {};
-    for (const o of mesOrdens) {
-      const marca = o.aparelhos?.marca ?? "Outros";
-      counts[marca] = (counts[marca] || 0) + 1;
-    }
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value }));
-  }, [filteredOrders]);
+  }, [orders]);
 
   // OS Urgentes
   const osUrgentes = useMemo(() => {
-    return filteredOrders.filter(
+    return orders.filter(
       o => isAtrasado(o.status, o.previsao_entrega) || o.status === "aguardando_aprovacao"
     );
-  }, [filteredOrders]);
+  }, [orders]);
 
-  // Alertas
-  const alertasOS = useAlertas(filteredOrders);
-
-  const allAlertas = useMemo<GenericAlert[]>(() => {
-    const finAlertas: GenericAlert[] = [];
-    const hoje = new Date().toISOString().split("T")[0];
-    const contasHoje = contasPendentes.filter((c: any) => c.data_vencimento === hoje);
-    const contasAtrasadas = contasPendentes.filter((c: any) => c.data_vencimento < hoje);
-    if (contasAtrasadas.length > 0) {
-      finAlertas.push({ type: "danger", message: `${contasAtrasadas.length} conta(s) a pagar atrasada(s) — total R$ ${contasAtrasadas.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}` });
-    }
-    if (contasHoje.length > 0) {
-      finAlertas.push({ type: "warning", message: `${contasHoje.length} conta(s) vencendo hoje — total R$ ${contasHoje.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}` });
-    }
-    if (comissoesPendentes.length > 0) {
-      finAlertas.push({ type: "info", message: `${comissoesPendentes.length} comissão(ões) pendente(s) — total R$ ${comissoesPendentes.reduce((s: number, c: any) => s + Number(c.valor), 0).toLocaleString("pt-BR")}` });
-    }
-    return [...finAlertas, ...alertasOS];
-  }, [alertasOS, contasPendentes, comissoesPendentes]);
-
-  const handleAlertAction = (action: string, orderId: string, phone?: string) => {
-    const order = orders.find(o => o.id === orderId);
-    const osLabel = `OS #${String(order?.numero ?? 0).padStart(3, "0")}`;
-    if ((action === "whatsapp_retirada" || action === "whatsapp") && phone) {
-      abrirWhatsApp(phone, `Olá! Informamos que o serviço referente à ${osLabel} está pronto para retirada. Aguardamos seu contato!`);
-    } else if ((action === "cobrar_aprovacao" || action === "cobrar") && phone) {
-      abrirWhatsApp(phone, `Olá! O serviço referente à ${osLabel} está aguardando sua aprovação. Por favor, entre em contato conosco.`);
-    } else if (action === "entregar") {
-      pedirConfirmacao({ orderId, numero: order?.numero ?? 0, clienteNome: order?.aparelhos?.clientes?.nome ?? "—" });
-    } else if (action === "verificar_status") {
-      setSelectedOrderId(orderId);
-    }
-  };
-
-  const socios = sociosList ?? [];
-  const tempoMedioLabel = kpis.tempoMedio < 24 ? `${kpis.tempoMedio}h` : `${Math.round(kpis.tempoMedio / 24)}d`;
-
-  // ── ALERTAS AUTOMÁTICOS ──────────────────────────────────────────────────
-
+  // Alertas automáticos
   const alertas = useMemo(() => {
     const list: { type: "warn" | "ok" | "error"; message: string }[] = [];
     if (kpis.ll < 0)
@@ -581,6 +453,20 @@ export default function Dashboard() {
       list.push({ type: "ok", message: `Ticket médio saudável de ${brl(kpis.ticket)} por OS.` });
     return list;
   }, [kpis]);
+
+  // Status chart para Ordens por Status
+  const statusChart = useMemo(() => {
+    const ativas = orders.filter(o => o.status !== "entregue");
+    const counts: Record<string, number> = {};
+    for (const o of ativas) {
+      const label = STATUS_LABELS[o.status] || o.status;
+      counts[label] = (counts[label] || 0) + 1;
+    }
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [orders]);
+
+  const socios = sociosList ?? [];
+  const tempoMedioLabel = kpis.tempoMedio < 24 ? `${kpis.tempoMedio}h` : `${Math.round(kpis.tempoMedio / 24)}d`;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -606,20 +492,6 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
-          {lojas.length > 0 && (
-            <Select value={filtroLoja} onValueChange={setFiltroLoja}>
-              <SelectTrigger className="w-36 h-8 text-xs">
-                <Store className="h-3 w-3 mr-1.5" />
-                <SelectValue placeholder="Loja" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as lojas</SelectItem>
-                {lojas.map((l: any) => (
-                  <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
           <Button size="sm" variant="outline" onClick={() => navigate("/configuracoes")} className="gap-1.5 h-8 text-xs">
             <Settings className="h-3.5 w-3.5" /> Config
           </Button>
@@ -629,15 +501,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Alerts Banner */}
-      {allAlertas.length > 0 && (
-        <AlertsBanner alertas={allAlertas} max={5} onClickAlert={setSelectedOrderId} onAction={handleAlertAction} />
-      )}
-
       {/* ── OS URGENTES ── */}
       {osUrgentes.length > 0 && (
         <div className="space-y-1.5">
-          <SectionTitle>OS Urgentes</SectionTitle>
           {osUrgentes.slice(0, 5).map(o => {
             const clienteNome = o.aparelhos?.clientes?.nome ?? "—";
             const modelo = o.aparelhos?.modelo ?? "—";
@@ -724,7 +590,7 @@ export default function Dashboard() {
         </div>
 
         {/* Linha 2: Peças, Fixos, Depreciação, Impostos, Ticket */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
           <MetricCard
             icon={Package}
             label="Custo de peças"
@@ -732,37 +598,10 @@ export default function Dashboard() {
             sub={kpis.faturamento > 0 ? `${pct((kpis.custosPecasMes / kpis.faturamento) * 100)} do fat.` : undefined}
             iconColor="text-warning"
           />
-          <MetricCard
-            icon={Receipt}
-            label="Gastos fixos"
-            value={brl(kpis.gastosFixos)}
-            iconColor="text-muted-foreground"
-          />
-          <MetricCard
-            icon={Receipt}
-            label="Depreciação"
-            value={brl(kpis.depreciacao)}
-            iconColor="text-muted-foreground"
-          />
-          <MetricCard
-            icon={CreditCard}
-            label="Impostos"
-            value={brl(kpis.impostos)}
-            iconColor="text-muted-foreground"
-          />
-          <MetricCard
-            icon={DollarSign}
-            label="Ticket médio"
-            value={brl(kpis.ticket)}
-            iconColor="text-info"
-          />
-          <MetricCard
-            icon={ArrowDownRight}
-            label="Lucro líq./OS"
-            value={brl(kpis.llPorAssist)}
-            color={kpis.llPorAssist >= 0 ? "text-success" : "text-destructive"}
-            iconColor={kpis.llPorAssist >= 0 ? "text-success" : "text-destructive"}
-          />
+          <MetricCard icon={Receipt} label="Gastos fixos" value={brl(kpis.gastosFixos)} iconColor="text-muted-foreground" />
+          <MetricCard icon={Receipt} label="Depreciação" value={brl(kpis.depreciacao)} iconColor="text-muted-foreground" />
+          <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-muted-foreground" />
+          <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-info" />
         </div>
 
         {/* Fórmula resumida */}
@@ -878,12 +717,7 @@ export default function Dashboard() {
             iconColor={kpis.aguardandoReparo > 20 ? "text-warning" : "text-muted-foreground"}
           />
           <MetricCard icon={Wrench} label="Em reparo" value={String(kpis.emReparo)} iconColor="text-info" />
-          <MetricCard
-            icon={CheckCircle}
-            label="Prontos p/ entrega"
-            value={String(kpis.aguardandoEntrega)}
-            iconColor="text-success"
-          />
+          <MetricCard icon={CheckCircle} label="Prontos p/ entrega" value={String(kpis.aguardandoEntrega)} iconColor="text-success" />
           <MetricCard
             icon={AlertTriangle}
             label="Em atraso"
@@ -909,12 +743,7 @@ export default function Dashboard() {
             sub="peças + fixos"
             iconColor="text-muted-foreground"
           />
-          <MetricCard
-            icon={Timer}
-            label="Tempo médio reparo"
-            value={tempoMedioLabel}
-            iconColor="text-muted-foreground"
-          />
+          <MetricCard icon={Timer} label="Tempo médio reparo" value={tempoMedioLabel} iconColor="text-muted-foreground" />
         </div>
       </div>
 
@@ -1000,7 +829,7 @@ export default function Dashboard() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SEÇÃO 6 — GRÁFICO — FATURAMENTO x LUCRO (6 meses)
+          GRÁFICO — FATURAMENTO x LUCRO (6 meses)
       ══════════════════════════════════════════════════════════════════════ */}
       <div>
         <SectionTitle>Faturamento x Lucro</SectionTitle>
@@ -1047,7 +876,7 @@ export default function Dashboard() {
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-muted-foreground">
-                {filteredOrders.filter(o => o.status !== "entregue").length} ativas
+                {orders.filter(o => o.status !== "entregue").length} ativas
               </span>
             </div>
             {statusChart.length > 0 ? (
@@ -1078,74 +907,6 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground text-center w-full">Nenhuma ordem ativa</p>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Top Marcas */}
-      {topMarcas.length > 0 && (
-        <div className="section-card">
-          <div className="section-header">
-            <h3 className="section-title">Top Marcas do Mês</h3>
-          </div>
-          <div className="p-4 h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topMarcas} layout="vertical" barSize={20}>
-                <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Bar dataKey="value" name="Ordens" fill="hsl(var(--info))" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
-      {/* Lucro por Loja */}
-      {kpis.lucroPorLoja.length > 0 && (
-        <div className="section-card">
-          <div className="section-header">
-            <h3 className="section-title flex items-center gap-2">
-              <Store className="h-4 w-4 text-muted-foreground" />
-              Lucro por Loja (Mês)
-            </h3>
-          </div>
-          <div className="p-4">
-            <div className="space-y-2">
-              {kpis.lucroPorLoja.map((l) => (
-                <div key={l.nome} className="flex items-center justify-between rounded-lg border px-4 py-2.5">
-                  <span className="text-sm font-medium">{l.nome}</span>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-muted-foreground">Receita: {brl(l.receita)}</span>
-                    <span className="text-muted-foreground">Custos: {brl(l.custo)}</span>
-                    <span className={`font-semibold ${l.lucro >= 0 ? "text-success" : "text-destructive"}`}>{brl(l.lucro)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Visão por Status */}
-      <div>
-        <SectionTitle>Visão por Status</SectionTitle>
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          {(["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"] as const).map(status => {
-            const count = status === "entregue"
-              ? filteredOrders.filter(o => o.status === "entregue").length
-              : (kpis.statusCounts[status] || 0);
-            return (
-              <div
-                key={status}
-                onClick={() => navigate(`/assistencia?status=${status}`)}
-                className="stat-card cursor-pointer hover:shadow-md transition-shadow text-center py-3 px-2"
-              >
-                <div className={`w-2 h-2 rounded-full ${statusDotColors[status]} mx-auto mb-2`} />
-                <p className="text-lg font-semibold">{count}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{STATUS_LABELS[status]}</p>
-              </div>
-            );
-          })}
         </div>
       </div>
 
