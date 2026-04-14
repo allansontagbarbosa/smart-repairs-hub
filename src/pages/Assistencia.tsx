@@ -533,10 +533,10 @@ export default function Assistencia() {
           </Tooltip>
 
           <Button variant="outline" size="sm" asChild>
-            <Link to="/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
+            <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/entrada-lote">
+            <Link to="/assistencia/lote">
               <PackageOpen className="h-4 w-4 mr-1" /> Lote
             </Link>
           </Button>
