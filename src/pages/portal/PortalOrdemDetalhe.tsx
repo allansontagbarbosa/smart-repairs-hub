@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Smartphone, Wrench, Clock, DollarSign,
   Store, User, FileText, CheckCircle2, LogOut,
-  Check, X, Loader2, AlertCircle,
+  Check, X, Loader2, AlertCircle, Star, Printer, Share2, Copy,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalOrdens, usePortalHistorico } from "@/hooks/usePortalData";
@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
-
 import { statusLabelsCliente as statusLabels } from "@/lib/status";
 
 const statusColors: Record<string, { dot: string; bg: string; text: string }> = {
@@ -29,7 +28,7 @@ const statusColors: Record<string, { dot: string; bg: string; text: string }> = 
 };
 
 const steps = ["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"];
-const stepLabels = ["Recebido", "Análise", "Orçamento", "Aprovado", "Reparo", "Peça", "Pronto", "Entregue"];
+const stepLabels = ["Rec.", "Anál.", "Orç.", "Apr.", "Rep.", "Peça", "Pronto", "Entr."];
 
 function fmt(v: number | null | undefined) {
   return `R$ ${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -50,12 +49,47 @@ export default function PortalOrdemDetalhe() {
   const [approvalState, setApprovalState] = useState<"idle" | "confirming_approve" | "confirming_reject" | "approved" | "rejected" | "saving">("idle");
   const [rejectReason, setRejectReason] = useState("");
 
-  const ordem = ordens.find((o) => o.id === id);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingSaving, setRatingSaving] = useState(false);
+
+  const portalOrdem = ordens.find((o) => o.id === id);
+
+  const { data: directOrdem } = useQuery({
+    queryKey: ["portal-ordem-direct", id],
+    enabled: !!id && !portalOrdem && ordens.length === 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ordens_de_servico")
+        .select(`id, numero, status, defeito_relatado, valor, valor_pago, valor_pendente, custo_pecas, data_entrada, previsao_entrega, data_entrega, data_conclusao, observacoes, tecnico, prioridade, aparelhos ( marca, modelo, cor, cliente_id, clientes ( nome ) )`)
+        .eq("id", id!)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+  });
+
+  const ordem = portalOrdem || directOrdem;
+
+  const { data: existingAvaliacao } = useQuery({
+    queryKey: ["avaliacao", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("avaliacoes")
+        .select("id, nota, comentario, created_at")
+        .eq("ordem_id", id!)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   if (!ordem) {
     return (
       <div className="min-h-screen bg-background">
-        <Header onBack={() => navigate("/portal")} user={user} onSignOut={signOut} />
+        <Header onBack={() => navigate(user ? "/portal" : "/portal/login")} user={user} onSignOut={signOut} />
         <div className="flex items-center justify-center py-20">
           <div className="h-5 w-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
@@ -64,20 +98,16 @@ export default function PortalOrdemDetalhe() {
   }
 
   const currentStepIdx = steps.indexOf(ordem.status);
-  const valorPendente = ordem.valor_pendente ?? ((ordem.valor ?? 0) - (ordem.valor_pago ?? 0));
   const isAguardandoAprovacao = ordem.status === "aguardando_aprovacao";
   const aparelhoNome = ordem.aparelhos ? `${ordem.aparelhos.marca} ${ordem.aparelhos.modelo}` : "Aparelho";
+  const clienteNome = (ordem.aparelhos as any)?.clientes?.nome || cliente?.nome || "";
 
   const handleApprove = async () => {
     setApprovalState("saving");
     try {
       const { error: e1 } = await supabase
         .from("ordens_de_servico")
-        .update({
-          status: "aprovado" as any,
-          aprovacao_orcamento: "aprovado",
-          data_aprovacao: new Date().toISOString(),
-        })
+        .update({ status: "aprovado" as any, aprovacao_orcamento: "aprovado", data_aprovacao: new Date().toISOString() })
         .eq("id", ordem.id);
       if (e1) throw e1;
 
@@ -88,39 +118,11 @@ export default function PortalOrdemDetalhe() {
         descricao: "Orçamento aprovado pelo cliente via portal",
       });
 
-      // Try to send WhatsApp notification
-      try {
-        const { data: template } = await supabase
-          .from("templates_mensagem")
-          .select("mensagem")
-          .eq("evento", "orcamento_aprovado")
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (template) {
-          const { data: empresaConfig } = await supabase
-            .from("empresa_config")
-            .select("telefone")
-            .limit(1)
-            .maybeSingle();
-
-          if (empresaConfig?.telefone) {
-            const msg = template.mensagem
-              .replace("{cliente}", cliente?.nome ?? "Cliente")
-              .replace("{valor}", fmt(ordem.valor))
-              .replace("{numero}", String(ordem.numero).padStart(3, "0"))
-              .replace("{aparelho}", aparelhoNome);
-            abrirWhatsApp(empresaConfig.telefone, msg);
-          }
-        }
-      } catch {}
-
       queryClient.invalidateQueries({ queryKey: ["portal-ordens"] });
       queryClient.invalidateQueries({ queryKey: ["portal-historico"] });
       setApprovalState("approved");
       toast.success("Orçamento aprovado!");
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Erro ao aprovar orçamento");
       setApprovalState("idle");
     }
@@ -131,11 +133,7 @@ export default function PortalOrdemDetalhe() {
     try {
       const { error: e1 } = await supabase
         .from("ordens_de_servico")
-        .update({
-          status: "recebido" as any,
-          aprovacao_orcamento: "recusado",
-          motivo_reprovacao: rejectReason || null,
-        })
+        .update({ status: "recebido" as any, aprovacao_orcamento: "recusado", motivo_reprovacao: rejectReason || null })
         .eq("id", ordem.id);
       if (e1) throw e1;
 
@@ -147,55 +145,48 @@ export default function PortalOrdemDetalhe() {
         observacao: rejectReason || null,
       });
 
-      // Try to send WhatsApp notification
-      try {
-        const { data: template } = await supabase
-          .from("templates_mensagem")
-          .select("mensagem")
-          .eq("evento", "orcamento_recusado")
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (template) {
-          const { data: empresaConfig } = await supabase
-            .from("empresa_config")
-            .select("telefone")
-            .limit(1)
-            .maybeSingle();
-
-          if (empresaConfig?.telefone) {
-            const msg = template.mensagem
-              .replace("{cliente}", cliente?.nome ?? "Cliente")
-              .replace("{numero}", String(ordem.numero).padStart(3, "0"))
-              .replace("{aparelho}", aparelhoNome)
-              .replace("{motivo}", rejectReason || "Não informado");
-            abrirWhatsApp(empresaConfig.telefone, msg);
-          }
-        }
-      } catch {}
-
       queryClient.invalidateQueries({ queryKey: ["portal-ordens"] });
       queryClient.invalidateQueries({ queryKey: ["portal-historico"] });
       setApprovalState("rejected");
       toast.success("Orçamento recusado");
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Erro ao recusar orçamento");
       setApprovalState("idle");
     }
   };
 
+  const handleSubmitRating = async () => {
+    if (rating === 0) return;
+    setRatingSaving(true);
+    try {
+      const { error } = await supabase.from("avaliacoes").insert({
+        ordem_id: ordem.id,
+        nota: rating,
+        comentario: ratingComment || null,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["avaliacao", id] });
+      toast.success("Avaliação enviada! Obrigado.");
+    } catch {
+      toast.error("Erro ao enviar avaliação");
+    }
+    setRatingSaving(false);
+  };
+
+  const shareLink = `${window.location.origin}/portal/login?os=${ordem.numero}`;
+
   return (
     <div className="min-h-screen bg-background pb-8">
-      <Header onBack={() => navigate("/portal")} user={user} onSignOut={signOut} />
+      <Header onBack={() => navigate(user ? "/portal" : "/portal/login")} user={user} onSignOut={signOut} />
 
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
-        {/* OS Header */}
         <div className="rounded-xl border bg-card p-5">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between mb-1">
             <div>
               <p className="text-xs text-muted-foreground">Ordem de Serviço</p>
               <p className="text-2xl font-bold tracking-tight">#{String(ordem.numero).padStart(3, "0")}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{aparelhoNome}</p>
+              {clienteNome && <p className="text-xs text-muted-foreground">{clienteNome}</p>}
             </div>
             <span className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
@@ -208,7 +199,6 @@ export default function PortalOrdemDetalhe() {
           </div>
         </div>
 
-        {/* Progress steps */}
         <div className="rounded-xl border bg-card p-5">
           <p className="text-xs font-medium text-muted-foreground mb-4">Progresso</p>
           <div className="flex items-center justify-between">
@@ -241,7 +231,6 @@ export default function PortalOrdemDetalhe() {
           </div>
         </div>
 
-        {/* Approval card */}
         {isAguardandoAprovacao && approvalState !== "approved" && approvalState !== "rejected" && (
           <div className="rounded-xl border-2 border-warning/50 bg-warning/5 p-5 space-y-4">
             <div className="flex items-center gap-2">
@@ -249,13 +238,11 @@ export default function PortalOrdemDetalhe() {
               <p className="text-sm font-semibold">Orçamento aguardando sua aprovação</p>
             </div>
 
-            {/* Defects */}
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1">Problema relatado:</p>
               <p className="text-sm">{ordem.defeito_relatado}</p>
             </div>
 
-            {/* Financial breakdown */}
             <div className="space-y-1.5">
               {ordem.custo_pecas != null && Number(ordem.custo_pecas) > 0 && (
                 <div className="flex justify-between text-sm">
@@ -281,19 +268,18 @@ export default function PortalOrdemDetalhe() {
               )}
             </div>
 
-            {ordem.previsao_entrega && (
+            {(ordem as any).previsao_entrega && (
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Previsão de entrega:</span>
-                <span className="font-medium">{fmtDate(ordem.previsao_entrega)}</span>
+                <span className="text-muted-foreground">Previsão:</span>
+                <span className="font-medium">{fmtDate((ordem as any).previsao_entrega)}</span>
               </div>
             )}
 
-            {/* Action buttons */}
             {approvalState === "idle" && (
               <div className="flex gap-2 pt-1">
                 <Button className="flex-1" onClick={() => setApprovalState("confirming_approve")}>
-                  <Check className="h-4 w-4 mr-2" /> Aprovar Orçamento
+                  <Check className="h-4 w-4 mr-2" /> Aprovar
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setApprovalState("confirming_reject")}>
                   <X className="h-4 w-4 mr-2" /> Recusar
@@ -301,33 +287,25 @@ export default function PortalOrdemDetalhe() {
               </div>
             )}
 
-            {/* Confirm approve */}
             {approvalState === "confirming_approve" && (
               <div className="space-y-3 pt-1">
                 <p className="text-sm text-center">
-                  Confirma a aprovação do serviço por <strong>{fmt(ordem.valor)}</strong>?
+                  Confirma a aprovação por <strong>{fmt(ordem.valor)}</strong>?
                 </p>
                 <div className="flex gap-2">
                   <Button className="flex-1" onClick={handleApprove}>
-                    <Check className="h-4 w-4 mr-2" /> Confirmar Aprovação
+                    <Check className="h-4 w-4 mr-2" /> Confirmar
                   </Button>
                   <Button variant="ghost" onClick={() => setApprovalState("idle")}>Voltar</Button>
                 </div>
               </div>
             )}
 
-            {/* Confirm reject */}
             {approvalState === "confirming_reject" && (
               <div className="space-y-3 pt-1">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Motivo da recusa (opcional)</p>
-                  <Textarea
-                    placeholder="Descreva o motivo..."
-                    rows={2}
-                    className="resize-none"
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                  />
+                  <Textarea placeholder="Descreva o motivo..." rows={2} className="resize-none" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
                 </div>
                 <div className="flex gap-2">
                   <Button variant="destructive" className="flex-1" onClick={handleReject}>
@@ -338,7 +316,6 @@ export default function PortalOrdemDetalhe() {
               </div>
             )}
 
-            {/* Saving */}
             {approvalState === "saving" && (
               <div className="flex justify-center py-2">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -347,7 +324,6 @@ export default function PortalOrdemDetalhe() {
           </div>
         )}
 
-        {/* Success states */}
         {approvalState === "approved" && (
           <div className="rounded-xl border-2 border-success/50 bg-success/5 p-5 text-center space-y-2">
             <CheckCircle2 className="h-8 w-8 text-success mx-auto" />
@@ -360,56 +336,75 @@ export default function PortalOrdemDetalhe() {
           <div className="rounded-xl border-2 border-muted bg-muted/30 p-5 text-center space-y-2">
             <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
             <p className="font-semibold">Entendido.</p>
-            <p className="text-sm text-muted-foreground">Entre em contato para combinar a retirada do aparelho.</p>
+            <p className="text-sm text-muted-foreground">Entre em contato para combinar a retirada.</p>
           </div>
         )}
 
-        {/* Device details */}
         <div className="rounded-xl border bg-card p-5 space-y-3">
           <p className="text-xs font-medium text-muted-foreground mb-1">Detalhes</p>
           <DetailRow icon={Smartphone} label="Aparelho" value={`${aparelhoNome}${ordem.aparelhos?.cor ? ` (${ordem.aparelhos.cor})` : ""}`} />
           <DetailRow icon={FileText} label="Problema" value={ordem.defeito_relatado} />
-          {ordem.lojas && <DetailRow icon={Store} label="Loja" value={ordem.lojas.nome} />}
-          {ordem.tecnico && <DetailRow icon={User} label="Técnico" value={ordem.tecnico} />}
+          {(ordem as any).tecnico && <DetailRow icon={User} label="Técnico" value={(ordem as any).tecnico} />}
           <DetailRow icon={Clock} label="Entrada" value={fmtDate(ordem.data_entrada)} />
-          {ordem.previsao_entrega && (
-            <DetailRow icon={Clock} label="Previsão" value={fmtDate(ordem.previsao_entrega)} highlight />
-          )}
-          {ordem.data_entrega && (
-            <DetailRow icon={CheckCircle2} label="Entregue em" value={fmtDate(ordem.data_entrega)} />
-          )}
+          {(ordem as any).previsao_entrega && <DetailRow icon={Clock} label="Previsão" value={fmtDate((ordem as any).previsao_entrega)} highlight />}
+          {ordem.valor != null && <DetailRow icon={DollarSign} label="Valor" value={fmt(ordem.valor)} />}
         </div>
 
-        {/* Financial */}
-        <div className="rounded-xl border bg-card p-5">
-          <p className="text-xs font-medium text-muted-foreground mb-3">Financeiro</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <p className="text-[11px] text-muted-foreground">Serviço</p>
-              <p className="text-sm font-semibold">{fmt(ordem.valor)}</p>
+        {ordem.status === "entregue" && !existingAvaliacao && (
+          <div className="rounded-xl border bg-card p-5 space-y-4">
+            <p className="text-sm font-semibold">Como foi o nosso serviço?</p>
+            <div className="flex gap-1 justify-center">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onMouseEnter={() => setHoverRating(n)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setRating(n)}
+                  className="p-1 transition-transform hover:scale-110"
+                >
+                  <Star
+                    className={cn(
+                      "h-8 w-8 transition-colors",
+                      (hoverRating || rating) >= n
+                        ? "fill-amber-400 text-amber-400"
+                        : "text-border"
+                    )}
+                  />
+                </button>
+              ))}
             </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Pago</p>
-              <p className="text-sm font-semibold text-success">{fmt(ordem.valor_pago)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-muted-foreground">Pendente</p>
-              <p className={cn("text-sm font-semibold", valorPendente > 0 ? "text-warning" : "text-success")}>
-                {fmt(valorPendente)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Observations */}
-        {ordem.observacoes && (
-          <div className="rounded-xl border bg-card p-5">
-            <p className="text-xs font-medium text-muted-foreground mb-2">Observações</p>
-            <p className="text-sm">{ordem.observacoes}</p>
+            <Textarea
+              placeholder="Comentário (opcional)"
+              rows={2}
+              className="resize-none"
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+            />
+            <Button
+              className="w-full"
+              disabled={rating === 0 || ratingSaving}
+              onClick={handleSubmitRating}
+            >
+              {ratingSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Enviar avaliação
+            </Button>
           </div>
         )}
 
-        {/* History */}
+        {existingAvaliacao && (
+          <div className="rounded-xl border bg-card p-5">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Sua avaliação</p>
+            <div className="flex gap-0.5 mb-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} className={cn("h-4 w-4", n <= existingAvaliacao.nota ? "fill-amber-400 text-amber-400" : "text-border")} />
+              ))}
+            </div>
+            {existingAvaliacao.comentario && (
+              <p className="text-sm text-muted-foreground mt-1">"{existingAvaliacao.comentario}"</p>
+            )}
+          </div>
+        )}
+
         <div className="rounded-xl border bg-card p-5">
           <p className="text-xs font-medium text-muted-foreground mb-3">Histórico</p>
           {loadingHist ? (
@@ -455,6 +450,20 @@ export default function PortalOrdemDetalhe() {
             </div>
           )}
         </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
+            onClick={() => {
+              navigator.clipboard.writeText(shareLink);
+              toast.success("Link copiado!");
+            }}
+          >
+            <Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar link
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -475,10 +484,12 @@ function Header({ onBack, user, onSignOut }: { onBack: () => void; user: any; on
             <span className="text-sm font-semibold">Detalhes da OS</span>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={onSignOut}>
-          <LogOut className="h-3.5 w-3.5" />
-          Sair
-        </Button>
+        {user && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={onSignOut}>
+            <LogOut className="h-3.5 w-3.5" />
+            Sair
+          </Button>
+        )}
       </div>
     </header>
   );
