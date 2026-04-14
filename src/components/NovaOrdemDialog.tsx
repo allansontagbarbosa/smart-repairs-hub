@@ -868,6 +868,48 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
             </div>
           )}
 
+          {/* ── Step: Sucesso ── */}
+          {step === "sucesso" && createdOS && (
+            <div className="space-y-4 py-4">
+              <div className="text-center space-y-2">
+                <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+                <h3 className="text-lg font-semibold">
+                  OS #{String(createdOS.numero).padStart(3, "0")} criada com sucesso!
+                </h3>
+              </div>
+
+              <EtiquetaOS
+                data={{
+                  numero: createdOS.numero,
+                  clienteNome: clienteSelecionado?.nome || "",
+                  clienteTelefone: clienteSelecionado?.telefone || "",
+                  marca,
+                  modelo,
+                  capacidade: capacidade || null,
+                  defeitos: defeitoRelatado,
+                  dataEntrada: new Date().toISOString(),
+                  previsaoEntrega: previsaoEntrega?.toISOString() || null,
+                  valor: valorTotal || null,
+                  imei: imei.replace(/\D/g, "") || null,
+                  tecnicoAtribuido: tecnico || null,
+                }}
+              />
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    resetAll();
+                    onOpenChange(false);
+                  }}
+                >
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          )}
+
         </div>
       </DialogContent>
     </Dialog>
