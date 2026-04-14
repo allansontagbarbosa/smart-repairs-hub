@@ -6,11 +6,14 @@ export type AparelhoAssistencia = {
   os_id: string;
   os_numero: number;
   cliente_nome: string;
+  cliente_telefone: string;
   loja_nome: string | null;
   aparelho_marca: string;
   aparelho_modelo: string;
   aparelho_cor: string | null;
   aparelho_imei: string | null;
+  aparelho_capacidade: string | null;
+  defeito_relatado: string;
   data_entrada: string;
   status: string;
   tecnico: string | null;
@@ -19,6 +22,7 @@ export type AparelhoAssistencia = {
   prazo_vencido: boolean;
   loja_id: string | null;
   funcionario_id: string | null;
+  valor: number | null;
 };
 
 async function fetchAparelhosAssistencia() {
