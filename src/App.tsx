@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -29,19 +29,6 @@ import PortalResetPassword from "./pages/portal/PortalResetPassword";
 
 const queryClient = new QueryClient();
 
-function PortalGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/portal/login" replace />;
-  return <>{children}</>;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -53,11 +40,11 @@ const App = () => (
             {/* Public client lookup — no auth */}
             <Route path="/consulta" element={<ConsultaCliente />} />
 
-            {/* Portal do Cliente */}
+            {/* Portal do Cliente — public routes, no auth required */}
             <Route path="/portal/login" element={<PortalLogin />} />
             <Route path="/portal/reset-password" element={<PortalResetPassword />} />
-            <Route path="/portal" element={<PortalGuard><PortalDashboard /></PortalGuard>} />
-            <Route path="/portal/ordem/:id" element={<PortalGuard><PortalOrdemDetalhe /></PortalGuard>} />
+            <Route path="/portal" element={<PortalDashboard />} />
+            <Route path="/portal/ordem/:id" element={<PortalOrdemDetalhe />} />
 
             {/* Login interno */}
             <Route path="/login" element={<Login />} />
