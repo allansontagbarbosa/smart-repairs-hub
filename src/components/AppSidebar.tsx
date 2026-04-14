@@ -82,7 +82,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const badge = item.badgeKey === "aguardando_aprovacao" ? aguardandoCount : 0;
+                const badge = item.badgeKey === "aguardando_aprovacao" ? aguardandoCount : item.badgeKey === "os_atrasadas" ? atrasadasCount : 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
