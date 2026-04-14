@@ -1,14 +1,16 @@
 import { useState, useCallback } from "react";
-import { Building2, Save, MapPin, Phone, Palette } from "lucide-react";
+import { Building2, Save, MapPin, Phone, Palette, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CnpjLookup, type CnpjData } from "@/components/smart-inputs/CnpjLookup";
 import { CepLookup, type CepData } from "@/components/smart-inputs/CepLookup";
 import { MaskedInput } from "@/components/smart-inputs/MaskedInput";
 import { CurrencySelect } from "@/components/smart-inputs/CurrencySelect";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Props {
   empresa: any;
