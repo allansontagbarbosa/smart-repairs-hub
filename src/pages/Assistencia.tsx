@@ -466,6 +466,30 @@ export default function Assistencia() {
                 <TooltipContent>Avançar para {statusLabels[nextStatus]}</TooltipContent>
               </Tooltip>
             )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7"
+                  onClick={() => printEtiquetaOS({
+                    numero: order.numero,
+                    clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                    clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
+                    marca: order.aparelhos?.marca ?? "",
+                    modelo: order.aparelhos?.modelo ?? "",
+                    capacidade: (order.aparelhos as any)?.capacidade ?? null,
+                    defeitos: order.defeito_relatado ?? "",
+                    dataEntrada: order.data_entrada,
+                    previsaoEntrega: order.previsao_entrega,
+                    valor: order.valor,
+                    imei: (order.aparelhos as any)?.imei ?? null,
+                    tecnicoAtribuido: order.tecnico ?? null,
+                  })}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Imprimir Etiqueta</TooltipContent>
+            </Tooltip>
           </div>
         </td>
       </tr>
