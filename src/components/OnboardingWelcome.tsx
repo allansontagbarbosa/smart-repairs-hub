@@ -143,7 +143,7 @@ export function OnboardingWelcome() {
         </CardContent>
       </Card>
 
-      <NovaOrdemDialog open={novaOrdemOpen} onOpenChange={setNovaOrdemOpen} />
+      <NovaOrdemDialog open={novaOrdemOpen} onOpenChange={setNovaOrdemOpen} onSuccess={() => setNovaOrdemOpen(false)} />
     </>
   );
 }
