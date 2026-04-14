@@ -206,7 +206,7 @@ export default function Assistencia() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Status }) => {
-      const updates: Record<string, any> = { status };
+      const updates: any = { status };
       if (status === "entregue") updates.data_entrega = new Date().toISOString();
       if (status === "pronto") updates.data_conclusao = new Date().toISOString();
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
