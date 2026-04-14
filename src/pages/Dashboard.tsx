@@ -74,11 +74,21 @@ async function fetchContasPagas() {
 async function fetchEmpresaConfig() {
   const { data, error } = await supabase
     .from("empresa_config")
-    .select("meta_gastos_mes, meta_faturamento_mes")
+    .select("meta_gastos_mes, meta_faturamento_mes, numero_socios, percentual_reserva_empresa")
     .limit(1)
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+async function fetchSocios() {
+  const { data, error } = await supabase
+    .from("socios")
+    .select("id, nome, ordem")
+    .eq("ativo", true)
+    .order("ordem");
+  if (error) throw error;
+  return data ?? [];
 }
 
 async function fetchRecebimentosMes() {
@@ -179,6 +189,12 @@ export default function Dashboard() {
   const { data: empresaConfig } = useQuery({
     queryKey: ["dashboard-empresa-config"],
     queryFn: fetchEmpresaConfig,
+    refetchInterval: 60000,
+  });
+
+  const { data: sociosList } = useQuery({
+    queryKey: ["dashboard-socios"],
+    queryFn: fetchSocios,
     refetchInterval: 60000,
   });
 
@@ -775,7 +791,64 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* SEÇÃO 3 — GRÁFICOS */}
+      {/* SEÇÃO 4 — DISTRIBUIÇÃO DO LUCRO */}
+      {(() => {
+        const numSocios = Number(empresaConfig?.numero_socios ?? 1) || 1;
+        const pctReserva = Number(empresaConfig?.percentual_reserva_empresa ?? 10);
+        const lucro = kpis.lucroLiquido;
+        const reserva = lucro > 0 ? lucro * (pctReserva / 100) : 0;
+        const lucroDistribuivel = lucro > 0 ? lucro - reserva : 0;
+        const lucroPorSocio = numSocios > 0 ? lucroDistribuivel / numSocios : 0;
+        const socios = sociosList ?? [];
+
+        if (lucro <= 0 && numSocios <= 1) return null;
+
+        return (
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Distribuição do Lucro</h2>
+            <div className="section-card">
+              <div className="p-4 space-y-3">
+                {/* Summary */}
+                <div className="flex flex-wrap gap-4 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Lucro líquido: </span>
+                    <strong className={lucro >= 0 ? "text-success" : "text-destructive"}>{fmt(lucro)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Reserva empresa ({pctReserva}%): </span>
+                    <strong>{fmt(reserva)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Distribuível: </span>
+                    <strong className="text-success">{fmt(lucroDistribuivel)}</strong>
+                  </div>
+                </div>
+
+                {/* Partners */}
+                {lucro > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {Array.from({ length: numSocios }, (_, i) => {
+                      const socio = socios[i];
+                      const nome = socio?.nome?.trim() || `Sócio ${i + 1}`;
+                      return (
+                        <div key={i} className="stat-card border-success/20 bg-success-muted py-3">
+                          <Users className="h-3.5 w-3.5 text-success mb-2" />
+                          <p className="text-sm font-bold text-success">{fmt(lucroPorSocio)}</p>
+                          <p className="stat-label">{nome}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Sem lucro a distribuir neste mês.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* SEÇÃO 5 — GRÁFICOS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue chart */}
         <div className="section-card">
