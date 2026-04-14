@@ -243,6 +243,7 @@ export default function Configuracoes() {
             {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} />}
             {active === "produtos" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
+            {active === "defeitos" && <ConfigDefeitosTab />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
             {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} />}
