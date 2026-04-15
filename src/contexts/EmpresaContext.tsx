@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildUserProfileLookup, getSingleRelation } from "@/lib/userProfileLookup";
 
 interface Empresa {
   id: string;
@@ -51,28 +52,53 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
     }
 
     const fetchEmpresa = async () => {
+      setLoading(true);
+
       try {
-        // Get empresa_id from user_profiles
-        const { data: profile } = await supabase
+        const { data, error } = await supabase
           .from("user_profiles")
-          .select("empresa_id")
-          .eq("user_id", user.id)
-          .eq("ativo", true)
+          .select("empresa_id, ativo, empresas(*)")
+          .or(buildUserProfileLookup(user.id))
           .maybeSingle();
 
-        if (profile?.empresa_id) {
-          const { data: emp } = await supabase
+        if (error) {
+          console.error("EmpresaContext error:", error);
+          setEmpresa(null);
+          return;
+        }
+
+        if (!data || data.ativo === false) {
+          setEmpresa(null);
+          return;
+        }
+
+        const empresaRelacionada = getSingleRelation((data as any).empresas);
+        if (empresaRelacionada) {
+          setEmpresa(empresaRelacionada as any);
+          return;
+        }
+
+        if (data.empresa_id) {
+          const { data: emp, error: empresaError } = await supabase
             .from("empresas" as any)
             .select("*")
-            .eq("id", profile.empresa_id)
+            .eq("id", data.empresa_id)
             .maybeSingle();
+
+          if (empresaError) {
+            console.error("EmpresaContext empresa error:", empresaError);
+          }
 
           if (emp) {
             setEmpresa(emp as any);
+            return;
           }
         }
+
+        setEmpresa(null);
       } catch (err) {
         console.error("Erro ao carregar empresa:", err);
+        setEmpresa(null);
       } finally {
         setLoading(false);
       }

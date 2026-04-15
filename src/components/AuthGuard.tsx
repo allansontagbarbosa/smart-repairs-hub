@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
 type GuardState = "loading" | "no-auth" | "onboarding" | "ok";
 
@@ -17,13 +18,24 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     let cancelled = false;
-    supabase
-      .from("user_profiles")
-      .select("id, empresa_id, ativo")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
+    setState("loading");
+
+    const validateAccess = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_profiles")
+          .select("id, empresa_id, ativo")
+          .or(buildUserProfileLookup(user.id))
+          .maybeSingle();
+
         if (cancelled) return;
+
+        if (error) {
+          console.error("AuthGuard error:", error);
+          setState("no-auth");
+          return;
+        }
+
         if (!data || !data.ativo) {
           setState("no-auth");
         } else if (!data.empresa_id) {
@@ -31,7 +43,14 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         } else {
           setState("ok");
         }
-      });
+      } catch (error) {
+        if (cancelled) return;
+        console.error("AuthGuard unexpected error:", error);
+        setState("no-auth");
+      }
+    };
+
+    void validateAccess();
 
     return () => { cancelled = true; };
   }, [user, loading]);

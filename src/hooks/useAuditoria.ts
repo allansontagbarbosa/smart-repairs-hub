@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
 export function useAuditoria() {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export function useAuditoria() {
           const { data: profile } = await supabase
             .from("user_profiles")
             .select("nome_exibicao")
-            .eq("user_id", user.id)
+            .or(buildUserProfileLookup(user.id))
             .maybeSingle();
           user_nome = profile?.nome_exibicao || user.email || "Sistema";
         }

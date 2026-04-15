@@ -1,14 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export function useConfiguracoes() {
   const qc = useQueryClient();
+  const { empresaId, empresa: empresaContext } = useEmpresa();
 
   const { data: empresa, isLoading: loadingEmpresa } = useQuery({
-    queryKey: ["empresa_config"],
+    queryKey: ["empresa_config", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("empresa_config")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+
+      if (error) throw error;
       return data;
     },
   });
@@ -144,12 +153,42 @@ export function useConfiguracoes() {
   // Generic save helper
   const saveEmpresa = useMutation({
     mutationFn: async (values: any) => {
-      if (!empresa?.id) return;
-      const { error } = await supabase.from("empresa_config").update(values).eq("id", empresa.id);
+      if (!empresaId) {
+        throw new Error("Empresa não identificada");
+      }
+
+      const payload = {
+        ...values,
+        empresa_id: empresaId,
+      };
+
+      const { data: existingConfig, error: lookupError } = await supabase
+        .from("empresa_config")
+        .select("id")
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+
+      if (existingConfig?.id) {
+        const { error } = await supabase
+          .from("empresa_config")
+          .update(payload)
+          .eq("id", existingConfig.id);
+
+        if (error) throw error;
+        return;
+      }
+
+      const { error } = await supabase.from("empresa_config").insert({
+        nome: values.nome ?? empresaContext?.nome ?? "",
+        ...payload,
+      });
+
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["empresa_config"] }); toast.success("Configurações salvas"); },
-    onError: () => toast.error("Erro ao salvar"),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["empresa_config", empresaId] }); toast.success("Configurações salvas"); },
+    onError: (error: Error) => toast.error(error.message || "Erro ao salvar"),
   });
 
   const isLoading = loadingEmpresa || loadingFornecedores || loadingProdutos || loadingServicos;
