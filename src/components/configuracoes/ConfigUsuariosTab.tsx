@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, UserPlus } from "lucide-react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, UserPlus, ChevronDown, ChevronRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { useAuditoria } from "@/hooks/useAuditoria";
 import { format } from "date-fns";
 
 interface Props {
@@ -38,6 +39,13 @@ const MODULOS_BOOL = [
 
 const ACOES = ["ver", "criar", "editar", "excluir"] as const;
 
+const MODULO_BADGE_COLORS: Record<string, string> = {
+  assistencia: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  financeiro: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  configuracoes: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  pecas: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+};
+
 function buildDefaultPermissoes() {
   const p: any = {};
   for (const m of MODULOS_CRUD) p[m.key] = { ver: false, criar: false, editar: false, excluir: false };
@@ -45,15 +53,23 @@ function buildDefaultPermissoes() {
   return p;
 }
 
+const PAGE_SIZE = 20;
+
 export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: Props) {
   const qc = useQueryClient();
   const { isAdmin } = usePermissoes();
+  const { registrar } = useAuditoria();
   const [search, setSearch] = useState("");
   const [openPerfil, setOpenPerfil] = useState(false);
   const [perfilForm, setPerfilForm] = useState<any>({ nome_perfil: "", descricao: "", ativo: true, permissoes: buildDefaultPermissoes() });
   const [perfilEditId, setPerfilEditId] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [auditPage, setAuditPage] = useState(0);
+  const [auditModuloFilter, setAuditModuloFilter] = useState("todos");
+  const [auditSearch, setAuditSearch] = useState("");
   const [showAudit, setShowAudit] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   // Invite state
   const [openInvite, setOpenInvite] = useState(false);
@@ -69,7 +85,6 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
     }
     setInviteLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("invite-user", {
         body: {
           email: inviteEmail,
@@ -82,6 +97,8 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
         toast.error(res.data?.error || "Erro ao enviar convite");
       } else {
         toast.success(`Convite enviado para ${inviteEmail}`);
+        const perfilNome = perfisAcesso.find((p) => p.id === invitePerfilId)?.nome_perfil || "Sem perfil";
+        registrar("Usuário convidado", "configuracoes", null, null, { email: inviteEmail, perfil: perfilNome });
         setOpenInvite(false);
         setInviteNome("");
         setInviteEmail("");
@@ -98,21 +115,34 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
     u.nome_exibicao?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Fetch audit logs with pagination and filters
   useEffect(() => {
     if (isAdmin && showAudit) {
-      supabase
-        .from("auditoria")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(50)
-        .then(({ data }) => setAuditLogs(data || []));
+      const fetchLogs = async () => {
+        let q: any = supabase
+          .from("auditoria")
+          .select("*", { count: "exact" })
+          .order("created_at", { ascending: false })
+          .range(auditPage * PAGE_SIZE, (auditPage + 1) * PAGE_SIZE - 1);
+
+        if (auditModuloFilter !== "todos") {
+          q = q.eq("modulo", auditModuloFilter);
+        }
+        if (auditSearch.trim()) {
+          q = q.or(`user_nome.ilike.%${auditSearch}%,acao.ilike.%${auditSearch}%`);
+        }
+
+        const { data, count } = await q;
+        setAuditLogs(data || []);
+        setAuditTotal(count || 0);
+      };
+      fetchLogs();
     }
-  }, [isAdmin, showAudit]);
+  }, [isAdmin, showAudit, auditPage, auditModuloFilter, auditSearch]);
 
   const handleSavePerfil = async () => {
     if (!perfilForm.nome_perfil) { toast.error("Nome é obrigatório"); return; }
 
-    // Protect: don't deactivate the last profile with configuracoes permission
     if (perfilEditId && !perfilForm.ativo) {
       const currentPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
       if (currentPerfil) {
@@ -132,10 +162,14 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
       ativo: perfilForm.ativo,
       permissoes: perfilForm.permissoes,
     };
+
     if (perfilEditId) {
+      const oldPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
       await supabase.from("perfis_acesso").update(payload).eq("id", perfilEditId);
+      registrar("Perfil alterado", "configuracoes", perfilEditId, { permissoes: oldPerfil?.permissoes }, { permissoes: perfilForm.permissoes });
     } else {
       await supabase.from("perfis_acesso").insert(payload);
+      registrar("Perfil criado", "configuracoes", null, null, { nome: perfilForm.nome_perfil });
     }
     qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
     toast.success("Perfil salvo");
@@ -180,10 +214,24 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   };
 
   const handleUpdateUserProfile = async (profileId: string, updates: any) => {
+    const profile = userProfiles.find((u) => u.id === profileId);
     await supabase.from("user_profiles").update(updates).eq("id", profileId);
+    
+    if ("ativo" in updates) {
+      registrar(
+        updates.ativo ? "Usuário ativado" : "Usuário desativado",
+        "configuracoes",
+        profileId,
+        null,
+        { nome: profile?.nome_exibicao }
+      );
+    }
+    
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     toast.success("Usuário atualizado");
   };
+
+  const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -207,7 +255,6 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                 <Separator />
                 <Label className="text-sm font-semibold">Permissões por módulo</Label>
 
-                {/* Boolean modules */}
                 <div className="grid grid-cols-2 gap-2">
                   {MODULOS_BOOL.map((m) => (
                     <div key={m.key} className="flex items-center gap-2">
@@ -222,7 +269,6 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
 
                 <Separator />
 
-                {/* CRUD modules */}
                 <div className="space-y-3">
                   {MODULOS_CRUD.map((m) => (
                     <div key={m.key}>
@@ -393,33 +439,125 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
           </CardHeader>
           {showAudit && (
             <CardContent className="p-0">
-              <div className="overflow-x-auto max-h-80 overflow-y-auto">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2 px-4 py-3 border-b">
+                <div className="relative flex-1 min-w-[180px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por usuário ou ação..."
+                    value={auditSearch}
+                    onChange={(e) => { setAuditSearch(e.target.value); setAuditPage(0); }}
+                    className="pl-9 h-8 text-xs"
+                  />
+                </div>
+                <Select value={auditModuloFilter} onValueChange={(v) => { setAuditModuloFilter(v); setAuditPage(0); }}>
+                  <SelectTrigger className="h-8 w-40 text-xs">
+                    <Filter className="h-3 w-3 mr-1" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os módulos</SelectItem>
+                    <SelectItem value="assistencia">Assistência</SelectItem>
+                    <SelectItem value="financeiro">Financeiro</SelectItem>
+                    <SelectItem value="configuracoes">Configurações</SelectItem>
+                    <SelectItem value="pecas">Peças</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b bg-muted/50">
+                      <th className="w-8 p-2"></th>
                       <th className="text-left p-2 font-medium">Data</th>
                       <th className="text-left p-2 font-medium">Usuário</th>
                       <th className="text-left p-2 font-medium">Ação</th>
-                      <th className="text-left p-2 font-medium">Tabela</th>
+                      <th className="text-left p-2 font-medium">Módulo</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {auditLogs.map((log) => (
-                      <tr key={log.id} className="border-b last:border-0">
-                        <td className="p-2 text-muted-foreground whitespace-nowrap">
-                          {log.created_at ? format(new Date(log.created_at), "dd/MM HH:mm") : "—"}
-                        </td>
-                        <td className="p-2">{log.user_nome || "Sistema"}</td>
-                        <td className="p-2 capitalize">{log.acao}</td>
-                        <td className="p-2 text-muted-foreground">{log.tabela}</td>
-                      </tr>
-                    ))}
+                    {auditLogs.map((log) => {
+                      const modulo = (log as any).modulo || log.tabela || "";
+                      const badgeClass = MODULO_BADGE_COLORS[modulo] || "bg-muted text-muted-foreground";
+                      const isExpanded = expandedLogId === log.id;
+                      const hasDetails = log.dados_anteriores || log.dados_novos;
+
+                      return (
+                        <>
+                          <tr
+                            key={log.id}
+                            className={`border-b last:border-0 ${hasDetails ? "cursor-pointer hover:bg-muted/30" : ""}`}
+                            onClick={() => hasDetails && setExpandedLogId(isExpanded ? null : log.id)}
+                          >
+                            <td className="p-2 text-center">
+                              {hasDetails && (
+                                isExpanded
+                                  ? <ChevronDown className="h-3 w-3 text-muted-foreground inline" />
+                                  : <ChevronRight className="h-3 w-3 text-muted-foreground inline" />
+                              )}
+                            </td>
+                            <td className="p-2 text-muted-foreground whitespace-nowrap">
+                              {log.created_at ? format(new Date(log.created_at), "dd/MM 'às' HH:mm") : "—"}
+                            </td>
+                            <td className="p-2">{log.user_nome || "Sistema"}</td>
+                            <td className="p-2">{log.acao}</td>
+                            <td className="p-2">
+                              {modulo && (
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${badgeClass}`}>
+                                  {modulo}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                          {isExpanded && hasDetails && (
+                            <tr key={`${log.id}-detail`} className="bg-muted/20">
+                              <td colSpan={5} className="p-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                                  {log.dados_anteriores && (
+                                    <div>
+                                      <span className="font-semibold text-muted-foreground block mb-1">Dados anteriores</span>
+                                      <pre className="bg-muted/50 rounded p-2 overflow-x-auto text-[10px] max-h-40 overflow-y-auto">
+                                        {JSON.stringify(log.dados_anteriores, null, 2)}
+                                      </pre>
+                                    </div>
+                                  )}
+                                  {log.dados_novos && (
+                                    <div>
+                                      <span className="font-semibold text-muted-foreground block mb-1">Dados novos</span>
+                                      <pre className="bg-muted/50 rounded p-2 overflow-x-auto text-[10px] max-h-40 overflow-y-auto">
+                                        {JSON.stringify(log.dados_novos, null, 2)}
+                                      </pre>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })}
                     {auditLogs.length === 0 && (
-                      <tr><td colSpan={4} className="p-4 text-center text-muted-foreground">Nenhum registro</td></tr>
+                      <tr><td colSpan={5} className="p-4 text-center text-muted-foreground">Nenhum registro</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {totalAuditPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-2 border-t text-xs text-muted-foreground">
+                  <span>{auditTotal} registros — Página {auditPage + 1} de {totalAuditPages}</span>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={auditPage === 0} onClick={() => setAuditPage((p) => p - 1)}>
+                      Anterior
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={auditPage >= totalAuditPages - 1} onClick={() => setAuditPage((p) => p + 1)}>
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           )}
         </Card>
