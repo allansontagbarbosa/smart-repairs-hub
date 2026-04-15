@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { nomeEmpresa, cnpj, telefone, email } = body;
+    const { nomeEmpresa, cnpj, telefone, email, plano } = body;
 
     if (!nomeEmpresa?.trim()) {
       return new Response(JSON.stringify({ error: "Nome da empresa é obrigatório" }), {
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         cnpj: cnpj?.trim() || null,
         telefone: telefone?.trim() || null,
         email: email?.trim() || user.email,
-        plano: "basico",
+        plano: plano || "basico",
         owner_id: user.id,
       })
       .select()

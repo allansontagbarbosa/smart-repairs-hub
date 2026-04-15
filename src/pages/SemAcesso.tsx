@@ -13,7 +13,7 @@ export default function SemAcesso() {
       <p className="text-muted-foreground max-w-sm">
         Você não tem permissão para acessar esta área. Entre em contato com o administrador.
       </p>
-      <Button variant="outline" onClick={() => navigate("/")}>
+      <Button variant="outline" onClick={() => navigate("/dashboard")}>
         Voltar ao início
       </Button>
     </div>
