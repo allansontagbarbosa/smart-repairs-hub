@@ -119,20 +119,20 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   useEffect(() => {
     if (isAdmin && showAudit) {
       const fetchLogs = async () => {
-        let query = supabase
+        let q: any = supabase
           .from("auditoria")
           .select("*", { count: "exact" })
           .order("created_at", { ascending: false })
           .range(auditPage * PAGE_SIZE, (auditPage + 1) * PAGE_SIZE - 1);
 
         if (auditModuloFilter !== "todos") {
-          query = query.eq("modulo" as any, auditModuloFilter);
+          q = q.eq("modulo", auditModuloFilter);
         }
         if (auditSearch.trim()) {
-          query = query.or(`user_nome.ilike.%${auditSearch}%,acao.ilike.%${auditSearch}%`);
+          q = q.or(`user_nome.ilike.%${auditSearch}%,acao.ilike.%${auditSearch}%`);
         }
 
-        const { data, count } = await query;
+        const { data, count } = await q;
         setAuditLogs(data || []);
         setAuditTotal(count || 0);
       };
