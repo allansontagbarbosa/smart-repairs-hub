@@ -460,10 +460,12 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 2 — GASTOS E PREVISÕES
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Gastos e previsões</SectionTitle>
 
