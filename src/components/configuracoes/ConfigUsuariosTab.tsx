@@ -102,8 +102,12 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
         },
       });
 
-      if (res.error || res.data?.error) {
-        toast.error(res.data?.error || "Erro ao enviar convite");
+      const errorMsg = res.error?.message || res.data?.error;
+      if (errorMsg) {
+        const friendly = errorMsg.includes("already been registered")
+          ? "Este email já está cadastrado no sistema"
+          : errorMsg;
+        toast.error(friendly);
       } else {
         toast.success(`Convite enviado para ${inviteEmail}`);
         const perfilNome = perfisAcesso.find((p) => p.id === invitePerfilId)?.nome_perfil || "Sem perfil";
