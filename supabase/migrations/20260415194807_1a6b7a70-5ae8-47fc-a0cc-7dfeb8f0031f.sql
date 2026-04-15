@@ -1,0 +1,2 @@
+ALTER TABLE public.produtos_base DROP CONSTRAINT IF EXISTS produtos_base_modelo_id_fkey;
+ALTER TABLE public.produtos_base ADD CONSTRAINT produtos_base_modelo_id_fkey FOREIGN KEY (modelo_id) REFERENCES public.modelos(id) ON DELETE SET NULL;

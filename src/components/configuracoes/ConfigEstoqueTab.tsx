@@ -107,6 +107,9 @@ function ModelosCrud({ modelos, marcas }: { modelos: any[]; marcas: any[] }) {
   };
   const handleEdit = (m: any) => { setForm({ nome: m.nome, marca_id: m.marca_id, ativo: m.ativo }); setEditId(m.id); setOpen(true); };
   const handleDelete = async (id: string) => {
+    // Limpa referências antes de deletar
+    await supabase.from("produtos_base" as any).update({ modelo_id: null }).eq("modelo_id", id);
+
     const { error } = await supabase.from("modelos").delete().eq("id", id);
     if (error) {
       if (error.code === "23503") {
@@ -117,7 +120,7 @@ function ModelosCrud({ modelos, marcas }: { modelos: any[]; marcas: any[] }) {
       return;
     }
     qc.invalidateQueries({ queryKey: ["modelos"] });
-    toast.success("Removido");
+    toast.success("Modelo removido");
   };
 
   return (
