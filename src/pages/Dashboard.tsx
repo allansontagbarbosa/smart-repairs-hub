@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -198,6 +199,7 @@ async function fetchSocios() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { can } = usePermissoes();
 
   // ── QUERIES ──────────────────────────────────────────────────────────────
 
@@ -374,9 +376,9 @@ export default function Dashboard() {
       <OnboardingWelcome />
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SEÇÃO 1 — FINANCEIRO DO MÊS
+          SEÇÃO 1 — FINANCEIRO DO MÊS (só para quem tem permissão)
       ══════════════════════════════════════════════════════════════════════ */}
-      <div>
+      {can("financeiro", "ver") && <div>
         <SectionTitle>Financeiro do mês</SectionTitle>
 
         {/* Linha 1: Faturamento, EBITDA, Lucro Líquido, Saúde Financeira */}

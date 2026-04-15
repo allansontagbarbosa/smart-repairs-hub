@@ -30,6 +30,7 @@ import { ptBR } from "date-fns/locale";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
