@@ -84,7 +84,11 @@ export function useEstoque() {
     const acessorios = all.filter(i => i.tipo_item === "acessorio").length;
     const estoqueBaixo = all.filter(i => i.quantidade_minima > 0 && i.quantidade <= i.quantidade_minima).length;
     const valorTotal = all.reduce((s, i) => s + (Number(i.custo_unitario ?? 0) * i.quantidade), 0);
-    return { total, pecas, acessorios, estoqueBaixo, valorTotal };
+    const totalUnidades = all.reduce((s, i) => s + i.quantidade, 0);
+    const totalPecasUnidades = all.filter(i => i.tipo_item === "peca").reduce((s, i) => s + i.quantidade, 0);
+    const totalAcessoriosUnidades = all.filter(i => i.tipo_item === "acessorio").reduce((s, i) => s + i.quantidade, 0);
+    const semEstoque = all.filter(i => i.quantidade === 0).length;
+    return { total, pecas, acessorios, estoqueBaixo, valorTotal, totalUnidades, totalPecasUnidades, totalAcessoriosUnidades, semEstoque };
   }, [itens.data]);
 
   return {
