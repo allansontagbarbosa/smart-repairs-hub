@@ -26,6 +26,7 @@ import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
+import AceitarConvite from "./pages/AceitarConvite";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
 
             {/* Login interno */}
             <Route path="/login" element={<Login />} />
+            <Route path="/aceitar-convite" element={<AceitarConvite />} />
 
             {/* Internal system with sidebar */}
             <Route path="*" element={
