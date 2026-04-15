@@ -113,7 +113,9 @@ export function ConfigServicosTab({ tiposServico }: Props) {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+      <ImportIADialog open={importOpen} onOpenChange={setImportOpen} />
 
       <Card>
         <CardContent className="p-0">
