@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles } from "lucide-react";
+import { ImportIADialog } from "./ImportIADialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const filtered = produtosBase.filter((p) => p.nome?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()));
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
@@ -86,7 +88,11 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nome ou SKU..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1" />Importar via IA
+          </Button>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
           <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Produto</Button></DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Produto</DialogTitle></DialogHeader>
@@ -118,7 +124,9 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+      <ImportIADialog open={importOpen} onOpenChange={setImportOpen} />
 
       <Card>
         <CardContent className="p-0">
