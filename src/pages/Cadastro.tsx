@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
 import { Loader2, Eye, EyeOff, AlertCircle, Mail, UserPlus } from "lucide-react";
 
 export default function Cadastro() {
@@ -103,7 +103,7 @@ export default function Cadastro() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto">
-            <MobileFixLogo size="md" />
+            <AssistProLogo size="md" />
           </div>
           <CardDescription>Crie sua conta para começar</CardDescription>
         </CardHeader>

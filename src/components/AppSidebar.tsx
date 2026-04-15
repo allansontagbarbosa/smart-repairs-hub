@@ -1,5 +1,5 @@
 import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut } from "lucide-react";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
@@ -75,9 +75,9 @@ export function AppSidebar() {
       <SidebarContent className="flex flex-col h-full">
         <div className={`flex items-center justify-center px-4 pt-5 pb-4 ${collapsed ? "px-2" : ""}`}>
           {collapsed ? (
-            <MobileFixLogo iconOnly />
+            <AssistProLogo iconOnly />
           ) : (
-            <MobileFixLogo size="sm" />
+            <AssistProLogo size="sm" />
           )}
         </div>
 

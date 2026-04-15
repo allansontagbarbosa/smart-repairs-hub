@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, Hash } from "lucide-react";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ export default function PortalLogin() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-2.5">
-          <MobileFixLogo size="sm" />
+          <AssistProLogo size="sm" />
           <p className="text-[10px] text-muted-foreground ml-1">Portal do Cliente</p>
         </div>
       </header>
