@@ -92,10 +92,17 @@ const groups = [
 const allItems = groups.flatMap((g) => g.items);
 
 export default function Configuracoes() {
+  const { aba } = useParams();
   const data = useConfiguracoes();
-  const [active, setActive] = useState("geral");
+  const [active, setActive] = useState(aba || "geral");
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (aba && allItems.some((i) => i.id === aba)) {
+      setActive(aba);
+    }
+  }, [aba]);
 
   const activeItem = allItems.find((i) => i.id === active);
 
