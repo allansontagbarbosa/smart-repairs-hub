@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 type ClienteComStats = {
   id: string;
@@ -37,6 +38,7 @@ export default function Clientes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteComStats | null>(null);
   const queryClient = useQueryClient();
+  const { can } = usePermissoes();
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes-full"],
@@ -103,9 +105,11 @@ export default function Clientes() {
           <h1 className="page-title">Clientes</h1>
           <p className="page-subtitle">{clientes.length} cadastrados</p>
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />Novo Cliente
-        </Button>
+        {can("clientes", "criar") && (
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />Novo Cliente
+          </Button>
+        )}
       </div>
 
       <div className="relative">
@@ -154,12 +158,14 @@ export default function Clientes() {
                     <td className="hidden md:table-cell text-sm text-muted-foreground">{fmtDate(c.ultimo_atendimento)}</td>
                     <td className="hidden md:table-cell text-sm font-medium text-right">{fmtCurrency(c.total_gasto)}</td>
                     <td>
-                      <button
-                        onClick={() => setEditingClient(c)}
-                        className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
+                      {can("clientes", "editar") && (
+                        <button
+                          onClick={() => setEditingClient(c)}
+                          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

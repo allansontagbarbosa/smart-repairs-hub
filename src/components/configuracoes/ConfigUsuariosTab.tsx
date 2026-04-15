@@ -111,6 +111,21 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
 
   const handleSavePerfil = async () => {
     if (!perfilForm.nome_perfil) { toast.error("Nome é obrigatório"); return; }
+
+    // Protect: don't deactivate the last profile with configuracoes permission
+    if (perfilEditId && !perfilForm.ativo) {
+      const currentPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
+      if (currentPerfil) {
+        const otherConfigProfiles = perfisAcesso.filter(
+          (p) => p.id !== perfilEditId && p.ativo && (p.permissoes as any)?.configuracoes === true
+        );
+        if ((currentPerfil.permissoes as any)?.configuracoes === true && otherConfigProfiles.length === 0) {
+          toast.error("Não é possível desativar o último perfil com acesso a Configurações");
+          return;
+        }
+      }
+    }
+
     const payload = {
       nome_perfil: perfilForm.nome_perfil,
       descricao: perfilForm.descricao,
@@ -234,18 +249,22 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y">
-            {perfisAcesso.map((p) => (
-              <div key={p.id} className="flex items-center justify-between px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{p.nome_perfil}</span>
-                  {p.descricao && <span className="text-xs text-muted-foreground">— {p.descricao}</span>}
-                  {!p.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+            {perfisAcesso.map((p) => {
+              const userCount = userProfiles.filter((u) => u.perfil_id === p.id).length;
+              return (
+                <div key={p.id} className="flex items-center justify-between px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{p.nome_perfil}</span>
+                    {p.descricao && <span className="text-xs text-muted-foreground">— {p.descricao}</span>}
+                    <Badge variant="outline" className="text-[10px]">{userCount} {userCount === 1 ? "usuário" : "usuários"}</Badge>
+                    {!p.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditPerfil(p)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditPerfil(p)}>
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
             {perfisAcesso.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">Nenhum perfil cadastrado</div>}
           </div>
         </CardContent>

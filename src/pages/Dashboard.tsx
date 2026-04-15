@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -198,6 +199,7 @@ async function fetchSocios() {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { can } = usePermissoes();
 
   // ── QUERIES ──────────────────────────────────────────────────────────────
 
@@ -376,6 +378,7 @@ export default function Dashboard() {
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 1 — FINANCEIRO DO MÊS
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Financeiro do mês</SectionTitle>
 
@@ -457,10 +460,12 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 2 — GASTOS E PREVISÕES
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Gastos e previsões</SectionTitle>
 
@@ -530,6 +535,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 3 — OPERACIONAL

@@ -30,6 +30,7 @@ import { ptBR } from "date-fns/locale";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -194,6 +195,7 @@ export default function Assistencia() {
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
+  const { can } = usePermissoes();
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -571,9 +573,11 @@ export default function Assistencia() {
           <Button variant="outline" size="sm" asChild>
             <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
           </Button>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nova Ordem
-          </Button>
+          {can("assistencia", "criar") && (
+            <Button size="sm" onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nova Ordem
+            </Button>
+          )}
         </div>
       </div>
 
