@@ -52,6 +52,7 @@ const App = () => (
 
               {/* Login interno */}
               <Route path="/login" element={<Login />} />
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/aceitar-convite" element={<AceitarConvite />} />
 
               {/* Internal system with sidebar */}
