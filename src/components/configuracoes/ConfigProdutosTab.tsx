@@ -124,7 +124,8 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+        </div>
+        <ImportIADialog open={importOpen} onOpenChange={setImportOpen} />
 
       <Card>
         <CardContent className="p-0">
