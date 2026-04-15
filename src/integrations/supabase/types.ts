@@ -785,8 +785,11 @@ export type Database = {
       }
       empresa_config: {
         Row: {
+          bairro: string | null
+          cep: string | null
           cidade: string | null
           cnpj_cpf: string | null
+          complemento: string | null
           cor_principal: string | null
           created_at: string
           depreciacao_mensal: number | null
@@ -805,6 +808,7 @@ export type Database = {
           meta_gastos_mes: number | null
           moeda: string | null
           nome: string
+          numero: string | null
           numero_socios: number | null
           observacoes: string | null
           outros_gastos: number | null
@@ -813,8 +817,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           cnpj_cpf?: string | null
+          complemento?: string | null
           cor_principal?: string | null
           created_at?: string
           depreciacao_mensal?: number | null
@@ -833,6 +840,7 @@ export type Database = {
           meta_gastos_mes?: number | null
           moeda?: string | null
           nome?: string
+          numero?: string | null
           numero_socios?: number | null
           observacoes?: string | null
           outros_gastos?: number | null
@@ -841,8 +849,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
           cidade?: string | null
           cnpj_cpf?: string | null
+          complemento?: string | null
           cor_principal?: string | null
           created_at?: string
           depreciacao_mensal?: number | null
@@ -861,6 +872,7 @@ export type Database = {
           meta_gastos_mes?: number | null
           moeda?: string | null
           nome?: string
+          numero?: string | null
           numero_socios?: number | null
           observacoes?: string | null
           outros_gastos?: number | null
