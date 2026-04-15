@@ -534,7 +534,8 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </div>}
+      </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 3 — OPERACIONAL
