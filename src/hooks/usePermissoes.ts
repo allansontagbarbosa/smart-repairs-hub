@@ -88,9 +88,9 @@ export function usePermissoes() {
 
         if (profile?.perfis_acesso) {
           const pa = profile.perfis_acesso as any;
-          const nome = pa.nome_perfil || "admin";
+          const nome = pa.nome_perfil || "Administrador";
           setPerfil(nome);
-          setIsAdmin(nome === "admin");
+          setIsAdmin(nome === "admin" || nome === "Administrador");
           setPermissoes(parsePermissoes(pa.permissoes));
         } else {
           // No profile or no perfil assigned → admin by default
