@@ -378,7 +378,8 @@ export default function Dashboard() {
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 1 — FINANCEIRO DO MÊS (só para quem tem permissão)
       ══════════════════════════════════════════════════════════════════════ */}
-      {can("financeiro", "ver") && <div>
+      {can("financeiro", "ver") && (<>
+      <div>
         <SectionTitle>Financeiro do mês</SectionTitle>
 
         {/* Linha 1: Faturamento, EBITDA, Lucro Líquido, Saúde Financeira */}
