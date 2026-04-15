@@ -25,6 +25,7 @@ export function ConfigServicosTab({ tiposServico }: Props) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const filtered = tiposServico.filter((s) => s.nome?.toLowerCase().includes(search.toLowerCase()));
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
@@ -75,7 +76,11 @@ export function ConfigServicosTab({ tiposServico }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-1" />Importar via IA
+          </Button>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
           <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Serviço</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Serviço</DialogTitle></DialogHeader>
