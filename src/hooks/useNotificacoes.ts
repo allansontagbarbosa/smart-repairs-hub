@@ -82,8 +82,7 @@ export function useNotificacoes() {
     fetchNotificacoes();
     fetchBadgeCounts();
 
-    const channelName = `notificacoes-rt-${Date.now()}`;
-    const channel = supabase.channel(channelName);
+    const channel = supabase.channel(`notificacoes-rt-${crypto.randomUUID()}`);
 
     channel
       .on("postgres_changes", { event: "*", schema: "public", table: "notificacoes" }, () => {
@@ -107,10 +106,9 @@ export function useNotificacoes() {
     channel.subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchBadgeCounts, fetchNotificacoes, queryClient]);
 
   const totalNaoLidas = notificacoes.filter(n => !n.lida).length;
 
