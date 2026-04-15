@@ -1,36 +1,50 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { toast } from "sonner";
 
 export default function AceitarConvite() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [expired, setExpired] = useState(false);
   const navigate = useNavigate();
 
-  const { data: empresa } = useQuery({
-    queryKey: ["empresa-login"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("empresa_config")
-        .select("nome")
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
+  useEffect(() => {
+    // Listen for the recovery/invite session from URL tokens
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setChecking(false);
+      }
+    });
 
-  const companyName = empresa?.nome || "MobileFix";
+    // Also check if user is already signed in (token already processed)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setChecking(false);
+      } else {
+        // Give some time for token processing, then show expired
+        setTimeout(() => {
+          setChecking((prev) => {
+            if (prev) setExpired(true);
+            return false;
+          });
+        }, 4000);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,18 +64,48 @@ export default function AceitarConvite() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
-    setLoading(false);
-
     if (updateError) {
-      setError(updateError.message);
+      setLoading(false);
+      if (updateError.message.includes("expired") || updateError.message.includes("invalid")) {
+        setExpired(true);
+      } else {
+        setError(updateError.message);
+      }
       return;
     }
 
+    // Password set successfully — user is already linked to empresa via edge function
     setSuccess(true);
-    // Sign out so user can log in fresh
-    await supabase.auth.signOut();
-    setTimeout(() => navigate("/login?convite=1", { replace: true }), 2000);
+    toast.success("Senha definida com sucesso!");
+    setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (expired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-sm">
+          <CardContent className="pt-6 text-center space-y-4">
+            <XCircle className="h-12 w-12 text-destructive mx-auto" />
+            <h2 className="text-lg font-semibold">Link expirado ou inválido</h2>
+            <p className="text-sm text-muted-foreground">
+              Peça ao administrador para enviar um novo convite.
+            </p>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/login">Voltar para o login →</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -71,7 +115,7 @@ export default function AceitarConvite() {
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
             <h2 className="text-lg font-semibold">Senha definida com sucesso!</h2>
             <p className="text-sm text-muted-foreground">
-              Redirecionando para o login...
+              Redirecionando para o painel...
             </p>
           </CardContent>
         </Card>
@@ -86,7 +130,7 @@ export default function AceitarConvite() {
           <div className="mx-auto">
             <MobileFixLogo size="md" />
           </div>
-          <h2 className="text-lg font-semibold">Bem-vindo à {companyName}!</h2>
+          <h2 className="text-lg font-semibold">Bem-vindo!</h2>
           <CardDescription>
             Defina sua senha para acessar o sistema.
           </CardDescription>
