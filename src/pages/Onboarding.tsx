@@ -66,7 +66,7 @@ export default function Onboarding() {
       .maybeSingle()
       .then(({ data }) => {
         if (data?.empresa_id) {
-          navigate("/", { replace: true });
+          navigate("/dashboard", { replace: true });
         } else {
           setCheckingEmpresa(false);
           setEmail(user.email || "");
