@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { EmpresaProvider } from "@/contexts/EmpresaContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import LandingPage from "./pages/LandingPage";
+import Cadastro from "./pages/Cadastro";
 import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
@@ -41,16 +43,20 @@ const App = () => (
         <EmpresaProvider>
           <BrowserRouter>
             <Routes>
+              {/* Landing page pública */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/cadastro" element={<Cadastro />} />
+
               {/* Public client lookup — no auth */}
               <Route path="/consulta" element={<ConsultaCliente />} />
 
-              {/* Portal do Cliente — public routes, no auth required */}
+              {/* Portal do Cliente — public routes */}
               <Route path="/portal/login" element={<PortalLogin />} />
               <Route path="/portal/reset-password" element={<PortalResetPassword />} />
               <Route path="/portal" element={<PortalDashboard />} />
               <Route path="/portal/ordem/:id" element={<PortalOrdemDetalhe />} />
 
-              {/* Login interno */}
+              {/* Login e onboarding */}
               <Route path="/login" element={<Login />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/aceitar-convite" element={<AceitarConvite />} />
@@ -60,7 +66,7 @@ const App = () => (
                 <AuthGuard>
                   <AppLayout>
                   <Routes>
-                    <Route path="/" element={<ProtectedRoute permissao="dashboard"><Dashboard /></ProtectedRoute>} />
+                    <Route path="/dashboard" element={<ProtectedRoute permissao="dashboard"><Dashboard /></ProtectedRoute>} />
                     <Route path="/assistencia" element={<ProtectedRoute permissao="assistencia.ver"><Assistencia /></ProtectedRoute>} />
                     <Route path="/assistencia/fluxo" element={<ProtectedRoute permissao="assistencia.ver"><FluxoAssistencia /></ProtectedRoute>} />
                     <Route path="/assistencia/fila-ia" element={<ProtectedRoute permissao="fila_ia"><FilaIA /></ProtectedRoute>} />
