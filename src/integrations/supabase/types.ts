@@ -813,6 +813,7 @@ export type Database = {
           observacoes: string | null
           outros_gastos: number | null
           percentual_reserva_empresa: number | null
+          rua: string | null
           telefone: string | null
           updated_at: string
         }
@@ -845,6 +846,7 @@ export type Database = {
           observacoes?: string | null
           outros_gastos?: number | null
           percentual_reserva_empresa?: number | null
+          rua?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -877,6 +879,7 @@ export type Database = {
           observacoes?: string | null
           outros_gastos?: number | null
           percentual_reserva_empresa?: number | null
+          rua?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -892,46 +895,67 @@ export type Database = {
       }
       empresas: {
         Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
+          complemento: string | null
           criado_em: string | null
           email: string | null
           endereco: Json | null
+          estado: string | null
           id: string
           logo_url: string | null
           nome: string
+          numero: string | null
           owner_id: string
           plano: string
           plano_ativo: boolean
+          rua: string | null
           slug: string
           telefone: string | null
           trial_expira_em: string | null
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           criado_em?: string | null
           email?: string | null
           endereco?: Json | null
+          estado?: string | null
           id?: string
           logo_url?: string | null
           nome: string
+          numero?: string | null
           owner_id: string
           plano?: string
           plano_ativo?: boolean
+          rua?: string | null
           slug: string
           telefone?: string | null
           trial_expira_em?: string | null
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           criado_em?: string | null
           email?: string | null
           endereco?: Json | null
+          estado?: string | null
           id?: string
           logo_url?: string | null
           nome?: string
+          numero?: string | null
           owner_id?: string
           plano?: string
           plano_ativo?: boolean
+          rua?: string | null
           slug?: string
           telefone?: string | null
           trial_expira_em?: string | null
