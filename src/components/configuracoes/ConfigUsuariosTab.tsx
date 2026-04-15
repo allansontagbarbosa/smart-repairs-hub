@@ -111,6 +111,21 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
 
   const handleSavePerfil = async () => {
     if (!perfilForm.nome_perfil) { toast.error("Nome é obrigatório"); return; }
+
+    // Protect: don't deactivate the last profile with configuracoes permission
+    if (perfilEditId && !perfilForm.ativo) {
+      const currentPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
+      if (currentPerfil) {
+        const otherConfigProfiles = perfisAcesso.filter(
+          (p) => p.id !== perfilEditId && p.ativo && (p.permissoes as any)?.configuracoes === true
+        );
+        if ((currentPerfil.permissoes as any)?.configuracoes === true && otherConfigProfiles.length === 0) {
+          toast.error("Não é possível desativar o último perfil com acesso a Configurações");
+          return;
+        }
+      }
+    }
+
     const payload = {
       nome_perfil: perfilForm.nome_perfil,
       descricao: perfilForm.descricao,
