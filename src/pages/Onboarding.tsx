@@ -248,7 +248,7 @@ export default function Onboarding() {
               <p className="text-muted-foreground">
                 Empresa criada com sucesso! Seu período de teste de 14 dias começou.
               </p>
-              <Button size="lg" className="w-full" onClick={() => { window.location.href = "/"; }}>
+              <Button size="lg" className="w-full" onClick={() => { window.location.href = "/dashboard"; }}>
                 Acessar meu painel <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
