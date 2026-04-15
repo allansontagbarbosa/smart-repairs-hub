@@ -109,11 +109,16 @@ export function ImportIADialog({ open, onOpenChange }: Props) {
         return;
       }
 
-      if (!text.trim()) {
-        toast.error("Não foi possível extrair texto do arquivo");
+      // Filter out non-readable characters (binary garbage)
+      const readable = text.replace(/[^\x20-\x7E\xA0-\xFF\u0100-\u017F\n\r\t]/g, '').trim();
+      
+      if (!readable || readable.length < 20) {
+        toast.error("Não foi possível extrair texto legível do arquivo. Tente exportar como Excel (.xlsx) para melhores resultados.");
         setStep("upload");
         return;
       }
+
+      text = readable;
 
       const { data, error } = await supabase.functions.invoke("classificar-itens", {
         body: { texto: text },
