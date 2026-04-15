@@ -39,7 +39,15 @@ function SimpleCrud({ title, items, queryKey, table, fields }: { title: string; 
     setForm(f); setEditId(item.id); setOpen(true);
   };
   const handleDelete = async (id: string) => {
-    await supabase.from(table as any).delete().eq("id", id);
+    const { error } = await supabase.from(table as any).delete().eq("id", id);
+    if (error) {
+      if (error.code === "23503") {
+        toast.error("Não é possível excluir: este registro está em uso em outras partes do sistema.");
+      } else {
+        toast.error("Erro ao excluir: " + error.message);
+      }
+      return;
+    }
     qc.invalidateQueries({ queryKey: [queryKey] });
     toast.success("Removido");
   };
@@ -98,7 +106,19 @@ function ModelosCrud({ modelos, marcas }: { modelos: any[]; marcas: any[] }) {
     toast.success("Salvo"); setOpen(false); reset();
   };
   const handleEdit = (m: any) => { setForm({ nome: m.nome, marca_id: m.marca_id, ativo: m.ativo }); setEditId(m.id); setOpen(true); };
-  const handleDelete = async (id: string) => { await supabase.from("modelos").delete().eq("id", id); qc.invalidateQueries({ queryKey: ["modelos"] }); toast.success("Removido"); };
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("modelos").delete().eq("id", id);
+    if (error) {
+      if (error.code === "23503") {
+        toast.error("Não é possível excluir: este registro está em uso em outras partes do sistema.");
+      } else {
+        toast.error("Erro ao excluir: " + error.message);
+      }
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["modelos"] });
+    toast.success("Removido");
+  };
 
   return (
     <Card>
