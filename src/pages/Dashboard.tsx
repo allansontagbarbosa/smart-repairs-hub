@@ -376,9 +376,9 @@ export default function Dashboard() {
       <OnboardingWelcome />
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SEÇÃO 1 — FINANCEIRO DO MÊS (só para quem tem permissão)
+          SEÇÃO 1 — FINANCEIRO DO MÊS
       ══════════════════════════════════════════════════════════════════════ */}
-      {can("financeiro", "ver") && (<>
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Financeiro do mês</SectionTitle>
 
