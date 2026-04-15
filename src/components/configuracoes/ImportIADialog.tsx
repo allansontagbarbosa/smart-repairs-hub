@@ -42,24 +42,40 @@ export function ImportIADialog({ open, onOpenChange }: Props) {
   };
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
-    const pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({
-      data: arrayBuffer,
-      useWorkerFetch: false,
-      isEvalSupported: false,
-      useSystemFonts: true,
-    }).promise;
+    const bytes = new Uint8Array(arrayBuffer);
+    const decoder = new TextDecoder('latin1');
+    const raw = decoder.decode(bytes);
 
-    let text = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      text += content.items.map((item: any) => item.str).join(" ") + "\n";
+    const lines: string[] = [];
+
+    // Método 1: captura blocos BT...ET (text blocks do PDF)
+    const btBlocks = raw.matchAll(/BT([\s\S]{1,500}?)ET/g);
+    for (const block of btBlocks) {
+      const tjMatches = block[1].matchAll(/\(([^)]+)\)\s*Tj/g);
+      for (const m of tjMatches) {
+        const str = m[1].replace(/\\\d{3}/g, '').replace(/\\/g, '').trim();
+        if (str.length > 1) lines.push(str);
+      }
+      const tfMatches = block[1].matchAll(/\[([^\]]+)\]\s*TJ/g);
+      for (const m of tfMatches) {
+        const str = m[1].replace(/\(([^)]*)\)/g, '$1').replace(/\s*-?\d+\s*/g, ' ').trim();
+        if (str.length > 1) lines.push(str);
+      }
     }
-    return text;
+
+    // Método 2: fallback — captura qualquer (texto) legível
+    if (lines.length < 5) {
+      const matches = raw.matchAll(/\(([^)]{2,80})\)/g);
+      for (const m of matches) {
+        const str = m[1].replace(/\\/g, '').trim();
+        if (str.length > 2 && /[A-Za-zÀ-ú0-9]/.test(str)) {
+          lines.push(str);
+        }
+      }
+    }
+
+    return lines.join('\n');
   };
 
   const extractTextFromExcel = async (file: File): Promise<string> => {
