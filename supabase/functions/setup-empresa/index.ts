@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     const { data: existingProfile } = await admin
       .from("user_profiles")
       .select("empresa_id")
-      .eq("user_id", user.id)
+      .or(`user_id.eq.${user.id},id.eq.${user.id}`)
       .maybeSingle();
 
     if (existingProfile?.empresa_id) {
@@ -131,12 +131,14 @@ Deno.serve(async (req) => {
     // STEP 4 — Link user_profile to empresa
     const { error: errProfile } = await admin
       .from("user_profiles")
-      .update({
+      .upsert({
+        user_id: user.id,
+        nome_exibicao: user.user_metadata?.full_name || user.email || "Administrador",
         empresa_id: empresa.id,
         perfil_id: perfil.id,
         funcionario_id: func.id,
-      })
-      .eq("user_id", user.id);
+        ativo: true,
+      }, { onConflict: "user_id" });
 
     if (errProfile) throw errProfile;
 

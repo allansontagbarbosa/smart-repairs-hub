@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface Props {
   categoriasFinanceiras: any[];
@@ -94,16 +95,25 @@ function CrudSection({ title, items, queryKey, table, fields }: { title: string;
 
 function MetasCard() {
   const qc = useQueryClient();
+  const { empresaId, empresa } = useEmpresa();
   const { data: config } = useQuery({
-    queryKey: ["empresa_config_meta"],
+    queryKey: ["empresa_config_meta", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("empresa_config")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+
+      if (error) throw error;
       return data;
     },
   });
 
   const { data: socios, refetch: refetchSocios } = useQuery({
-    queryKey: ["config-socios"],
+    queryKey: ["config-socios", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
       const { data } = await supabase.from("socios").select("*").eq("ativo", true).order("ordem");
       return data ?? [];
@@ -142,40 +152,70 @@ function MetasCard() {
   }, [socios, numSocios]);
 
   const handleSave = async () => {
-    if (!config?.id) return;
+    if (!empresaId) {
+      toast.error("Empresa não identificada");
+      return;
+    }
+
     setSaving(true);
-    const ns = Number(numSocios) || 1;
-    await supabase.from("empresa_config").update({
-      meta_gastos_mes: Number(metaGastos) || 0,
-      meta_faturamento_mes: Number(metaFaturamento) || 0,
-      numero_socios: ns,
-      percentual_reserva_empresa: Number(pctReserva) || 0,
-      gastos_fixos_mensais: Number(gastosFix) || 0,
-      depreciacao_mensal: Number(depreciacao) || 0,
-      impostos_mensal: Number(impostos) || 0,
-      outros_gastos: Number(outrosGastos) || 0,
-    } as any).eq("id", config.id);
 
-    // Sync socios
-    const existing = socios ?? [];
-    for (let i = 0; i < ns; i++) {
-      const nome = socioNomes[i]?.trim() || "";
-      if (existing[i]) {
-        await supabase.from("socios").update({ nome, ordem: i } as any).eq("id", existing[i].id);
-      } else {
-        await supabase.from("socios").insert({ nome, ordem: i } as any);
+    try {
+      const ns = Number(numSocios) || 1;
+      const payload = {
+        empresa_id: empresaId,
+        meta_gastos_mes: Number(metaGastos) || 0,
+        meta_faturamento_mes: Number(metaFaturamento) || 0,
+        numero_socios: ns,
+        percentual_reserva_empresa: Number(pctReserva) || 0,
+        gastos_fixos_mensais: Number(gastosFix) || 0,
+        depreciacao_mensal: Number(depreciacao) || 0,
+        impostos_mensal: Number(impostos) || 0,
+        outros_gastos: Number(outrosGastos) || 0,
+      };
+
+      const { data: existingConfig, error: lookupError } = await supabase
+        .from("empresa_config")
+        .select("id")
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+
+      const configResponse = existingConfig?.id
+        ? await supabase.from("empresa_config").update(payload as any).eq("id", existingConfig.id)
+        : await supabase.from("empresa_config").insert({
+            nome: empresa?.nome || "Minha Assistência Técnica",
+            ...payload,
+          } as any);
+
+      if (configResponse.error) throw configResponse.error;
+
+      const existing = socios ?? [];
+      for (let i = 0; i < ns; i++) {
+        const nome = socioNomes[i]?.trim() || "";
+        const socioResponse = existing[i]
+          ? await supabase.from("socios").update({ nome, ordem: i } as any).eq("id", existing[i].id)
+          : await supabase.from("socios").insert({ nome, ordem: i, empresa_id: empresaId } as any);
+
+        if (socioResponse.error) throw socioResponse.error;
       }
-    }
-    for (let i = ns; i < existing.length; i++) {
-      await supabase.from("socios").update({ ativo: false } as any).eq("id", existing[i].id);
-    }
 
-    qc.invalidateQueries({ queryKey: ["empresa_config_meta"] });
-    qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
-    qc.invalidateQueries({ queryKey: ["dashboard-socios"] });
-    refetchSocios();
-    toast.success("Configurações atualizadas");
-    setSaving(false);
+      for (let i = ns; i < existing.length; i++) {
+        const { error } = await supabase.from("socios").update({ ativo: false } as any).eq("id", existing[i].id);
+        if (error) throw error;
+      }
+
+      qc.invalidateQueries({ queryKey: ["empresa_config_meta", empresaId] });
+      qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
+      qc.invalidateQueries({ queryKey: ["dashboard-socios"] });
+      refetchSocios();
+      toast.success("Configurações atualizadas");
+    } catch (error: any) {
+      console.error("Erro ao salvar configurações financeiras:", error);
+      toast.error(error?.message || "Erro ao salvar configurações financeiras");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

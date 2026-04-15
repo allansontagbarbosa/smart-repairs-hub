@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { useAuditoria } from "@/hooks/useAuditoria";
 import { format } from "date-fns";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface Props {
   userProfiles: any[];
@@ -59,6 +60,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   const qc = useQueryClient();
   const { isAdmin } = usePermissoes();
   const { registrar } = useAuditoria();
+  const { empresaId } = useEmpresa();
   const [search, setSearch] = useState("");
   const [openPerfil, setOpenPerfil] = useState(false);
   const [perfilForm, setPerfilForm] = useState<any>({ nome_perfil: "", descricao: "", ativo: true, permissoes: buildDefaultPermissoes() });
@@ -83,6 +85,12 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
       toast.error("Nome e email são obrigatórios");
       return;
     }
+
+    if (!empresaId) {
+      toast.error("Empresa não identificada para enviar o convite");
+      return;
+    }
+
     setInviteLoading(true);
     try {
       const res = await supabase.functions.invoke("invite-user", {
@@ -90,6 +98,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
           email: inviteEmail,
           nome: inviteNome,
           perfil_id: invitePerfilId === "none" ? null : invitePerfilId,
+          empresa_id: empresaId,
         },
       });
 

@@ -45,41 +45,56 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { email, nome, perfil_id, empresa_id } = await req.json();
+
+    if (!email || !nome || !empresa_id) {
+      return new Response(JSON.stringify({ error: "Email, nome e empresa_id são obrigatórios" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get caller's empresa_id
-    const { data: callerProfile } = await adminClient
+    const { data: callerProfile, error: callerProfileError } = await adminClient
       .from("user_profiles")
       .select("empresa_id")
-      .eq("user_id", user.id)
-      .single();
+      .or(`user_id.eq.${user.id},id.eq.${user.id}`)
+      .maybeSingle();
 
-    const empresa_id = callerProfile?.empresa_id;
-    if (!empresa_id) {
+    if (callerProfileError) {
+      return new Response(JSON.stringify({ error: "Não foi possível validar a empresa do usuário" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const callerEmpresaId = callerProfile?.empresa_id;
+    if (!callerEmpresaId) {
       return new Response(JSON.stringify({ error: "Empresa não encontrada para o usuário" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { email, nome, perfil_id } = await req.json();
-
-    if (!email || !nome) {
-      return new Response(JSON.stringify({ error: "Email e nome são obrigatórios" }), {
-        status: 400,
+    if (empresa_id !== callerEmpresaId) {
+      return new Response(JSON.stringify({ error: "Empresa inválida para este convite" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/$/, "") || supabaseUrl;
+    const siteUrl = Deno.env.get("SITE_URL") || "https://mobilefix.dev";
 
     // Invite user via admin API
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name: nome, perfil_id, empresa_id },
-      redirectTo: `${origin}/aceitar-convite`,
+      redirectTo: `${siteUrl}/aceitar-convite`,
     });
 
     if (inviteError) {
+      const status = inviteError.message.includes("already been registered") ? 409 : 400;
       return new Response(JSON.stringify({ error: inviteError.message }), {
-        status: 400,
+        status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

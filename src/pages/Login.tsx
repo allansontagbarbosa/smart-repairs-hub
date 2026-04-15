@@ -12,6 +12,7 @@ import { UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus
 import { Separator } from "@/components/ui/separator";
 import { AssistProLogo } from "@/components/AssistProLogo";
 import { APP_CONFIG } from "@/config/app";
+import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
 const DEMO_EMAIL = "demo@smartrepairs.com";
 const DEMO_PASSWORD = "Demo@123";
@@ -54,12 +55,18 @@ export default function Login() {
   });
 
   const verifyInternalUser = async (userId: string): Promise<boolean> => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_profiles")
       .select("id")
-      .eq("user_id", userId)
+      .or(buildUserProfileLookup(userId))
       .eq("ativo", true)
       .maybeSingle();
+
+    if (error) {
+      console.error("verifyInternalUser error:", error);
+      return false;
+    }
+
     return !!data;
   };
 

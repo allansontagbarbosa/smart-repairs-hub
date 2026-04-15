@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
 interface PermissaoModulo {
   ver: boolean;
@@ -82,7 +83,7 @@ export function usePermissoes() {
         const { data: profile } = await supabase
           .from("user_profiles")
           .select("perfil_id, perfis_acesso(nome_perfil, permissoes)")
-          .eq("user_id", user.id)
+          .or(buildUserProfileLookup(user.id))
           .eq("ativo", true)
           .maybeSingle();
 

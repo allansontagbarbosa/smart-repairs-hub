@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Building2, ArrowRight, ArrowLeft, Check, CheckCircle2, Sparkles } from "lucide-react";
 import { AssistProLogo } from "@/components/AssistProLogo";
 import { toast } from "sonner";
+import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
 const PLANS = [
   {
@@ -59,19 +60,32 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (authLoading || !user) return;
-    supabase
-      .from("user_profiles")
-      .select("empresa_id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
+
+    const checkEmpresa = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_profiles")
+          .select("empresa_id")
+          .or(buildUserProfileLookup(user.id))
+          .maybeSingle();
+
+        if (error) {
+          console.error("Onboarding profile error:", error);
+        }
+
         if (data?.empresa_id) {
           navigate("/dashboard", { replace: true });
-        } else {
-          setCheckingEmpresa(false);
-          setEmail(user.email || "");
+          return;
         }
-      });
+      } catch (error) {
+        console.error("Onboarding unexpected error:", error);
+      }
+
+      setCheckingEmpresa(false);
+      setEmail(user.email || "");
+    };
+
+    void checkEmpresa();
   }, [user, authLoading, navigate]);
 
   if (authLoading || !user || checkingEmpresa) {

@@ -67,10 +67,10 @@ export default function Cadastro() {
   const handleGoogleSignup = async () => {
     setGoogleLoading(true);
     setError("");
-    const { error: googleError } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/onboarding`,
-    });
-    if (googleError) {
+    try {
+      const { error: googleError } = await lovable.auth.signInWithOAuth("google");
+      if (googleError) throw googleError;
+    } catch {
       setGoogleLoading(false);
       setError("Erro ao conectar com Google. Tente novamente.");
     }
