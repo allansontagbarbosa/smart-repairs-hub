@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default function PortalResetPassword() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center justify-center">
-          <MobileFixLogo size="sm" />
+          <AssistProLogo size="sm" />
         </div>
         <h1 className="text-xl font-semibold text-center">Nova senha</h1>
         <form onSubmit={handleSubmit} className="space-y-3">

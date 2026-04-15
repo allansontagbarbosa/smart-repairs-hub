@@ -92,7 +92,7 @@ export function OnboardingWelcome() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                👋 Bem-vindo ao MobileFix!
+                👋 Bem-vindo ao AssistPro!
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Vamos configurar seu sistema. Complete os passos abaixo:

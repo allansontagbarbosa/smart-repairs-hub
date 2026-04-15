@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
+import { APP_CONFIG } from "@/config/app";
 
 const DEMO_EMAIL = "demo@smartrepairs.com";
 const DEMO_PASSWORD = "Demo@123";
@@ -185,7 +186,7 @@ export default function Login() {
     if (newMode === "forgot") setResetEmail(email);
   };
 
-  const companyName = empresa?.nome || "MobileFix";
+  const companyName = empresa?.nome || APP_CONFIG.name;
   const anyLoading = loading || demoLoading || googleLoading;
 
   return (
@@ -193,7 +194,7 @@ export default function Login() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto">
-            <MobileFixLogo size="md" showTagline />
+            <AssistProLogo size="md" showTagline />
           </div>
           <CardDescription>
             {mode === "forgot"

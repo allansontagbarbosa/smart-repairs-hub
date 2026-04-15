@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
+import { APP_CONFIG } from "@/config/app";
 import {
   Wrench, Package, DollarSign, BrainCircuit, Globe, BarChart3,
   Check, Star, ArrowRight, Smartphone
@@ -48,7 +49,7 @@ const plans = [
 ];
 
 const testimonials = [
-  { name: "Carlos Silva", company: "TechFix Assistência", text: "Reduzimos o tempo de atendimento em 40% depois que adotamos o MobileFix. A Fila IA é genial.", stars: 5 },
+  { name: "Carlos Silva", company: "TechFix Assistência", text: "Reduzimos o tempo de atendimento em 40% depois que adotamos o AssistPro. A Fila IA é genial.", stars: 5 },
   { name: "Ana Oliveira", company: "CelularTop Reparos", text: "O portal do cliente economiza dezenas de ligações por dia. Nossos clientes adoram acompanhar online.", stars: 5 },
   { name: "Roberto Santos", company: "Master Cell", text: "Finalmente um sistema feito para assistência técnica. Simples, rápido e com tudo que precisamos.", stars: 5 },
 ];
@@ -59,7 +60,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <MobileFixLogo size="sm" />
+          <AssistProLogo size="sm" />
           <div className="flex items-center gap-3">
             <Link to="/login">
               <Button variant="ghost" size="sm">Entrar</Button>
@@ -215,12 +216,12 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <MobileFixLogo size="sm" />
+          <AssistProLogo size="sm" />
           <div className="flex gap-6 text-sm text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-colors">Termos de Uso</a>
             <a href="#" className="hover:text-foreground transition-colors">Política de Privacidade</a>
           </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} MobileFix. Todos os direitos reservados.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} {APP_CONFIG.name}. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

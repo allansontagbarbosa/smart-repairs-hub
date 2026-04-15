@@ -4,7 +4,7 @@ import {
   LogOut, Smartphone, Clock, CheckCircle2, Package,
   DollarSign, ChevronRight, Store, Filter, Search,
 } from "lucide-react";
-import { MobileFixLogo } from "@/components/MobileFixLogo";
+import { AssistProLogo } from "@/components/AssistProLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePortalCliente, usePortalLojas, usePortalOrdens, type PortalOrdem } from "@/hooks/usePortalData";
 import { Button } from "@/components/ui/button";
@@ -209,7 +209,7 @@ function PortalHeader({ user, onSignOut }: { user: any; onSignOut: () => void })
     <header className="border-b bg-card sticky top-0 z-10">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <MobileFixLogo size="sm" />
+          <AssistProLogo size="sm" />
           <p className="text-[10px] text-muted-foreground ml-1">Portal do Cliente</p>
         </div>
         <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5" onClick={onSignOut}>
