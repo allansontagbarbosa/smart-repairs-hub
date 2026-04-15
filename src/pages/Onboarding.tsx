@@ -29,7 +29,6 @@ export default function Onboarding() {
       .from("user_profiles")
       .select("empresa_id")
       .eq("user_id", user.id)
-      .eq("ativo", true)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.empresa_id) {
@@ -55,159 +54,22 @@ export default function Onboarding() {
 
     setLoading(true);
     try {
-      // STEP 1 — Create empresa
-      const slug = nomeEmpresa
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada");
 
-      const { data: empresa, error: errEmpresa } = await supabase
-        .from("empresas" as any)
-        .insert({
-          nome: nomeEmpresa.trim(),
-          slug: slug + "-" + Date.now().toString(36),
+      const res = await supabase.functions.invoke("setup-empresa", {
+        body: {
+          nomeEmpresa: nomeEmpresa.trim(),
           cnpj: cnpj.trim() || null,
           telefone: telefone.trim() || null,
-          email: email.trim() || user.email,
-          plano: "basico",
-          owner_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (errEmpresa) throw errEmpresa;
-      const empresaId = (empresa as any).id;
-
-      // STEP 2 — Create Administrador profile for the empresa
-      const { data: perfil, error: errPerfil } = await supabase
-        .from("perfis_acesso")
-        .insert({
-          empresa_id: empresaId,
-          nome_perfil: "Administrador",
-          descricao: "Acesso total ao sistema",
-          permissoes: {
-            dashboard: true,
-            assistencia: { ver: true, criar: true, editar: true, excluir: true },
-            financeiro: { ver: true, criar: true, editar: true, excluir: true },
-            pecas: { ver: true, criar: true, editar: true, excluir: true },
-            clientes: { ver: true, criar: true, editar: true, excluir: true },
-            relatorios: true,
-            configuracoes: true,
-            fila_ia: true,
-          },
-        })
-        .select()
-        .single();
-
-      if (errPerfil) throw errPerfil;
-
-      // STEP 3 — Create funcionario (owner)
-      const { data: func, error: errFunc } = await supabase
-        .from("funcionarios")
-        .insert({
-          empresa_id: empresaId,
-          nome: user.user_metadata?.full_name || user.email || "Administrador",
-          email: user.email,
-          cargo: "Administrador",
-          funcao: "Administrador",
-          ativo: true,
-        })
-        .select("id")
-        .single();
-
-      if (errFunc) throw errFunc;
-
-      // STEP 4 — Link user_profile to empresa + perfil + funcionario
-      const { error: errProfile } = await supabase
-        .from("user_profiles")
-        .update({
-          empresa_id: empresaId,
-          perfil_id: perfil.id,
-          funcionario_id: func.id,
-        })
-        .eq("user_id", user.id);
-
-      if (errProfile) throw errProfile;
-
-      // STEP 5 — Create empresa_config
-      const { error: errConfig } = await supabase
-        .from("empresa_config")
-        .insert({
-          empresa_id: empresaId,
-          nome: nomeEmpresa.trim(),
-          gastos_fixos_mensais: 0,
-        });
-
-      if (errConfig) throw errConfig;
-
-      // STEP 6 — Create default profiles
-      await supabase.from("perfis_acesso").insert([
-        {
-          empresa_id: empresaId,
-          nome_perfil: "Técnico",
-          descricao: "Ordens de serviço e estoque",
-          permissoes: {
-            dashboard: true,
-            assistencia: { ver: true, criar: true, editar: true, excluir: false },
-            financeiro: { ver: false, criar: false, editar: false, excluir: false },
-            pecas: { ver: true, criar: false, editar: false, excluir: false },
-            clientes: { ver: true, criar: false, editar: false, excluir: false },
-            relatorios: false,
-            configuracoes: false,
-            fila_ia: true,
-          },
+          email: email.trim() || null,
         },
-        {
-          empresa_id: empresaId,
-          nome_perfil: "Financeiro",
-          descricao: "Módulo financeiro e relatórios",
-          permissoes: {
-            dashboard: true,
-            assistencia: { ver: true, criar: false, editar: false, excluir: false },
-            financeiro: { ver: true, criar: true, editar: true, excluir: false },
-            pecas: { ver: true, criar: true, editar: true, excluir: false },
-            clientes: { ver: true, criar: false, editar: false, excluir: false },
-            relatorios: true,
-            configuracoes: false,
-            fila_ia: false,
-          },
-        },
-        {
-          empresa_id: empresaId,
-          nome_perfil: "Atendimento",
-          descricao: "Cadastro de OS e clientes",
-          permissoes: {
-            dashboard: true,
-            assistencia: { ver: true, criar: true, editar: true, excluir: false },
-            financeiro: { ver: false, criar: false, editar: false, excluir: false },
-            pecas: { ver: true, criar: false, editar: false, excluir: false },
-            clientes: { ver: true, criar: true, editar: true, excluir: false },
-            relatorios: false,
-            configuracoes: false,
-            fila_ia: false,
-          },
-        },
-        {
-          empresa_id: empresaId,
-          nome_perfil: "Gerente",
-          descricao: "Visão gerencial e aprovações",
-          permissoes: {
-            dashboard: true,
-            assistencia: { ver: true, criar: false, editar: false, excluir: false },
-            financeiro: { ver: true, criar: false, editar: false, excluir: false },
-            pecas: { ver: true, criar: false, editar: false, excluir: false },
-            clientes: { ver: true, criar: false, editar: false, excluir: false },
-            relatorios: true,
-            configuracoes: false,
-            fila_ia: false,
-          },
-        },
-      ]);
+      });
+
+      if (res.error) throw new Error(res.error.message || "Erro ao configurar empresa");
+      if (res.data?.error) throw new Error(res.data.error);
 
       toast.success("Empresa configurada com sucesso!");
-      // Force page reload to refresh all contexts
       window.location.href = "/";
     } catch (err: any) {
       console.error("Erro no onboarding:", err);
