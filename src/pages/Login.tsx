@@ -131,14 +131,12 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     setError("");
-
-    const { error: googleError } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/login`,
-    });
-
-    if (googleError) {
+    try {
+      const { error } = await lovable.auth.signInWithOAuth("google");
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message || "Erro ao entrar com Google");
       setGoogleLoading(false);
-      setError("Erro ao conectar com Google. Tente novamente.");
     }
   };
 

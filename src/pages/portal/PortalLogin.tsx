@@ -112,17 +112,19 @@ export default function PortalLogin() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/portal",
-    });
-
-    if (result.error) {
-      toast({ title: "Erro", description: String(result.error), variant: "destructive" });
+    try {
+      const result = await lovable.auth.signInWithOAuth("google");
+      if (result.error) {
+        toast({ title: "Erro", description: String(result.error), variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      if (result.redirected) return;
+      navigate("/portal");
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message || "Erro ao entrar com Google", variant: "destructive" });
       setLoading(false);
-      return;
     }
-    if (result.redirected) return;
-    navigate("/portal");
   };
 
   return (
