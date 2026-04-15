@@ -96,6 +96,7 @@ export type Database = {
           dados_novos: Json | null
           id: string
           ip: string | null
+          modulo: string | null
           registro_id: string | null
           tabela: string | null
           user_id: string | null
@@ -108,6 +109,7 @@ export type Database = {
           dados_novos?: Json | null
           id?: string
           ip?: string | null
+          modulo?: string | null
           registro_id?: string | null
           tabela?: string | null
           user_id?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           dados_novos?: Json | null
           id?: string
           ip?: string | null
+          modulo?: string | null
           registro_id?: string | null
           tabela?: string | null
           user_id?: string | null
