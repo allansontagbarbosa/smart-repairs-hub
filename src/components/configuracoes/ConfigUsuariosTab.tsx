@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock } from "lucide-react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,45 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   const [perfilEditId, setPerfilEditId] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [showAudit, setShowAudit] = useState(false);
+
+  // Invite state
+  const [openInvite, setOpenInvite] = useState(false);
+  const [inviteNome, setInviteNome] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [invitePerfilId, setInvitePerfilId] = useState<string>("none");
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const handleInviteUser = async () => {
+    if (!inviteEmail || !inviteNome) {
+      toast.error("Nome e email são obrigatórios");
+      return;
+    }
+    setInviteLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("invite-user", {
+        body: {
+          email: inviteEmail,
+          nome: inviteNome,
+          perfil_id: invitePerfilId === "none" ? null : invitePerfilId,
+        },
+      });
+
+      if (res.error || res.data?.error) {
+        toast.error(res.data?.error || "Erro ao enviar convite");
+      } else {
+        toast.success(`Convite enviado para ${inviteEmail}`);
+        setOpenInvite(false);
+        setInviteNome("");
+        setInviteEmail("");
+        setInvitePerfilId("none");
+        qc.invalidateQueries({ queryKey: ["user_profiles"] });
+      }
+    } catch {
+      toast.error("Erro ao enviar convite");
+    }
+    setInviteLoading(false);
+  };
 
   const filteredProfiles = userProfiles.filter((u) =>
     u.nome_exibicao?.toLowerCase().includes(search.toLowerCase())
@@ -214,12 +253,48 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
 
       {/* Usuários */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Usuários do Sistema</CardTitle>
-          <div className="relative mt-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium">Usuários do Sistema</CardTitle>
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
+            </div>
           </div>
+          {isAdmin && (
+            <Dialog open={openInvite} onOpenChange={setOpenInvite}>
+              <DialogTrigger asChild>
+                <Button size="sm"><Mail className="h-3.5 w-3.5 mr-1" />Convidar usuário</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Convidar novo usuário</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <div><Label>Nome completo *</Label><Input value={inviteNome} onChange={(e) => setInviteNome(e.target.value)} placeholder="Nome do colaborador" /></div>
+                  <div><Label>Email *</Label><Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
+                  <div>
+                    <Label>Perfil de acesso</Label>
+                    <Select value={invitePerfilId} onValueChange={setInvitePerfilId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem perfil</SelectItem>
+                        {perfisAcesso.filter((p) => p.ativo).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground">O usuário receberá um email com link para definir sua senha e acessar o sistema.</p>
+                  <Button onClick={handleInviteUser} className="w-full" disabled={inviteLoading}>
+                    {inviteLoading ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><UserPlus className="h-4 w-4 mr-2" /> Enviar convite</>
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -244,7 +319,11 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                       {(u as any).funcionarios?.nome || "—"}
                     </td>
                     <td className="p-3">
-                      <Badge variant={u.ativo ? "default" : "secondary"}>{u.ativo ? "Ativo" : "Inativo"}</Badge>
+                      {u.ativo ? (
+                        <Badge variant="default">🟢 Ativo</Badge>
+                      ) : (
+                        <Badge variant="secondary">🔴 Inativo</Badge>
+                      )}
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex gap-1 justify-end">

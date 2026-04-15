@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus } from "lucide-react";
+import { UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { MobileFixLogo } from "@/components/MobileFixLogo";
 
@@ -34,6 +34,7 @@ export default function Login() {
   const [signupSuccess, setSignupSuccess] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isFromInvite = new URLSearchParams(window.location.search).get("convite") === "1";
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
@@ -367,6 +368,12 @@ export default function Login() {
           {/* ── LOGIN FORM ── */}
           {mode === "login" && (
             <>
+              {isFromInvite && (
+                <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-primary">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>Convite aceito! Faça login com seu e-mail e a senha que você acabou de criar.</span>
+                </div>
+              )}
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
