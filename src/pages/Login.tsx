@@ -37,7 +37,7 @@ export default function Login() {
   const isFromInvite = new URLSearchParams(window.location.search).get("convite") === "1";
 
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
+    if (user) navigate("/dashboard", { replace: true });
   }, [user, navigate]);
 
   const { data: empresa } = useQuery({
@@ -84,7 +84,7 @@ export default function Login() {
     }
 
     setLoading(false);
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -157,7 +157,7 @@ export default function Login() {
     }
 
     setDemoLoading(false);
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
