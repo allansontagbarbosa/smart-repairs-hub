@@ -28,6 +28,7 @@ import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import AceitarConvite from "./pages/AceitarConvite";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
