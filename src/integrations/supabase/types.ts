@@ -382,6 +382,7 @@ export type Database = {
           email: string | null
           empresa_id: string | null
           id: string
+          lojista_id: string | null
           nome: string
           observacoes: string | null
           status: string
@@ -398,6 +399,7 @@ export type Database = {
           email?: string | null
           empresa_id?: string | null
           id?: string
+          lojista_id?: string | null
           nome: string
           observacoes?: string | null
           status?: string
@@ -414,6 +416,7 @@ export type Database = {
           email?: string | null
           empresa_id?: string | null
           id?: string
+          lojista_id?: string | null
           nome?: string
           observacoes?: string | null
           status?: string
@@ -428,6 +431,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_lojista_id_fkey"
+            columns: ["lojista_id"]
+            isOneToOne: false
+            referencedRelation: "lojistas"
             referencedColumns: ["id"]
           },
         ]
@@ -1828,6 +1838,100 @@ export type Database = {
           },
         ]
       }
+      lojista_usuarios: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string
+          id: string
+          lojista_id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email: string
+          id?: string
+          lojista_id: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          lojista_id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojista_usuarios_lojista_id_fkey"
+            columns: ["lojista_id"]
+            isOneToOne: false
+            referencedRelation: "lojistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lojistas: {
+        Row: {
+          ativo: boolean | null
+          cnpj: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          empresa_id: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          razao_social: string | null
+          responsavel: string | null
+          telefone: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cnpj?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          razao_social?: string | null
+          responsavel?: string | null
+          telefone?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cnpj?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          razao_social?: string | null
+          responsavel?: string | null
+          telefone?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojistas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marcas: {
         Row: {
           ativo: boolean
@@ -2089,6 +2193,7 @@ export type Database = {
           funcionario_id: string | null
           id: string
           loja_id: string | null
+          lojista_id: string | null
           motivo_reprovacao: string | null
           numero: number
           observacoes: string | null
@@ -2126,6 +2231,7 @@ export type Database = {
           funcionario_id?: string | null
           id?: string
           loja_id?: string | null
+          lojista_id?: string | null
           motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
@@ -2163,6 +2269,7 @@ export type Database = {
           funcionario_id?: string | null
           id?: string
           loja_id?: string | null
+          lojista_id?: string | null
           motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
@@ -2216,6 +2323,13 @@ export type Database = {
             columns: ["loja_id"]
             isOneToOne: false
             referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_de_servico_lojista_id_fkey"
+            columns: ["lojista_id"]
+            isOneToOne: false
+            referencedRelation: "lojistas"
             referencedColumns: ["id"]
           },
           {
@@ -2932,6 +3046,7 @@ export type Database = {
       }
       get_dashboard_summary: { Args: never; Returns: Json }
       get_my_empresa_id: { Args: never; Returns: string }
+      get_my_lojista_id: { Args: never; Returns: string }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
     }
