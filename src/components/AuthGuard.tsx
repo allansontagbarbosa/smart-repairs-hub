@@ -22,6 +22,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const validateAccess = async () => {
       try {
+        // Bloquear lojistas de acessar rotas internas
+        const { data: lojistaCheck } = await supabase
+          .from("lojista_usuarios")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (lojistaCheck) {
+          window.location.replace("/lojista");
+          return;
+        }
+
         const { data, error } = await supabase
           .from("user_profiles")
           .select("id, empresa_id, ativo")

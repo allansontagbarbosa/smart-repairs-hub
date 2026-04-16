@@ -24,6 +24,18 @@ const AUTH_REDIRECT_ROUTES = new Set(["/", "/login", "/cadastro"]);
 const shouldAutoRedirectAfterSignIn = (pathname: string) => AUTH_REDIRECT_ROUTES.has(pathname);
 
 const resolvePostSignInPath = async (userId: string) => {
+  // Verificar se é lojista — nunca redirecionar para /dashboard
+  const { data: lojistaCheck } = await supabase
+    .from("lojista_usuarios")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (lojistaCheck) {
+    return "/lojista";
+  }
+
   const { data, error } = await supabase
     .from("user_profiles")
     .select("empresa_id")
