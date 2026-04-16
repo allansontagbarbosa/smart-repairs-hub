@@ -698,10 +698,50 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs text-muted-foreground">Marca *</Label><Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Apple, Samsung..." className="mt-1 h-9" required /></div>
-                <div><Label className="text-xs text-muted-foreground">Modelo *</Label><Input value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="iPhone 15, S24..." className="mt-1 h-9" required /></div>
-                <div><Label className="text-xs text-muted-foreground">Cor</Label><Input value={cor} onChange={(e) => setCor(e.target.value)} placeholder="Preto, Branco..." className="mt-1 h-9" /></div>
-                <div><Label className="text-xs text-muted-foreground">Capacidade</Label><Input value={capacidade} onChange={(e) => setCapacidade(e.target.value)} placeholder="128GB, 256GB..." className="mt-1 h-9" /></div>
+                <ComboboxWithCreate
+                  label="Marca *"
+                  value={marcaId}
+                  items={marcasList}
+                  placeholder="Apple, Samsung..."
+                  entityName="marca"
+                  onChange={(id, nome) => {
+                    setMarcaId(id);
+                    setMarca(nome);
+                    // limpa modelo se marca mudar
+                    setModeloId("");
+                    setModelo("");
+                  }}
+                  onCreate={createMarca}
+                />
+                <ComboboxWithCreate
+                  label="Modelo *"
+                  value={modeloId}
+                  items={modelosFiltrados}
+                  placeholder={marcaId ? "iPhone 15, S24..." : "Selecione a marca primeiro"}
+                  entityName="modelo"
+                  onChange={(id, nome) => { setModeloId(id); setModelo(nome); }}
+                  onCreate={createModelo}
+                  disabled={!marcaId}
+                  disabledReason="Selecione uma marca primeiro"
+                />
+                <ComboboxWithCreate
+                  label="Cor"
+                  value={corId}
+                  items={coresList}
+                  placeholder="Preto, Branco..."
+                  entityName="cor"
+                  onChange={(id, nome) => { setCorId(id); setCor(nome); }}
+                  onCreate={createCor}
+                />
+                <ComboboxWithCreate
+                  label="Capacidade"
+                  value={capacidadeId}
+                  items={capacidadesList}
+                  placeholder="128GB, 256GB..."
+                  entityName="capacidade"
+                  onChange={(id, nome) => { setCapacidadeId(id); setCapacidade(nome); }}
+                  onCreate={createCapacidade}
+                />
               </div>
 
               <div><Label className="text-xs text-muted-foreground">Senha / padrão de desbloqueio</Label><Input value={senhaDesbloqueio} onChange={(e) => setSenhaDesbloqueio(e.target.value)} placeholder="Fornecida pelo cliente (opcional)" className="mt-1 h-9" /></div>
