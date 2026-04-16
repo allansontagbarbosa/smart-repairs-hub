@@ -5,7 +5,11 @@ import {
   Loader2, UserPlus, CalendarIcon, Smartphone, Search,
   CheckCircle2, AlertCircle, XCircle, ChevronRight,
   User, Wrench, ClipboardList, X, Plus, Minus, Package, Printer,
+  History, BatteryMedium, Power, MessageCircle, Phone, Mail,
 } from "lucide-react";
+import { luhnValid } from "@/lib/luhn";
+import { lookupCep, maskCep } from "@/lib/cep";
+import { formatCpfCnpj, onlyDigits, isValidCpfCnpj } from "@/lib/cpfCnpj";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -86,11 +90,27 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [newClientNome, setNewClientNome] = useState("");
   const [newClientTelefone, setNewClientTelefone] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientCpfCnpj, setNewClientCpfCnpj] = useState("");
+  const [newClientNascimento, setNewClientNascimento] = useState<Date | undefined>();
+  const [newClientCep, setNewClientCep] = useState("");
+  const [newClientRua, setNewClientRua] = useState("");
+  const [newClientNumero, setNewClientNumero] = useState("");
+  const [newClientComplemento, setNewClientComplemento] = useState("");
+  const [newClientBairro, setNewClientBairro] = useState("");
+  const [newClientCidade, setNewClientCidade] = useState("");
+  const [newClientEstado, setNewClientEstado] = useState("");
+  const [newClientOrigem, setNewClientOrigem] = useState("");
+  const [newClientObs, setNewClientObs] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
+  // Resultado de busca por IMEI (15 dígitos no campo busca)
+  const [imeiSearchHits, setImeiSearchHits] = useState<Array<{ cliente_id: string; cliente_nome: string; cliente_telefone: string; aparelho_label: string; numero_os?: string | null }>>([]);
 
   // Aparelho
   const [imei, setImei] = useState("");
+  const [imei2, setImei2] = useState("");
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
+  const [aparelhoExistente, setAparelhoExistente] = useState<{ id: string; cliente_id: string; cliente_nome: string; total_os: number; mesmo_cliente: boolean } | null>(null);
   const [marca, setMarca] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
@@ -101,6 +121,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [capacidadeId, setCapacidadeId] = useState("");
   const [senhaDesbloqueio, setSenhaDesbloqueio] = useState("");
   const [acessorios, setAcessorios] = useState("");
+  // Estado de recebimento
+  const [liga, setLiga] = useState<"sim" | "nao" | "parcial">("sim");
+  const [bateriaEntrada, setBateriaEntrada] = useState("");
+  const [estadoGeral, setEstadoGeral] = useState("");
 
   // Serviço — defeitos
   const [defeitoSearch, setDefeitoSearch] = useState("");
@@ -116,6 +140,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [maoObraAdicional, setMaoObraAdicional] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [obsCliente, setObsCliente] = useState("");
+  const [relatoCliente, setRelatoCliente] = useState("");
+  const [contatoPreferido, setContatoPreferido] = useState<"whatsapp" | "ligacao" | "sms" | "email">("whatsapp");
+  const [aprovadoNoAto, setAprovadoNoAto] = useState(false);
   const [tecnico, setTecnico] = useState("");
   const [tecnicoId, setTecnicoId] = useState("");
   const [localizacao, setLocalizacao] = useState("");
@@ -299,12 +326,120 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   }
 
   // ── Derived ──
-  const clientesFiltrados = clientes.filter((c) =>
-    !clientSearch ||
-    c.nome.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    (c.telefone || "").includes(clientSearch)
-  );
+  const searchDigits = clientSearch.replace(/\D/g, "");
+  const isImeiSearch = /^\d{15}$/.test(searchDigits);
+  const isDocSearch = searchDigits.length >= 11;
+
+  const clientesFiltrados = clientes.filter((c) => {
+    if (!clientSearch) return true;
+    const q = clientSearch.toLowerCase();
+    if (c.nome.toLowerCase().includes(q)) return true;
+    if ((c.telefone || "").includes(searchDigits || clientSearch)) return true;
+    // CPF/CNPJ pode estar em `cpf` ou `documento`
+    const docs = [c.cpf, c.documento].filter(Boolean) as string[];
+    if (searchDigits.length >= 3 && docs.some(d => d.replace(/\D/g, "").includes(searchDigits))) return true;
+    return false;
+  });
   const clienteSelecionado = clientes.find((c) => c.id === selectedClientId);
+
+  // Busca por IMEI (15 dígitos) — busca o cliente dono do aparelho
+  useEffect(() => {
+    if (!isImeiSearch) {
+      setImeiSearchHits([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("aparelhos")
+        .select("id, marca, modelo, cliente_id, clientes(nome, telefone)")
+        .eq("imei", searchDigits)
+        .limit(5);
+      if (cancelled || !data) return;
+      // Pegar última OS de cada aparelho para mostrar referência
+      const aparelhoIds = data.map(d => d.id);
+      const { data: osData } = aparelhoIds.length
+        ? await supabase
+            .from("ordens_de_servico")
+            .select("aparelho_id, numero_formatado, numero")
+            .in("aparelho_id", aparelhoIds)
+            .order("created_at", { ascending: false })
+        : { data: [] as any[] };
+      const lastOsByApar = new Map<string, string | null>();
+      (osData || []).forEach((o: any) => {
+        if (!lastOsByApar.has(o.aparelho_id)) {
+          lastOsByApar.set(o.aparelho_id, o.numero_formatado || (o.numero ? String(o.numero).padStart(3, "0") : null));
+        }
+      });
+      setImeiSearchHits(
+        data.map((d: any) => ({
+          cliente_id: d.cliente_id,
+          cliente_nome: d.clientes?.nome ?? "Cliente",
+          cliente_telefone: d.clientes?.telefone ?? "",
+          aparelho_label: `${d.marca || ""} ${d.modelo || ""}`.trim() || "Aparelho",
+          numero_os: lastOsByApar.get(d.id) || null,
+        }))
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [isImeiSearch, searchDigits]);
+
+  // Detecção de aparelho cadastrado ao digitar IMEI no passo 2
+  useEffect(() => {
+    if (imei.length !== 15) {
+      setAparelhoExistente(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("aparelhos")
+        .select("id, cliente_id, clientes(nome)")
+        .eq("imei", imei)
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || !data) {
+        setAparelhoExistente(null);
+        return;
+      }
+      const { count } = await supabase
+        .from("ordens_de_servico")
+        .select("id", { count: "exact", head: true })
+        .eq("aparelho_id", data.id)
+        .is("deleted_at", null);
+      setAparelhoExistente({
+        id: data.id,
+        cliente_id: data.cliente_id,
+        cliente_nome: (data as any).clientes?.nome ?? "outro cliente",
+        total_os: count || 0,
+        mesmo_cliente: data.cliente_id === selectedClientId,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [imei, selectedClientId]);
+
+  // Auto-fill via ViaCEP
+  useEffect(() => {
+    const digits = newClientCep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let cancelled = false;
+    setCepLoading(true);
+    lookupCep(digits).then((data) => {
+      if (cancelled) return;
+      setCepLoading(false);
+      if (!data) return;
+      if (!newClientRua) setNewClientRua(data.logradouro || "");
+      if (!newClientBairro) setNewClientBairro(data.bairro || "");
+      if (!newClientCidade) setNewClientCidade(data.localidade || "");
+      if (!newClientEstado) setNewClientEstado(data.uf || "");
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newClientCep]);
+
+  // Validação Luhn (apenas para warning visual)
+  const imeiLuhnOk = imei.length === 15 ? luhnValid(imei) : null;
+  const imei2LuhnOk = imei2.length === 15 ? luhnValid(imei2) : null;
 
   const defeitosFiltrados = useMemo(() => {
     const selectedIds = new Set(defeitosSelecionados.map(d => d.id));
@@ -336,7 +471,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const valorTotal = Math.max(0, subtotal - descontoNum);
   const aReceber = Math.max(0, valorTotal - sinalPagoNum);
 
-  const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
+  const defeitosNomes = defeitosSelecionados.map(d => d.nome).join("; ");
+  // Campo `defeito_relatado` da OS recebe o relato (texto livre) ou os nomes dos defeitos
+  const defeitoRelatado = relatoCliente.trim() || defeitosNomes;
 
   // ── Sincronização Serviço → Peças vinculadas ──
   // Quando um serviço é selecionado/removido, ajustar peças "auto" automaticamente.
@@ -423,15 +560,32 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setNewClientNome("");
     setNewClientTelefone("");
     setNewClientEmail("");
+    setNewClientCpfCnpj("");
+    setNewClientNascimento(undefined);
+    setNewClientCep("");
+    setNewClientRua("");
+    setNewClientNumero("");
+    setNewClientComplemento("");
+    setNewClientBairro("");
+    setNewClientCidade("");
+    setNewClientEstado("");
+    setNewClientOrigem("");
+    setNewClientObs("");
     setClientSearch("");
+    setImeiSearchHits([]);
     setImei("");
+    setImei2("");
     setImeiResult({ status: "idle" });
+    setAparelhoExistente(null);
     setMarca(""); setMarcaId("");
     setModelo(""); setModeloId("");
     setCor(""); setCorId("");
     setCapacidade(""); setCapacidadeId("");
     setSenhaDesbloqueio("");
     setAcessorios("");
+    setLiga("sim");
+    setBateriaEntrada("");
+    setEstadoGeral("");
     setDefeitoSearch("");
     setDefeitosSelecionados([]);
     setPecaSearch("");
@@ -439,6 +593,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setMaoObraAdicional("");
     setObservacoes("");
     setObsCliente("");
+    setRelatoCliente("");
+    setContatoPreferido("whatsapp");
+    setAprovadoNoAto(false);
     setTecnico("");
     setTecnicoId("");
     setLocalizacao("");
@@ -463,9 +620,31 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // ── Mutations ──
   const createClientMutation = useMutation({
     mutationFn: async () => {
+      const docDigits = onlyDigits(newClientCpfCnpj);
+      // Validação leve do CPF/CNPJ se preenchido
+      if (docDigits && !isValidCpfCnpj(docDigits)) {
+        throw new Error("CPF/CNPJ inválido — confira os dígitos");
+      }
+      const payload: any = {
+        nome: newClientNome,
+        telefone: newClientTelefone,
+        email: newClientEmail || null,
+        cpf: docDigits || null,
+        documento: docDigits || null,
+        data_nascimento: newClientNascimento ? format(newClientNascimento, "yyyy-MM-dd") : null,
+        cep: newClientCep.replace(/\D/g, "") || null,
+        rua: newClientRua || null,
+        numero_endereco: newClientNumero || null,
+        complemento: newClientComplemento || null,
+        bairro: newClientBairro || null,
+        cidade: newClientCidade || null,
+        estado: newClientEstado || null,
+        origem: newClientOrigem || null,
+        observacoes: newClientObs || null,
+      };
       const { data, error } = await supabase
         .from("clientes")
-        .insert({ nome: newClientNome, telefone: newClientTelefone, email: newClientEmail || null })
+        .insert(payload)
         .select().single();
       if (error) throw error;
       return data;
@@ -542,29 +721,42 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     mutationFn: async () => {
       if (!selectedClientId) throw new Error("Selecione um cliente");
       if (!marca || !modelo) throw new Error("Marca e modelo são obrigatórios");
-      if (defeitosSelecionados.length === 0) throw new Error("Selecione ao menos um defeito");
+      if (defeitosSelecionados.length === 0 && !relatoCliente.trim()) {
+        throw new Error("Informe o relato do cliente ou selecione ao menos um serviço");
+      }
 
-      // 1. Criar aparelho
-      const { data: aparelho, error: apErr } = await supabase
-        .from("aparelhos")
-        .insert({
-          cliente_id: selectedClientId,
-          marca, modelo,
-          cor: cor || null,
-          capacidade: capacidade || null,
-          imei: imei.replace(/\D/g, "") || null,
-          marca_id: marcaId || null,
-          modelo_id: modeloId || null,
-          cor_id: corId || null,
-          capacidade_id: capacidadeId || null,
-        } as any)
-        .select().single();
-      if (apErr) throw apErr;
+      // 1. Aparelho — reusa se IMEI já existe e é do mesmo cliente
+      let aparelhoId: string;
+      if (aparelhoExistente && aparelhoExistente.mesmo_cliente) {
+        aparelhoId = aparelhoExistente.id;
+      } else {
+        const { data: aparelho, error: apErr } = await supabase
+          .from("aparelhos")
+          .insert({
+            cliente_id: selectedClientId,
+            marca, modelo,
+            cor: cor || null,
+            capacidade: capacidade || null,
+            imei: imei.replace(/\D/g, "") || null,
+            marca_id: marcaId || null,
+            modelo_id: modeloId || null,
+            cor_id: corId || null,
+            capacidade_id: capacidadeId || null,
+            observacoes: imei2 ? `IMEI 2: ${imei2}` : null,
+          } as any)
+          .select().single();
+        if (apErr) throw apErr;
+        aparelhoId = aparelho.id;
+      }
+
+      // Status final depende do "Aprovado no ato"
+      const finalAprovacao = aprovadoNoAto ? "aprovado" : orcamentoStatus;
 
       // 2. Criar OS
       const { data: ordem, error: osErr } = await supabase.from("ordens_de_servico").insert({
-        aparelho_id: aparelho.id,
+        aparelho_id: aparelhoId,
         defeito_relatado: defeitoRelatado,
+        relato_cliente: relatoCliente || null,
         observacoes: observacoes || null,
         valor: valorTotal || null,
         valor_total: valorTotal || null,
@@ -576,12 +768,18 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         valor_pendente: aReceber,
         forma_pagamento_sinal: sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
         garantia_dias: garantiaDiasNum,
-        aprovacao_orcamento: orcamentoStatus,
-        data_aprovacao: orcamentoStatus === "aprovado" ? new Date().toISOString() : null,
+        aprovacao_orcamento: finalAprovacao,
+        aprovado_no_ato: aprovadoNoAto,
+        data_aprovacao: finalAprovacao === "aprovado" ? new Date().toISOString() : null,
         data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         funcionario_id: tecnicoId || null,
         obs_cliente: obsCliente || null,
+        liga,
+        bateria_entrada: bateriaEntrada ? Math.max(0, Math.min(100, parseInt(bateriaEntrada, 10))) : null,
+        estado_geral: estadoGeral || null,
+        imei2: imei2.replace(/\D/g, "") || null,
+        contato_preferido: contatoPreferido,
         checklist_entrada: Object.keys(checklist).length > 0 || checklistCustom.length > 0
           ? { itens: checklist, custom: checklistCustom }
           : null,
@@ -642,7 +840,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // ── Validação ──
   const canAdvanceCliente = !!selectedClientId;
   const canAdvanceAparelho = !!marca && !!modelo;
-  const canSubmit = canAdvanceCliente && canAdvanceAparelho && defeitosSelecionados.length > 0;
+  const canSubmit = canAdvanceCliente && canAdvanceAparelho && (defeitosSelecionados.length > 0 || !!relatoCliente.trim());
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
@@ -743,12 +941,41 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por nome ou telefone..."
+                      placeholder="Nome, telefone, CPF/CNPJ ou IMEI (15 dígitos)..."
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                       className="pl-9 h-9 text-sm"
                     />
+                    {isImeiSearch && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-primary font-medium">
+                        Buscando por IMEI
+                      </span>
+                    )}
                   </div>
+
+                  {/* Hits via IMEI */}
+                  {isImeiSearch && imeiSearchHits.length > 0 && (
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 divide-y divide-primary/20">
+                      {imeiSearchHits.map((hit) => (
+                        <button
+                          key={`${hit.cliente_id}-${hit.aparelho_label}`}
+                          type="button"
+                          onClick={() => setSelectedClientId(hit.cliente_id)}
+                          className={cn(
+                            "w-full px-3 py-2.5 text-left text-sm hover:bg-primary/10 transition-colors",
+                            selectedClientId === hit.cliente_id && "bg-primary/10"
+                          )}
+                        >
+                          <p className="font-medium text-sm">{hit.cliente_nome} — {hit.cliente_telefone}</p>
+                          <p className="text-[11px] text-primary mt-0.5">
+                            ↳ Encontrado pelo IMEI do {hit.aparelho_label}
+                            {hit.numero_os ? ` (OS #${hit.numero_os})` : ""}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="max-h-48 overflow-y-auto rounded-lg border divide-y">
                     {clientesFiltrados.length === 0 ? (
                       <p className="text-center text-xs text-muted-foreground py-6">Nenhum cliente encontrado</p>
@@ -764,22 +991,27 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                         >
                           <div>
                             <p className="font-medium text-sm">{c.nome}</p>
-                            <p className="text-xs text-muted-foreground">{c.telefone}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {c.telefone}
+                              {(c.cpf || c.documento) && (
+                                <span className="ml-2">· {formatCpfCnpj(c.cpf || c.documento || "")}</span>
+                              )}
+                            </p>
                           </div>
                           {selectedClientId === c.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
                         </button>
                       ))
                     )}
                   </div>
-                  <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                  <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
                     <UserPlus className="h-3.5 w-3.5" /> Cadastrar novo cliente
                   </button>
                 </>
               ) : (
                 <div className="space-y-3 p-3 rounded-lg border bg-muted/20">
                   <p className="text-sm font-semibold">Novo cliente</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
                       <Label className="text-xs text-muted-foreground">Nome completo *</Label>
                       <Input value={newClientNome} onChange={(e) => setNewClientNome(e.target.value)} placeholder="João Silva" className="mt-1 h-8 text-sm" />
                     </div>
@@ -790,6 +1022,111 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     <div>
                       <Label className="text-xs text-muted-foreground">E-mail</Label>
                       <Input value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="opcional" className="mt-1 h-8 text-sm" type="email" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">CPF / CNPJ</Label>
+                      <Input
+                        value={formatCpfCnpj(newClientCpfCnpj)}
+                        onChange={(e) => setNewClientCpfCnpj(onlyDigits(e.target.value))}
+                        placeholder="opcional"
+                        className="mt-1 h-8 text-sm font-mono"
+                        inputMode="numeric"
+                      />
+                      {newClientCpfCnpj && !isValidCpfCnpj(newClientCpfCnpj) && (newClientCpfCnpj.length === 11 || newClientCpfCnpj.length === 14) && (
+                        <p className="text-[10px] text-destructive mt-0.5">Dígitos inválidos</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Data de nascimento</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn("mt-1 h-8 w-full justify-start text-left font-normal text-sm", !newClientNascimento && "text-muted-foreground")}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {newClientNascimento ? format(newClientNascimento, "dd/MM/yyyy", { locale: ptBR }) : "opcional"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={newClientNascimento}
+                            onSelect={setNewClientNascimento}
+                            captionLayout="dropdown-buttons"
+                            fromYear={1920}
+                            toYear={new Date().getFullYear()}
+                            disabled={(d) => d > new Date()}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">CEP</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          value={maskCep(newClientCep)}
+                          onChange={(e) => setNewClientCep(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                          placeholder="00000-000"
+                          className="h-8 text-sm font-mono pr-7"
+                          inputMode="numeric"
+                        />
+                        {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />}
+                      </div>
+                    </div>
+                    <div className="col-span-2 grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Rua</Label>
+                        <Input value={newClientRua} onChange={(e) => setNewClientRua(e.target.value)} className="mt-1 h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Número</Label>
+                        <Input value={newClientNumero} onChange={(e) => setNewClientNumero(e.target.value)} className="mt-1 h-8 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Complemento</Label>
+                      <Input value={newClientComplemento} onChange={(e) => setNewClientComplemento(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Bairro</Label>
+                      <Input value={newClientBairro} onChange={(e) => setNewClientBairro(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Cidade</Label>
+                      <Input value={newClientCidade} onChange={(e) => setNewClientCidade(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">UF</Label>
+                      <Input value={newClientEstado} onChange={(e) => setNewClientEstado(e.target.value.toUpperCase().slice(0, 2))} className="mt-1 h-8 text-sm uppercase" maxLength={2} />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Como nos conheceu?</Label>
+                      <select
+                        value={newClientOrigem}
+                        onChange={(e) => setNewClientOrigem(e.target.value)}
+                        className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">— opcional —</option>
+                        <option value="indicacao">Indicação</option>
+                        <option value="google">Google</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="passando">Passando na rua</option>
+                        <option value="outro">Outro</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Observações</Label>
+                      <Textarea
+                        value={newClientObs}
+                        onChange={(e) => setNewClientObs(e.target.value)}
+                        rows={2}
+                        className="mt-1 resize-none text-sm"
+                        placeholder="opcional"
+                      />
                     </div>
                   </div>
                   <div className="flex gap-2">
