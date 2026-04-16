@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: inviteData?.user?.id }), {
+    return new Response(JSON.stringify({ success: true, user_id: targetUserId }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
