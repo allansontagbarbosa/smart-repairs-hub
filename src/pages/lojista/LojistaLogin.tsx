@@ -42,7 +42,7 @@ export default function LojistaLogin() {
         return;
       }
 
-      navigate("/lojista", { replace: true });
+      window.location.replace("/lojista");
     } catch (err: any) {
       toast({
         title: "Erro",
