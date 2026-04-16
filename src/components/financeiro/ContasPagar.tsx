@@ -91,7 +91,6 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
           recorrente: true,
           observacoes: conta.observacoes,
           status: "pendente" as any,
-          empresa_id: conta.empresa_id,
         } as any);
         if (insertErr) console.error("Erro ao gerar recorrência:", insertErr);
       }
@@ -131,7 +130,6 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
         recorrente: conta.recorrente,
         observacoes: conta.observacoes,
         status: "pendente" as any,
-        empresa_id: conta.empresa_id,
       } as any);
       if (error) throw error;
     },
