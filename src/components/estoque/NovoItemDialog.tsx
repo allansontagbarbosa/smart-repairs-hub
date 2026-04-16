@@ -142,8 +142,33 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     },
   });
 
+  const custoRaw = watch("custo_unitario");
+  const vendaRaw = watch("preco_venda");
+  const custoNum = parseFloat(custoRaw || "0");
+  const vendaNum = vendaRaw ? parseFloat(vendaRaw) : null;
+  const custoInvalido = !custoRaw || isNaN(custoNum) || custoNum <= 0;
+  const vendaMenorCusto = vendaNum != null && !isNaN(vendaNum) && custoNum > 0 && vendaNum < custoNum;
+  const margemZero = vendaNum != null && !isNaN(vendaNum) && custoNum > 0 && vendaNum === custoNum;
+  const vendaAutoPreenchida = !vendaRaw && custoRaw && custoNum > 0;
+
+  const handleCustoBlur = () => {
+    if (!vendaRaw && custoRaw && custoNum > 0) {
+      setValue("preco_venda", custoRaw);
+    }
+  };
+
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      if (!values.custo_unitario || parseFloat(values.custo_unitario) <= 0) {
+        throw new Error("Informe o custo da peça");
+      }
+      const custo = parseFloat(values.custo_unitario);
+      const vendaStr = values.preco_venda || values.custo_unitario;
+      const venda = parseFloat(vendaStr);
+      if (venda < custo) {
+        throw new Error(`Preço de venda não pode ser menor que o custo (R$ ${custo.toFixed(2)})`);
+      }
+
       const payload = {
         tipo_item: "peca" as const,
         categoria_id: values.categoria_id || null,
@@ -153,11 +178,11 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         cor: values.cor || null,
         capacidade: values.capacidade || null,
         imei_serial: values.imei_serial || null,
-        sku: values.sku?.trim() || null, // null = auto-generate via trigger
+        sku: values.sku?.trim() || null,
         quantidade: parseInt(values.quantidade) || 0,
         quantidade_minima: parseInt(values.quantidade_minima) || 0,
-        custo_unitario: values.custo_unitario ? parseFloat(values.custo_unitario) : null,
-        preco_venda: values.preco_venda ? parseFloat(values.preco_venda) : null,
+        custo_unitario: custo,
+        preco_venda: venda,
         local_estoque: values.local_estoque || null,
         fornecedor: values.fornecedor || null,
         observacoes: values.observacoes || null,
@@ -181,7 +206,10 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     },
     onError: (e: any) => {
       const msg = e.message || "";
-      if (msg.includes("já está em uso") || msg.includes("duplicate") || msg.includes("unique")) {
+      const code = e.code || "";
+      if (code === "23514" || msg.includes("preco_venda_maior_igual_custo")) {
+        toast.error("Preço de venda não pode ser menor que o custo.");
+      } else if (msg.includes("já está em uso") || msg.includes("duplicate") || msg.includes("unique")) {
         toast.error("Este SKU já está em uso. Use outro ou deixe vazio para gerar automaticamente.");
       } else {
         toast.error(msg);
