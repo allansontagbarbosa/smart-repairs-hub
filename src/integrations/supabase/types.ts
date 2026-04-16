@@ -2404,6 +2404,7 @@ export type Database = {
           mao_obra_adicional: number
           motivo_reprovacao: string | null
           numero: number
+          numero_formatado: string | null
           obs_cliente: string | null
           observacoes: string | null
           os_origem_id: string | null
@@ -2450,6 +2451,7 @@ export type Database = {
           mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
+          numero_formatado?: string | null
           obs_cliente?: string | null
           observacoes?: string | null
           os_origem_id?: string | null
@@ -2496,6 +2498,7 @@ export type Database = {
           mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
+          numero_formatado?: string | null
           obs_cliente?: string | null
           observacoes?: string | null
           os_origem_id?: string | null

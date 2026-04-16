@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -10,12 +10,15 @@ import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { cn } from "@/lib/utils";
+import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
+import { ImpressaoOS, type ImpressaoOSData } from "@/components/ImpressaoOS";
+import { useReactToPrint } from "react-to-print";
 
 
 
@@ -36,6 +39,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [servicoValue, setServicoValue] = useState("");
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["ordem", orderId],
@@ -203,6 +207,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     },
   });
 
+  const { data: empresaImpressao } = useQuery({
+    queryKey: ["empresa_config_impressao"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresa_config")
+        .select("nome, cnpj_cpf, telefone, email, endereco, cidade, estado, logo_url")
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: ordem ? `OS-${formatNumeroOS((ordem as any).numero, (ordem as any).numero_formatado)}` : "OS",
+  });
+
   const addPecaMutation = useMutation({
     mutationFn: async ({ pecaId, qtd }: { pecaId: string; qtd: number }) => {
       if (!ordem) return;
@@ -360,7 +380,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             <SheetHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-lg">
-                  OS #{String(ordem.numero).padStart(3, "0")}
+                  {labelOS((ordem as any).numero, (ordem as any).numero_formatado)}
                 </SheetTitle>
                 <StatusBadge status={ordem.status} />
               </div>
@@ -451,10 +471,29 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 </Button>
                 <Button
                   size="sm"
+                  variant="outline"
+                  onClick={() => handlePrint()}
+                  title="Imprimir / Salvar PDF da OS"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  OS / PDF
+                </Button>
+                <Button
+                  size="sm"
                   variant="ghost"
                   onClick={() => setEditing(!editing)}
                 >
                   {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            )}
+
+            {/* Botão imprimir para OS já entregue */}
+            {ordem.status === "entregue" && (
+              <div className="flex gap-2 mb-5">
+                <Button size="sm" variant="outline" onClick={() => handlePrint()}>
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  Imprimir / PDF da OS
                 </Button>
               </div>
             )}
@@ -1068,6 +1107,66 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Conteúdo de impressão (off-screen) */}
+            <div style={{ position: "absolute", left: "-10000px", top: 0 }} aria-hidden>
+              <ImpressaoOS
+                ref={printRef}
+                data={{
+                  numero: (ordem as any).numero ?? null,
+                  numero_formatado: (ordem as any).numero_formatado ?? null,
+                  status: ordem.status,
+                  data_entrada: ordem.data_entrada,
+                  previsao_entrega: ordem.previsao_entrega,
+                  defeito_relatado: ordem.defeito_relatado,
+                  diagnostico_tecnico: (ordem as any).diagnostico ?? null,
+                  obs_cliente: (ordem as any).obs_cliente ?? null,
+                  observacoes_internas: (ordem as any).observacoes ?? null,
+                  servico_descricao: (ordem as any).servico_realizado ?? null,
+                  valor: ordem.valor,
+                  valor_total: (ordem as any).valor_total ?? null,
+                  desconto: (ordem as any).desconto ?? null,
+                  sinal_pago: (ordem as any).sinal_pago ?? null,
+                  forma_pagamento_sinal: (ordem as any).forma_pagamento_sinal ?? null,
+                  garantia_dias: (ordem as any).garantia_dias ?? 90,
+                  mao_obra_adicional: (ordem as any).mao_obra_adicional ?? null,
+                  acessorios: (ordem as any).acessorios ?? null,
+                  senha_padrao: (ordem as any).senha_padrao ?? null,
+                  checklist_entrada: (ordem as any).checklist_entrada ?? null,
+                  cliente: {
+                    nome: ordem.aparelhos?.clientes?.nome ?? "—",
+                    telefone: ordem.aparelhos?.clientes?.telefone ?? "",
+                    cpf: (ordem.aparelhos?.clientes as any)?.cpf ?? null,
+                    email: (ordem.aparelhos?.clientes as any)?.email ?? null,
+                  },
+                  aparelho: {
+                    marca: ordem.aparelhos?.marca ?? "",
+                    modelo: ordem.aparelhos?.modelo ?? "",
+                    cor: ordem.aparelhos?.cor ?? null,
+                    capacidade: ordem.aparelhos?.capacidade ?? null,
+                    imei: ordem.aparelhos?.imei ?? null,
+                  },
+                  empresa: empresaImpressao
+                    ? {
+                        nome: (empresaImpressao as any).nome ?? "",
+                        cnpj: (empresaImpressao as any).cnpj_cpf ?? null,
+                        telefone: (empresaImpressao as any).telefone ?? null,
+                        email: (empresaImpressao as any).email ?? null,
+                        endereco: (empresaImpressao as any).endereco ?? null,
+                        cidade: (empresaImpressao as any).cidade ?? null,
+                        estado: (empresaImpressao as any).estado ?? null,
+                        logo_url: (empresaImpressao as any).logo_url ?? null,
+                      }
+                    : null,
+                  pecas: (pecasUtilizadas as any[]).map((p) => ({
+                    nome: p.estoque?.nome ?? "Peça",
+                    quantidade: p.quantidade ?? 1,
+                    valor: p.custo_unitario ?? 0,
+                  })),
+                  tecnico_nome: ordem.tecnico ?? null,
+                }}
+              />
+            </div>
           </>
         )}
       </SheetContent>

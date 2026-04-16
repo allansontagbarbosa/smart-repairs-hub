@@ -5,6 +5,7 @@ import { useMemo } from "react";
 export type AparelhoAssistencia = {
   os_id: string;
   os_numero: number;
+  os_numero_formatado: string | null;
   cliente_nome: string;
   cliente_telefone: string;
   loja_nome: string | null;
@@ -32,7 +33,7 @@ async function fetchAparelhosAssistencia() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
     .select(`
-      id, numero, status, data_entrada, tecnico, previsao_entrega, prazo_vencido,
+      id, numero, numero_formatado, status, data_entrada, tecnico, previsao_entrega, prazo_vencido,
       loja_id, funcionario_id, defeito_relatado, valor, valor_total, sinal_pago, aprovacao_orcamento,
       aparelhos!inner ( marca, modelo, cor, imei, capacidade, cliente_id, clientes!inner ( nome, telefone ) ),
       lojas ( nome ),
@@ -47,6 +48,7 @@ async function fetchAparelhosAssistencia() {
   return (data ?? []).map((os: any) => ({
     os_id: os.id,
     os_numero: os.numero,
+    os_numero_formatado: os.numero_formatado ?? null,
     cliente_nome: os.aparelhos?.clientes?.nome ?? "—",
     cliente_telefone: os.aparelhos?.clientes?.telefone ?? "",
     loja_nome: os.lojas?.nome ?? null,

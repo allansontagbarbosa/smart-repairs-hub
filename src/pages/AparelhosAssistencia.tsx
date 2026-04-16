@@ -199,7 +199,7 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                 const orc = a.aprovacao_orcamento;
                 return (
                 <tr key={a.os_id} className={a.prazo_vencido ? "bg-destructive/5" : ""}>
-                  <td className="text-sm font-mono font-medium">#{a.os_numero}</td>
+                  <td className="text-sm font-mono font-medium">#{a.os_numero_formatado || String(a.os_numero).padStart(3, "0")}</td>
                   <td className="text-sm">{a.cliente_nome}</td>
                   <td className="hidden md:table-cell text-sm text-muted-foreground">{a.loja_nome ?? "—"}</td>
                   <td>

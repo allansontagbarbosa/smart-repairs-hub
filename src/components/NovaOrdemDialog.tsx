@@ -595,7 +595,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           : null,
         status: "recebido" as Status,
         lojista_id: lojistaId || null,
-      } as any).select("id, numero").single();
+      } as any).select("id, numero, numero_formatado").single();
       if (osErr) throw osErr;
 
       // 3. Inserir os_servicos (N:N)
@@ -627,8 +627,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
       return ordem;
     },
-    onSuccess: (ordem) => {
-      toast.success(`OS #${String(ordem?.numero || 0).padStart(3, "0")} criada!`);
+    onSuccess: (ordem: any) => {
+      const labelNum = ordem?.numero_formatado || String(ordem?.numero || 0).padStart(3, "0");
+      toast.success(`OS #${labelNum} criada!`);
       queryClient.invalidateQueries({ queryKey: ["estoque_pecas_para_os"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
       setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
