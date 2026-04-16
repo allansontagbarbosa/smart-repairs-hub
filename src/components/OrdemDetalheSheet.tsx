@@ -471,10 +471,29 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 </Button>
                 <Button
                   size="sm"
+                  variant="outline"
+                  onClick={() => handlePrint()}
+                  title="Imprimir / Salvar PDF da OS"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  OS / PDF
+                </Button>
+                <Button
+                  size="sm"
                   variant="ghost"
                   onClick={() => setEditing(!editing)}
                 >
                   {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            )}
+
+            {/* Botão imprimir para OS já entregue */}
+            {ordem.status === "entregue" && (
+              <div className="flex gap-2 mb-5">
+                <Button size="sm" variant="outline" onClick={() => handlePrint()}>
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  Imprimir / PDF da OS
                 </Button>
               </div>
             )}
