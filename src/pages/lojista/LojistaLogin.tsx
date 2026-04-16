@@ -114,6 +114,16 @@ export default function LojistaLogin() {
           </form>
         </div>
       </div>
+
+      <footer className="border-t bg-card py-4 text-center">
+        <p className="text-xs text-muted-foreground">
+          Este é o portal exclusivo para lojistas parceiros.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Funcionários acessam por{" "}
+          <a href="/login" className="text-primary hover:underline font-medium">/login</a>
+        </p>
+      </footer>
     </div>
   );
 }
