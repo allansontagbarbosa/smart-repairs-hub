@@ -51,7 +51,10 @@ async function fetchContas() {
     .from("contas_a_pagar")
     .select("*, lojas ( nome ), fornecedores ( nome ), ordens_de_servico ( numero )")
     .order("data_vencimento", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    console.error("ERRO fetchContas:", error.code, error.message, error.details);
+    throw error;
+  }
   return (data ?? []) as ContaPagar[];
 }
 
@@ -60,7 +63,10 @@ async function fetchComissoes() {
     .from("comissoes")
     .select("*, funcionarios ( nome ), ordens_de_servico ( numero, valor, aparelhos ( marca, modelo ) )")
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    console.error("ERRO fetchComissoes:", error.code, error.message, error.details);
+    throw error;
+  }
   return (data ?? []) as Comissao[];
 }
 
@@ -108,7 +114,10 @@ async function fetchRecebimentos() {
     .from("recebimentos")
     .select("*")
     .order("data_recebimento", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    console.error("ERRO fetchRecebimentos:", error.code, error.message, error.details);
+    throw error;
+  }
   return data ?? [];
 }
 

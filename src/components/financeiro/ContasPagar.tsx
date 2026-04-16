@@ -67,11 +67,13 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
   const pagarMutation = useMutation({
     mutationFn: async (conta: ContaPagar) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("empresa_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
-        .single();
+        .or(`user_id.eq.${user?.id},id.eq.${user?.id}`)
+        .eq("ativo", true)
+        .maybeSingle();
       const empresa_id = profile?.empresa_id ?? null;
 
       const { error } = await supabase
@@ -122,11 +124,13 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
   const duplicarMutation = useMutation({
     mutationFn: async (conta: ContaPagar) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("empresa_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
-        .single();
+        .or(`user_id.eq.${user?.id},id.eq.${user?.id}`)
+        .eq("ativo", true)
+        .maybeSingle();
       const empresa_id = profile?.empresa_id ?? null;
 
       const nextMonth = new Date(conta.data_vencimento + "T12:00:00");
