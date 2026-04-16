@@ -24,6 +24,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
+import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
+import { Link } from "react-router-dom";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
