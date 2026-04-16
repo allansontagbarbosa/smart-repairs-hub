@@ -257,9 +257,10 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                     </Tooltip>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10} className="text-center text-muted-foreground py-10 text-sm">Nenhum aparelho encontrado</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground py-10 text-sm">Nenhum aparelho encontrado</td></tr>
               )}
             </tbody>
           </table>
