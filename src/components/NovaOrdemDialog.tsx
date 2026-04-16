@@ -109,6 +109,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
   const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
+  const [lojistaId, setLojistaId] = useState("");
 
   const imeiRef = useRef<HTMLInputElement>(null);
 
@@ -133,6 +134,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const { data, error } = await supabase.from("clientes").select("*").order("nome");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: lojistasAtivos = [] } = useQuery({
+    queryKey: ["lojistas-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("lojistas").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
     },
   });
 
@@ -227,6 +236,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setLocalizacao("");
     setPrevisaoEntrega(undefined);
     setCreatedOS(null);
+    setLojistaId("");
   }
 
   function handleClose(v: boolean) {
@@ -326,6 +336,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
+        lojista_id: lojistaId || null,
       }).select("id, numero").single();
       if (osErr) throw osErr;
       return ordem;
@@ -823,6 +834,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Nome do técnico" className="mt-1 h-9" />
                 </div>
               </div>
+
+              {/* ── Lojista parceiro ── */}
+              {lojistasAtivos.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Lojista parceiro (opcional)</Label>
+                  <select
+                    value={lojistaId}
+                    onChange={(e) => setLojistaId(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Nenhum</option>
+                    {lojistasAtivos.map(l => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* ── Status ── */}
               <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">

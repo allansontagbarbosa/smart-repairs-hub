@@ -32,6 +32,16 @@ import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import AceitarConvite from "./pages/AceitarConvite";
 import Onboarding from "./pages/Onboarding";
 
+// Lojista B2B
+import LojistaLogin from "./pages/lojista/LojistaLogin";
+import LojistaLayout from "./pages/lojista/LojistaLayout";
+import LojistaDashboard from "./pages/lojista/LojistaDashboard";
+import LojistaAparelhos from "./pages/lojista/LojistaAparelhos";
+import LojistaFinanceiro from "./pages/lojista/LojistaFinanceiro";
+import LojistaGarantias from "./pages/lojista/LojistaGarantias";
+import LojistaHistorico from "./pages/lojista/LojistaHistorico";
+import { LojistaGuard } from "@/hooks/useLojistaAuth";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -55,6 +65,14 @@ const App = () => (
               <Route path="/portal/reset-password" element={<PortalResetPassword />} />
               <Route path="/portal" element={<PortalDashboard />} />
               <Route path="/portal/ordem/:id" element={<PortalOrdemDetalhe />} />
+
+              {/* Portal Lojista B2B */}
+              <Route path="/lojista/login" element={<LojistaLogin />} />
+              <Route path="/lojista" element={<LojistaGuard><LojistaLayout><LojistaDashboard /></LojistaLayout></LojistaGuard>} />
+              <Route path="/lojista/aparelhos" element={<LojistaGuard><LojistaLayout><LojistaAparelhos /></LojistaLayout></LojistaGuard>} />
+              <Route path="/lojista/financeiro" element={<LojistaGuard><LojistaLayout><LojistaFinanceiro /></LojistaLayout></LojistaGuard>} />
+              <Route path="/lojista/garantias" element={<LojistaGuard><LojistaLayout><LojistaGarantias /></LojistaLayout></LojistaGuard>} />
+              <Route path="/lojista/historico" element={<LojistaGuard><LojistaLayout><LojistaHistorico /></LojistaLayout></LojistaGuard>} />
 
               {/* Login e onboarding */}
               <Route path="/login" element={<Login />} />
