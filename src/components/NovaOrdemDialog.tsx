@@ -580,7 +580,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         data_aprovacao: orcamentoStatus === "aprovado" ? new Date().toISOString() : null,
         data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
-        previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
+        funcionario_id: tecnicoId || null,
+        obs_cliente: obsCliente || null,
+        checklist_entrada: Object.keys(checklist).length > 0 || checklistCustom.length > 0
+          ? { itens: checklist, custom: checklistCustom }
+          : null,
+        previsao_entrega: previsaoEntrega
+          ? (() => {
+              const [hh, mm] = (previsaoHora || "18:00").split(":").map(Number);
+              const d = new Date(previsaoEntrega);
+              d.setHours(hh || 18, mm || 0, 0, 0);
+              return d.toISOString();
+            })()
+          : null,
         status: "recebido" as Status,
         lojista_id: lojistaId || null,
       } as any).select("id, numero").single();
