@@ -279,6 +279,40 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
     setConfirmDeleteId(null);
   };
 
+  const handleResendInvite = async (profile: any) => {
+    const email = profile.email || profile.funcionarios?.email;
+    if (!email) {
+      toast.error("Email não encontrado para este usuário");
+      return;
+    }
+    if (!empresaId) return;
+
+    setResendingId(profile.id);
+    try {
+      const res = await supabase.functions.invoke("invite-user", {
+        body: {
+          email,
+          nome: profile.nome_exibicao || profile.funcionarios?.nome || "",
+          perfil_id: profile.perfil_id || null,
+          empresa_id: empresaId,
+        },
+      });
+      const errorMsg = res.error?.message || res.data?.error;
+      if (errorMsg && !errorMsg.includes("already been registered")) {
+        toast.error("Erro ao reenviar: " + errorMsg);
+      } else {
+        toast.success(`Convite reenviado para ${email}`);
+        registrar("Convite reenviado", "configuracoes", profile.id, null, {
+          nome: profile.nome_exibicao,
+          email,
+        });
+      }
+    } catch {
+      toast.error("Erro ao reenviar convite");
+    }
+    setResendingId(null);
+  };
+
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
 
   return (
