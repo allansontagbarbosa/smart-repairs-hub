@@ -47,13 +47,35 @@ const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders() {
+const PAGE_SIZE = 50;
+
+async function fetchOrders(page: number) {
+  const from = page * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const { data, error, count } = await supabase
+    .from("ordens_de_servico")
+    .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`, { count: "exact" })
+    .gte("data_entrada", ninetyDaysAgo.toISOString())
+    .order("data_entrada", { ascending: false })
+    .range(from, to);
+  if (error) throw error;
+  return { data: data ?? [], total: count ?? 0 };
+}
+
+async function fetchOlderOrders() {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
   const { data, error } = await supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
+    .lt("data_entrada", ninetyDaysAgo.toISOString())
     .order("data_entrada", { ascending: false });
   if (error) throw error;
-  return data;
+  return data ?? [];
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -192,6 +214,8 @@ export default function Assistencia() {
   const [agrupar, setAgrupar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [showOlder, setShowOlder] = useState(false);
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
@@ -202,10 +226,24 @@ export default function Assistencia() {
     setFilterStatus(status || "todos");
   }, [searchParams]);
 
-  const { data: orders = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens"],
-    queryFn: fetchOrders,
+  const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["ordens", page],
+    queryFn: () => fetchOrders(page),
   });
+
+  const { data: olderOrders = [] } = useQuery({
+    queryKey: ["ordens-older"],
+    queryFn: fetchOlderOrders,
+    enabled: showOlder,
+  });
+
+  const orders = useMemo(() => {
+    const recent = recentResult?.data ?? [];
+    return showOlder ? [...recent, ...olderOrders] : recent;
+  }, [recentResult, olderOrders, showOlder]);
+
+  const totalCount = recentResult?.total ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const alertas = useAlertas(orders);
 
@@ -651,6 +689,29 @@ export default function Assistencia() {
             </div>
           ) : (
             <Tabela items={sorted} />
+          )}
+          {!isLoading && totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                Página {page + 1} de {totalPages} ({totalCount} ordens nos últimos 90 dias)
+              </p>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!showOlder && !isLoading && (
+            <div className="flex justify-center pt-2">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setShowOlder(true)}>
+                Carregar ordens mais antigas (antes de 90 dias)
+              </Button>
+            </div>
           )}
         </TabsContent>
 
