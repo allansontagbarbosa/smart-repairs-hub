@@ -692,7 +692,7 @@ export type Database = {
           data_pagamento: string | null
           data_vencimento: string
           descricao: string
-          empresa_id: string
+          empresa_id: string | null
           fornecedor: string | null
           fornecedor_id: string | null
           id: string
@@ -714,7 +714,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento: string
           descricao: string
-          empresa_id: string
+          empresa_id?: string | null
           fornecedor?: string | null
           fornecedor_id?: string | null
           id?: string
@@ -736,7 +736,7 @@ export type Database = {
           data_pagamento?: string | null
           data_vencimento?: string
           descricao?: string
-          empresa_id?: string
+          empresa_id?: string | null
           fornecedor?: string | null
           fornecedor_id?: string | null
           id?: string
