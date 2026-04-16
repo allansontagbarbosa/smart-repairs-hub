@@ -2381,6 +2381,7 @@ export type Database = {
         Row: {
           aparelho_id: string
           aprovacao_orcamento: string | null
+          checklist_entrada: Json | null
           created_at: string
           created_by: string | null
           custo_pecas: number | null
@@ -2403,6 +2404,7 @@ export type Database = {
           mao_obra_adicional: number
           motivo_reprovacao: string | null
           numero: number
+          obs_cliente: string | null
           observacoes: string | null
           os_origem_id: string | null
           prazo_vencido: boolean
@@ -2425,6 +2427,7 @@ export type Database = {
         Insert: {
           aparelho_id: string
           aprovacao_orcamento?: string | null
+          checklist_entrada?: Json | null
           created_at?: string
           created_by?: string | null
           custo_pecas?: number | null
@@ -2447,6 +2450,7 @@ export type Database = {
           mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
+          obs_cliente?: string | null
           observacoes?: string | null
           os_origem_id?: string | null
           prazo_vencido?: boolean
@@ -2469,6 +2473,7 @@ export type Database = {
         Update: {
           aparelho_id?: string
           aprovacao_orcamento?: string | null
+          checklist_entrada?: Json | null
           created_at?: string
           created_by?: string | null
           custo_pecas?: number | null
@@ -2491,6 +2496,7 @@ export type Database = {
           mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
+          obs_cliente?: string | null
           observacoes?: string | null
           os_origem_id?: string | null
           prazo_vencido?: boolean
