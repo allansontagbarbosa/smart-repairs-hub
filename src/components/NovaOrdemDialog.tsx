@@ -721,29 +721,42 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     mutationFn: async () => {
       if (!selectedClientId) throw new Error("Selecione um cliente");
       if (!marca || !modelo) throw new Error("Marca e modelo são obrigatórios");
-      if (defeitosSelecionados.length === 0) throw new Error("Selecione ao menos um defeito");
+      if (defeitosSelecionados.length === 0 && !relatoCliente.trim()) {
+        throw new Error("Informe o relato do cliente ou selecione ao menos um serviço");
+      }
 
-      // 1. Criar aparelho
-      const { data: aparelho, error: apErr } = await supabase
-        .from("aparelhos")
-        .insert({
-          cliente_id: selectedClientId,
-          marca, modelo,
-          cor: cor || null,
-          capacidade: capacidade || null,
-          imei: imei.replace(/\D/g, "") || null,
-          marca_id: marcaId || null,
-          modelo_id: modeloId || null,
-          cor_id: corId || null,
-          capacidade_id: capacidadeId || null,
-        } as any)
-        .select().single();
-      if (apErr) throw apErr;
+      // 1. Aparelho — reusa se IMEI já existe e é do mesmo cliente
+      let aparelhoId: string;
+      if (aparelhoExistente && aparelhoExistente.mesmo_cliente) {
+        aparelhoId = aparelhoExistente.id;
+      } else {
+        const { data: aparelho, error: apErr } = await supabase
+          .from("aparelhos")
+          .insert({
+            cliente_id: selectedClientId,
+            marca, modelo,
+            cor: cor || null,
+            capacidade: capacidade || null,
+            imei: imei.replace(/\D/g, "") || null,
+            marca_id: marcaId || null,
+            modelo_id: modeloId || null,
+            cor_id: corId || null,
+            capacidade_id: capacidadeId || null,
+            observacoes: imei2 ? `IMEI 2: ${imei2}` : null,
+          } as any)
+          .select().single();
+        if (apErr) throw apErr;
+        aparelhoId = aparelho.id;
+      }
+
+      // Status final depende do "Aprovado no ato"
+      const finalAprovacao = aprovadoNoAto ? "aprovado" : orcamentoStatus;
 
       // 2. Criar OS
       const { data: ordem, error: osErr } = await supabase.from("ordens_de_servico").insert({
-        aparelho_id: aparelho.id,
+        aparelho_id: aparelhoId,
         defeito_relatado: defeitoRelatado,
+        relato_cliente: relatoCliente || null,
         observacoes: observacoes || null,
         valor: valorTotal || null,
         valor_total: valorTotal || null,
@@ -755,12 +768,18 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         valor_pendente: aReceber,
         forma_pagamento_sinal: sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
         garantia_dias: garantiaDiasNum,
-        aprovacao_orcamento: orcamentoStatus,
-        data_aprovacao: orcamentoStatus === "aprovado" ? new Date().toISOString() : null,
+        aprovacao_orcamento: finalAprovacao,
+        aprovado_no_ato: aprovadoNoAto,
+        data_aprovacao: finalAprovacao === "aprovado" ? new Date().toISOString() : null,
         data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         funcionario_id: tecnicoId || null,
         obs_cliente: obsCliente || null,
+        liga,
+        bateria_entrada: bateriaEntrada ? Math.max(0, Math.min(100, parseInt(bateriaEntrada, 10))) : null,
+        estado_geral: estadoGeral || null,
+        imei2: imei2.replace(/\D/g, "") || null,
+        contato_preferido: contatoPreferido,
         checklist_entrada: Object.keys(checklist).length > 0 || checklistCustom.length > 0
           ? { itens: checklist, custom: checklistCustom }
           : null,
