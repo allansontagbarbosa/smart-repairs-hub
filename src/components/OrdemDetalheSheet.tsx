@@ -667,6 +667,36 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
+                {/* Painel Orçamento */}
+                {(() => {
+                  const o = ordem as any;
+                  const total = Number(o.valor_total ?? o.valor ?? 0);
+                  const sinal = Number(o.sinal_pago ?? 0);
+                  const desc = Number(o.desconto ?? 0);
+                  const adic = Number(o.mao_obra_adicional ?? 0);
+                  const pec = Number(o.custo_pecas ?? 0);
+                  const aRec = Math.max(0, total - sinal);
+                  if (total <= 0 && sinal <= 0) return null;
+                  return (
+                    <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 space-y-1.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Orçamento</p>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Peças (custo)</span><span className="font-medium">R$ {pec.toFixed(2)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Mão de obra adicional</span><span className="font-medium">R$ {adic.toFixed(2)}</span></div>
+                      {desc > 0 && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Desconto</span><span className="font-medium text-destructive">− R$ {desc.toFixed(2)}</span></div>}
+                      <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between text-sm font-bold"><span>TOTAL</span><span className="text-success">R$ {total.toFixed(2)}</span></div>
+                      {sinal > 0 && (
+                        <>
+                          <div className="flex justify-between text-xs pt-1"><span className="text-muted-foreground">Sinal pago{o.forma_pagamento_sinal ? ` (${o.forma_pagamento_sinal})` : ""}</span><span className="font-medium text-success">− R$ {sinal.toFixed(2)}</span></div>
+                          <div className="flex justify-between text-sm font-semibold border-t border-primary/20 pt-1.5 mt-1"><span>A receber na retirada</span><span className="text-primary">R$ {aRec.toFixed(2)}</span></div>
+                        </>
+                      )}
+                      {o.garantia_dias != null && (
+                        <p className="text-[10px] text-muted-foreground pt-1.5 border-t border-primary/20">Garantia do serviço: {o.garantia_dias} dias</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Valores e Lucro Real */}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Valores & Lucro Real</p>
