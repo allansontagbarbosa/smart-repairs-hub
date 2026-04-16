@@ -68,6 +68,9 @@ interface PecaSelecionada {
   custo_unitario: number;
   preco_venda: number;
   estoque_disponivel: number;
+  // IDs dos serviços que adicionaram esta peça automaticamente.
+  // Vazio = peça adicionada manualmente.
+  origens: string[];
 }
 
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
@@ -170,17 +173,28 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   });
 
   const { data: pecasEstoque = [] } = useQuery({
-    queryKey: ["estoque_pecas_disponiveis"],
+    queryKey: ["estoque_pecas_para_os"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("estoque_itens")
         .select("*, estoque_categorias:categoria_id ( nome ), marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
         .eq("tipo_item", "peca")
         .is("deleted_at", null)
-        .gt("quantidade", 0)
         .order("nome_personalizado");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  // Vínculos serviço→peças (carregado uma vez)
+  const { data: vinculosServicoPecas = [] } = useQuery({
+    queryKey: ["servico_pecas_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("servico_pecas" as any)
+        .select("servico_id, peca_id, quantidade, obrigatoria");
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{ servico_id: string; peca_id: string; quantidade: number; obrigatoria: boolean }>;
     },
   });
 
@@ -269,7 +283,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     const selectedIds = new Set(pecasSelecionadas.map(p => p.id));
     return pecasEstoque.filter(p =>
       !selectedIds.has(p.id) &&
-      (!pecaSearch || 
+      (!pecaSearch ||
         (p.nome_personalizado || "").toLowerCase().includes(pecaSearch.toLowerCase()) ||
         (p.sku || "").toLowerCase().includes(pecaSearch.toLowerCase()))
     );
@@ -283,6 +297,83 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const valorTotal = totalMaoObraDefeitos + totalPecas + adicional;
 
   const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
+
+  // ── Sincronização Serviço → Peças vinculadas ──
+  // Quando um serviço é selecionado/removido, ajustar peças "auto" automaticamente.
+  // Tracking via array `origens` em cada peça (IDs dos serviços que a adicionaram).
+  const servicosIds = useMemo(() => defeitosSelecionados.map(d => d.id).join(","), [defeitosSelecionados]);
+  useEffect(() => {
+    if (vinculosServicoPecas.length === 0) return;
+    const servicosSelecionadosSet = new Set(defeitosSelecionados.map(d => d.id));
+
+    setPecasSelecionadas(prev => {
+      // Mapa: peca_id → { quantidade somada, origens (servicos obrigatórios) }
+      const autoMap = new Map<string, { qtd: number; origens: Set<string> }>();
+      for (const v of vinculosServicoPecas) {
+        if (!servicosSelecionadosSet.has(v.servico_id)) continue;
+        if (!v.obrigatoria) continue; // não-obrigatórias não auto-adicionam
+        const cur = autoMap.get(v.peca_id) ?? { qtd: 0, origens: new Set<string>() };
+        cur.qtd += Number(v.quantidade) || 1;
+        cur.origens.add(v.servico_id);
+        autoMap.set(v.peca_id, cur);
+      }
+
+      const result: PecaSelecionada[] = [];
+
+      // 1) Atualizar/manter peças existentes
+      for (const peca of prev) {
+        const auto = autoMap.get(peca.id);
+        const origensManuais = peca.origens.filter(o => servicosSelecionadosSet.has(o));
+        const eraSomenteAuto = peca.origens.length > 0 && origensManuais.length === peca.origens.length;
+
+        if (auto) {
+          // Peça é auto-adicionada por algum serviço atual
+          // Quantidade = parte manual conservada + auto.qtd (se já era auto antes, mantém apenas auto.qtd)
+          const partManual = peca.origens.length === 0 ? peca.quantidade : 0;
+          result.push({
+            ...peca,
+            quantidade: Math.max(1, partManual + auto.qtd),
+            origens: Array.from(auto.origens),
+          });
+          autoMap.delete(peca.id);
+        } else if (peca.origens.length === 0) {
+          // Peça manual — mantém intacta
+          result.push(peca);
+        } else if (eraSomenteAuto) {
+          // Veio só de serviços que foram desmarcados → remover
+          // (não adiciona ao result)
+        } else {
+          // Peça tinha origens mas algumas ainda válidas (caso raro pós-state)
+          result.push({ ...peca, origens: peca.origens.filter(o => servicosSelecionadosSet.has(o)) });
+        }
+      }
+
+      // 2) Adicionar peças auto novas
+      for (const [peca_id, auto] of autoMap.entries()) {
+        const pEstoque = pecasEstoque.find((x: any) => x.id === peca_id);
+        if (!pEstoque) continue;
+        result.push({
+          id: peca_id,
+          nome: getPecaNome(pEstoque),
+          quantidade: auto.qtd,
+          custo_unitario: Number(pEstoque.custo_unitario ?? 0),
+          preco_venda: Number(pEstoque.preco_venda ?? 0),
+          estoque_disponivel: pEstoque.quantidade,
+          origens: Array.from(auto.origens),
+        });
+      }
+
+      return result;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servicosIds, vinculosServicoPecas]);
+
+  // Mapa para mostrar nome do serviço de origem em cada peça auto
+  const servicoNomePorId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of defeitosSelecionados) m.set(d.id, d.nome);
+    return m;
+  }, [defeitosSelecionados]);
 
   // ── Reset ──
   function resetAll() {
@@ -466,7 +557,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
     onSuccess: (ordem) => {
       toast.success(`OS #${String(ordem?.numero || 0).padStart(3, "0")} criada!`);
-      queryClient.invalidateQueries({ queryKey: ["estoque_pecas_disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_pecas_para_os"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
       setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
       setStep("sucesso");
@@ -496,6 +587,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       custo_unitario: Number(p.custo_unitario ?? 0),
       preco_venda: Number(p.preco_venda ?? 0),
       estoque_disponivel: p.quantidade,
+      origens: [],
     }]);
     setPecaSearch("");
   }
@@ -503,12 +595,15 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   function updatePecaQtd(id: string, delta: number) {
     setPecasSelecionadas(prev => prev.map(p => {
       if (p.id !== id) return p;
-      const newQtd = Math.max(1, Math.min(p.estoque_disponivel, p.quantidade + delta));
+      // Permitir quantidade > estoque (com warning visual depois)
+      const novoMax = Math.max(p.estoque_disponivel, p.quantidade + delta);
+      const newQtd = Math.max(1, Math.min(novoMax, p.quantidade + delta));
       return { ...p, quantidade: newQtd };
     }));
   }
 
   function removePeca(id: string) {
+    // Remove peça mesmo que tenha vindo de um serviço (técnico decide)
     setPecasSelecionadas(prev => prev.filter(p => p.id !== id));
   }
 
@@ -854,9 +949,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                       >
                         <div>
                           <p className="text-sm">{getPecaNome(p)}</p>
-                          <p className="text-[10px] text-muted-foreground">Estoque: {p.quantidade} | SKU: {p.sku || "—"}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Estoque: <span className={p.quantidade === 0 ? "text-destructive font-medium" : ""}>{p.quantidade}</span> | SKU: {p.sku || "—"}
+                          </p>
                         </div>
-                        <span className="text-xs font-medium text-green-600">
+                        <span className="text-xs font-medium text-success">
                           R$ {Number(p.preco_venda ?? 0).toFixed(2)}
                         </span>
                       </button>
@@ -867,11 +964,44 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {/* Peças selecionadas */}
                 {pecasSelecionadas.length > 0 && (
                   <div className="rounded-lg border divide-y">
-                    {pecasSelecionadas.map(p => (
+                    {pecasSelecionadas.map(p => {
+                      const isAuto = p.origens.length > 0;
+                      const semEstoque = p.estoque_disponivel === 0;
+                      const estoqueInsuficiente = !semEstoque && p.estoque_disponivel < p.quantidade;
+                      const origemNomes = p.origens
+                        .map(id => servicoNomePorId.get(id))
+                        .filter(Boolean) as string[];
+                      return (
                       <div key={p.id} className="flex items-center justify-between px-3 py-2">
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{p.nome}</p>
-                          <p className="text-[10px] text-muted-foreground">R$ {p.preco_venda.toFixed(2)} / un</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-medium truncate">{p.nome}</p>
+                            {isAuto && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
+                                auto
+                              </span>
+                            )}
+                            {semEstoque && (
+                              <AlertCircle className="h-3 w-3 text-destructive shrink-0" />
+                            )}
+                            {estoqueInsuficiente && (
+                              <AlertCircle className="h-3 w-3 text-warning shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            R$ {p.preco_venda.toFixed(2)} / un
+                            {isAuto && origemNomes.length > 0 && (
+                              <span className="ml-1">· do serviço: {origemNomes.join(", ")}</span>
+                            )}
+                          </p>
+                          {semEstoque && (
+                            <p className="text-[10px] text-destructive">Sem estoque — será necessário repor</p>
+                          )}
+                          {estoqueInsuficiente && (
+                            <p className="text-[10px] text-warning">
+                              Estoque insuficiente: {p.estoque_disponivel} disponível, {p.quantidade} necessária{p.quantidade > 1 ? "s" : ""}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 ml-2">
                           <button type="button" onClick={() => updatePecaQtd(p.id, -1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
@@ -889,7 +1019,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                           R$ {(p.preco_venda * p.quantidade).toFixed(2)}
                         </span>
                       </div>
-                    ))}
+                    );})}
                   </div>
                 )}
               </div>

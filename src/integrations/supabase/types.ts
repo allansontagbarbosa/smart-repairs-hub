@@ -2968,6 +2968,58 @@ export type Database = {
           },
         ]
       }
+      servico_pecas: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          id: string
+          obrigatoria: boolean
+          peca_id: string
+          quantidade: number
+          servico_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          obrigatoria?: boolean
+          peca_id: string
+          quantidade?: number
+          servico_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          obrigatoria?: boolean
+          peca_id?: string
+          quantidade?: number
+          servico_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servico_pecas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servico_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servico_pecas_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       socios: {
         Row: {
           ativo: boolean

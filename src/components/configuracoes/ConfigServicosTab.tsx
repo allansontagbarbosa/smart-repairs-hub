@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Search, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Package } from "lucide-react";
 import { ImportIADialog } from "./ImportIADialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
+import { ServicoPecasSection, saveServicoPecas, type VinculoPeca } from "./ServicoPecasSection";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface Props { tiposServico: any[] }
@@ -41,8 +43,29 @@ export function ConfigServicosTab({ tiposServico }: Props) {
   const [form, setForm] = useState<any>(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [vinculos, setVinculos] = useState<VinculoPeca[]>([]);
 
-  // Lista única de categorias (padrão + as já cadastradas)
+  // Carrega contagem agregada de peças vinculadas por serviço
+  const { data: pecasPorServico = {} } = useQuery({
+    queryKey: ["servico_pecas_count"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("servico_pecas" as any)
+        .select("servico_id, estoque_itens:peca_id ( nome_personalizado, sku )");
+      if (error) throw error;
+      const map: Record<string, { count: number; nomes: string[] }> = {};
+      for (const row of (data ?? []) as any[]) {
+        const sid = row.servico_id;
+        if (!map[sid]) map[sid] = { count: 0, nomes: [] };
+        map[sid].count++;
+        const p = row.estoque_itens;
+        const nome = p?.nome_personalizado || p?.sku || "Peça";
+        map[sid].nomes.push(nome);
+      }
+      return map;
+    },
+  });
+
   const categoriasOpts = useMemo(() => {
     const s = new Set<string>(CATEGORIAS_PADRAO);
     tiposServico.forEach((t: any) => { if (t.categoria) s.add(String(t.categoria).toLowerCase()); });
@@ -67,15 +90,28 @@ export function ConfigServicosTab({ tiposServico }: Props) {
       comissao_padrao: Number(form.comissao_padrao) || 0,
       ativo: form.ativo,
     };
-    if (editId) {
-      await supabase.from("tipos_servico").update(payload).eq("id", editId);
-    } else {
-      await supabase.from("tipos_servico").insert(payload);
+    try {
+      let servicoId = editId;
+      if (editId) {
+        const { error } = await supabase.from("tipos_servico").update(payload).eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("tipos_servico").insert(payload).select("id").single();
+        if (error) throw error;
+        servicoId = data.id;
+      }
+      if (servicoId) {
+        await saveServicoPecas(servicoId, vinculos);
+      }
+      qc.invalidateQueries({ queryKey: ["tipos_servico"] });
+      qc.invalidateQueries({ queryKey: ["tipos_servico_os"] });
+      qc.invalidateQueries({ queryKey: ["servico_pecas_count"] });
+      qc.invalidateQueries({ queryKey: ["servico_pecas"] });
+      toast.success(editId ? "Serviço atualizado" : "Serviço cadastrado");
+      setOpen(false); setForm(emptyForm); setEditId(null); setVinculos([]);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar serviço");
     }
-    qc.invalidateQueries({ queryKey: ["tipos_servico"] });
-    qc.invalidateQueries({ queryKey: ["tipos_servico_os"] });
-    toast.success(editId ? "Serviço atualizado" : "Serviço cadastrado");
-    setOpen(false); setForm(emptyForm); setEditId(null);
   };
 
   const handleEdit = (s: any) => {
@@ -88,18 +124,27 @@ export function ConfigServicosTab({ tiposServico }: Props) {
       ativo: s.ativo,
       tipo_comissao: "fixa",
     });
-    setEditId(s.id); setOpen(true);
+    setEditId(s.id);
+    setVinculos([]); // será carregado pelo ServicoPecasSection via servicoId
+    setOpen(true);
+  };
+
+  const handleNew = () => {
+    setForm(emptyForm);
+    setEditId(null);
+    setVinculos([]);
+    setOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     await supabase.from("tipos_servico").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["tipos_servico"] });
     qc.invalidateQueries({ queryKey: ["tipos_servico_os"] });
+    qc.invalidateQueries({ queryKey: ["servico_pecas_count"] });
     toast.success("Serviço removido");
   };
 
   const createCategoria = async (nome: string) => {
-    // Categoria é texto livre — só normaliza e devolve
     const v = nome.trim().toLowerCase();
     return { id: v, nome: v };
   };
@@ -128,9 +173,9 @@ export function ConfigServicosTab({ tiposServico }: Props) {
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
             <Sparkles className="h-4 w-4 mr-1" />Importar via IA
           </Button>
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Serviço</Button></DialogTrigger>
-          <DialogContent>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); setVinculos([]); } }}>
+          <DialogTrigger asChild><Button size="sm" onClick={handleNew}><Plus className="h-4 w-4 mr-1" />Novo Serviço</Button></DialogTrigger>
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Serviço</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
@@ -168,6 +213,14 @@ export function ConfigServicosTab({ tiposServico }: Props) {
                 )}
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} /><Label>Ativo</Label></div>
+
+              <ServicoPecasSection
+                servicoId={editId}
+                valorServico={Number(form.valor_padrao) || 0}
+                value={vinculos}
+                onChange={setVinculos}
+              />
+
               <Button onClick={handleSave} className="w-full">{editId ? "Salvar" : "Cadastrar"}</Button>
             </div>
           </DialogContent>
@@ -184,18 +237,43 @@ export function ConfigServicosTab({ tiposServico }: Props) {
                 <th className="text-left p-3 font-medium">Serviço</th>
                 <th className="text-left p-3 font-medium">Categoria</th>
                 <th className="text-left p-3 font-medium hidden md:table-cell">Valor</th>
+                <th className="text-left p-3 font-medium hidden lg:table-cell">Peças</th>
                 <th className="text-left p-3 font-medium hidden md:table-cell">Comissão</th>
                 <th className="text-left p-3 font-medium">Status</th>
                 <th className="p-3"></th>
               </tr></thead>
               <tbody>
-                {filtered.map((s) => (
+                {filtered.map((s) => {
+                  const pecasInfo = (pecasPorServico as any)[s.id];
+                  return (
                   <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="p-3 font-medium">{s.nome}<div className="text-xs text-muted-foreground">{s.descricao}</div></td>
                     <td className="p-3">
                       {s.categoria ? <Badge variant="outline" className="text-[10px] capitalize">{s.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}
                     </td>
                     <td className="p-3 hidden md:table-cell">{fmt(s.valor_padrao || 0)}</td>
+                    <td className="p-3 hidden lg:table-cell">
+                      {pecasInfo ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="text-[10px] gap-1">
+                                <Package className="h-3 w-3" />
+                                {pecasInfo.count} peça{pecasInfo.count > 1 ? "s" : ""}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="text-xs font-medium mb-1">Peças vinculadas:</p>
+                              <ul className="text-xs list-disc pl-4">
+                                {pecasInfo.nomes.map((n: string, i: number) => <li key={i}>{n}</li>)}
+                              </ul>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="p-3 hidden md:table-cell">{fmt(s.comissao_padrao || 0)}</td>
                     <td className="p-3"><Badge variant={s.ativo ? "default" : "secondary"}>{s.ativo ? "Ativo" : "Inativo"}</Badge></td>
                     <td className="p-3 text-right">
@@ -203,8 +281,9 @@ export function ConfigServicosTab({ tiposServico }: Props) {
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </td>
                   </tr>
-                ))}
-                {filtered.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhum serviço cadastrado</td></tr>}
+                  );
+                })}
+                {filtered.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum serviço cadastrado</td></tr>}
               </tbody>
             </table>
           </div>
