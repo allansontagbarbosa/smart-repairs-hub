@@ -301,7 +301,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const totalPecas = pecasSelecionadas.reduce((s, p) => s + p.preco_venda * p.quantidade, 0);
   const custoPecas = pecasSelecionadas.reduce((s, p) => s + p.custo_unitario * p.quantidade, 0);
   const adicional = parseFloat(maoObraAdicional) || 0;
-  const valorTotal = totalMaoObraDefeitos + totalPecas + adicional;
+  const descontoNum = Math.max(0, parseFloat(desconto) || 0);
+  const sinalPagoNum = Math.max(0, parseFloat(sinalPago) || 0);
+  const garantiaDiasNum = Math.max(0, parseInt(garantiaDias, 10) || 0);
+  const subtotal = totalMaoObraDefeitos + totalPecas + adicional;
+  const valorTotal = Math.max(0, subtotal - descontoNum);
+  const aReceber = Math.max(0, valorTotal - sinalPagoNum);
 
   const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
 
@@ -410,6 +415,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setPrevisaoEntrega(undefined);
     setCreatedOS(null);
     setLojistaId("");
+    setDesconto("");
+    setSinalPago("");
+    setFormaPagamentoSinal("nenhum");
+    setOrcamentoStatus("aguardando");
+    setGarantiaDias("90");
   }
 
   function handleClose(v: boolean) {
