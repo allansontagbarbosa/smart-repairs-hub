@@ -366,6 +366,20 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             </SheetHeader>
 
+            {/* Badge orçamento */}
+            {(ordem as any).aprovacao_orcamento === "aguardando" && (
+              <div className="mb-4 p-2.5 rounded-lg border border-warning/30 bg-warning/10 text-warning flex items-center gap-2 text-xs font-medium">
+                <Clock className="h-3.5 w-3.5" />
+                Aguardando aprovação do cliente
+              </div>
+            )}
+            {(ordem as any).aprovacao_orcamento === "recusado" && (
+              <div className="mb-4 p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 text-xs font-medium">
+                <X className="h-3.5 w-3.5" />
+                Orçamento recusado pelo cliente
+              </div>
+            )}
+
             {/* Quick actions */}
             {ordem.status !== "entregue" && (
               <div className="flex gap-2 mb-5">
