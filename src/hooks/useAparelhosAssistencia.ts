@@ -23,6 +23,9 @@ export type AparelhoAssistencia = {
   loja_id: string | null;
   funcionario_id: string | null;
   valor: number | null;
+  valor_total: number | null;
+  sinal_pago: number | null;
+  aprovacao_orcamento: string | null;
 };
 
 async function fetchAparelhosAssistencia() {
@@ -30,7 +33,7 @@ async function fetchAparelhosAssistencia() {
     .from("ordens_de_servico")
     .select(`
       id, numero, status, data_entrada, tecnico, previsao_entrega, prazo_vencido,
-      loja_id, funcionario_id, defeito_relatado, valor,
+      loja_id, funcionario_id, defeito_relatado, valor, valor_total, sinal_pago, aprovacao_orcamento,
       aparelhos!inner ( marca, modelo, cor, imei, capacidade, cliente_id, clientes!inner ( nome, telefone ) ),
       lojas ( nome ),
       funcionarios ( nome )
@@ -62,6 +65,9 @@ async function fetchAparelhosAssistencia() {
     loja_id: os.loja_id,
     funcionario_id: os.funcionario_id,
     valor: os.valor,
+    valor_total: os.valor_total ?? os.valor ?? null,
+    sinal_pago: os.sinal_pago ?? null,
+    aprovacao_orcamento: os.aprovacao_orcamento ?? null,
   })) as AparelhoAssistencia[];
 }
 
