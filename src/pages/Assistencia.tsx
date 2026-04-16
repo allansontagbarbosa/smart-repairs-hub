@@ -47,13 +47,35 @@ const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders() {
+const PAGE_SIZE = 50;
+
+async function fetchOrders(page: number) {
+  const from = page * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const { data, error, count } = await supabase
+    .from("ordens_de_servico")
+    .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`, { count: "exact" })
+    .gte("data_entrada", ninetyDaysAgo.toISOString())
+    .order("data_entrada", { ascending: false })
+    .range(from, to);
+  if (error) throw error;
+  return { data: data ?? [], total: count ?? 0 };
+}
+
+async function fetchOlderOrders() {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
   const { data, error } = await supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
+    .lt("data_entrada", ninetyDaysAgo.toISOString())
     .order("data_entrada", { ascending: false });
   if (error) throw error;
-  return data;
+  return data ?? [];
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────

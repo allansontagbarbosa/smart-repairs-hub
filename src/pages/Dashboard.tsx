@@ -20,6 +20,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer,
 } from "recharts";
+import { PeriodFilter, usePeriodFilter } from "@/components/PeriodFilter";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -64,12 +65,6 @@ const STATUS_COLORS: Record<string, string> = {
 const isFaturado = (s: string) => s === "pronto" || s === "entregue";
 const isAguardando = (s: string) =>
   ["recebido", "em_analise", "em_reparo"].includes(s);
-const isAtrasado = (s: string, prazo: string | null | undefined) => {
-  if (!prazo) return false;
-  return new Date(prazo) < new Date() && !isFaturado(s);
-};
-const isIphone = (modelo: string) =>
-  /iphone|apple/i.test(modelo || "");
 
 // ─── FORMATAÇÃO ───────────────────────────────────────────────────────────────
 
@@ -161,16 +156,13 @@ async function fetchDashboardSummary() {
   };
 }
 
-async function fetchContasPagas() {
-  const now = new Date();
-  const ms = startOfMonth(now);
-  const me = endOfMonth(now);
+async function fetchContasPagas(rangeStart: Date, rangeEnd: Date) {
   const { data, error } = await supabase
     .from("contas_a_pagar")
     .select("valor, data_pagamento, categoria, categoria_financeira_id, categorias_financeiras ( tipo )")
     .eq("status", "paga")
-    .gte("data_pagamento", ms.toISOString().split("T")[0])
-    .lte("data_pagamento", me.toISOString().split("T")[0]);
+    .gte("data_pagamento", rangeStart.toISOString().split("T")[0])
+    .lte("data_pagamento", rangeEnd.toISOString().split("T")[0]);
   if (error) throw error;
   return data ?? [];
 }
@@ -200,6 +192,7 @@ async function fetchSocios() {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { can } = usePermissoes();
+  const { range, preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd } = usePeriodFilter("este_mes");
 
   // ── QUERIES ──────────────────────────────────────────────────────────────
 
@@ -210,8 +203,8 @@ export default function Dashboard() {
   });
 
   const { data: contasPagas } = useQuery({
-    queryKey: ["dashboard-contas-pagas"],
-    queryFn: fetchContasPagas,
+    queryKey: ["dashboard-contas-pagas", range.start.toISOString(), range.end.toISOString()],
+    queryFn: () => fetchContasPagas(range.start, range.end),
     refetchInterval: 60000,
   });
 
@@ -227,20 +220,22 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
-  const orders = summary?.ordens ?? [];
+  const allOrders = summary?.ordens ?? [];
+
+  // Filter orders by selected period
+  const orders = useMemo(() => {
+    return allOrders.filter(o => {
+      const d = new Date(o.data_entrada);
+      return d >= range.start && d <= range.end;
+    });
+  }, [allOrders, range]);
 
   // ── CÁLCULOS ────────────────────────────────────────────────────────────
 
   const kpis = useMemo(() => {
     const now = new Date();
-    const mesAtual = now.getMonth();
-    const anoAtual = now.getFullYear();
 
-    const ordensMes = orders.filter(o => {
-      const d = new Date(o.data_entrada);
-      return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
-    });
-
+    const ordensMes = orders;
     const ordensFaturadas = ordensMes.filter(o => isFaturado(o.status));
     const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
@@ -252,17 +247,14 @@ export default function Dashboard() {
       .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosVariaveis = despesasPagasMes - gastosFixos;
 
-    // EBITDA
     const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis;
     const ebitdaMargem = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
 
-    // Lucro líquido (sem ajustes extras como no código original — estimado)
     const depreciacao = 0;
     const impostos = 0;
     const ll = ebitda - depreciacao - impostos;
     const llMargem = faturamento > 0 ? (ll / faturamento) * 100 : 0;
 
-    // Ticket médio
     const ordensComValor = ordensFaturadas.filter(o => Number(o.valor ?? 0) > 0);
     const ticket = ordensComValor.length > 0
       ? ordensComValor.reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensComValor.length
@@ -270,7 +262,6 @@ export default function Dashboard() {
 
     const llPorAssist = ordensMes.length > 0 ? ll / ordensMes.length : 0;
 
-    // Metas
     const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
     const metaFaturamento = Number(empresaConfig?.meta_faturamento_mes ?? 0);
     const reservaPct = Number(empresaConfig?.percentual_reserva_empresa ?? 20);
@@ -280,13 +271,12 @@ export default function Dashboard() {
     const totalGastos = custosPecasMes + despesasPagasMes + depreciacao + impostos;
     const metaPct = metaGastos > 0 ? Math.min(100, (totalGastos / metaGastos) * 100) : 0;
 
-    // Distribuição
     const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
     const lucroDistrib = ll > 0 ? ll - reservaVal : 0;
     const lucroSocio = lucroDistrib / Math.max(1, nSocios);
 
-    // Operacional
-    const ativas = orders.filter(o => o.status !== "entregue");
+    // Operacional uses ALL orders (not filtered by period) for live status counts
+    const ativas = allOrders.filter(o => o.status !== "entregue");
     const emAtraso = ativas.filter(o => o.previsao_entrega && new Date(o.previsao_entrega) < now && o.status !== "pronto").length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
     const aguardandoReparo = ativas.filter(o => isAguardando(o.status)).length;
@@ -307,16 +297,16 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
       iphonesReparados,
     };
-  }, [orders, contasPagas, empresaConfig]);
+  }, [orders, allOrders, contasPagas, empresaConfig]);
 
-  // Chart: faturamento últimos 6 meses
+  // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
     const meses: { mes: string; faturamento: number; lucro: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(new Date(), i);
       const start = startOfMonth(d);
       const end = endOfMonth(d);
-      const mesOrdens = orders.filter(o => {
+      const mesOrdens = allOrders.filter(o => {
         const de = new Date(o.data_entrada);
         return de >= start && de <= end;
       });
@@ -324,12 +314,11 @@ export default function Dashboard() {
       meses.push({
         mes: format(d, "MMM", { locale: ptBR }),
         faturamento: fat,
-        lucro: fat * 0.3, // estimado como no código original
+        lucro: fat * 0.3,
       });
     }
     return meses;
-  }, [orders]);
-
+  }, [allOrders]);
 
   // Alertas automáticos
   const alertas = useMemo(() => {
@@ -370,8 +359,18 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 md:space-y-8">
 
-      {/* ── HEADER ── */}
-      <h1 className="text-xl font-bold">Dashboard</h1>
+      {/* ── HEADER + PERIOD FILTER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl font-bold">Dashboard</h1>
+        <PeriodFilter
+          preset={preset}
+          onPresetChange={setPreset}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomStartChange={setCustomStart}
+          onCustomEndChange={setCustomEnd}
+        />
+      </div>
 
       <OnboardingWelcome />
 
@@ -380,7 +379,7 @@ export default function Dashboard() {
       ══════════════════════════════════════════════════════════════════════ */}
       {can("financeiro", "ver") && (
       <div>
-        <SectionTitle>Financeiro do mês</SectionTitle>
+        <SectionTitle>Financeiro do período</SectionTitle>
 
         {/* Linha 1: Faturamento, EBITDA, Lucro Líquido, Saúde Financeira */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -470,7 +469,7 @@ export default function Dashboard() {
         <SectionTitle>Gastos e previsões</SectionTitle>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard icon={Receipt} label="Total gastos do mês" value={brl(kpis.totalGastos)} iconColor="text-red-500" />
+          <MetricCard icon={Receipt} label="Total gastos do período" value={brl(kpis.totalGastos)} iconColor="text-red-500" />
           <MetricCard icon={Receipt} label="Gastos variáveis" value={brl(kpis.gastosVariaveis)} iconColor="text-orange-500" />
           <MetricCard
             icon={Target}
@@ -544,7 +543,7 @@ export default function Dashboard() {
         <SectionTitle>Operacional</SectionTitle>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <MetricCard icon={Wrench} label="Assistências no mês" value={String(kpis.totalOrdensMes)} iconColor="text-blue-500" />
+          <MetricCard icon={Wrench} label="Assistências no período" value={String(kpis.totalOrdensMes)} iconColor="text-blue-500" />
           <MetricCard
             icon={Smartphone}
             label="iPhones"
@@ -606,7 +605,7 @@ export default function Dashboard() {
             </div>
 
             {kpis.ll <= 0 ? (
-              <p className="text-xs text-muted-foreground">Sem lucro a distribuir este mês.</p>
+              <p className="text-xs text-muted-foreground">Sem lucro a distribuir neste período.</p>
             ) : (
               <>
                 {/* Barra visual da divisão */}
@@ -717,11 +716,11 @@ export default function Dashboard() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-3">
-              {orders.filter(o => o.status !== "entregue").length} ativas
+              {allOrders.filter(o => o.status !== "entregue").length} ativas
             </p>
             <div className="space-y-2">
               {Object.entries(STATUS_LABELS).map(([key, label]) => {
-                const count = orders.filter(o => o.status === key).length;
+                const count = allOrders.filter(o => o.status === key).length;
                 if (count === 0) return null;
                 return (
                   <div key={key} className="flex items-center justify-between">
