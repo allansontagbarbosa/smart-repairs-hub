@@ -105,12 +105,16 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
 
       const errorMsg = res.error?.message || res.data?.error;
       if (errorMsg) {
-        const friendly = errorMsg.includes("already been registered")
-          ? "Este email já está cadastrado no sistema"
-          : errorMsg;
-        toast.error(friendly);
-      } else {
-        toast.success(`Convite enviado para ${inviteEmail}`);
+        // "already been registered" is now handled server-side (reactivation)
+        // but if it still comes through, treat as success
+        if (errorMsg.includes("already been registered")) {
+          toast.success("Usuário reativado com sucesso!");
+        } else {
+          toast.error(errorMsg);
+        }
+      }
+      if (!errorMsg || errorMsg.includes("already been registered")) {
+        if (!errorMsg) toast.success(`Convite enviado para ${inviteEmail}`);
         const perfilNome = perfisAcesso.find((p) => p.id === invitePerfilId)?.nome_perfil || "Sem perfil";
         registrar("Usuário convidado", "configuracoes", null, null, { email: inviteEmail, perfil: perfilNome });
         setOpenInvite(false);
@@ -118,6 +122,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
         setInviteEmail("");
         setInvitePerfilId("none");
         qc.invalidateQueries({ queryKey: ["user_profiles"] });
+        await qc.refetchQueries({ queryKey: ["user_profiles"] });
       }
     } catch {
       toast.error("Erro ao enviar convite");
