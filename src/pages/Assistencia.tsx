@@ -214,6 +214,8 @@ export default function Assistencia() {
   const [agrupar, setAgrupar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [showOlder, setShowOlder] = useState(false);
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
@@ -224,10 +226,24 @@ export default function Assistencia() {
     setFilterStatus(status || "todos");
   }, [searchParams]);
 
-  const { data: orders = [], isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens"],
-    queryFn: fetchOrders,
+  const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ["ordens", page],
+    queryFn: () => fetchOrders(page),
   });
+
+  const { data: olderOrders = [] } = useQuery({
+    queryKey: ["ordens-older"],
+    queryFn: fetchOlderOrders,
+    enabled: showOlder,
+  });
+
+  const orders = useMemo(() => {
+    const recent = recentResult?.data ?? [];
+    return showOlder ? [...recent, ...olderOrders] : recent;
+  }, [recentResult, olderOrders, showOlder]);
+
+  const totalCount = recentResult?.total ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const alertas = useAlertas(orders);
 
