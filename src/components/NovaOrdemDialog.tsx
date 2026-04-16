@@ -150,17 +150,22 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
   });
 
-  const { data: tiposDefeito = [] } = useQuery({
-    queryKey: ["tipos_defeito"],
+  const { data: tiposDefeito = [] } = useQuery<any[]>({
+    queryKey: ["tipos_servico_os"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tipos_defeito")
-        .select("*")
+        .from("tipos_servico")
+        .select("id, nome, categoria, valor_padrao, ativo")
         .eq("ativo", true)
-        .order("categoria")
+        .order("categoria", { nullsFirst: false })
         .order("nome");
       if (error) throw error;
-      return data;
+      return (data ?? []).map((s: any) => ({
+        id: s.id,
+        nome: s.nome,
+        categoria: s.categoria || "geral",
+        valor_mao_obra: Number(s.valor_padrao) || 0,
+      }));
     },
   });
 
@@ -429,15 +434,16 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         lojista_id: lojistaId || null,
       }).select("id, numero").single();
       if (osErr) throw osErr;
-      return ordem;
 
-      // 3. Inserir os_defeitos
+      // 3. Inserir os_servicos (N:N)
       if (defeitosSelecionados.length > 0) {
-        const { error: defErr } = await supabase.from("os_defeitos").insert(
+        const { error: defErr } = await supabase.from("os_servicos").insert(
           defeitosSelecionados.map(d => ({
             ordem_id: ordem.id,
-            defeito_id: d.id,
+            servico_id: d.id,
             nome: d.nome,
+            valor: d.valor_mao_obra,
+            categoria: d.categoria,
           }))
         );
         if (defErr) throw defErr;
@@ -455,6 +461,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         );
         if (pecErr) throw pecErr;
       }
+
+      return ordem;
     },
     onSuccess: (ordem) => {
       toast.success(`OS #${String(ordem?.numero || 0).padStart(3, "0")} criada!`);
@@ -758,9 +766,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           {step === "servico" && (
             <div className="space-y-4">
 
-              {/* ── Defeitos ── */}
+              {/* ── Serviços ── */}
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Defeitos *</Label>
+                <Label className="text-xs text-muted-foreground">Serviço / Problema relatado *</Label>
 
                 {/* Tags selecionadas */}
                 {defeitosSelecionados.length > 0 && (
@@ -780,7 +788,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar defeito..."
+                    placeholder="Buscar serviço..."
                     value={defeitoSearch}
                     onChange={(e) => setDefeitoSearch(e.target.value)}
                     onFocus={() => setDefeitosFocused(true)}
