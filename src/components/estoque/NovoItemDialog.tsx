@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { EstoqueItem } from "@/hooks/useEstoque";
 
 type Categoria = { id: string; nome: string };
@@ -142,8 +143,33 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     },
   });
 
+  const custoRaw = watch("custo_unitario");
+  const vendaRaw = watch("preco_venda");
+  const custoNum = parseFloat(custoRaw || "0");
+  const vendaNum = vendaRaw ? parseFloat(vendaRaw) : null;
+  const custoInvalido = !custoRaw || isNaN(custoNum) || custoNum <= 0;
+  const vendaMenorCusto = vendaNum != null && !isNaN(vendaNum) && custoNum > 0 && vendaNum < custoNum;
+  const margemZero = vendaNum != null && !isNaN(vendaNum) && custoNum > 0 && vendaNum === custoNum;
+  const vendaAutoPreenchida = !vendaRaw && custoRaw && custoNum > 0;
+
+  const handleCustoBlur = () => {
+    if (!vendaRaw && custoRaw && custoNum > 0) {
+      setValue("preco_venda", custoRaw);
+    }
+  };
+
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      if (!values.custo_unitario || parseFloat(values.custo_unitario) <= 0) {
+        throw new Error("Informe o custo da peça");
+      }
+      const custo = parseFloat(values.custo_unitario);
+      const vendaStr = values.preco_venda || values.custo_unitario;
+      const venda = parseFloat(vendaStr);
+      if (venda < custo) {
+        throw new Error(`Preço de venda não pode ser menor que o custo (R$ ${custo.toFixed(2)})`);
+      }
+
       const payload = {
         tipo_item: "peca" as const,
         categoria_id: values.categoria_id || null,
@@ -153,11 +179,11 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         cor: values.cor || null,
         capacidade: values.capacidade || null,
         imei_serial: values.imei_serial || null,
-        sku: values.sku?.trim() || null, // null = auto-generate via trigger
+        sku: values.sku?.trim() || null,
         quantidade: parseInt(values.quantidade) || 0,
         quantidade_minima: parseInt(values.quantidade_minima) || 0,
-        custo_unitario: values.custo_unitario ? parseFloat(values.custo_unitario) : null,
-        preco_venda: values.preco_venda ? parseFloat(values.preco_venda) : null,
+        custo_unitario: custo,
+        preco_venda: venda,
         local_estoque: values.local_estoque || null,
         fornecedor: values.fornecedor || null,
         observacoes: values.observacoes || null,
@@ -181,7 +207,10 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
     },
     onError: (e: any) => {
       const msg = e.message || "";
-      if (msg.includes("já está em uso") || msg.includes("duplicate") || msg.includes("unique")) {
+      const code = e.code || "";
+      if (code === "23514" || msg.includes("preco_venda_maior_igual_custo")) {
+        toast.error("Preço de venda não pode ser menor que o custo.");
+      } else if (msg.includes("já está em uso") || msg.includes("duplicate") || msg.includes("unique")) {
         toast.error("Este SKU já está em uso. Use outro ou deixe vazio para gerar automaticamente.");
       } else {
         toast.error(msg);
@@ -279,16 +308,52 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             <div><Label className="text-xs">Qtd. Mínima</Label><Input type="number" {...register("quantidade_minima")} className="h-9 mt-1" /></div>
           </div>
 
-          {/* Custo + SKU */}
+          {/* Custo + Venda (regra de negócio principal) */}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Custo unitário (R$)</Label><Input type="number" step="0.01" {...register("custo_unitario")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Auto se vazio" className="h-9 mt-1" /></div>
+            <div>
+              <Label className="text-xs">Custo unitário (R$) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                {...register("custo_unitario", { onBlur: handleCustoBlur })}
+                placeholder="Obrigatório"
+                className={cn("h-9 mt-1", custoInvalido && "border-destructive focus-visible:ring-destructive")}
+              />
+              {custoInvalido && (
+                <p className="text-[10px] text-destructive mt-0.5">Informe o custo da peça.</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Preço de venda (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register("preco_venda")}
+                placeholder={custoNum > 0 ? `Mín. R$ ${custoNum.toFixed(2)}` : "Auto = custo"}
+                className={cn("h-9 mt-1", vendaMenorCusto && "border-destructive focus-visible:ring-destructive")}
+              />
+              {vendaMenorCusto && (
+                <p className="text-[10px] text-destructive mt-0.5">
+                  Mínimo permitido: R$ {custoNum.toFixed(2)}
+                </p>
+              )}
+              {!vendaMenorCusto && margemZero && (
+                <p className="text-[10px] text-warning mt-0.5">Atenção: margem zero.</p>
+              )}
+              {!vendaMenorCusto && !margemZero && vendaAutoPreenchida && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Sem preço informado — usando o custo.
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Local + Fornecedor */}
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Local do estoque</Label><Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome do fornecedor" className="h-9 mt-1" /></div>
+          {/* SKU + Local + Fornecedor */}
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Auto" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">Local</Label><Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome" className="h-9 mt-1" /></div>
           </div>
 
           {/* Toggle advanced fields */}
@@ -297,7 +362,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             className="text-xs text-primary hover:underline"
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
-            {showAdvanced ? "▾ Menos campos" : "▸ Mais campos (cor, capacidade, serial, preço venda)"}
+            {showAdvanced ? "▾ Menos campos" : "▸ Mais campos (cor, capacidade, serial)"}
           </button>
 
           {showAdvanced && (
@@ -306,9 +371,9 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
                 <div><Label className="text-xs">Cor</Label><Input {...register("cor")} placeholder="Preto" className="h-9 mt-1" /></div>
                 <div><Label className="text-xs">Capacidade</Label><Input {...register("capacidade")} placeholder="128GB" className="h-9 mt-1" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">IMEI / Serial</Label><Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" /></div>
-                <div><Label className="text-xs">Preço venda (R$)</Label><Input type="number" step="0.01" {...register("preco_venda")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
+              <div>
+                <Label className="text-xs">IMEI / Serial</Label>
+                <Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" />
               </div>
             </>
           )}
