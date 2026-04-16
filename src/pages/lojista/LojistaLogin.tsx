@@ -30,10 +30,10 @@ export default function LojistaLogin() {
         const msg = error.message || "";
         if (msg.includes("only request this after")) {
           const match = msg.match(/after (\d+) seconds?/);
-          const segundos = match ? match[1] : "alguns";
+          const seg = match ? match[1] : "alguns";
           toast({
             title: "Aguarde um momento",
-            description: `Por segurança, aguarde ${segundos} segundos antes de solicitar um novo código.`,
+            description: `Aguarde ${seg} segundos antes de solicitar novo código.`,
             variant: "destructive",
           });
         } else if (msg.includes("rate limit") || msg.includes("too many")) {
@@ -45,11 +45,34 @@ export default function LojistaLogin() {
         } else {
           toast({
             title: "Erro ao enviar código",
-            description: "Verifique o email e tente novamente.",
+            description: msg || "Verifique o email e tente novamente.",
             variant: "destructive",
           });
         }
         return;
+      }
+      // ✅ SUCESSO — avançar para tela do código
+      toast({
+        title: "Código enviado!",
+        description: `Verifique seu email e insira o código de 6 dígitos.`,
+      });
+      setStep("otp");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("only request this after")) {
+        const match = msg.match(/after (\d+) seconds?/);
+        const seg = match ? match[1] : "alguns";
+        toast({
+          title: "Aguarde um momento",
+          description: `Aguarde ${seg} segundos antes de solicitar novo código.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro ao enviar código",
+          description: msg || "Tente novamente.",
+          variant: "destructive",
+        });
       }
     } finally {
       setLoading(false);
