@@ -91,11 +91,13 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
     mutationFn: async (values: FormValues) => {
       const clean = (v: string) => v && v !== "__nenhum__" ? v : null;
 
+      const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("empresa_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
-        .single();
+        .or(`user_id.eq.${user?.id},id.eq.${user?.id}`)
+        .eq("ativo", true)
+        .maybeSingle();
       const empresa_id = profile?.empresa_id ?? null;
 
       const payload = {
