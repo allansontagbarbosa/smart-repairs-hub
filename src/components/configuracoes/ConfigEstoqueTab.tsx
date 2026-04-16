@@ -13,12 +13,22 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface Props {
-  estoqueCategorias: any[];
   marcas: any[];
   modelos: any[];
+  cores: any[];
+  capacidades: any[];
 }
 
-function SimpleCrud({ title, items, queryKey, table, fields }: { title: string; items: any[]; queryKey: string; table: string; fields: { key: string; label: string; type?: string }[] }) {
+function SimpleCrud({
+  title, items, queryKey, table, fields, extraColumns,
+}: {
+  title: string;
+  items: any[];
+  queryKey: string;
+  table: string;
+  fields: { key: string; label: string; type?: string }[];
+  extraColumns?: { key: string; label: string; type: "number" | "text" }[];
+}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -27,14 +37,19 @@ function SimpleCrud({ title, items, queryKey, table, fields }: { title: string; 
   const reset = () => { setForm({}); setEditId(null); };
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
-    if (editId) { await supabase.from(table as any).update(form).eq("id", editId); }
-    else { await supabase.from(table as any).insert(form); }
+    const payload: any = { ...form };
+    extraColumns?.forEach((c) => {
+      if (c.type === "number") payload[c.key] = Number(payload[c.key] || 0);
+    });
+    if (editId) { await supabase.from(table as any).update(payload).eq("id", editId); }
+    else { await supabase.from(table as any).insert(payload); }
     qc.invalidateQueries({ queryKey: [queryKey] });
     toast.success("Salvo"); setOpen(false); reset();
   };
   const handleEdit = (item: any) => {
     const f: any = {};
     fields.forEach((fi) => { f[fi.key] = item[fi.key] ?? ""; });
+    extraColumns?.forEach((c) => { f[c.key] = item[c.key] ?? ""; });
     f.ativo = item.ativo;
     setForm(f); setEditId(item.id); setOpen(true);
   };
@@ -52,6 +67,8 @@ function SimpleCrud({ title, items, queryKey, table, fields }: { title: string; 
     toast.success("Removido");
   };
 
+  const allFields = [...fields, ...(extraColumns || [])];
+
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -61,8 +78,15 @@ function SimpleCrud({ title, items, queryKey, table, fields }: { title: string; 
           <DialogContent>
             <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo(a)"} {title}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              {fields.map((f) => (
-                <div key={f.key}><Label>{f.label}</Label><Input value={form[f.key] || ""} onChange={(e) => setForm((p: any) => ({ ...p, [f.key]: e.target.value }))} /></div>
+              {allFields.map((f) => (
+                <div key={f.key}>
+                  <Label>{f.label}</Label>
+                  <Input
+                    type={(f as any).type === "number" ? "number" : "text"}
+                    value={form[f.key] ?? ""}
+                    onChange={(e) => setForm((p: any) => ({ ...p, [f.key]: e.target.value }))}
+                  />
+                </div>
               ))}
               <div className="flex items-center gap-2"><Switch checked={form.ativo !== false} onCheckedChange={(v) => setForm((p: any) => ({ ...p, ativo: v }))} /><Label>Ativo</Label></div>
               <Button onClick={handleSave} className="w-full">{editId ? "Salvar" : "Cadastrar"}</Button>
@@ -75,6 +99,9 @@ function SimpleCrud({ title, items, queryKey, table, fields }: { title: string; 
           {items.map((item) => (
             <div key={item.id} className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-2">
+                {item.hex && (
+                  <span className="inline-block h-3 w-3 rounded-full border" style={{ backgroundColor: item.hex }} />
+                )}
                 <span className="text-sm">{item.nome}</span>
                 {!item.ativo && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
               </div>
@@ -107,9 +134,7 @@ function ModelosCrud({ modelos, marcas }: { modelos: any[]; marcas: any[] }) {
   };
   const handleEdit = (m: any) => { setForm({ nome: m.nome, marca_id: m.marca_id, ativo: m.ativo }); setEditId(m.id); setOpen(true); };
   const handleDelete = async (id: string) => {
-    // Limpa referências antes de deletar
     await supabase.from("produtos_base" as any).update({ modelo_id: null }).eq("modelo_id", id);
-
     const { error } = await supabase.from("modelos").delete().eq("id", id);
     if (error) {
       if (error.code === "23503") {
@@ -168,12 +193,27 @@ function ModelosCrud({ modelos, marcas }: { modelos: any[]; marcas: any[] }) {
   );
 }
 
-export function ConfigEstoqueTab({ estoqueCategorias, marcas, modelos }: Props) {
+export function ConfigEstoqueTab({ marcas, modelos, cores, capacidades }: Props) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <SimpleCrud title="Categorias de Estoque" items={estoqueCategorias} queryKey="estoque_categorias" table="estoque_categorias" fields={[{ key: "nome", label: "Nome" }, { key: "descricao", label: "Descrição" }]} />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
       <SimpleCrud title="Marcas" items={marcas} queryKey="marcas" table="marcas" fields={[{ key: "nome", label: "Nome" }]} />
       <ModelosCrud modelos={modelos} marcas={marcas} />
+      <SimpleCrud
+        title="Cores"
+        items={cores}
+        queryKey="cores"
+        table="cores"
+        fields={[{ key: "nome", label: "Nome" }]}
+        extraColumns={[{ key: "hex", label: "Cor HEX (ex: #000000)", type: "text" }]}
+      />
+      <SimpleCrud
+        title="Capacidades"
+        items={capacidades}
+        queryKey="capacidades"
+        table="capacidades"
+        fields={[{ key: "nome", label: "Nome (ex: 128GB)" }]}
+        extraColumns={[{ key: "ordem", label: "Ordem de exibição", type: "number" }]}
+      />
     </div>
   );
 }

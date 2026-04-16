@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
+import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -86,9 +87,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [imei, setImei] = useState("");
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [marca, setMarca] = useState("");
+  const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
+  const [modeloId, setModeloId] = useState("");
   const [cor, setCor] = useState("");
+  const [corId, setCorId] = useState("");
   const [capacidade, setCapacidade] = useState("");
+  const [capacidadeId, setCapacidadeId] = useState("");
   const [senhaDesbloqueio, setSenhaDesbloqueio] = useState("");
   const [acessorios, setAcessorios] = useState("");
 
@@ -174,6 +179,71 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
   });
 
+  const queryClientRef = queryClient;
+
+  const { data: marcasList = [] } = useQuery({
+    queryKey: ["marcas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("marcas").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: modelosList = [] } = useQuery({
+    queryKey: ["modelos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modelos").select("id, nome, marca_id").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: coresList = [] } = useQuery({
+    queryKey: ["cores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("cores").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: capacidadesList = [] } = useQuery({
+    queryKey: ["capacidades"],
+    queryFn: async () => {
+      const { data } = await supabase.from("capacidades").select("id, nome, ordem").eq("ativo", true).order("ordem").order("nome");
+      return data ?? [];
+    },
+  });
+
+  const modelosFiltrados = useMemo(
+    () => marcaId ? modelosList.filter((m: any) => m.marca_id === marcaId) : modelosList,
+    [modelosList, marcaId]
+  );
+
+  async function createMarca(nome: string) {
+    const { data, error } = await supabase.from("marcas").insert({ nome }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["marcas"] });
+    return data;
+  }
+  async function createModelo(nome: string) {
+    if (!marcaId) return null;
+    const { data, error } = await supabase.from("modelos").insert({ nome, marca_id: marcaId }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["modelos"] });
+    return data;
+  }
+  async function createCor(nome: string) {
+    const { data, error } = await supabase.from("cores").insert({ nome }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["cores"] });
+    return data;
+  }
+  async function createCapacidade(nome: string) {
+    const { data, error } = await supabase.from("capacidades").insert({ nome }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["capacidades"] });
+    return data;
+  }
+
   // ── Derived ──
   const clientesFiltrados = clientes.filter((c) =>
     !clientSearch ||
@@ -220,10 +290,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setClientSearch("");
     setImei("");
     setImeiResult({ status: "idle" });
-    setMarca("");
-    setModelo("");
-    setCor("");
-    setCapacidade("");
+    setMarca(""); setMarcaId("");
+    setModelo(""); setModeloId("");
+    setCor(""); setCorId("");
+    setCapacidade(""); setCapacidadeId("");
     setSenhaDesbloqueio("");
     setAcessorios("");
     setDefeitoSearch("");
@@ -288,10 +358,26 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         setImeiResult({ status: "not_found", message: result.message });
         return;
       }
-      if (result.marca) setMarca(result.marca);
-      if (result.modelo) setModelo(result.modelo);
-      if (result.cor) setCor(result.cor);
-      if (result.capacidade) setCapacidade(result.capacidade);
+      if (result.marca) {
+        setMarca(result.marca);
+        const m = marcasList.find((x: any) => x.nome.toLowerCase() === result.marca!.toLowerCase());
+        if (m) setMarcaId(m.id);
+      }
+      if (result.modelo) {
+        setModelo(result.modelo);
+        const m = modelosList.find((x: any) => x.nome.toLowerCase() === result.modelo!.toLowerCase());
+        if (m) setModeloId(m.id);
+      }
+      if (result.cor) {
+        setCor(result.cor);
+        const c = coresList.find((x: any) => x.nome.toLowerCase() === result.cor!.toLowerCase());
+        if (c) setCorId(c.id);
+      }
+      if (result.capacidade) {
+        setCapacidade(result.capacidade);
+        const c = capacidadesList.find((x: any) => x.nome.toLowerCase() === result.capacidade!.toLowerCase());
+        if (c) setCapacidadeId(c.id);
+      }
       setImeiResult({
         status: result.status as ImeiStatus,
         marca: result.marca,
@@ -321,7 +407,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           cor: cor || null,
           capacidade: capacidade || null,
           imei: imei.replace(/\D/g, "") || null,
-        })
+          marca_id: marcaId || null,
+          modelo_id: modeloId || null,
+          cor_id: corId || null,
+          capacidade_id: capacidadeId || null,
+        } as any)
         .select().single();
       if (apErr) throw apErr;
 
@@ -608,10 +698,50 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs text-muted-foreground">Marca *</Label><Input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Apple, Samsung..." className="mt-1 h-9" required /></div>
-                <div><Label className="text-xs text-muted-foreground">Modelo *</Label><Input value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="iPhone 15, S24..." className="mt-1 h-9" required /></div>
-                <div><Label className="text-xs text-muted-foreground">Cor</Label><Input value={cor} onChange={(e) => setCor(e.target.value)} placeholder="Preto, Branco..." className="mt-1 h-9" /></div>
-                <div><Label className="text-xs text-muted-foreground">Capacidade</Label><Input value={capacidade} onChange={(e) => setCapacidade(e.target.value)} placeholder="128GB, 256GB..." className="mt-1 h-9" /></div>
+                <ComboboxWithCreate
+                  label="Marca *"
+                  value={marcaId}
+                  items={marcasList}
+                  placeholder="Apple, Samsung..."
+                  entityName="marca"
+                  onChange={(id, nome) => {
+                    setMarcaId(id);
+                    setMarca(nome);
+                    // limpa modelo se marca mudar
+                    setModeloId("");
+                    setModelo("");
+                  }}
+                  onCreate={createMarca}
+                />
+                <ComboboxWithCreate
+                  label="Modelo *"
+                  value={modeloId}
+                  items={modelosFiltrados}
+                  placeholder={marcaId ? "iPhone 15, S24..." : "Selecione a marca primeiro"}
+                  entityName="modelo"
+                  onChange={(id, nome) => { setModeloId(id); setModelo(nome); }}
+                  onCreate={createModelo}
+                  disabled={!marcaId}
+                  disabledReason="Selecione uma marca primeiro"
+                />
+                <ComboboxWithCreate
+                  label="Cor"
+                  value={corId}
+                  items={coresList}
+                  placeholder="Preto, Branco..."
+                  entityName="cor"
+                  onChange={(id, nome) => { setCorId(id); setCor(nome); }}
+                  onCreate={createCor}
+                />
+                <ComboboxWithCreate
+                  label="Capacidade"
+                  value={capacidadeId}
+                  items={capacidadesList}
+                  placeholder="128GB, 256GB..."
+                  entityName="capacidade"
+                  onChange={(id, nome) => { setCapacidadeId(id); setCapacidade(nome); }}
+                  onCreate={createCapacidade}
+                />
               </div>
 
               <div><Label className="text-xs text-muted-foreground">Senha / padrão de desbloqueio</Label><Input value={senhaDesbloqueio} onChange={(e) => setSenhaDesbloqueio(e.target.value)} placeholder="Fornecida pelo cliente (opcional)" className="mt-1 h-9" /></div>
