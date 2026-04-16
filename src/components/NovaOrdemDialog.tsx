@@ -179,6 +179,71 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
   });
 
+  const queryClientRef = queryClient;
+
+  const { data: marcasList = [] } = useQuery({
+    queryKey: ["marcas"],
+    queryFn: async () => {
+      const { data } = await supabase.from("marcas").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: modelosList = [] } = useQuery({
+    queryKey: ["modelos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("modelos").select("id, nome, marca_id").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: coresList = [] } = useQuery({
+    queryKey: ["cores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("cores").select("id, nome").eq("ativo", true).order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: capacidadesList = [] } = useQuery({
+    queryKey: ["capacidades"],
+    queryFn: async () => {
+      const { data } = await supabase.from("capacidades").select("id, nome, ordem").eq("ativo", true).order("ordem").order("nome");
+      return data ?? [];
+    },
+  });
+
+  const modelosFiltrados = useMemo(
+    () => marcaId ? modelosList.filter((m: any) => m.marca_id === marcaId) : modelosList,
+    [modelosList, marcaId]
+  );
+
+  async function createMarca(nome: string) {
+    const { data, error } = await supabase.from("marcas").insert({ nome }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["marcas"] });
+    return data;
+  }
+  async function createModelo(nome: string) {
+    if (!marcaId) return null;
+    const { data, error } = await supabase.from("modelos").insert({ nome, marca_id: marcaId }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["modelos"] });
+    return data;
+  }
+  async function createCor(nome: string) {
+    const { data, error } = await supabase.from("cores").insert({ nome }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["cores"] });
+    return data;
+  }
+  async function createCapacidade(nome: string) {
+    const { data, error } = await supabase.from("capacidades").insert({ nome }).select("id, nome").single();
+    if (error) throw error;
+    queryClientRef.invalidateQueries({ queryKey: ["capacidades"] });
+    return data;
+  }
+
   // ── Derived ──
   const clientesFiltrados = clientes.filter((c) =>
     !clientSearch ||
