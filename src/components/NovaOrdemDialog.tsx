@@ -90,10 +90,27 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [newClientNome, setNewClientNome] = useState("");
   const [newClientTelefone, setNewClientTelefone] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientCpfCnpj, setNewClientCpfCnpj] = useState("");
+  const [newClientNascimento, setNewClientNascimento] = useState<Date | undefined>();
+  const [newClientCep, setNewClientCep] = useState("");
+  const [newClientRua, setNewClientRua] = useState("");
+  const [newClientNumero, setNewClientNumero] = useState("");
+  const [newClientComplemento, setNewClientComplemento] = useState("");
+  const [newClientBairro, setNewClientBairro] = useState("");
+  const [newClientCidade, setNewClientCidade] = useState("");
+  const [newClientEstado, setNewClientEstado] = useState("");
+  const [newClientOrigem, setNewClientOrigem] = useState("");
+  const [newClientObs, setNewClientObs] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
+  // Resultado de busca por IMEI (15 dígitos no campo busca)
+  const [imeiSearchHits, setImeiSearchHits] = useState<Array<{ cliente_id: string; cliente_nome: string; cliente_telefone: string; aparelho_label: string; numero_os?: string | null }>>([]);
 
   // Aparelho
   const [imei, setImei] = useState("");
+  const [imei2, setImei2] = useState("");
+  const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
+  const [aparelhoExistente, setAparelhoExistente] = useState<{ id: string; cliente_id: string; cliente_nome: string; total_os: number; mesmo_cliente: boolean } | null>(null);
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [marca, setMarca] = useState("");
   const [marcaId, setMarcaId] = useState("");
