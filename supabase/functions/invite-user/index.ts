@@ -137,6 +137,25 @@ Deno.serve(async (req) => {
             ativo: true,
           });
         }
+
+        // Reenviar email de convite para o usuário existente
+        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+          type: "invite",
+          email: email,
+          options: {
+            data: { full_name: nome, perfil_id, empresa_id },
+            redirectTo: `${siteUrl}/aceitar-convite`,
+          },
+        });
+
+        // Se não conseguir gerar link de convite, tentar recovery como fallback
+        if (linkError) {
+          await adminClient.auth.admin.generateLink({
+            type: "recovery",
+            email: email,
+            options: { redirectTo: `${siteUrl}/aceitar-convite` },
+          });
+        }
       } else {
         return new Response(JSON.stringify({ error: inviteError.message }), {
           status: 400,
