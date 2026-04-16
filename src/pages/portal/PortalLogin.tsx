@@ -226,6 +226,12 @@ export default function PortalLogin() {
           <p className="text-[11px] text-center text-muted-foreground">
             O login com Google é opcional — serve para ver o histórico completo de seus aparelhos.
           </p>
+
+          <div className="text-center">
+            <a href="/consulta" className="text-xs text-primary hover:underline">
+              Consultar OS sem login →
+            </a>
+          </div>
         </div>
       </div>
     </div>

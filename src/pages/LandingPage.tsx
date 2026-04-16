@@ -6,7 +6,7 @@ import { AssistProLogo } from "@/components/AssistProLogo";
 import { APP_CONFIG } from "@/config/app";
 import {
   Wrench, Package, DollarSign, BrainCircuit, Globe, BarChart3,
-  Check, Star, ArrowRight, Smartphone
+  Check, Star, ArrowRight, Smartphone, Search
 } from "lucide-react";
 
 const features = [
@@ -98,6 +98,24 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="text-sm text-muted-foreground">Sem cartão de crédito • Cancele quando quiser</p>
+
+          {/* Consulta pública */}
+          <div className="pt-4">
+            <Link to="/consulta">
+              <Card className="max-w-md mx-auto border-primary/20 hover:border-primary/40 transition-colors cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Search className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold">Consultar minha OS</p>
+                    <p className="text-xs text-muted-foreground">Acompanhe seu reparo pelo número da OS ou IMEI do aparelho</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 ml-auto" />
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
         </div>
       </section>
 
