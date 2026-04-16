@@ -119,6 +119,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
   const [lojistaId, setLojistaId] = useState("");
 
+  // Financeiro
+  const [desconto, setDesconto] = useState("");
+  const [sinalPago, setSinalPago] = useState("");
+  const [formaPagamentoSinal, setFormaPagamentoSinal] = useState("nenhum");
+  const [orcamentoStatus, setOrcamentoStatus] = useState<"aguardando" | "aprovado" | "recusado">("aguardando");
+  const [garantiaDias, setGarantiaDias] = useState("90");
+
   const imeiRef = useRef<HTMLInputElement>(null);
 
   // Auto-set previsão when entering step servico
