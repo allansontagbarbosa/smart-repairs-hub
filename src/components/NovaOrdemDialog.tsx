@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
+import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -86,9 +87,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [imei, setImei] = useState("");
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [marca, setMarca] = useState("");
+  const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
+  const [modeloId, setModeloId] = useState("");
   const [cor, setCor] = useState("");
+  const [corId, setCorId] = useState("");
   const [capacidade, setCapacidade] = useState("");
+  const [capacidadeId, setCapacidadeId] = useState("");
   const [senhaDesbloqueio, setSenhaDesbloqueio] = useState("");
   const [acessorios, setAcessorios] = useState("");
 
@@ -220,10 +225,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setClientSearch("");
     setImei("");
     setImeiResult({ status: "idle" });
-    setMarca("");
-    setModelo("");
-    setCor("");
-    setCapacidade("");
+    setMarca(""); setMarcaId("");
+    setModelo(""); setModeloId("");
+    setCor(""); setCorId("");
+    setCapacidade(""); setCapacidadeId("");
     setSenhaDesbloqueio("");
     setAcessorios("");
     setDefeitoSearch("");
