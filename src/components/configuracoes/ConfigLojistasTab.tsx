@@ -23,7 +23,6 @@ export function ConfigLojistasTab() {
   const [accessEmail, setAccessEmail] = useState("");
   const [accessSent, setAccessSent] = useState(false);
 
-  // Form state
   const [nome, setNome] = useState("");
   const [razaoSocial, setRazaoSocial] = useState("");
   const [cnpj, setCnpj] = useState("");
@@ -62,25 +61,13 @@ export function ConfigLojistasTab() {
     },
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("lojistas").update({ ativo }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] });
-      toast.success("Status atualizado!");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = { nome, razao_social: razaoSocial || null, cnpj: cnpj || null, telefone: telefone || null, whatsapp: whatsapp || null, email: email || null, responsavel: responsavel || null, observacoes: observacoes || null };
       if (editing) {
         const { error } = await supabase.from("lojistas").update(payload).eq("id", editing.id);
         if (error) throw error;
-        return editing.id;
+        return editing.id as string;
       } else {
         const { data, error } = await supabase.from("lojistas").insert(payload).select("id").single();
         if (error) throw error;
@@ -103,6 +90,14 @@ export function ConfigLojistasTab() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("lojistas").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] }),
+  });
+
   const sendAccessMutation = useMutation({
     mutationFn: async () => {
       if (!savedLojistaId || !accessEmail.trim()) throw new Error("Email obrigatório");
@@ -115,15 +110,17 @@ export function ConfigLojistasTab() {
       const empresa_id = profile?.empresa_id;
       if (!empresa_id) throw new Error("Empresa não encontrada");
 
+      // Try to invite the user via edge function
       const { data: inviteResult, error: inviteError } = await supabase.functions.invoke("invite-user", {
         body: { email: accessEmail, nome: responsavel || nome, empresa_id },
       });
 
       let userId: string | null = null;
 
-      if (inviteError) {
-        const errMsg = (inviteResult as any)?.error || inviteError.message || "";
-        if (errMsg.includes("already been registered") || errMsg.includes("409")) {
+      if (inviteError || inviteResult?.error) {
+        const errMsg = inviteResult?.error || inviteError?.message || "";
+        if (errMsg.includes("already been registered")) {
+          // User exists in auth — find their user_id via funcionarios → user_profiles
           const { data: func } = await supabase
             .from("funcionarios")
             .select("id")
@@ -141,7 +138,7 @@ export function ConfigLojistasTab() {
           }
 
           if (!userId) {
-            throw new Error("Usuário já existe mas não foi possível vincular automaticamente. Peça ao usuário para fazer login em /lojista/login e tente vincular manualmente.");
+            throw new Error("Usuário já registrado mas não foi possível vincular. Peça ao usuário para acessar /lojista/login e tente novamente.");
           }
         } else {
           throw new Error(errMsg || "Erro ao enviar convite");
@@ -152,6 +149,7 @@ export function ConfigLojistasTab() {
 
       if (!userId) throw new Error("Não foi possível obter o ID do usuário");
 
+      // Check if lojista_usuarios already exists
       const { data: existing } = await supabase
         .from("lojista_usuarios")
         .select("id")
