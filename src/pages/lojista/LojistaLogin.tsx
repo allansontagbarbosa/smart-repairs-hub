@@ -22,26 +22,34 @@ export default function LojistaLogin() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: false,
+          shouldCreateUser: true,
           emailRedirectTo: `${window.location.origin}/lojista`,
         },
       });
-      if (error) throw error;
-      toast({
-        title: "Código enviado!",
-        description: `Verifique seu email ${email} e insira o código de 6 dígitos.`,
-      });
-      setStep("otp");
-    } catch (err: any) {
-      const msg = err.message || "";
-      if (msg.includes("Signups not allowed") || msg.includes("not found")) {
-        toast({
-          title: "Email não cadastrado",
-          description: "Este email não tem acesso ao portal. Entre em contato com a assistência.",
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "Erro", description: msg, variant: "destructive" });
+      if (error) {
+        const msg = error.message || "";
+        if (msg.includes("only request this after")) {
+          const match = msg.match(/after (\d+) seconds?/);
+          const segundos = match ? match[1] : "alguns";
+          toast({
+            title: "Aguarde um momento",
+            description: `Por segurança, aguarde ${segundos} segundos antes de solicitar um novo código.`,
+            variant: "destructive",
+          });
+        } else if (msg.includes("rate limit") || msg.includes("too many")) {
+          toast({
+            title: "Muitas tentativas",
+            description: "Aguarde alguns minutos antes de tentar novamente.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erro ao enviar código",
+            description: "Verifique o email e tente novamente.",
+            variant: "destructive",
+          });
+        }
+        return;
       }
     } finally {
       setLoading(false);
