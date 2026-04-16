@@ -453,16 +453,25 @@ export type Database = {
       }
       clientes: {
         Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           cpf: string | null
           created_at: string
+          data_nascimento: string | null
           deleted_at: string | null
           documento: string | null
           email: string | null
           empresa_id: string | null
+          estado: string | null
           id: string
           lojista_id: string | null
           nome: string
+          numero_endereco: string | null
           observacoes: string | null
+          origem: string | null
+          rua: string | null
           status: string
           telefone: string
           updated_at: string
@@ -470,16 +479,25 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
+          data_nascimento?: string | null
           deleted_at?: string | null
           documento?: string | null
           email?: string | null
           empresa_id?: string | null
+          estado?: string | null
           id?: string
           lojista_id?: string | null
           nome: string
+          numero_endereco?: string | null
           observacoes?: string | null
+          origem?: string | null
+          rua?: string | null
           status?: string
           telefone: string
           updated_at?: string
@@ -487,16 +505,25 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
+          data_nascimento?: string | null
           deleted_at?: string | null
           documento?: string | null
           email?: string | null
           empresa_id?: string | null
+          estado?: string | null
           id?: string
           lojista_id?: string | null
           nome?: string
+          numero_endereco?: string | null
           observacoes?: string | null
+          origem?: string | null
+          rua?: string | null
           status?: string
           telefone?: string
           updated_at?: string
@@ -2381,7 +2408,10 @@ export type Database = {
         Row: {
           aparelho_id: string
           aprovacao_orcamento: string | null
+          aprovado_no_ato: boolean | null
+          bateria_entrada: number | null
           checklist_entrada: Json | null
+          contato_preferido: string | null
           created_at: string
           created_by: string | null
           custo_pecas: number | null
@@ -2394,11 +2424,14 @@ export type Database = {
           desconto: number
           diagnostico: string | null
           empresa_id: string | null
+          estado_geral: string | null
           forma_pagamento_id: string | null
           forma_pagamento_sinal: string | null
           funcionario_id: string | null
           garantia_dias: number
           id: string
+          imei2: string | null
+          liga: string | null
           loja_id: string | null
           lojista_id: string | null
           mao_obra_adicional: number
@@ -2412,6 +2445,7 @@ export type Database = {
           previsao_entrega: string | null
           prioridade: string
           referencia_lote: string | null
+          relato_cliente: string | null
           retrabalho: boolean
           servico_realizado: string | null
           sinal_pago: number
@@ -2428,7 +2462,10 @@ export type Database = {
         Insert: {
           aparelho_id: string
           aprovacao_orcamento?: string | null
+          aprovado_no_ato?: boolean | null
+          bateria_entrada?: number | null
           checklist_entrada?: Json | null
+          contato_preferido?: string | null
           created_at?: string
           created_by?: string | null
           custo_pecas?: number | null
@@ -2441,11 +2478,14 @@ export type Database = {
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
+          estado_geral?: string | null
           forma_pagamento_id?: string | null
           forma_pagamento_sinal?: string | null
           funcionario_id?: string | null
           garantia_dias?: number
           id?: string
+          imei2?: string | null
+          liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
           mao_obra_adicional?: number
@@ -2459,6 +2499,7 @@ export type Database = {
           previsao_entrega?: string | null
           prioridade?: string
           referencia_lote?: string | null
+          relato_cliente?: string | null
           retrabalho?: boolean
           servico_realizado?: string | null
           sinal_pago?: number
@@ -2475,7 +2516,10 @@ export type Database = {
         Update: {
           aparelho_id?: string
           aprovacao_orcamento?: string | null
+          aprovado_no_ato?: boolean | null
+          bateria_entrada?: number | null
           checklist_entrada?: Json | null
+          contato_preferido?: string | null
           created_at?: string
           created_by?: string | null
           custo_pecas?: number | null
@@ -2488,11 +2532,14 @@ export type Database = {
           desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
+          estado_geral?: string | null
           forma_pagamento_id?: string | null
           forma_pagamento_sinal?: string | null
           funcionario_id?: string | null
           garantia_dias?: number
           id?: string
+          imei2?: string | null
+          liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
           mao_obra_adicional?: number
@@ -2506,6 +2553,7 @@ export type Database = {
           previsao_entrega?: string | null
           prioridade?: string
           referencia_lote?: string | null
+          relato_cliente?: string | null
           retrabalho?: boolean
           servico_realizado?: string | null
           sinal_pago?: number
