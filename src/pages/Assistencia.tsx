@@ -237,6 +237,22 @@ export default function Assistencia() {
     enabled: showOlder,
   });
 
+  // Fetch active guarantees for "Em garantia" badge
+  const { data: garantiasAtivas = [] } = useQuery({
+    queryKey: ["garantias-ativas"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("garantias")
+        .select("ordem_id, data_fim, status")
+        .eq("status", "ativa")
+        .gte("data_fim", hoje);
+      return data ?? [];
+    },
+  });
+
+  const garantiaOrdemIds = useMemo(() => new Set(garantiasAtivas.map(g => g.ordem_id)), [garantiasAtivas]);
+
   const orders = useMemo(() => {
     const recent = recentResult?.data ?? [];
     return showOlder ? [...recent, ...olderOrders] : recent;
