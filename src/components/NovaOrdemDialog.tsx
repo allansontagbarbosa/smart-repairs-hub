@@ -140,6 +140,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [maoObraAdicional, setMaoObraAdicional] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [obsCliente, setObsCliente] = useState("");
+  const [relatoCliente, setRelatoCliente] = useState("");
+  const [contatoPreferido, setContatoPreferido] = useState<"whatsapp" | "ligacao" | "sms" | "email">("whatsapp");
+  const [aprovadoNoAto, setAprovadoNoAto] = useState(false);
   const [tecnico, setTecnico] = useState("");
   const [tecnicoId, setTecnicoId] = useState("");
   const [localizacao, setLocalizacao] = useState("");
