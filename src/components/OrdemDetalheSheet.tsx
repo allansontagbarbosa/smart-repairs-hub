@@ -207,6 +207,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     },
   });
 
+  const { data: empresaImpressao } = useQuery({
+    queryKey: ["empresa_config_impressao"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("empresa_config")
+        .select("nome, cnpj_cpf, telefone, email, endereco, cidade, estado, logo_url")
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: ordem ? `OS-${formatNumeroOS((ordem as any).numero, (ordem as any).numero_formatado)}` : "OS",
+  });
+
   const addPecaMutation = useMutation({
     mutationFn: async ({ pecaId, qtd }: { pecaId: string; qtd: number }) => {
       if (!ordem) return;
@@ -364,7 +380,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             <SheetHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-lg">
-                  OS #{String(ordem.numero).padStart(3, "0")}
+                  {labelOS((ordem as any).numero, (ordem as any).numero_formatado)}
                 </SheetTitle>
                 <StatusBadge status={ordem.status} />
               </div>
