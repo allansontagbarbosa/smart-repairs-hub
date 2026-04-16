@@ -237,6 +237,22 @@ export default function Assistencia() {
     enabled: showOlder,
   });
 
+  // Fetch active guarantees for "Em garantia" badge
+  const { data: garantiasAtivas = [] } = useQuery({
+    queryKey: ["garantias-ativas"],
+    queryFn: async () => {
+      const hoje = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("garantias")
+        .select("ordem_id, data_fim, status")
+        .eq("status", "ativa")
+        .gte("data_fim", hoje);
+      return data ?? [];
+    },
+  });
+
+  const garantiaOrdemIds = useMemo(() => new Set(garantiasAtivas.map(g => g.ordem_id)), [garantiasAtivas]);
+
   const orders = useMemo(() => {
     const recent = recentResult?.data ?? [];
     return showOlder ? [...recent, ...olderOrders] : recent;
@@ -377,6 +393,7 @@ export default function Assistencia() {
     const valor = Number(order.valor ?? 0);
     const custo = Number(order.custo_pecas ?? 0);
     const lucro = valor - custo;
+    const temGarantia = garantiaOrdemIds.has(order.id);
 
     return (
       <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""}`}>
@@ -389,9 +406,19 @@ export default function Assistencia() {
         <td className="px-3 py-2.5 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
           <p className="text-sm font-medium truncate max-w-[180px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
           <p className="text-xs text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
-          <div className="flex gap-2 mt-0.5">
+          <div className="flex gap-2 mt-0.5 flex-wrap">
             <PrazoTag previsao={order.previsao_entrega} status={order.status} />
             <PecasPendentesTag temPeca={order.temPecaPendente} />
+            {temGarantia && order.status === "entregue" && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-success font-medium">
+                <Shield className="h-3 w-3" /> Em garantia
+              </span>
+            )}
+            {order.retrabalho && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-warning font-medium">
+                <RefreshCw className="h-3 w-3" /> Retrabalho
+              </span>
+            )}
           </div>
         </td>
 

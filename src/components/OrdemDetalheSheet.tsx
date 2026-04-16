@@ -885,16 +885,62 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       const borderColor = isUtilizada ? "border-muted" : isVencida ? "border-destructive/30" : isVencendo ? "border-warning/30" : "border-success/30";
                       const bgColor = isUtilizada ? "bg-muted/30" : isVencida ? "bg-destructive/5" : isVencendo ? "bg-warning/5" : "bg-success/5";
                       return (
-                        <div className={cn("rounded-lg border p-3", borderColor, bgColor)}>
-                          <div className="flex items-center gap-2 mb-1">
+                        <div className={cn("rounded-lg border p-3 space-y-2", borderColor, bgColor)}>
+                          <div className="flex items-center gap-2">
                             <Shield className={cn("h-4 w-4", isUtilizada ? "text-muted-foreground" : isVencida ? "text-destructive" : isVencendo ? "text-warning" : "text-success")} />
                             <span className="text-sm font-medium">
                               {isUtilizada ? "Utilizada" : isVencida ? "Vencida" : isVencendo ? `Vencendo — ${diasRestantes} dias` : `Ativa — ${diasRestantes} dias restantes`}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Válida até {new Date(garantia.data_fim).toLocaleDateString("pt-BR")} ({garantia.dias_garantia} dias)
+                            Início: {new Date(garantia.data_inicio).toLocaleDateString("pt-BR")} · Fim: {new Date(garantia.data_fim).toLocaleDateString("pt-BR")} ({garantia.dias_garantia} dias)
                           </p>
+                          {isAtiva && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-xs gap-1.5 border-warning/50 text-warning hover:bg-warning/10"
+                              onClick={async () => {
+                                if (!ordem || !orderId) return;
+                                const confirmed = confirm("Deseja criar uma nova OS de garantia vinculada a esta ordem?");
+                                if (!confirmed) return;
+                                try {
+                                  // Create new OS linked to original
+                                  const { data: novaOS, error: osError } = await supabase
+                                    .from("ordens_de_servico")
+                                    .insert({
+                                      aparelho_id: ordem.aparelho_id,
+                                      defeito_relatado: `[GARANTIA] Acionamento ref. OS #${ordem.numero}`,
+                                      status: "recebido" as any,
+                                      os_origem_id: orderId,
+                                      retrabalho: true,
+                                      loja_id: ordem.loja_id,
+                                      funcionario_id: ordem.funcionario_id,
+                                      tipo_servico_id: ordem.tipo_servico_id,
+                                    })
+                                    .select("id, numero")
+                                    .single();
+                                  if (osError) throw osError;
+
+                                  // Mark guarantee as used
+                                  await supabase
+                                    .from("garantias")
+                                    .update({ status: "utilizada" } as any)
+                                    .eq("id", garantia.id);
+
+                                  queryClient.invalidateQueries({ queryKey: ["garantia_os", orderId] });
+                                  queryClient.invalidateQueries({ queryKey: ["ordens"] });
+                                  queryClient.invalidateQueries({ queryKey: ["garantias_list"] });
+                                  toast.success(`OS de garantia #${novaOS.numero} criada com sucesso!`);
+                                } catch (err: any) {
+                                  toast.error(err?.message || "Erro ao acionar garantia");
+                                }
+                              }}
+                            >
+                              <Shield className="h-3.5 w-3.5" />
+                              Acionar Garantia (Nova OS)
+                            </Button>
+                          )}
                         </div>
                       );
                     })()}
