@@ -949,9 +949,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                       >
                         <div>
                           <p className="text-sm">{getPecaNome(p)}</p>
-                          <p className="text-[10px] text-muted-foreground">Estoque: {p.quantidade} | SKU: {p.sku || "—"}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Estoque: <span className={p.quantidade === 0 ? "text-destructive font-medium" : ""}>{p.quantidade}</span> | SKU: {p.sku || "—"}
+                          </p>
                         </div>
-                        <span className="text-xs font-medium text-green-600">
+                        <span className="text-xs font-medium text-success">
                           R$ {Number(p.preco_venda ?? 0).toFixed(2)}
                         </span>
                       </button>
@@ -962,11 +964,44 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {/* Peças selecionadas */}
                 {pecasSelecionadas.length > 0 && (
                   <div className="rounded-lg border divide-y">
-                    {pecasSelecionadas.map(p => (
+                    {pecasSelecionadas.map(p => {
+                      const isAuto = p.origens.length > 0;
+                      const semEstoque = p.estoque_disponivel === 0;
+                      const estoqueInsuficiente = !semEstoque && p.estoque_disponivel < p.quantidade;
+                      const origemNomes = p.origens
+                        .map(id => servicoNomePorId.get(id))
+                        .filter(Boolean) as string[];
+                      return (
                       <div key={p.id} className="flex items-center justify-between px-3 py-2">
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{p.nome}</p>
-                          <p className="text-[10px] text-muted-foreground">R$ {p.preco_venda.toFixed(2)} / un</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-medium truncate">{p.nome}</p>
+                            {isAuto && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
+                                auto
+                              </span>
+                            )}
+                            {semEstoque && (
+                              <AlertCircle className="h-3 w-3 text-destructive shrink-0" />
+                            )}
+                            {estoqueInsuficiente && (
+                              <AlertCircle className="h-3 w-3 text-warning shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            R$ {p.preco_venda.toFixed(2)} / un
+                            {isAuto && origemNomes.length > 0 && (
+                              <span className="ml-1">· do serviço: {origemNomes.join(", ")}</span>
+                            )}
+                          </p>
+                          {semEstoque && (
+                            <p className="text-[10px] text-destructive">Sem estoque — será necessário repor</p>
+                          )}
+                          {estoqueInsuficiente && (
+                            <p className="text-[10px] text-warning">
+                              Estoque insuficiente: {p.estoque_disponivel} disponível, {p.quantidade} necessária{p.quantidade > 1 ? "s" : ""}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 ml-2">
                           <button type="button" onClick={() => updatePecaQtd(p.id, -1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
@@ -984,7 +1019,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                           R$ {(p.preco_venda * p.quantidade).toFixed(2)}
                         </span>
                       </div>
-                    ))}
+                    );})}
                   </div>
                 )}
               </div>
