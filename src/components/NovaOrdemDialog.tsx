@@ -115,9 +115,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // Serviço — outros
   const [maoObraAdicional, setMaoObraAdicional] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [obsCliente, setObsCliente] = useState("");
   const [tecnico, setTecnico] = useState("");
+  const [tecnicoId, setTecnicoId] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
+  const [previsaoHora, setPrevisaoHora] = useState("18:00");
+  const [checklist, setChecklist] = useState<Record<string, ChecklistStatus>>({});
+  const [checklistCustom, setChecklistCustom] = useState<{ key: string; label: string }[]>([]);
   const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
   const [lojistaId, setLojistaId] = useState("");
 
@@ -130,10 +135,18 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   const imeiRef = useRef<HTMLInputElement>(null);
 
-  // Auto-set previsão when entering step servico
+  // Auto-set previsão when entering step servico (default: hoje + 3 dias úteis às 18:00)
   useEffect(() => {
     if (step === "servico" && !previsaoEntrega) {
-      setPrevisaoEntrega(addDays(new Date(), 2));
+      let d = new Date();
+      let added = 0;
+      while (added < 3) {
+        d = addDays(d, 1);
+        const dow = d.getDay();
+        if (dow !== 0 && dow !== 6) added++;
+      }
+      setPrevisaoEntrega(d);
+      setPrevisaoHora("18:00");
     }
   }, [step]);
 
@@ -412,9 +425,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setPecasSelecionadas([]);
     setMaoObraAdicional("");
     setObservacoes("");
+    setObsCliente("");
     setTecnico("");
+    setTecnicoId("");
     setLocalizacao("");
     setPrevisaoEntrega(undefined);
+    setPrevisaoHora("18:00");
+    setChecklist({});
+    setChecklistCustom([]);
     setCreatedOS(null);
     setLojistaId("");
     setDesconto("");
