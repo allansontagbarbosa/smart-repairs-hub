@@ -281,6 +281,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const changeStatus = useMutation({
     mutationFn: async (newStatus: Status) => {
       if (!ordem) return;
+
+      // Bloqueio: só permite "em_reparo" se orçamento aprovado
+      const orcStatus = (ordem as any).aprovacao_orcamento;
+      if (newStatus === "em_reparo" && orcStatus && orcStatus !== "aprovado") {
+        throw new Error("Cliente ainda não aprovou o orçamento.");
+      }
+      // Bloqueio: se recusado, só permite cancelado
+      if (orcStatus === "recusado" && newStatus !== "cancelado") {
+        throw new Error("Orçamento foi recusado pelo cliente. Apenas cancelar é permitido.");
+      }
+
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
       if (newStatus === "pronto") updates.data_conclusao = new Date().toISOString();
       if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
@@ -295,9 +306,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
       queryClient.invalidateQueries({ queryKey: ["comissoes"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] });
       toast.success("Status atualizado!");
     },
-    onError: () => toast.error("Erro ao atualizar"),
+    onError: (e: any) => toast.error(e.message || "Erro ao atualizar"),
   });
 
   const saveEdit = useMutation({
