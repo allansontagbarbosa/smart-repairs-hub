@@ -23,13 +23,13 @@ export default function LojistaLogin() {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
 
-      // Verificar se há registro pendente com esse email (user_id placeholder)
+      // Verificar se há registro pendente com esse email (placeholder UUID)
       const { data: pendente } = await supabase
         .from("lojista_usuarios")
         .select("id")
         .eq("email", authData.user.email ?? "")
-        .eq("user_id", "00000000-0000-0000-0000-000000000000")
         .eq("ativo", false)
+        .neq("user_id", authData.user.id)
         .maybeSingle();
 
       if (pendente) {
