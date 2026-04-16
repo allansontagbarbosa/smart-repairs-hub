@@ -534,13 +534,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         defeito_relatado: defeitoRelatado,
         observacoes: observacoes || null,
         valor: valorTotal || null,
+        valor_total: valorTotal || null,
         custo_pecas: custoPecas || 0,
+        mao_obra_adicional: adicional || 0,
+        desconto: descontoNum || 0,
+        sinal_pago: sinalPagoNum || 0,
+        valor_pago: sinalPagoNum || 0,
+        valor_pendente: aReceber,
+        forma_pagamento_sinal: sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
+        garantia_dias: garantiaDiasNum,
+        aprovacao_orcamento: orcamentoStatus,
+        data_aprovacao: orcamentoStatus === "aprovado" ? new Date().toISOString() : null,
         data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
         lojista_id: lojistaId || null,
-      }).select("id, numero").single();
+      } as any).select("id, numero").single();
       if (osErr) throw osErr;
 
       // 3. Inserir os_servicos (N:N)
