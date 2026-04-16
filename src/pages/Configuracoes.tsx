@@ -10,7 +10,7 @@ import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
 import { ConfigProdutosTab } from "@/components/configuracoes/ConfigProdutosTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
-import { ConfigDefeitosTab } from "@/components/configuracoes/ConfigDefeitosTab";
+
 import { ConfigTecnicosTab } from "@/components/configuracoes/ConfigTecnicosTab";
 import { ConfigLojistasTab } from "@/components/configuracoes/ConfigLojistasTab";
 import { ConfigFinanceiroTab } from "@/components/configuracoes/ConfigFinanceiroTab";
@@ -45,8 +45,7 @@ const groups = [
     label: "Cadastros Base",
     items: [
       { id: "produtos", label: "Produtos", icon: Package, keywords: ["produto", "sku", "catalogo", "item"] },
-      { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao"] },
-      { id: "defeitos", label: "Defeitos", icon: AlertTriangle, keywords: ["defeito", "problema", "tipo", "categoria"] },
+      { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao", "defeito", "problema", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
   },
@@ -253,7 +252,6 @@ export default function Configuracoes() {
             {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} />}
             {active === "produtos" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
-            {active === "defeitos" && <ConfigDefeitosTab />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
             {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} />}
@@ -276,8 +274,7 @@ function getSubtitle(id: string): string {
     geral: "Nome, endereço, contato e identidade visual da empresa",
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
     produtos: "Cadastro mãe de produtos para uso em todo o sistema",
-    servicos: "Tipos de serviço, valores e comissões padrão",
-    defeitos: "Tipos de defeito, categorias e valores de mão de obra",
+    servicos: "Tipos de serviço (defeitos/reparos), valores, categorias e comissões",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
     lojistas: "Gerencie lojistas parceiros B2B e seus acessos",

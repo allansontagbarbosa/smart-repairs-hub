@@ -51,12 +51,12 @@ async function fetchFilaData() {
     .not("status", "eq", "entregue")
     .order("data_entrada", { ascending: true });
 
-  // 2. Defeitos de cada OS
+  // 2. Serviços de cada OS
   const osIds = (osPendentes ?? []).map((o: any) => o.id);
   let defeitosMap: Record<string, string[]> = {};
   if (osIds.length > 0) {
     const { data: defeitos } = await supabase
-      .from("os_defeitos")
+      .from("os_servicos")
       .select("ordem_id, nome")
       .in("ordem_id", osIds);
     (defeitos ?? []).forEach((d: any) => {

@@ -9,7 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recha
 const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const COLORS = ["hsl(var(--primary))","hsl(var(--chart-2))","hsl(var(--chart-3))","hsl(var(--chart-4))","hsl(var(--chart-5))","#f59e0b","#8b5cf6","#ec4899","#06b6d4","#84cc16"];
 
-export function RelDefeitos() {
+export function RelServicos() {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth());
   const [ano, setAno] = useState(now.getFullYear());
@@ -44,12 +44,12 @@ export function RelDefeitos() {
   });
 
   const { data: defeitos } = useQuery({
-    queryKey: ["rel-def-defeitos", inicio],
+    queryKey: ["rel-srv-itens", inicio],
     queryFn: async () => {
       const osIds = (ordens ?? []).map(o => o.id);
       if (osIds.length === 0) return [];
-      const { data } = await supabase.from("os_defeitos").select("ordem_id, nome").in("ordem_id", osIds);
-      return data ?? [];
+      const { data } = await supabase.from("os_servicos").select("ordem_id, nome").in("ordem_id", osIds);
+      return (data ?? []) as { ordem_id: string; nome: string }[];
     },
     enabled: (ordens ?? []).length > 0,
   });
@@ -144,7 +144,7 @@ export function RelDefeitos() {
       <div className="grid gap-4 md:grid-cols-2">
         {/* Pie Chart */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Distribuição de Defeitos</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Distribuição de Serviços</CardTitle></CardHeader>
           <CardContent>
             {analysis.pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -161,7 +161,7 @@ export function RelDefeitos() {
 
         {/* Ranking */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Top 10 Defeitos</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Top 10 Serviços</CardTitle></CardHeader>
           <CardContent>
             {analysis.ranking.length > 0 ? (
               <div className="space-y-2">
@@ -180,7 +180,7 @@ export function RelDefeitos() {
 
         {/* Defeitos por marca */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Defeitos por Marca</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Serviços por Marca</CardTitle></CardHeader>
           <CardContent>
             {analysis.defeitosPorMarca.length > 0 ? (
               <div className="space-y-2 text-sm">
@@ -207,7 +207,7 @@ export function RelDefeitos() {
             )}
             {analysis.tempoMedioPorDefeito.length > 0 && (
               <div>
-                <p className="text-muted-foreground mb-1">Tempo médio por defeito:</p>
+                <p className="text-muted-foreground mb-1">Tempo médio por serviço:</p>
                 <div className="space-y-1">
                   {analysis.tempoMedioPorDefeito.slice(0, 8).map(t => (
                     <div key={t.nome} className="flex justify-between">
