@@ -471,7 +471,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const valorTotal = Math.max(0, subtotal - descontoNum);
   const aReceber = Math.max(0, valorTotal - sinalPagoNum);
 
-  const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
+  const defeitosNomes = defeitosSelecionados.map(d => d.nome).join("; ");
+  // Campo `defeito_relatado` da OS recebe o relato (texto livre) ou os nomes dos defeitos
+  const defeitoRelatado = relatoCliente.trim() || defeitosNomes;
 
   // ── Sincronização Serviço → Peças vinculadas ──
   // Quando um serviço é selecionado/removido, ajustar peças "auto" automaticamente.
