@@ -68,6 +68,9 @@ interface PecaSelecionada {
   custo_unitario: number;
   preco_venda: number;
   estoque_disponivel: number;
+  // IDs dos serviços que adicionaram esta peça automaticamente.
+  // Vazio = peça adicionada manualmente.
+  origens: string[];
 }
 
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
