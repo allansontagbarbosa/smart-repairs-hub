@@ -60,53 +60,63 @@ export default function ConsultaCliente() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const num = search.replace(/\D/g, "");
-    if (!num) return;
+    const q = search.trim();
+    if (!q) return;
 
     setLoading(true);
     setNotFound(false);
     setOrder(null);
 
-    const { data, error } = await supabase
-      .from("ordens_de_servico")
-      .select(`numero, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, clientes ( nome ) )`)
-      .eq("numero", parseInt(num))
-      .maybeSingle();
+    let osData: any = null;
 
-    if (error || !data) {
+    // Try by OS number (digits only)
+    const num = q.replace(/\D/g, "");
+    if (num && num.length <= 10) {
+      const { data } = await supabase
+        .from("ordens_de_servico")
+        .select(`id, numero, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
+        .eq("numero", parseInt(num))
+        .maybeSingle();
+      osData = data;
+    }
+
+    // If not found and looks like IMEI (15 digits), search by IMEI
+    if (!osData && num.length >= 14) {
+      const { data: aparelhos } = await supabase
+        .from("aparelhos")
+        .select("id")
+        .eq("imei", num)
+        .limit(1);
+
+      if (aparelhos && aparelhos.length > 0) {
+        const { data } = await supabase
+          .from("ordens_de_servico")
+          .select(`id, numero, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
+          .eq("aparelho_id", aparelhos[0].id)
+          .is("deleted_at", null)
+          .order("data_entrada", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        osData = data;
+      }
+    }
+
+    if (!osData) {
       setNotFound(true);
       setLoading(false);
       return;
     }
 
     // Fetch history
-    const { data: hist } = await supabase
+    let historico: { status_novo: string; created_at: string }[] = [];
+    const { data: h } = await supabase
       .from("historico_ordens")
       .select("status_novo, created_at")
-      .eq("ordem_id", (data as any).id ?? "")
+      .eq("ordem_id", osData.id)
       .order("created_at", { ascending: true });
+    historico = h ?? [];
 
-    // We need the id for history - let's refetch with id
-    const { data: fullData } = await supabase
-      .from("ordens_de_servico")
-      .select(`id, numero, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, clientes ( nome ) )`)
-      .eq("numero", parseInt(num))
-      .single();
-
-    let historico: { status_novo: string; created_at: string }[] = [];
-    if (fullData) {
-      const { data: h } = await supabase
-        .from("historico_ordens")
-        .select("status_novo, created_at")
-        .eq("ordem_id", fullData.id)
-        .order("created_at", { ascending: true });
-      historico = h ?? [];
-    }
-
-    setOrder({
-      ...(fullData ?? data) as any,
-      historico,
-    });
+    setOrder({ ...osData, historico });
     setLoading(false);
   };
 
@@ -130,18 +140,17 @@ export default function ConsultaCliente() {
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h1 className="text-xl font-semibold tracking-tight">Consultar Ordem de Serviço</h1>
-              <p className="text-sm text-muted-foreground">Digite o número da sua OS para acompanhar o andamento</p>
+              <p className="text-sm text-muted-foreground">Digite o número da OS ou o IMEI do aparelho</p>
             </div>
 
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Ex: 001"
+                  placeholder="Nº da OS ou IMEI do aparelho"
                   className="pl-9 h-11 text-base"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  inputMode="numeric"
                   autoFocus
                 />
               </div>
