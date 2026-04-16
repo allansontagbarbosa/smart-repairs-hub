@@ -268,6 +268,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
       nome: profile?.nome_exibicao,
     });
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    await qc.refetchQueries({ queryKey: ["user_profiles"] });
     toast.success("Usuário removido do sistema");
     setConfirmDeleteId(null);
   };
