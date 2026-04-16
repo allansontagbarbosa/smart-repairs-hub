@@ -65,7 +65,11 @@ export function useConfiguracoes() {
   const { data: userProfiles = [] } = useQuery({
     queryKey: ["user_profiles"],
     queryFn: async () => {
-      const { data } = await supabase.from("user_profiles").select("*, perfis_acesso(nome_perfil), funcionarios(nome)");
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("*, perfis_acesso(nome_perfil), funcionarios(nome)")
+        .eq("ativo", true)
+        .order("created_at", { ascending: true });
       return data || [];
     },
   });
