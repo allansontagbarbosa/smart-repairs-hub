@@ -1,0 +1,1 @@
+ALTER TABLE public.contas_a_pagar ALTER COLUMN empresa_id SET NOT NULL;
