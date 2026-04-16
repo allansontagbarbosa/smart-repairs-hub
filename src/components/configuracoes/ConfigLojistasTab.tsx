@@ -149,7 +149,7 @@ export function ConfigLojistasTab() {
       if (!existing) {
         await supabase.from("lojista_usuarios").insert({
           lojista_id: savedLojistaId,
-          user_id: "00000000-0000-0000-0000-000000000000",
+          user_id: crypto.randomUUID(),
           nome: responsavel || nome,
           email: accessEmail,
           ativo: false,
