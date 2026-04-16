@@ -68,7 +68,7 @@ export function useConfiguracoes() {
       const { data } = await supabase
         .from("user_profiles")
         .select("*, perfis_acesso(nome_perfil), funcionarios(nome, email), email")
-        .eq("ativo", true)
+        .or("ativo.eq.true,ativo.is.null")
         .order("created_at", { ascending: true });
       return data || [];
     },
