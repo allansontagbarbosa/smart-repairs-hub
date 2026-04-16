@@ -173,17 +173,28 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   });
 
   const { data: pecasEstoque = [] } = useQuery({
-    queryKey: ["estoque_pecas_disponiveis"],
+    queryKey: ["estoque_pecas_para_os"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("estoque_itens")
         .select("*, estoque_categorias:categoria_id ( nome ), marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
         .eq("tipo_item", "peca")
         .is("deleted_at", null)
-        .gt("quantidade", 0)
         .order("nome_personalizado");
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  // Vínculos serviço→peças (carregado uma vez)
+  const { data: vinculosServicoPecas = [] } = useQuery({
+    queryKey: ["servico_pecas_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("servico_pecas" as any)
+        .select("servico_id, peca_id, quantidade, obrigatoria");
+      if (error) throw error;
+      return (data ?? []) as Array<{ servico_id: string; peca_id: string; quantidade: number; obrigatoria: boolean }>;
     },
   });
 
