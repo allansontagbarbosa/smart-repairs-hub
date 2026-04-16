@@ -58,41 +58,60 @@ export type Database = {
       aparelhos: {
         Row: {
           capacidade: string | null
+          capacidade_id: string | null
           cliente_id: string
           cor: string | null
+          cor_id: string | null
           created_at: string
           empresa_id: string | null
           id: string
           imei: string | null
           marca: string
+          marca_id: string | null
           modelo: string
+          modelo_id: string | null
           observacoes: string | null
         }
         Insert: {
           capacidade?: string | null
+          capacidade_id?: string | null
           cliente_id: string
           cor?: string | null
+          cor_id?: string | null
           created_at?: string
           empresa_id?: string | null
           id?: string
           imei?: string | null
           marca: string
+          marca_id?: string | null
           modelo: string
+          modelo_id?: string | null
           observacoes?: string | null
         }
         Update: {
           capacidade?: string | null
+          capacidade_id?: string | null
           cliente_id?: string
           cor?: string | null
+          cor_id?: string | null
           created_at?: string
           empresa_id?: string | null
           id?: string
           imei?: string | null
           marca?: string
+          marca_id?: string | null
           modelo?: string
+          modelo_id?: string | null
           observacoes?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "aparelhos_capacidade_id_fkey"
+            columns: ["capacidade_id"]
+            isOneToOne: false
+            referencedRelation: "capacidades"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "aparelhos_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -101,10 +120,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "aparelhos_cor_id_fkey"
+            columns: ["cor_id"]
+            isOneToOne: false
+            referencedRelation: "cores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "aparelhos_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aparelhos_marca_id_fkey"
+            columns: ["marca_id"]
+            isOneToOne: false
+            referencedRelation: "marcas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aparelhos_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "modelos"
             referencedColumns: ["id"]
           },
         ]
@@ -258,6 +298,44 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capacidades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capacidades_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -789,6 +867,44 @@ export type Database = {
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string | null
+          hex: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          hex?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string | null
+          hex?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
