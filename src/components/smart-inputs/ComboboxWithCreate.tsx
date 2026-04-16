@@ -133,6 +133,7 @@ export function ComboboxWithCreate({
                     </TooltipProvider>
                   ) : (
                     <CommandItem
+                      value={`__create__${search}`}
                       onSelect={handleCreate}
                       className="text-primary font-medium"
                       disabled={creating}
