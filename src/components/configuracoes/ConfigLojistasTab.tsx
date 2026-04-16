@@ -117,72 +117,43 @@ export function ConfigLojistasTab() {
 
   const sendAccessMutation = useMutation({
     mutationFn: async () => {
-      if (!savedLojistaId || !accessEmail.trim()) throw new Error("Email obrigatório");
+      if (!savedLojistaId || !accessEmail.trim()) 
+        throw new Error("Email obrigatório");
 
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("empresa_id")
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
-        .single();
-      const empresa_id = profile?.empresa_id;
-      if (!empresa_id) throw new Error("Empresa não encontrada");
-
-      // Try to invite the user via edge function
-      const { data: inviteResult, error: inviteError } = await supabase.functions.invoke("invite-user", {
-        body: { email: accessEmail, nome: responsavel || nome, empresa_id },
+      // 1. Enviar magic link — sem criar user_profile
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: accessEmail,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/lojista`,
+        },
       });
+      if (otpError) throw new Error(otpError.message);
 
-      let userId: string | null = null;
+      // 2. Salvar o email no cadastro do lojista
+      const { error: updateErr } = await supabase
+        .from("lojistas")
+        .update({ email: accessEmail })
+        .eq("id", savedLojistaId);
+      if (updateErr) throw updateErr;
 
-      if (inviteError || inviteResult?.error) {
-        const errMsg = inviteResult?.error || inviteError?.message || "";
-        if (errMsg.includes("already been registered")) {
-          // User exists in auth — find their user_id via funcionarios → user_profiles
-          const { data: func } = await supabase
-            .from("funcionarios")
-            .select("id")
-            .eq("email", accessEmail)
-            .limit(1)
-            .maybeSingle();
-
-          if (func) {
-            const { data: up } = await supabase
-              .from("user_profiles")
-              .select("user_id")
-              .eq("funcionario_id", func.id)
-              .maybeSingle();
-            userId = up?.user_id ?? null;
-          }
-
-          if (!userId) {
-            throw new Error("Usuário já registrado mas não foi possível vincular. Peça ao usuário para acessar /lojista/login e tente novamente.");
-          }
-        } else {
-          throw new Error(errMsg || "Erro ao enviar convite");
-        }
-      } else {
-        userId = inviteResult?.user_id ?? null;
-      }
-
-      if (!userId) throw new Error("Não foi possível obter o ID do usuário");
-
-      // Check if lojista_usuarios already exists
+      // 3. Verificar se já tem registro em lojista_usuarios
       const { data: existing } = await supabase
         .from("lojista_usuarios")
         .select("id")
         .eq("lojista_id", savedLojistaId)
-        .eq("user_id", userId)
+        .eq("email", accessEmail)
         .maybeSingle();
 
+      // Se não existe, criar com placeholder (vínculo definitivo no login)
       if (!existing) {
-        const { error: insertErr } = await supabase.from("lojista_usuarios").insert({
+        await supabase.from("lojista_usuarios").insert({
           lojista_id: savedLojistaId,
-          user_id: userId,
+          user_id: "00000000-0000-0000-0000-000000000000",
           nome: responsavel || nome,
           email: accessEmail,
-          ativo: true,
+          ativo: false,
         } as any);
-        if (insertErr) throw insertErr;
       }
 
       return accessEmail;
