@@ -42,6 +42,37 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
   const queryClient = useQueryClient();
   const isEditing = !!editingConta;
 
+  const resolveEmpresaId = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user?.id ?? "";
+
+    let finalEmpresaId: string | null = null;
+
+    if (uid) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("empresa_id")
+        .or(`user_id.eq.${uid},id.eq.${uid}`)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      finalEmpresaId = profile?.empresa_id ?? null;
+    }
+
+    if (!finalEmpresaId) {
+      const { data: emp } = await supabase
+        .from("empresas")
+        .select("id")
+        .order("criado_em", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      finalEmpresaId = emp?.id ?? null;
+    }
+
+    return finalEmpresaId;
+  };
+
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormValues>({
     defaultValues: {
       descricao: "",
@@ -90,15 +121,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const clean = (v: string) => v && v !== "__nenhum__" ? v : null;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("empresa_id")
-        .or(`user_id.eq.${user?.id},id.eq.${user?.id}`)
-        .eq("ativo", true)
-        .maybeSingle();
-      const empresa_id = profile?.empresa_id ?? null;
+      const finalEmpresaId = await resolveEmpresaId();
 
       const payload = {
         descricao: values.descricao,
@@ -112,7 +135,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         recorrente: values.recorrente,
         observacoes: values.observacoes || null,
         fornecedor: null,
-        empresa_id,
+        empresa_id: finalEmpresaId,
       };
 
       if (isEditing) {

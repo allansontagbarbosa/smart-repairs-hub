@@ -65,17 +65,39 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
     return matchSearch && matchStatus && matchLoja;
   });
 
-  const pagarMutation = useMutation({
-    mutationFn: async (conta: ContaPagar) => {
-      const { data: { user } } = await supabase.auth.getUser();
+  const resolveEmpresaId = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user?.id ?? "";
+
+    let empresaId: string | undefined;
+
+    if (uid) {
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("empresa_id")
-        .or(`user_id.eq.${user?.id},id.eq.${user?.id}`)
+        .or(`user_id.eq.${uid},id.eq.${uid}`)
         .eq("ativo", true)
         .maybeSingle();
-      const empresa_id = profile?.empresa_id ?? null;
 
+      empresaId = profile?.empresa_id ?? undefined;
+    }
+
+    if (!empresaId) {
+      const { data: emp } = await supabase
+        .from("empresas")
+        .select("id")
+        .order("criado_em", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      empresaId = emp?.id ?? undefined;
+    }
+
+    return empresaId;
+  };
+
+  const pagarMutation = useMutation({
+    mutationFn: async (conta: ContaPagar) => {
       const { error } = await supabase
         .from("contas_a_pagar")
         .update({ status: "paga" as any, data_pagamento: new Date().toISOString().split("T")[0] })
@@ -84,6 +106,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
       // Auto-generate next month for recurring
       if (conta.recorrente) {
+        const empresaId = await resolveEmpresaId();
         const nextDate = new Date(conta.data_vencimento + "T12:00:00");
         nextDate.setMonth(nextDate.getMonth() + 1);
         const { error: insertErr } = await supabase.from("contas_a_pagar").insert({
@@ -100,7 +123,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
           recorrente: true,
           observacoes: conta.observacoes,
           status: "pendente" as any,
-          empresa_id,
+          empresa_id: empresaId,
         } as any);
         if (insertErr) console.error("Erro ao gerar recorrência:", insertErr);
       }
@@ -124,15 +147,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
   const duplicarMutation = useMutation({
     mutationFn: async (conta: ContaPagar) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("empresa_id")
-        .or(`user_id.eq.${user?.id},id.eq.${user?.id}`)
-        .eq("ativo", true)
-        .maybeSingle();
-      const empresa_id = profile?.empresa_id ?? null;
-
+      const empresaId = await resolveEmpresaId();
       const nextMonth = new Date(conta.data_vencimento + "T12:00:00");
       nextMonth.setMonth(nextMonth.getMonth() + 1);
       const { error } = await supabase.from("contas_a_pagar").insert({
@@ -149,7 +164,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
         recorrente: conta.recorrente,
         observacoes: conta.observacoes,
         status: "pendente" as any,
-        empresa_id,
+        empresa_id: empresaId,
       } as any);
       if (error) throw error;
     },
