@@ -1209,39 +1209,119 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 )}
               </div>
 
-              {/* ── Observações ── */}
-              <div>
-                <Label className="text-xs text-muted-foreground">Observações internas</Label>
-                <Textarea
-                  value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
-                  placeholder="Riscos, danos pré-existentes, condições do aparelho..."
-                  rows={2} className="mt-1 resize-none text-sm"
+              {/* ── Conferência na entrada ── */}
+              <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Conferência na entrada
+                  </p>
+                </div>
+                <p className="text-[10px] text-muted-foreground -mt-1">
+                  Clique no status para alternar entre N/T → OK → Defeito. Esta lista será impressa para o cliente assinar.
+                </p>
+                <ChecklistEntrada
+                  value={checklist}
+                  onChange={setChecklist}
+                  customItems={checklistCustom}
+                  onCustomItemsChange={setChecklistCustom}
                 />
               </div>
 
-              {/* ── Previsão + Técnico ── */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* ── Observações internas + Cliente ── */}
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Observações internas (só a loja vê)</Label>
+                  <Textarea
+                    value={observacoes}
+                    onChange={(e) => setObservacoes(e.target.value)}
+                    placeholder="Diagnóstico técnico, histórico, tentativas anteriores..."
+                    rows={2} className="mt-1 resize-none text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Observações para o cliente (aparecem no recibo)</Label>
+                  <Textarea
+                    value={obsCliente}
+                    onChange={(e) => setObsCliente(e.target.value)}
+                    placeholder='Ex: "aparelho sem garantia por já ter sido aberto", "não podemos garantir Face ID após troca de tela"...'
+                    rows={2} className="mt-1 resize-none text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* ── Previsão (data + hora) + Técnico ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn("mt-1 h-9 w-full justify-start text-left font-normal text-sm", !previsaoEntrega && "text-muted-foreground")}
+                  <div className="mt-1 flex gap-1.5">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("h-9 flex-1 justify-start text-left font-normal text-sm", !previsaoEntrega && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                          {previsaoEntrega ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR }) : "Data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={previsaoEntrega} onSelect={setPrevisaoEntrega} disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} initialFocus className="p-3 pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                    <Input
+                      type="time"
+                      value={previsaoHora}
+                      onChange={(e) => setPrevisaoHora(e.target.value)}
+                      className="h-9 w-[110px] text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {[
+                      { label: "Hoje 18h", days: 0, hora: "18:00" },
+                      { label: "Amanhã 18h", days: 1, hora: "18:00" },
+                      { label: "2 dias", days: 2, hora: "18:00" },
+                      { label: "3 dias", days: 3, hora: "18:00" },
+                      { label: "1 semana", days: 7, hora: "18:00" },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          setPrevisaoEntrega(addDays(new Date(), p.days));
+                          setPrevisaoHora(p.hora);
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded border border-border bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                        {previsaoEntrega ? format(previsaoEntrega, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={previsaoEntrega} onSelect={setPrevisaoEntrega} disabled={(date) => date < new Date()} initialFocus className="p-3 pointer-events-auto" />
-                    </PopoverContent>
-                  </Popover>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Técnico responsável</Label>
-                  <Input value={tecnico} onChange={(e) => setTecnico(e.target.value)} placeholder="Nome do técnico" className="mt-1 h-9" />
+                  {tecnicosList.length > 0 ? (
+                    <ComboboxWithCreate
+                      value={tecnicoId}
+                      onChange={(id, nome) => { setTecnicoId(id); setTecnico(nome); }}
+                      items={tecnicosList as any}
+                      placeholder="Selecione um técnico..."
+                      entityName="técnico"
+                      className="mt-1"
+                    />
+                  ) : (
+                    <div className="mt-1 rounded-md border border-dashed border-border bg-muted/20 p-2 text-center">
+                      <p className="text-[11px] text-muted-foreground mb-1">Nenhum técnico cadastrado.</p>
+                      <Link
+                        to="/configuracoes?tab=tecnicos"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-primary hover:underline font-medium"
+                      >
+                        Cadastrar primeiro técnico em Configurações →
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 
