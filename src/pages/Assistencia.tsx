@@ -690,6 +690,29 @@ export default function Assistencia() {
           ) : (
             <Tabela items={sorted} />
           )}
+          {!isLoading && totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                Página {page + 1} de {totalPages} ({totalCount} ordens nos últimos 90 dias)
+              </p>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                  Próxima
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!showOlder && !isLoading && (
+            <div className="flex justify-center pt-2">
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setShowOlder(true)}>
+                Carregar ordens mais antigas (antes de 90 dias)
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="garantias">

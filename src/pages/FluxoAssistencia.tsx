@@ -36,9 +36,13 @@ const statusDotColors: Record<Status, string> = {
 };
 
 async function fetchOrders() {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
   const { data, error } = await supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) ), funcionarios ( nome )`)
+    .gte("data_entrada", ninetyDaysAgo.toISOString())
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data;
