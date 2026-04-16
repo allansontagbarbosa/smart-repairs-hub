@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Building2, Plus, Store, Send, CheckCircle2, Trash2 } from "lucide-react";
+import { Building2, Plus, Store, Send, CheckCircle2, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type DialogStep = "form" | "access";
@@ -114,6 +114,10 @@ export function ConfigLojistasTab() {
   });
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [resendLojistaId, setResendLojistaId] = useState<string | null>(null);
+  const [resendEmail, setResendEmail] = useState("");
+  const [resendOpen, setResendOpen] = useState(false);
 
   const sendAccessMutation = useMutation({
     mutationFn: async () => {
@@ -165,6 +169,50 @@ export function ConfigLojistasTab() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const handleResendAccess = async () => {
+    if (!resendLojistaId || !resendEmail.trim()) return;
+    setResendingId(resendLojistaId);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: resendEmail,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/lojista`,
+        },
+      });
+      if (error) throw new Error(error.message);
+
+      await supabase
+        .from("lojistas")
+        .update({ email: resendEmail })
+        .eq("id", resendLojistaId);
+
+      const { data: existing } = await supabase
+        .from("lojista_usuarios")
+        .select("id")
+        .eq("lojista_id", resendLojistaId)
+        .eq("email", resendEmail)
+        .maybeSingle();
+
+      if (!existing) {
+        const lojistaData = lojistas.find((l: any) => l.id === resendLojistaId);
+        await supabase.from("lojista_usuarios").insert({
+          lojista_id: resendLojistaId,
+          user_id: crypto.randomUUID(),
+          nome: lojistaData?.responsavel || lojistaData?.nome || "",
+          email: resendEmail,
+          ativo: false,
+        } as any);
+      }
+
+      toast.success(`Acesso reenviado para ${resendEmail}`);
+      setResendOpen(false);
+    } catch (e: any) {
+      toast.error("Erro ao reenviar: " + e.message);
+    }
+    setResendingId(null);
+  };
 
   function openNew() {
     setEditing(null);
@@ -246,6 +294,23 @@ export function ConfigLojistasTab() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-7 w-7 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => {
+                          setResendLojistaId(l.id);
+                          setResendEmail(l.email || "");
+                          setResendOpen(true);
+                        }}
+                        title="Reenviar acesso"
+                      >
+                        {resendingId === l.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Send className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => setConfirmDeleteId(l.id)}
                         title="Excluir"
@@ -260,6 +325,44 @@ export function ConfigLojistasTab() {
           </table>
         </div>
       )}
+
+      <Dialog open={resendOpen} onOpenChange={setResendOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Reenviar acesso ao portal
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Informe o email do responsável para receber o link de acesso ao portal lojista.
+            </p>
+            <div className="space-y-1">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={resendEmail}
+                onChange={(e) => setResendEmail(e.target.value)}
+                placeholder="email@loja.com"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O acesso é pelo link:{" "}
+              <code className="bg-muted px-1 rounded">{window.location.origin}/lojista/login</code>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResendOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleResendAccess} disabled={!resendEmail.trim() || resendingId !== null} className="gap-1.5">
+              <Send className="h-4 w-4" />
+              Enviar link de acesso
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
         <DialogContent className="max-w-sm">
