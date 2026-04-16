@@ -98,6 +98,23 @@ export function ConfigLojistasTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("lojistas")
+        .update({ deleted_at: new Date().toISOString(), ativo: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] });
+      toast.success("Lojista removido!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const sendAccessMutation = useMutation({
     mutationFn: async () => {
       if (!savedLojistaId || !accessEmail.trim()) throw new Error("Email obrigatório");
@@ -255,6 +272,15 @@ export function ConfigLojistasTab() {
                       <Button variant="ghost" size="sm" onClick={() => openEdit(l)} className="h-7 text-xs">
                         Editar
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setConfirmDeleteId(l.id)}
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -263,6 +289,35 @@ export function ConfigLojistasTab() {
           </table>
         </div>
       )}
+
+      <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir lojista</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Tem certeza que deseja excluir este lojista? Esta ação não pode ser desfeita.
+            As OS vinculadas a ele não serão afetadas.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (confirmDeleteId) {
+                  deleteMutation.mutate(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg">
