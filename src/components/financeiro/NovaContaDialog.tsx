@@ -108,7 +108,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         const { error } = await supabase.from("contas_a_pagar").update(payload).eq("id", editingConta.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("contas_a_pagar").insert(payload);
+        const { error } = await supabase.from("contas_a_pagar").insert(payload as any);
         if (error) throw error;
       }
     },
