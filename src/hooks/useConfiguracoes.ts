@@ -122,6 +122,22 @@ export function useConfiguracoes() {
     },
   });
 
+  const { data: cores = [] } = useQuery({
+    queryKey: ["cores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("cores").select("*").order("nome");
+      return data || [];
+    },
+  });
+
+  const { data: capacidades = [] } = useQuery({
+    queryKey: ["capacidades"],
+    queryFn: async () => {
+      const { data } = await supabase.from("capacidades").select("*").order("ordem").order("nome");
+      return data || [];
+    },
+  });
+
   const { data: statusOrdem = [] } = useQuery({
     queryKey: ["status_ordem_servico"],
     queryFn: async () => {
@@ -200,8 +216,8 @@ export function useConfiguracoes() {
   return {
     empresa, fornecedores, produtosBase, tiposServico, funcionarios,
     perfisAcesso, userProfiles, categoriasFinanceiras, centrosCusto,
-    formasPagamento, estoqueCategorias, marcas, modelos, statusOrdem,
-    templatesMensagem, modelosDocumento, listasPreco,
+    formasPagamento, estoqueCategorias, marcas, modelos, cores, capacidades,
+    statusOrdem, templatesMensagem, modelosDocumento, listasPreco,
     saveEmpresa, isLoading,
   };
 }

@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import {
   Loader2, Building2, Package, Wrench, Truck, Users, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
-  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store,
+  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
@@ -66,9 +66,9 @@ const groups = [
     ],
   },
   {
-    label: "Estoque",
+    label: "Cadastros Base",
     items: [
-      { id: "estoque", label: "Estoque", icon: Boxes, keywords: ["estoque", "categoria", "marca", "modelo", "local"] },
+      { id: "estoque", label: "Aparelhos", icon: Smartphone, keywords: ["aparelho", "marca", "modelo", "cor", "capacidade", "estoque"] },
     ],
   },
   {
@@ -258,7 +258,7 @@ export default function Configuracoes() {
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
             {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} />}
             {active === "financeiro" && <ConfigFinanceiroTab categoriasFinanceiras={data.categoriasFinanceiras} centrosCusto={data.centrosCusto} formasPagamento={data.formasPagamento} />}
-            {active === "estoque" && <ConfigEstoqueTab estoqueCategorias={data.estoqueCategorias} marcas={data.marcas} modelos={data.modelos} />}
+            {active === "estoque" && <ConfigEstoqueTab marcas={data.marcas} modelos={data.modelos} cores={data.cores} capacidades={data.capacidades} />}
             {active === "lojistas" && <ConfigLojistasTab />}
             {active === "status" && <ConfigStatusTab statusOrdem={data.statusOrdem} />}
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
@@ -283,7 +283,7 @@ function getSubtitle(id: string): string {
     lojistas: "Gerencie lojistas parceiros B2B e seus acessos",
     tecnicos: "Equipe técnica, especialidades e comissões",
     financeiro: "Categorias, centros de custo e formas de pagamento",
-    estoque: "Categorias, marcas, modelos e locais de estoque",
+    estoque: "Marcas, modelos, cores e capacidades usados nas Ordens de Serviço",
     status: "Status das ordens de serviço e ordem de exibição",
     notificacoes: "Templates de mensagens automáticas",
     documentos: "Modelos de laudos, recibos e orçamentos",
