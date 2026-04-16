@@ -287,9 +287,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (newStatus === "em_reparo" && orcStatus && orcStatus !== "aprovado") {
         throw new Error("Cliente ainda não aprovou o orçamento.");
       }
-      // Bloqueio: se recusado, só permite cancelado
-      if (orcStatus === "recusado" && newStatus !== "cancelado") {
-        throw new Error("Orçamento foi recusado pelo cliente. Apenas cancelar é permitido.");
+      // Bloqueio: se recusado, bloquear avanço (apenas voltar para "recebido" é permitido)
+      if (orcStatus === "recusado" && newStatus !== "recebido") {
+        throw new Error("Orçamento foi recusado pelo cliente. Reabra a aprovação para avançar.");
       }
 
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
