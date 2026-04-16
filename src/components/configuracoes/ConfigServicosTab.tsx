@@ -138,11 +138,11 @@ export function ConfigServicosTab({ tiposServico }: Props) {
                 <Label>Categoria</Label>
                 <ComboboxWithCreate
                   items={categoriasOpts}
-                  value={form.categoria ? { id: form.categoria, nome: form.categoria } : null}
-                  onChange={(it) => set("categoria", it?.nome || "")}
+                  value={form.categoria || ""}
+                  onChange={(_id, nome) => set("categoria", nome)}
                   onCreate={createCategoria}
                   placeholder="Selecione ou crie uma categoria"
-                  entityLabel="Categoria"
+                  entityName="categoria"
                 />
               </div>
               <div><Label>Descrição</Label><Textarea value={form.descricao} onChange={(e) => set("descricao", e.target.value)} rows={2} /></div>
