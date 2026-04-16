@@ -298,6 +298,83 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
 
+  // ── Sincronização Serviço → Peças vinculadas ──
+  // Quando um serviço é selecionado/removido, ajustar peças "auto" automaticamente.
+  // Tracking via array `origens` em cada peça (IDs dos serviços que a adicionaram).
+  const servicosIds = useMemo(() => defeitosSelecionados.map(d => d.id).join(","), [defeitosSelecionados]);
+  useEffect(() => {
+    if (vinculosServicoPecas.length === 0) return;
+    const servicosSelecionadosSet = new Set(defeitosSelecionados.map(d => d.id));
+
+    setPecasSelecionadas(prev => {
+      // Mapa: peca_id → { quantidade somada, origens (servicos obrigatórios) }
+      const autoMap = new Map<string, { qtd: number; origens: Set<string> }>();
+      for (const v of vinculosServicoPecas) {
+        if (!servicosSelecionadosSet.has(v.servico_id)) continue;
+        if (!v.obrigatoria) continue; // não-obrigatórias não auto-adicionam
+        const cur = autoMap.get(v.peca_id) ?? { qtd: 0, origens: new Set<string>() };
+        cur.qtd += Number(v.quantidade) || 1;
+        cur.origens.add(v.servico_id);
+        autoMap.set(v.peca_id, cur);
+      }
+
+      const result: PecaSelecionada[] = [];
+
+      // 1) Atualizar/manter peças existentes
+      for (const peca of prev) {
+        const auto = autoMap.get(peca.id);
+        const origensManuais = peca.origens.filter(o => servicosSelecionadosSet.has(o));
+        const eraSomenteAuto = peca.origens.length > 0 && origensManuais.length === peca.origens.length;
+
+        if (auto) {
+          // Peça é auto-adicionada por algum serviço atual
+          // Quantidade = parte manual conservada + auto.qtd (se já era auto antes, mantém apenas auto.qtd)
+          const partManual = peca.origens.length === 0 ? peca.quantidade : 0;
+          result.push({
+            ...peca,
+            quantidade: Math.max(1, partManual + auto.qtd),
+            origens: Array.from(auto.origens),
+          });
+          autoMap.delete(peca.id);
+        } else if (peca.origens.length === 0) {
+          // Peça manual — mantém intacta
+          result.push(peca);
+        } else if (eraSomenteAuto) {
+          // Veio só de serviços que foram desmarcados → remover
+          // (não adiciona ao result)
+        } else {
+          // Peça tinha origens mas algumas ainda válidas (caso raro pós-state)
+          result.push({ ...peca, origens: peca.origens.filter(o => servicosSelecionadosSet.has(o)) });
+        }
+      }
+
+      // 2) Adicionar peças auto novas
+      for (const [peca_id, auto] of autoMap.entries()) {
+        const pEstoque = pecasEstoque.find((x: any) => x.id === peca_id);
+        if (!pEstoque) continue;
+        result.push({
+          id: peca_id,
+          nome: getPecaNome(pEstoque),
+          quantidade: auto.qtd,
+          custo_unitario: Number(pEstoque.custo_unitario ?? 0),
+          preco_venda: Number(pEstoque.preco_venda ?? 0),
+          estoque_disponivel: pEstoque.quantidade,
+          origens: Array.from(auto.origens),
+        });
+      }
+
+      return result;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servicosIds, vinculosServicoPecas]);
+
+  // Mapa para mostrar nome do serviço de origem em cada peça auto
+  const servicoNomePorId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of defeitosSelecionados) m.set(d.id, d.nome);
+    return m;
+  }, [defeitosSelecionados]);
+
   // ── Reset ──
   function resetAll() {
     setStep("cliente");
