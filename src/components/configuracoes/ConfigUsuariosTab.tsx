@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, UserPlus, ChevronDown, ChevronRight, Filter } from "lucide-react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, UserPlus, ChevronDown, ChevronRight, Filter, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   const [auditSearch, setAuditSearch] = useState("");
   const [showAudit, setShowAudit] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Invite state
   const [openInvite, setOpenInvite] = useState(false);
@@ -242,6 +243,33 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
     
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     toast.success("Usuário atualizado");
+  };
+
+  const handleDeleteUser = async (profileId: string) => {
+    const profile = userProfiles.find((u) => u.id === profileId);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (profile?.user_id === user?.id || profile?.id === user?.id) {
+      toast.error("Você não pode excluir seu próprio usuário");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ ativo: false })
+      .eq("id", profileId);
+
+    if (error) {
+      toast.error("Erro ao remover usuário: " + error.message);
+      return;
+    }
+
+    registrar("Usuário removido", "configuracoes", profileId, null, {
+      nome: profile?.nome_exibicao,
+    });
+    qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    toast.success("Usuário removido do sistema");
+    setConfirmDeleteId(null);
   };
 
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
@@ -424,7 +452,16 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                           title={u.ativo ? "Desativar acesso" : "Ativar acesso"}
                           onClick={() => handleUpdateUserProfile(u.id, { ativo: !u.ativo })}
                         >
-                          {u.ativo ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                         {u.ativo ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Remover usuário"
+                          onClick={() => setConfirmDeleteId(u.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </td>
@@ -575,6 +612,32 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
           )}
         </Card>
       )}
+      <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remover usuário</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            Tem certeza que deseja remover{" "}
+            <strong>
+              {userProfiles.find((u) => u.id === confirmDeleteId)?.nome_exibicao}
+            </strong>{" "}
+            do sistema? O usuário perderá acesso imediatamente mas seu
+            histórico será preservado.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => confirmDeleteId && handleDeleteUser(confirmDeleteId)}
+            >
+              Remover acesso
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
