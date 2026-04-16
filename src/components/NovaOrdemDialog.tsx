@@ -1325,7 +1325,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     <div className="mt-1 rounded-md border border-dashed border-border bg-muted/20 p-2 text-center">
                       <p className="text-[11px] text-muted-foreground mb-1">Nenhum técnico cadastrado.</p>
                       <Link
-                        to="/configuracoes?tab=tecnicos"
+                        to="/configuracoes/tecnicos"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[11px] text-primary hover:underline font-medium"
