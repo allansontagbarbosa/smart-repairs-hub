@@ -30,6 +30,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  preSelectedClientId?: string | null;
 }
 
 type ImeiStatus = "idle" | "loading" | "found" | "partial" | "not_found" | "error" | "duplicate";
@@ -68,7 +69,7 @@ interface PecaSelecionada {
   estoque_disponivel: number;
 }
 
-export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
+export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<Step>("cliente");
@@ -117,6 +118,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess }: Props) {
       setPrevisaoEntrega(addDays(new Date(), 2));
     }
   }, [step]);
+
+  // Pre-select client when prop changes
+  useEffect(() => {
+    if (preSelectedClientId && open) {
+      setSelectedClientId(preSelectedClientId);
+    }
+  }, [preSelectedClientId, open]);
 
   // ── Queries ──
   const { data: clientes = [] } = useQuery({

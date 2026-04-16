@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Plus, Search, Phone, Loader2, Pencil, MessageCircle, Users } from "lucide-react";
+import { Plus, Search, Phone, Loader2, Pencil, MessageCircle, Users, Wrench } from "lucide-react";
 import { ClienteHistorico } from "@/components/ClienteHistoricoSheet";
+import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,9 @@ export default function Clientes() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClienteComStats | null>(null);
+  const [viewingClient, setViewingClient] = useState<ClienteComStats | null>(null);
+  const [novaOsOpen, setNovaOsOpen] = useState(false);
+  const [novaOsClienteId, setNovaOsClienteId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { can } = usePermissoes();
 
@@ -135,9 +139,9 @@ export default function Clientes() {
               </thead>
               <tbody>
                 {filtered.map((c) => (
-                  <tr key={c.id}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingClient(c)}>
                     <td>
-                      <p className="text-sm font-medium">{c.nome}</p>
+                      <p className="text-sm font-medium text-primary hover:underline">{c.nome}</p>
                       <p className="text-xs text-muted-foreground sm:hidden">{c.telefone}</p>
                     </td>
                     <td className="hidden sm:table-cell">
@@ -158,14 +162,16 @@ export default function Clientes() {
                     <td className="hidden md:table-cell text-sm text-muted-foreground">{fmtDate(c.ultimo_atendimento)}</td>
                     <td className="hidden md:table-cell text-sm font-medium text-right">{fmtCurrency(c.total_gasto)}</td>
                     <td>
-                      {can("clientes", "editar") && (
-                        <button
-                          onClick={() => setEditingClient(c)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {can("clientes", "editar") && (
+                          <button
+                            onClick={() => setEditingClient(c)}
+                            className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -225,6 +231,43 @@ export default function Clientes() {
           )}
         </SheetContent>
       </Sheet>
+      {/* View client history sheet */}
+      <Sheet open={!!viewingClient} onOpenChange={(open) => { if (!open) setViewingClient(null); }}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {viewingClient && (
+            <>
+              <SheetHeader className="pb-4">
+                <SheetTitle>{viewingClient.nome}</SheetTitle>
+              </SheetHeader>
+
+              <Button
+                size="sm"
+                className="w-full mb-4 gap-1.5"
+                onClick={() => {
+                  setNovaOsClienteId(viewingClient.id);
+                  setNovaOsOpen(true);
+                }}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                Nova OS para este cliente
+              </Button>
+
+              <ClienteHistorico cliente={viewingClient} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Nova OS dialog with pre-selected client */}
+      <NovaOrdemDialog
+        open={novaOsOpen}
+        onOpenChange={setNovaOsOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["clientes-full"] });
+          setNovaOsOpen(false);
+        }}
+        preSelectedClientId={novaOsClienteId}
+      />
     </div>
   );
 }
