@@ -835,6 +835,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </div>
 
+              {/* ── Lojista parceiro ── */}
+              {lojistasAtivos.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Lojista parceiro (opcional)</Label>
+                  <select
+                    value={lojistaId}
+                    onChange={(e) => setLojistaId(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Nenhum</option>
+                    {lojistasAtivos.map(l => (
+                      <option key={l.id} value={l.id}>{l.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* ── Status ── */}
               <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">Status inicial</p>
