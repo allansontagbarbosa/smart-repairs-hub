@@ -73,6 +73,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   const [showAudit, setShowAudit] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   // Invite state
   const [openInvite, setOpenInvite] = useState(false);
@@ -278,6 +279,40 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
     setConfirmDeleteId(null);
   };
 
+  const handleResendInvite = async (profile: any) => {
+    const email = profile.email || profile.funcionarios?.email;
+    if (!email) {
+      toast.error("Email não encontrado para este usuário");
+      return;
+    }
+    if (!empresaId) return;
+
+    setResendingId(profile.id);
+    try {
+      const res = await supabase.functions.invoke("invite-user", {
+        body: {
+          email,
+          nome: profile.nome_exibicao || profile.funcionarios?.nome || "",
+          perfil_id: profile.perfil_id || null,
+          empresa_id: empresaId,
+        },
+      });
+      const errorMsg = res.error?.message || res.data?.error;
+      if (errorMsg && !errorMsg.includes("already been registered")) {
+        toast.error("Erro ao reenviar: " + errorMsg);
+      } else {
+        toast.success(`Convite reenviado para ${email}`);
+        registrar("Convite reenviado", "configuracoes", profile.id, null, {
+          nome: profile.nome_exibicao,
+          email,
+        });
+      }
+    } catch {
+      toast.error("Erro ao reenviar convite");
+    }
+    setResendingId(null);
+  };
+
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
 
   return (
@@ -453,6 +488,19 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                             ))}
                           </SelectContent>
                         </Select>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
+                          title="Reenviar convite"
+                          disabled={resendingId === u.id}
+                          onClick={() => handleResendInvite(u)}
+                        >
+                          {resendingId === u.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Mail className="h-3.5 w-3.5" />
+                          }
+                        </Button>
                         <Button
                           variant="ghost" size="icon" className="h-7 w-7"
                           title={u.ativo ? "Desativar acesso" : "Ativar acesso"}
