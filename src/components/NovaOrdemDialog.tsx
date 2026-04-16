@@ -620,9 +620,31 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // ── Mutations ──
   const createClientMutation = useMutation({
     mutationFn: async () => {
+      const docDigits = onlyDigits(newClientCpfCnpj);
+      // Validação leve do CPF/CNPJ se preenchido
+      if (docDigits && !isValidCpfCnpj(docDigits)) {
+        throw new Error("CPF/CNPJ inválido — confira os dígitos");
+      }
+      const payload: any = {
+        nome: newClientNome,
+        telefone: newClientTelefone,
+        email: newClientEmail || null,
+        cpf: docDigits || null,
+        documento: docDigits || null,
+        data_nascimento: newClientNascimento ? format(newClientNascimento, "yyyy-MM-dd") : null,
+        cep: newClientCep.replace(/\D/g, "") || null,
+        rua: newClientRua || null,
+        numero_endereco: newClientNumero || null,
+        complemento: newClientComplemento || null,
+        bairro: newClientBairro || null,
+        cidade: newClientCidade || null,
+        estado: newClientEstado || null,
+        origem: newClientOrigem || null,
+        observacoes: newClientObs || null,
+      };
       const { data, error } = await supabase
         .from("clientes")
-        .insert({ nome: newClientNome, telefone: newClientTelefone, email: newClientEmail || null })
+        .insert(payload)
         .select().single();
       if (error) throw error;
       return data;
