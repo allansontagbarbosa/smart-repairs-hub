@@ -96,6 +96,11 @@ function CrudSection({ title, items, queryKey, table, fields }: { title: string;
 function MetasCard() {
   const qc = useQueryClient();
   const { empresaId, empresa } = useEmpresa();
+
+  // Current month key for ajustes_mensais
+  const now = new Date();
+  const anoMes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
   const { data: config } = useQuery({
     queryKey: ["empresa_config_meta", empresaId],
     enabled: !!empresaId,
@@ -105,9 +110,20 @@ function MetasCard() {
         .select("*")
         .eq("empresa_id", empresaId)
         .maybeSingle();
-
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: ajustes, refetch: refetchAjustes } = useQuery({
+    queryKey: ["config-ajustes", empresaId, anoMes],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ajustes_mensais")
+        .select("*")
+        .eq("ano_mes", anoMes);
+      return data ?? [];
     },
   });
 
@@ -131,17 +147,27 @@ function MetasCard() {
   const [socioNomes, setSocioNomes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Load empresa_config values
   useEffect(() => {
     if (!config) return;
     setMetaGastos(String(config.meta_gastos_mes ?? ""));
     setMetaFaturamento(String(config.meta_faturamento_mes ?? ""));
     setNumSocios(String(config.numero_socios ?? 1));
     setPctReserva(String(config.percentual_reserva_empresa ?? 10));
-    setGastosFix(String((config as any).gastos_fixos_mensais ?? ""));
-    setDepreciacao(String((config as any).depreciacao_mensal ?? ""));
-    setImpostos(String((config as any).impostos_mensal ?? ""));
     setOutrosGastos(String((config as any).outros_gastos ?? ""));
   }, [config]);
+
+  // Load ajustes_mensais values
+  useEffect(() => {
+    if (!ajustes) return;
+    const getVal = (tipo: string) => {
+      const item = ajustes.find((a: any) => a.tipo === tipo);
+      return item ? String(item.valor) : "";
+    };
+    setGastosFix(getVal("gastos_fixos"));
+    setDepreciacao(getVal("depreciacao"));
+    setImpostos(getVal("impostos"));
+  }, [ajustes]);
 
   useEffect(() => {
     if (socios) {
@@ -150,6 +176,22 @@ function MetasCard() {
       setSocioNomes(nomes);
     }
   }, [socios, numSocios]);
+
+  const upsertAjuste = async (tipo: string, valor: number) => {
+    const existing = (ajustes ?? []).find((a: any) => a.tipo === tipo);
+    if (existing) {
+      const { error } = await supabase
+        .from("ajustes_mensais")
+        .update({ valor } as any)
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("ajustes_mensais")
+        .insert({ tipo, valor, ano_mes: anoMes, empresa_id: empresaId } as any);
+      if (error) throw error;
+    }
+  };
 
   const handleSave = async () => {
     if (!empresaId) {
@@ -161,15 +203,14 @@ function MetasCard() {
 
     try {
       const ns = Number(numSocios) || 1;
+
+      // Save empresa_config (metas + reserva + outros_gastos)
       const payload = {
         empresa_id: empresaId,
         meta_gastos_mes: Number(metaGastos) || 0,
         meta_faturamento_mes: Number(metaFaturamento) || 0,
         numero_socios: ns,
         percentual_reserva_empresa: Number(pctReserva) || 0,
-        gastos_fixos_mensais: Number(gastosFix) || 0,
-        depreciacao_mensal: Number(depreciacao) || 0,
-        impostos_mensal: Number(impostos) || 0,
         outros_gastos: Number(outrosGastos) || 0,
       };
 
@@ -190,6 +231,12 @@ function MetasCard() {
 
       if (configResponse.error) throw configResponse.error;
 
+      // Save ajustes_mensais (upsert by tipo)
+      await upsertAjuste("gastos_fixos", Number(gastosFix) || 0);
+      await upsertAjuste("impostos", Number(impostos) || 0);
+      await upsertAjuste("depreciacao", Number(depreciacao) || 0);
+
+      // Save sócios
       const existing = socios ?? [];
       for (let i = 0; i < ns; i++) {
         const nome = socioNomes[i]?.trim() || "";
@@ -206,9 +253,12 @@ function MetasCard() {
       }
 
       qc.invalidateQueries({ queryKey: ["empresa_config_meta", empresaId] });
+      qc.invalidateQueries({ queryKey: ["config-ajustes", empresaId, anoMes] });
       qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
       qc.invalidateQueries({ queryKey: ["dashboard-socios"] });
+      qc.invalidateQueries({ queryKey: ["rel-dre-ajustes"] });
       refetchSocios();
+      refetchAjustes();
       toast.success("Configurações atualizadas");
     } catch (error: any) {
       console.error("Erro ao salvar configurações financeiras:", error);
