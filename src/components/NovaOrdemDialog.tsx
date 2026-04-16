@@ -941,12 +941,41 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por nome ou telefone..."
+                      placeholder="Nome, telefone, CPF/CNPJ ou IMEI (15 dígitos)..."
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
                       className="pl-9 h-9 text-sm"
                     />
+                    {isImeiSearch && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-primary font-medium">
+                        Buscando por IMEI
+                      </span>
+                    )}
                   </div>
+
+                  {/* Hits via IMEI */}
+                  {isImeiSearch && imeiSearchHits.length > 0 && (
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 divide-y divide-primary/20">
+                      {imeiSearchHits.map((hit) => (
+                        <button
+                          key={`${hit.cliente_id}-${hit.aparelho_label}`}
+                          type="button"
+                          onClick={() => setSelectedClientId(hit.cliente_id)}
+                          className={cn(
+                            "w-full px-3 py-2.5 text-left text-sm hover:bg-primary/10 transition-colors",
+                            selectedClientId === hit.cliente_id && "bg-primary/10"
+                          )}
+                        >
+                          <p className="font-medium text-sm">{hit.cliente_nome} — {hit.cliente_telefone}</p>
+                          <p className="text-[11px] text-primary mt-0.5">
+                            ↳ Encontrado pelo IMEI do {hit.aparelho_label}
+                            {hit.numero_os ? ` (OS #${hit.numero_os})` : ""}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="max-h-48 overflow-y-auto rounded-lg border divide-y">
                     {clientesFiltrados.length === 0 ? (
                       <p className="text-center text-xs text-muted-foreground py-6">Nenhum cliente encontrado</p>
@@ -962,22 +991,27 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                         >
                           <div>
                             <p className="font-medium text-sm">{c.nome}</p>
-                            <p className="text-xs text-muted-foreground">{c.telefone}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {c.telefone}
+                              {(c.cpf || c.documento) && (
+                                <span className="ml-2">· {formatCpfCnpj(c.cpf || c.documento || "")}</span>
+                              )}
+                            </p>
                           </div>
                           {selectedClientId === c.id && <CheckCircle2 className="h-4 w-4 text-primary" />}
                         </button>
                       ))
                     )}
                   </div>
-                  <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                  <button type="button" onClick={() => setShowNewClient(true)} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
                     <UserPlus className="h-3.5 w-3.5" /> Cadastrar novo cliente
                   </button>
                 </>
               ) : (
                 <div className="space-y-3 p-3 rounded-lg border bg-muted/20">
                   <p className="text-sm font-semibold">Novo cliente</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    <div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
                       <Label className="text-xs text-muted-foreground">Nome completo *</Label>
                       <Input value={newClientNome} onChange={(e) => setNewClientNome(e.target.value)} placeholder="João Silva" className="mt-1 h-8 text-sm" />
                     </div>
@@ -988,6 +1022,111 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     <div>
                       <Label className="text-xs text-muted-foreground">E-mail</Label>
                       <Input value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="opcional" className="mt-1 h-8 text-sm" type="email" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">CPF / CNPJ</Label>
+                      <Input
+                        value={formatCpfCnpj(newClientCpfCnpj)}
+                        onChange={(e) => setNewClientCpfCnpj(onlyDigits(e.target.value))}
+                        placeholder="opcional"
+                        className="mt-1 h-8 text-sm font-mono"
+                        inputMode="numeric"
+                      />
+                      {newClientCpfCnpj && !isValidCpfCnpj(newClientCpfCnpj) && (newClientCpfCnpj.length === 11 || newClientCpfCnpj.length === 14) && (
+                        <p className="text-[10px] text-destructive mt-0.5">Dígitos inválidos</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Data de nascimento</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn("mt-1 h-8 w-full justify-start text-left font-normal text-sm", !newClientNascimento && "text-muted-foreground")}
+                          >
+                            <CalendarIcon className="mr-2 h-3 w-3" />
+                            {newClientNascimento ? format(newClientNascimento, "dd/MM/yyyy", { locale: ptBR }) : "opcional"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={newClientNascimento}
+                            onSelect={setNewClientNascimento}
+                            captionLayout="dropdown-buttons"
+                            fromYear={1920}
+                            toYear={new Date().getFullYear()}
+                            disabled={(d) => d > new Date()}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">CEP</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          value={maskCep(newClientCep)}
+                          onChange={(e) => setNewClientCep(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                          placeholder="00000-000"
+                          className="h-8 text-sm font-mono pr-7"
+                          inputMode="numeric"
+                        />
+                        {cepLoading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-muted-foreground" />}
+                      </div>
+                    </div>
+                    <div className="col-span-2 grid grid-cols-3 gap-2">
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Rua</Label>
+                        <Input value={newClientRua} onChange={(e) => setNewClientRua(e.target.value)} className="mt-1 h-8 text-sm" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Número</Label>
+                        <Input value={newClientNumero} onChange={(e) => setNewClientNumero(e.target.value)} className="mt-1 h-8 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Complemento</Label>
+                      <Input value={newClientComplemento} onChange={(e) => setNewClientComplemento(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Bairro</Label>
+                      <Input value={newClientBairro} onChange={(e) => setNewClientBairro(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Cidade</Label>
+                      <Input value={newClientCidade} onChange={(e) => setNewClientCidade(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">UF</Label>
+                      <Input value={newClientEstado} onChange={(e) => setNewClientEstado(e.target.value.toUpperCase().slice(0, 2))} className="mt-1 h-8 text-sm uppercase" maxLength={2} />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Como nos conheceu?</Label>
+                      <select
+                        value={newClientOrigem}
+                        onChange={(e) => setNewClientOrigem(e.target.value)}
+                        className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">— opcional —</option>
+                        <option value="indicacao">Indicação</option>
+                        <option value="google">Google</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="passando">Passando na rua</option>
+                        <option value="outro">Outro</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Observações</Label>
+                      <Textarea
+                        value={newClientObs}
+                        onChange={(e) => setNewClientObs(e.target.value)}
+                        rows={2}
+                        className="mt-1 resize-none text-sm"
+                        placeholder="opcional"
+                      />
                     </div>
                   </div>
                   <div className="flex gap-2">
