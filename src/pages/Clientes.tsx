@@ -231,6 +231,43 @@ export default function Clientes() {
           )}
         </SheetContent>
       </Sheet>
+      {/* View client history sheet */}
+      <Sheet open={!!viewingClient} onOpenChange={(open) => { if (!open) setViewingClient(null); }}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {viewingClient && (
+            <>
+              <SheetHeader className="pb-4">
+                <SheetTitle>{viewingClient.nome}</SheetTitle>
+              </SheetHeader>
+
+              <Button
+                size="sm"
+                className="w-full mb-4 gap-1.5"
+                onClick={() => {
+                  setNovaOsClienteId(viewingClient.id);
+                  setNovaOsOpen(true);
+                }}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                Nova OS para este cliente
+              </Button>
+
+              <ClienteHistorico cliente={viewingClient} />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Nova OS dialog with pre-selected client */}
+      <NovaOrdemDialog
+        open={novaOsOpen}
+        onOpenChange={setNovaOsOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["clientes-full"] });
+          setNovaOsOpen(false);
+        }}
+        preSelectedClientId={novaOsClienteId}
+      />
     </div>
   );
 }
