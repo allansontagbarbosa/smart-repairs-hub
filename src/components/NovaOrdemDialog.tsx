@@ -840,7 +840,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // ── Validação ──
   const canAdvanceCliente = !!selectedClientId;
   const canAdvanceAparelho = !!marca && !!modelo;
-  const canSubmit = canAdvanceCliente && canAdvanceAparelho && defeitosSelecionados.length > 0;
+  const canSubmit = canAdvanceCliente && canAdvanceAparelho && (defeitosSelecionados.length > 0 || !!relatoCliente.trim());
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
