@@ -9,15 +9,19 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Building2, Plus, Store, Eye } from "lucide-react";
+import { Building2, Plus, Store, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+
+type DialogStep = "form" | "access";
 
 export function ConfigLojistasTab() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [step, setStep] = useState<DialogStep>("form");
+  const [savedLojistaId, setSavedLojistaId] = useState<string | null>(null);
+  const [accessEmail, setAccessEmail] = useState("");
+  const [accessSent, setAccessSent] = useState(false);
 
   // Form state
   const [nome, setNome] = useState("");
@@ -42,7 +46,6 @@ export function ConfigLojistasTab() {
     },
   });
 
-  // Get OS count per lojista
   const { data: osCounts = {} } = useQuery({
     queryKey: ["lojistas-os-count"],
     queryFn: async () => {
@@ -59,41 +62,137 @@ export function ConfigLojistasTab() {
     },
   });
 
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const { error } = await supabase.from("lojistas").update({ ativo }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] });
+      toast.success("Status atualizado!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = { nome, razao_social: razaoSocial || null, cnpj: cnpj || null, telefone: telefone || null, whatsapp: whatsapp || null, email: email || null, responsavel: responsavel || null, observacoes: observacoes || null };
       if (editing) {
         const { error } = await supabase.from("lojistas").update(payload).eq("id", editing.id);
         if (error) throw error;
+        return editing.id;
       } else {
-        const { error } = await supabase.from("lojistas").insert(payload);
+        const { data, error } = await supabase.from("lojistas").insert(payload).select("id").single();
         if (error) throw error;
+        return data.id;
       }
     },
-    onSuccess: () => {
+    onSuccess: (lojistaId: string) => {
       queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] });
-      toast.success(editing ? "Lojista atualizado!" : "Lojista cadastrado!");
-      closeDialog();
+      if (editing) {
+        toast.success("Lojista atualizado!");
+        closeDialog();
+      } else {
+        toast.success("Lojista cadastrado!");
+        setSavedLojistaId(lojistaId);
+        setAccessEmail(email || "");
+        setAccessSent(false);
+        setStep("access");
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("lojistas").update({ ativo }).eq("id", id);
-      if (error) throw error;
+  const sendAccessMutation = useMutation({
+    mutationFn: async () => {
+      if (!savedLojistaId || !accessEmail.trim()) throw new Error("Email obrigatório");
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("empresa_id")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .single();
+      const empresa_id = profile?.empresa_id;
+      if (!empresa_id) throw new Error("Empresa não encontrada");
+
+      const { data: inviteResult, error: inviteError } = await supabase.functions.invoke("invite-user", {
+        body: { email: accessEmail, nome: responsavel || nome, empresa_id },
+      });
+
+      let userId: string | null = null;
+
+      if (inviteError) {
+        const errMsg = (inviteResult as any)?.error || inviteError.message || "";
+        if (errMsg.includes("already been registered") || errMsg.includes("409")) {
+          const { data: func } = await supabase
+            .from("funcionarios")
+            .select("id")
+            .eq("email", accessEmail)
+            .limit(1)
+            .maybeSingle();
+
+          if (func) {
+            const { data: up } = await supabase
+              .from("user_profiles")
+              .select("user_id")
+              .eq("funcionario_id", func.id)
+              .maybeSingle();
+            userId = up?.user_id ?? null;
+          }
+
+          if (!userId) {
+            throw new Error("Usuário já existe mas não foi possível vincular automaticamente. Peça ao usuário para fazer login em /lojista/login e tente vincular manualmente.");
+          }
+        } else {
+          throw new Error(errMsg || "Erro ao enviar convite");
+        }
+      } else {
+        userId = inviteResult?.user_id ?? null;
+      }
+
+      if (!userId) throw new Error("Não foi possível obter o ID do usuário");
+
+      const { data: existing } = await supabase
+        .from("lojista_usuarios")
+        .select("id")
+        .eq("lojista_id", savedLojistaId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error: insertErr } = await supabase.from("lojista_usuarios").insert({
+          lojista_id: savedLojistaId,
+          user_id: userId,
+          nome: responsavel || nome,
+          email: accessEmail,
+          ativo: true,
+        } as any);
+        if (insertErr) throw insertErr;
+      }
+
+      return accessEmail;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] }),
+    onSuccess: (sentEmail) => {
+      setAccessSent(true);
+      toast.success(`Convite enviado para ${sentEmail}`);
+      queryClient.invalidateQueries({ queryKey: ["lojistas-admin"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   function openNew() {
     setEditing(null);
+    setStep("form");
+    setSavedLojistaId(null);
+    setAccessEmail("");
+    setAccessSent(false);
     setNome(""); setRazaoSocial(""); setCnpj(""); setTelefone(""); setWhatsapp(""); setEmail(""); setResponsavel(""); setObservacoes("");
     setDialogOpen(true);
   }
 
   function openEdit(l: any) {
     setEditing(l);
+    setStep("form");
     setNome(l.nome); setRazaoSocial(l.razao_social || ""); setCnpj(l.cnpj || ""); setTelefone(l.telefone || ""); setWhatsapp(l.whatsapp || ""); setEmail(l.email || ""); setResponsavel(l.responsavel || ""); setObservacoes(l.observacoes || "");
     setDialogOpen(true);
   }
@@ -101,7 +200,12 @@ export function ConfigLojistasTab() {
   function closeDialog() {
     setDialogOpen(false);
     setEditing(null);
+    setStep("form");
+    setSavedLojistaId(null);
+    setAccessSent(false);
   }
+
+  const portalUrl = `${window.location.origin}/lojista/login`;
 
   return (
     <div className="space-y-4">
@@ -162,55 +266,105 @@ export function ConfigLojistasTab() {
         </div>
       )}
 
-      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={closeDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
-              {editing ? "Editar lojista" : "Novo lojista"}
+              {step === "access" ? "Acesso ao portal" : editing ? "Editar lojista" : "Novo lojista"}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1">
-              <Label>Nome *</Label>
-              <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome fantasia" />
+
+          {step === "form" ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <Label>Nome *</Label>
+                  <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome fantasia" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Razão Social</Label>
+                  <Input value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>CNPJ</Label>
+                  <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Telefone</Label>
+                  <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>WhatsApp</Label>
+                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Email</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Responsável</Label>
+                  <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label>Observações</Label>
+                  <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+                <Button onClick={() => saveMutation.mutate()} disabled={!nome.trim() || saveMutation.isPending}>
+                  {saveMutation.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="space-y-4">
+              {!accessSent ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Envie o acesso ao portal B2B para o responsável da loja <strong>{nome}</strong>.
+                  </p>
+                  <div className="space-y-1">
+                    <Label>Email do responsável *</Label>
+                    <Input
+                      type="email"
+                      value={accessEmail}
+                      onChange={(e) => setAccessEmail(e.target.value)}
+                      placeholder="responsavel@loja.com"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={closeDialog}>Pular</Button>
+                    <Button
+                      onClick={() => sendAccessMutation.mutate()}
+                      disabled={!accessEmail.trim() || sendAccessMutation.isPending}
+                      className="gap-1.5"
+                    >
+                      {sendAccessMutation.isPending ? (
+                        <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      Enviar acesso
+                    </Button>
+                  </DialogFooter>
+                </>
+              ) : (
+                <div className="text-center space-y-3 py-4">
+                  <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Convite enviado para <strong>{accessEmail}</strong></p>
+                    <p className="text-xs text-muted-foreground">
+                      O lojista pode acessar o portal em:
+                    </p>
+                    <code className="text-xs bg-muted px-2 py-1 rounded block mt-1">{portalUrl}</code>
+                  </div>
+                  <Button onClick={closeDialog} className="mt-4">Concluir</Button>
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <Label>Razão Social</Label>
-              <Input value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>CNPJ</Label>
-              <Input value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
-            </div>
-            <div className="space-y-1">
-              <Label>Telefone</Label>
-              <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>WhatsApp</Label>
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-            </div>
-            <div className="space-y-1">
-              <Label>Responsável</Label>
-              <Input value={responsavel} onChange={(e) => setResponsavel(e.target.value)} />
-            </div>
-            <div className="col-span-2 space-y-1">
-              <Label>Observações</Label>
-              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={2} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!nome.trim() || saveMutation.isPending}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>
