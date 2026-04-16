@@ -358,10 +358,26 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         setImeiResult({ status: "not_found", message: result.message });
         return;
       }
-      if (result.marca) setMarca(result.marca);
-      if (result.modelo) setModelo(result.modelo);
-      if (result.cor) setCor(result.cor);
-      if (result.capacidade) setCapacidade(result.capacidade);
+      if (result.marca) {
+        setMarca(result.marca);
+        const m = marcasList.find((x: any) => x.nome.toLowerCase() === result.marca!.toLowerCase());
+        if (m) setMarcaId(m.id);
+      }
+      if (result.modelo) {
+        setModelo(result.modelo);
+        const m = modelosList.find((x: any) => x.nome.toLowerCase() === result.modelo!.toLowerCase());
+        if (m) setModeloId(m.id);
+      }
+      if (result.cor) {
+        setCor(result.cor);
+        const c = coresList.find((x: any) => x.nome.toLowerCase() === result.cor!.toLowerCase());
+        if (c) setCorId(c.id);
+      }
+      if (result.capacidade) {
+        setCapacidade(result.capacidade);
+        const c = capacidadesList.find((x: any) => x.nome.toLowerCase() === result.capacidade!.toLowerCase());
+        if (c) setCapacidadeId(c.id);
+      }
       setImeiResult({
         status: result.status as ImeiStatus,
         marca: result.marca,
@@ -391,7 +407,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           cor: cor || null,
           capacidade: capacidade || null,
           imei: imei.replace(/\D/g, "") || null,
-        })
+          marca_id: marcaId || null,
+          modelo_id: modeloId || null,
+          cor_id: corId || null,
+          capacidade_id: capacidadeId || null,
+        } as any)
         .select().single();
       if (apErr) throw apErr;
 
