@@ -91,32 +91,75 @@ Deno.serve(async (req) => {
       redirectTo: `${siteUrl}/aceitar-convite`,
     });
 
+    let targetUserId: string | undefined;
+
     if (inviteError) {
-      const status = inviteError.message.includes("already been registered") ? 409 : 400;
-      return new Response(JSON.stringify({ error: inviteError.message }), {
-        status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      // If user already exists, look them up and reactivate their profile
+      if (inviteError.message.includes("already been registered")) {
+        const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
-    // Create user_profiles + funcionario for invited user
-    if (inviteData?.user) {
-      const { data: func } = await adminClient.from("funcionarios").insert({
-        nome,
-        email,
-        empresa_id,
-        cargo: "Colaborador",
-        ativo: true,
-      }).select("id").single();
+        if (!existingUser) {
+          return new Response(JSON.stringify({ error: "Usuário existe mas não foi possível localizá-lo" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
-      await adminClient.from("user_profiles").upsert({
-        user_id: inviteData.user.id,
-        nome_exibicao: nome,
-        perfil_id: perfil_id || null,
-        empresa_id,
-        funcionario_id: func?.id || null,
-        ativo: true,
-      }, { onConflict: "user_id" });
+        targetUserId = existingUser.id;
+
+        // Reactivate existing profile or create one
+        const { data: existingProfile } = await adminClient
+          .from("user_profiles")
+          .select("id")
+          .or(`user_id.eq.${targetUserId},id.eq.${targetUserId}`)
+          .maybeSingle();
+
+        if (existingProfile) {
+          await adminClient.from("user_profiles").update({
+            ativo: true,
+            perfil_id: perfil_id || null,
+            empresa_id,
+            nome_exibicao: nome,
+          }).eq("id", existingProfile.id);
+        } else {
+          // Create funcionario + profile for existing auth user
+          const { data: func } = await adminClient.from("funcionarios").insert({
+            nome, email, empresa_id, cargo: "Colaborador", ativo: true,
+          }).select("id").single();
+
+          await adminClient.from("user_profiles").insert({
+            user_id: targetUserId,
+            nome_exibicao: nome,
+            perfil_id: perfil_id || null,
+            empresa_id,
+            funcionario_id: func?.id || null,
+            ativo: true,
+          });
+        }
+      } else {
+        return new Response(JSON.stringify({ error: inviteError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // New user invited successfully — create profile + funcionario
+      targetUserId = inviteData?.user?.id;
+      if (targetUserId) {
+        const { data: func } = await adminClient.from("funcionarios").insert({
+          nome, email, empresa_id, cargo: "Colaborador", ativo: true,
+        }).select("id").single();
+
+        await adminClient.from("user_profiles").upsert({
+          user_id: targetUserId,
+          nome_exibicao: nome,
+          perfil_id: perfil_id || null,
+          empresa_id,
+          funcionario_id: func?.id || null,
+          ativo: true,
+        }, { onConflict: "user_id" });
+      }
     }
 
     return new Response(JSON.stringify({ success: true, user_id: inviteData?.user?.id }), {
