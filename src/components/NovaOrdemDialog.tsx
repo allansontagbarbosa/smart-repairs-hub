@@ -254,6 +254,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
   });
 
+  const { data: tecnicosList = [] } = useQuery({
+    queryKey: ["tecnicos-os"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      return data ?? [];
+    },
+  });
+
   const modelosFiltrados = useMemo(
     () => marcaId ? modelosList.filter((m: any) => m.marca_id === marcaId) : modelosList,
     [modelosList, marcaId]
