@@ -94,8 +94,11 @@ export default function AparelhosAssistencia() {
         </TabsContent>
       </Tabs>
 
-      <EntradaAparelhoDialog open={entradaOpen} onOpenChange={setEntradaOpen} />
-      <EntradaLoteDialog open={loteOpen} onOpenChange={setLoteOpen} />
+      <NovaOrdemDialog
+        open={novaOSOpen}
+        onOpenChange={setNovaOSOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] })}
+      />
     </div>
   );
 }
