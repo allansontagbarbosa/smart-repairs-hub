@@ -283,7 +283,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     const selectedIds = new Set(pecasSelecionadas.map(p => p.id));
     return pecasEstoque.filter(p =>
       !selectedIds.has(p.id) &&
-      (!pecaSearch || 
+      (!pecaSearch ||
         (p.nome_personalizado || "").toLowerCase().includes(pecaSearch.toLowerCase()) ||
         (p.sku || "").toLowerCase().includes(pecaSearch.toLowerCase()))
     );
@@ -557,7 +557,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
     onSuccess: (ordem) => {
       toast.success(`OS #${String(ordem?.numero || 0).padStart(3, "0")} criada!`);
-      queryClient.invalidateQueries({ queryKey: ["estoque_pecas_disponiveis"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_pecas_para_os"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
       setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
       setStep("sucesso");
