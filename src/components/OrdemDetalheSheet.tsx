@@ -1107,6 +1107,66 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Conteúdo de impressão (off-screen) */}
+            <div style={{ position: "absolute", left: "-10000px", top: 0 }} aria-hidden>
+              <ImpressaoOS
+                ref={printRef}
+                data={{
+                  numero: (ordem as any).numero ?? null,
+                  numero_formatado: (ordem as any).numero_formatado ?? null,
+                  status: ordem.status,
+                  data_entrada: ordem.data_entrada,
+                  previsao_entrega: ordem.previsao_entrega,
+                  defeito_relatado: ordem.defeito_relatado,
+                  diagnostico_tecnico: (ordem as any).diagnostico ?? null,
+                  obs_cliente: (ordem as any).obs_cliente ?? null,
+                  observacoes_internas: (ordem as any).observacoes ?? null,
+                  servico_descricao: (ordem as any).servico_realizado ?? null,
+                  valor: ordem.valor,
+                  valor_total: (ordem as any).valor_total ?? null,
+                  desconto: (ordem as any).desconto ?? null,
+                  sinal_pago: (ordem as any).sinal_pago ?? null,
+                  forma_pagamento_sinal: (ordem as any).forma_pagamento_sinal ?? null,
+                  garantia_dias: (ordem as any).garantia_dias ?? 90,
+                  mao_obra_adicional: (ordem as any).mao_obra_adicional ?? null,
+                  acessorios: (ordem as any).acessorios ?? null,
+                  senha_padrao: (ordem as any).senha_padrao ?? null,
+                  checklist_entrada: (ordem as any).checklist_entrada ?? null,
+                  cliente: {
+                    nome: ordem.aparelhos?.clientes?.nome ?? "—",
+                    telefone: ordem.aparelhos?.clientes?.telefone ?? "",
+                    cpf: (ordem.aparelhos?.clientes as any)?.cpf ?? null,
+                    email: (ordem.aparelhos?.clientes as any)?.email ?? null,
+                  },
+                  aparelho: {
+                    marca: ordem.aparelhos?.marca ?? "",
+                    modelo: ordem.aparelhos?.modelo ?? "",
+                    cor: ordem.aparelhos?.cor ?? null,
+                    capacidade: ordem.aparelhos?.capacidade ?? null,
+                    imei: ordem.aparelhos?.imei ?? null,
+                  },
+                  empresa: empresaImpressao
+                    ? {
+                        nome: (empresaImpressao as any).nome ?? "",
+                        cnpj: (empresaImpressao as any).cnpj_cpf ?? null,
+                        telefone: (empresaImpressao as any).telefone ?? null,
+                        email: (empresaImpressao as any).email ?? null,
+                        endereco: (empresaImpressao as any).endereco ?? null,
+                        cidade: (empresaImpressao as any).cidade ?? null,
+                        estado: (empresaImpressao as any).estado ?? null,
+                        logo_url: (empresaImpressao as any).logo_url ?? null,
+                      }
+                    : null,
+                  pecas: (pecasUtilizadas as any[]).map((p) => ({
+                    nome: p.estoque?.nome ?? "Peça",
+                    quantidade: p.quantidade ?? 1,
+                    valor: p.custo_unitario ?? 0,
+                  })),
+                  tecnico_nome: ordem.tecnico ?? null,
+                }}
+              />
+            </div>
           </>
         )}
       </SheetContent>
