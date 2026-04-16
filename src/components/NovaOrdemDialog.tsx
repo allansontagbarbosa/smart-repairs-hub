@@ -111,7 +111,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [imei2, setImei2] = useState("");
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [aparelhoExistente, setAparelhoExistente] = useState<{ id: string; cliente_id: string; cliente_nome: string; total_os: number; mesmo_cliente: boolean } | null>(null);
-  const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [marca, setMarca] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
@@ -122,6 +121,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [capacidadeId, setCapacidadeId] = useState("");
   const [senhaDesbloqueio, setSenhaDesbloqueio] = useState("");
   const [acessorios, setAcessorios] = useState("");
+  // Estado de recebimento
+  const [liga, setLiga] = useState<"sim" | "nao" | "parcial">("sim");
+  const [bateriaEntrada, setBateriaEntrada] = useState("");
+  const [estadoGeral, setEstadoGeral] = useState("");
 
   // Serviço — defeitos
   const [defeitoSearch, setDefeitoSearch] = useState("");
