@@ -458,6 +458,53 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Card: Meta mensal de faturamento */}
+        <Card className="mt-3">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium">Meta mensal de faturamento</span>
+              </div>
+              {kpis.metaFaturamento > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {brl(kpis.faturamento)} / {brl(kpis.metaFaturamento)}
+                </span>
+              )}
+            </div>
+            {kpis.metaFaturamento > 0 ? (() => {
+              const metaFatPct = Math.min(100, (kpis.faturamento / kpis.metaFaturamento) * 100);
+              const progressColor = metaFatPct >= 80 ? "[&>div]:bg-green-500" : metaFatPct >= 50 ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500";
+              const labelColor = metaFatPct >= 80 ? "text-green-600" : metaFatPct >= 50 ? "text-amber-600" : "text-red-600";
+              return (
+                <>
+                  <Progress value={metaFatPct} className={`h-3 ${progressColor}`} />
+                  <div className="flex justify-between text-[10px] mt-1">
+                    <span className={`font-semibold ${labelColor}`}>{pct(metaFatPct)} atingido</span>
+                    <span className="text-muted-foreground">
+                      {kpis.faturamento >= kpis.metaFaturamento
+                        ? `Meta batida! +${brl(kpis.faturamento - kpis.metaFaturamento)}`
+                        : `Faltam ${brl(kpis.metaFaturamento - kpis.faturamento)}`}
+                    </span>
+                  </div>
+                </>
+              );
+            })() : (
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">Nenhuma meta definida.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7"
+                  onClick={() => navigate("/configuracoes")}
+                >
+                  <Settings className="h-3 w-3 mr-1" /> Definir meta
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
       )}
 
