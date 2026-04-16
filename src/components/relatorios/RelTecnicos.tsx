@@ -42,12 +42,12 @@ export function RelTecnicos() {
   });
 
   const { data: defeitos } = useQuery({
-    queryKey: ["rel-tecnicos-defeitos", inicio],
+    queryKey: ["rel-tecnicos-servicos", inicio],
     queryFn: async () => {
       const osIds = (ordens ?? []).map(o => o.id);
       if (osIds.length === 0) return [];
-      const { data } = await supabase.from("os_defeitos").select("ordem_id, nome").in("ordem_id", osIds);
-      return data ?? [];
+      const { data } = await supabase.from("os_servicos").select("ordem_id, nome").in("ordem_id", osIds);
+      return (data ?? []) as { ordem_id: string; nome: string }[];
     },
     enabled: (ordens ?? []).length > 0,
   });

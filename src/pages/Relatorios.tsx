@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { RelDRE } from "@/components/relatorios/RelDRE";
 import { RelTecnicos } from "@/components/relatorios/RelTecnicos";
-import { RelDefeitos } from "@/components/relatorios/RelDefeitos";
+import { RelServicos } from "@/components/relatorios/RelServicos";
 import { RelExportacao } from "@/components/relatorios/RelExportacao";
 
 export default function Relatorios() {
@@ -20,12 +20,12 @@ export default function Relatorios() {
         <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="dre">DRE</TabsTrigger>
           <TabsTrigger value="tecnicos">Técnicos</TabsTrigger>
-          <TabsTrigger value="defeitos">Defeitos</TabsTrigger>
+          <TabsTrigger value="defeitos">Serviços</TabsTrigger>
           <TabsTrigger value="exportacao">Exportação</TabsTrigger>
         </TabsList>
         <TabsContent value="dre"><RelDRE /></TabsContent>
         <TabsContent value="tecnicos"><RelTecnicos /></TabsContent>
-        <TabsContent value="defeitos"><RelDefeitos /></TabsContent>
+        <TabsContent value="defeitos"><RelServicos /></TabsContent>
         <TabsContent value="exportacao"><RelExportacao /></TabsContent>
       </Tabs>
     </div>

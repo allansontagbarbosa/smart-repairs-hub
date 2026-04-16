@@ -2551,51 +2551,57 @@ export type Database = {
           },
         ]
       }
-      os_defeitos: {
+      os_servicos: {
         Row: {
+          categoria: string | null
           created_at: string
-          defeito_id: string | null
           empresa_id: string | null
           id: string
           nome: string
           ordem_id: string
+          servico_id: string | null
+          valor: number
         }
         Insert: {
+          categoria?: string | null
           created_at?: string
-          defeito_id?: string | null
           empresa_id?: string | null
           id?: string
           nome: string
           ordem_id: string
+          servico_id?: string | null
+          valor?: number
         }
         Update: {
+          categoria?: string | null
           created_at?: string
-          defeito_id?: string | null
           empresa_id?: string | null
           id?: string
           nome?: string
           ordem_id?: string
+          servico_id?: string | null
+          valor?: number
         }
         Relationships: [
           {
-            foreignKeyName: "os_defeitos_defeito_id_fkey"
-            columns: ["defeito_id"]
-            isOneToOne: false
-            referencedRelation: "tipos_defeito"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "os_defeitos_empresa_id_fkey"
+            foreignKeyName: "os_servicos_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "os_defeitos_ordem_id_fkey"
+            foreignKeyName: "os_servicos_ordem_id_fkey"
             columns: ["ordem_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_servicos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
             referencedColumns: ["id"]
           },
         ]
@@ -3106,47 +3112,10 @@ export type Database = {
           },
         ]
       }
-      tipos_defeito: {
-        Row: {
-          ativo: boolean
-          categoria: string
-          created_at: string
-          empresa_id: string | null
-          id: string
-          nome: string
-          valor_mao_obra: number
-        }
-        Insert: {
-          ativo?: boolean
-          categoria?: string
-          created_at?: string
-          empresa_id?: string | null
-          id?: string
-          nome: string
-          valor_mao_obra?: number
-        }
-        Update: {
-          ativo?: boolean
-          categoria?: string
-          created_at?: string
-          empresa_id?: string | null
-          id?: string
-          nome?: string
-          valor_mao_obra?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tipos_defeito_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       tipos_servico: {
         Row: {
           ativo: boolean
+          categoria: string | null
           comissao_padrao: number | null
           created_at: string
           descricao: string | null
@@ -3158,6 +3127,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          categoria?: string | null
           comissao_padrao?: number | null
           created_at?: string
           descricao?: string | null
@@ -3169,6 +3139,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          categoria?: string | null
           comissao_padrao?: number | null
           created_at?: string
           descricao?: string | null
