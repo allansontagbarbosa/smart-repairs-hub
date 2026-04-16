@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Building2, Plus, Store, Send, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, Store, Send, CheckCircle2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 type DialogStep = "form" | "access";
