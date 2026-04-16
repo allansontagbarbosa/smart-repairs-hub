@@ -90,6 +90,14 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const clean = (v: string) => v && v !== "__nenhum__" ? v : null;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("empresa_id")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .single();
+      const empresa_id = profile?.empresa_id ?? null;
+
       const payload = {
         descricao: values.descricao,
         categoria: values.categoria,
@@ -101,7 +109,8 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         data_vencimento: values.data_vencimento,
         recorrente: values.recorrente,
         observacoes: values.observacoes || null,
-        fornecedor: null, // keep legacy field null
+        fornecedor: null,
+        empresa_id,
       };
 
       if (isEditing) {
