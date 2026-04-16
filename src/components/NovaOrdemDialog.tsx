@@ -326,12 +326,120 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   }
 
   // ── Derived ──
-  const clientesFiltrados = clientes.filter((c) =>
-    !clientSearch ||
-    c.nome.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    (c.telefone || "").includes(clientSearch)
-  );
+  const searchDigits = clientSearch.replace(/\D/g, "");
+  const isImeiSearch = /^\d{15}$/.test(searchDigits);
+  const isDocSearch = searchDigits.length >= 11;
+
+  const clientesFiltrados = clientes.filter((c) => {
+    if (!clientSearch) return true;
+    const q = clientSearch.toLowerCase();
+    if (c.nome.toLowerCase().includes(q)) return true;
+    if ((c.telefone || "").includes(searchDigits || clientSearch)) return true;
+    // CPF/CNPJ pode estar em `cpf` ou `documento`
+    const docs = [c.cpf, c.documento].filter(Boolean) as string[];
+    if (searchDigits.length >= 3 && docs.some(d => d.replace(/\D/g, "").includes(searchDigits))) return true;
+    return false;
+  });
   const clienteSelecionado = clientes.find((c) => c.id === selectedClientId);
+
+  // Busca por IMEI (15 dígitos) — busca o cliente dono do aparelho
+  useEffect(() => {
+    if (!isImeiSearch) {
+      setImeiSearchHits([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("aparelhos")
+        .select("id, marca, modelo, cliente_id, clientes(nome, telefone)")
+        .eq("imei", searchDigits)
+        .limit(5);
+      if (cancelled || !data) return;
+      // Pegar última OS de cada aparelho para mostrar referência
+      const aparelhoIds = data.map(d => d.id);
+      const { data: osData } = aparelhoIds.length
+        ? await supabase
+            .from("ordens_de_servico")
+            .select("aparelho_id, numero_formatado, numero")
+            .in("aparelho_id", aparelhoIds)
+            .order("created_at", { ascending: false })
+        : { data: [] as any[] };
+      const lastOsByApar = new Map<string, string | null>();
+      (osData || []).forEach((o: any) => {
+        if (!lastOsByApar.has(o.aparelho_id)) {
+          lastOsByApar.set(o.aparelho_id, o.numero_formatado || (o.numero ? String(o.numero).padStart(3, "0") : null));
+        }
+      });
+      setImeiSearchHits(
+        data.map((d: any) => ({
+          cliente_id: d.cliente_id,
+          cliente_nome: d.clientes?.nome ?? "Cliente",
+          cliente_telefone: d.clientes?.telefone ?? "",
+          aparelho_label: `${d.marca || ""} ${d.modelo || ""}`.trim() || "Aparelho",
+          numero_os: lastOsByApar.get(d.id) || null,
+        }))
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [isImeiSearch, searchDigits]);
+
+  // Detecção de aparelho cadastrado ao digitar IMEI no passo 2
+  useEffect(() => {
+    if (imei.length !== 15) {
+      setAparelhoExistente(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("aparelhos")
+        .select("id, cliente_id, clientes(nome)")
+        .eq("imei", imei)
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || !data) {
+        setAparelhoExistente(null);
+        return;
+      }
+      const { count } = await supabase
+        .from("ordens_de_servico")
+        .select("id", { count: "exact", head: true })
+        .eq("aparelho_id", data.id)
+        .is("deleted_at", null);
+      setAparelhoExistente({
+        id: data.id,
+        cliente_id: data.cliente_id,
+        cliente_nome: (data as any).clientes?.nome ?? "outro cliente",
+        total_os: count || 0,
+        mesmo_cliente: data.cliente_id === selectedClientId,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [imei, selectedClientId]);
+
+  // Auto-fill via ViaCEP
+  useEffect(() => {
+    const digits = newClientCep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let cancelled = false;
+    setCepLoading(true);
+    lookupCep(digits).then((data) => {
+      if (cancelled) return;
+      setCepLoading(false);
+      if (!data) return;
+      if (!newClientRua) setNewClientRua(data.logradouro || "");
+      if (!newClientBairro) setNewClientBairro(data.bairro || "");
+      if (!newClientCidade) setNewClientCidade(data.localidade || "");
+      if (!newClientEstado) setNewClientEstado(data.uf || "");
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newClientCep]);
+
+  // Validação Luhn (apenas para warning visual)
+  const imeiLuhnOk = imei.length === 15 ? luhnValid(imei) : null;
+  const imei2LuhnOk = imei2.length === 15 ? luhnValid(imei2) : null;
 
   const defeitosFiltrados = useMemo(() => {
     const selectedIds = new Set(defeitosSelecionados.map(d => d.id));
