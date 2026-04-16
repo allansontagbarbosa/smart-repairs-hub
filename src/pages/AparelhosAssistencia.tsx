@@ -1,9 +1,8 @@
 import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Package, Printer } from "lucide-react";
-import { EntradaAparelhoDialog } from "@/components/estoque/EntradaAparelhoDialog";
-import { EntradaLoteDialog } from "@/components/estoque/EntradaLoteDialog";
+import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer } from "lucide-react";
+import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -49,8 +48,8 @@ type ConferenciaItemState = {
 export default function AparelhosAssistencia() {
   const { aparelhos, kpis, lojas, tecnicos, isLoading } = useAparelhosAssistencia();
   const [tab, setTab] = useState("lista");
-  const [entradaOpen, setEntradaOpen] = useState(false);
-  const [loteOpen, setLoteOpen] = useState(false);
+  const [novaOSOpen, setNovaOSOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -61,16 +60,11 @@ export default function AparelhosAssistencia() {
       <div className="page-header flex items-start justify-between">
         <div>
           <h1 className="page-title">Aparelhos na Assistência</h1>
-          <p className="page-subtitle">
-            {kpis.total} aparelhos em assistência {kpis.atrasados > 0 ? `· ${kpis.atrasados} atrasados` : ""}
-          </p>
+          <p className="page-subtitle">Aparelhos atualmente sob responsabilidade da loja</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 h-9" onClick={() => setLoteOpen(true)}>
-            <Package className="h-3.5 w-3.5" /> Entrada em Lote
-          </Button>
-          <Button size="sm" className="gap-1.5 h-9" onClick={() => setEntradaOpen(true)}>
-            <Plus className="h-3.5 w-3.5" /> Entrada Rápida
+          <Button size="sm" className="gap-1.5 h-9" onClick={() => setNovaOSOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Nova OS
           </Button>
         </div>
       </div>
@@ -100,8 +94,11 @@ export default function AparelhosAssistencia() {
         </TabsContent>
       </Tabs>
 
-      <EntradaAparelhoDialog open={entradaOpen} onOpenChange={setEntradaOpen} />
-      <EntradaLoteDialog open={loteOpen} onOpenChange={setLoteOpen} />
+      <NovaOrdemDialog
+        open={novaOSOpen}
+        onOpenChange={setNovaOSOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] })}
+      />
     </div>
   );
 }
