@@ -4,6 +4,7 @@ import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
 import { usePermissoes, type Permissoes } from "@/hooks/usePermissoes";
+import { useEstoqueBaixoCount } from "@/hooks/useEstoqueBaixoCount";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +43,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { badgeCounts } = useNotificacoes();
   const { can } = usePermissoes();
+  const estoqueBaixoCount = useEstoqueBaixoCount();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -91,7 +93,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleItems.map((item) => {
-                const badge = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
+                const badge = item.badgeKey === "pecas" ? estoqueBaixoCount : (item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
