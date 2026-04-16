@@ -1,53 +1,88 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AssistProLogo } from "@/components/AssistProLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, LogIn } from "lucide-react";
+import { Building2, LogIn, Mail, ArrowLeft } from "lucide-react";
 
 export default function LojistaLogin() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"email" | "otp">("email");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim()) return;
     setLoading(true);
-
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) throw authError;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/lojista`,
+        },
+      });
+      if (error) throw error;
+      toast({
+        title: "Código enviado!",
+        description: `Verifique seu email ${email} e insira o código de 6 dígitos.`,
+      });
+      setStep("otp");
+    } catch (err: any) {
+      const msg = err.message || "";
+      if (msg.includes("Signups not allowed") || msg.includes("not found")) {
+        toast({
+          title: "Email não cadastrado",
+          description: "Este email não tem acesso ao portal. Entre em contato com a assistência.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro", description: msg, variant: "destructive" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Verificar se há registro pendente com esse email (placeholder UUID)
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp.trim()) return;
+    setLoading(true);
+    try {
+      const { data: authData, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "email",
+      });
+      if (error) throw error;
+
+      const userId = authData.user?.id;
+      if (!userId) throw new Error("Erro ao identificar usuário");
+
+      // Vincular registro pendente se existir
       const { data: pendente } = await supabase
         .from("lojista_usuarios")
         .select("id")
-        .eq("email", authData.user.email ?? "")
+        .eq("email", email)
         .eq("ativo", false)
-        .neq("user_id", authData.user.id)
         .maybeSingle();
 
       if (pendente) {
-        // Vincular o user_id real e ativar
         await supabase
           .from("lojista_usuarios")
-          .update({ 
-            user_id: authData.user.id, 
-            ativo: true 
-          })
+          .update({ user_id: userId, ativo: true })
           .eq("id", pendente.id);
       }
 
-      // Check if user has lojista access
+      // Verificar acesso
       const { data: lojistaUser } = await supabase
         .from("lojista_usuarios")
         .select("id")
-        .eq("user_id", authData.user.id)
+        .eq("user_id", userId)
         .eq("ativo", true)
         .maybeSingle();
 
@@ -55,18 +90,19 @@ export default function LojistaLogin() {
         await supabase.auth.signOut();
         toast({
           title: "Acesso não autorizado",
-          description: "Acesso não autorizado para este email.",
+          description: "Este email não tem acesso ao portal lojista.",
           variant: "destructive",
         });
-        setLoading(false);
+        setStep("email");
+        setOtp("");
         return;
       }
 
       window.location.replace("/lojista");
     } catch (err: any) {
       toast({
-        title: "Erro",
-        description: err.message || "Erro ao fazer login",
+        title: "Código inválido",
+        description: "O código está incorreto ou expirou. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -94,44 +130,73 @@ export default function LojistaLogin() {
             </div>
             <h1 className="text-xl font-semibold tracking-tight">Portal Lojista</h1>
             <p className="text-sm text-muted-foreground">
-              Acesse o painel do parceiro para acompanhar seus aparelhos
+              {step === "email"
+                ? "Acesse o painel do parceiro para acompanhar seus aparelhos"
+                : `Insira o código de 6 dígitos enviado para ${email}`}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full h-11" disabled={loading}>
-              {loading ? (
-                <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Entrar
-                </>
-              )}
-            </Button>
-          </form>
+          {step === "email" ? (
+            <form onSubmit={handleSendOtp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full h-11" disabled={loading}>
+                {loading ? (
+                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Enviar código de acesso
+                  </>
+                )}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp">Código de verificação</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  className="text-center text-2xl tracking-widest h-14"
+                  required
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Verifique sua caixa de entrada e spam
+                </p>
+              </div>
+
+              <Button type="submit" className="w-full h-11" disabled={loading}>
+                {loading ? (
+                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Entrar
+                  </>
+                )}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => { setStep("email"); setOtp(""); }}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Usar outro email
+              </Button>
+            </form>
+          )}
         </div>
       </div>
 
