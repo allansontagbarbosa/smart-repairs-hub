@@ -307,16 +307,52 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             <div><Label className="text-xs">Qtd. Mínima</Label><Input type="number" {...register("quantidade_minima")} className="h-9 mt-1" /></div>
           </div>
 
-          {/* Custo + SKU */}
+          {/* Custo + Venda (regra de negócio principal) */}
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Custo unitário (R$)</Label><Input type="number" step="0.01" {...register("custo_unitario")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Auto se vazio" className="h-9 mt-1" /></div>
+            <div>
+              <Label className="text-xs">Custo unitário (R$) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                {...register("custo_unitario", { onBlur: handleCustoBlur })}
+                placeholder="Obrigatório"
+                className={cn("h-9 mt-1", custoInvalido && "border-destructive focus-visible:ring-destructive")}
+              />
+              {custoInvalido && (
+                <p className="text-[10px] text-destructive mt-0.5">Informe o custo da peça.</p>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Preço de venda (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                {...register("preco_venda")}
+                placeholder={custoNum > 0 ? `Mín. R$ ${custoNum.toFixed(2)}` : "Auto = custo"}
+                className={cn("h-9 mt-1", vendaMenorCusto && "border-destructive focus-visible:ring-destructive")}
+              />
+              {vendaMenorCusto && (
+                <p className="text-[10px] text-destructive mt-0.5">
+                  Mínimo permitido: R$ {custoNum.toFixed(2)}
+                </p>
+              )}
+              {!vendaMenorCusto && margemZero && (
+                <p className="text-[10px] text-amber-600 mt-0.5">Atenção: margem zero.</p>
+              )}
+              {!vendaMenorCusto && !margemZero && vendaAutoPreenchida && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Sem preço informado — usando o custo.
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Local + Fornecedor */}
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Local do estoque</Label><Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome do fornecedor" className="h-9 mt-1" /></div>
+          {/* SKU + Local + Fornecedor */}
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Auto" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">Local</Label><Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" /></div>
+            <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome" className="h-9 mt-1" /></div>
           </div>
 
           {/* Toggle advanced fields */}
@@ -325,7 +361,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             className="text-xs text-primary hover:underline"
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
-            {showAdvanced ? "▾ Menos campos" : "▸ Mais campos (cor, capacidade, serial, preço venda)"}
+            {showAdvanced ? "▾ Menos campos" : "▸ Mais campos (cor, capacidade, serial)"}
           </button>
 
           {showAdvanced && (
@@ -334,9 +370,9 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
                 <div><Label className="text-xs">Cor</Label><Input {...register("cor")} placeholder="Preto" className="h-9 mt-1" /></div>
                 <div><Label className="text-xs">Capacidade</Label><Input {...register("capacidade")} placeholder="128GB" className="h-9 mt-1" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">IMEI / Serial</Label><Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" /></div>
-                <div><Label className="text-xs">Preço venda (R$)</Label><Input type="number" step="0.01" {...register("preco_venda")} placeholder="Digite o valor" className="h-9 mt-1" /></div>
+              <div>
+                <Label className="text-xs">IMEI / Serial</Label>
+                <Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" />
               </div>
             </>
           )}
