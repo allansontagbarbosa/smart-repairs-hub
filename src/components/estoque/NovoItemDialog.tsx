@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { EstoqueItem } from "@/hooks/useEstoque";
 
 type Categoria = { id: string; nome: string };
@@ -338,7 +339,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
                 </p>
               )}
               {!vendaMenorCusto && margemZero && (
-                <p className="text-[10px] text-amber-600 mt-0.5">Atenção: margem zero.</p>
+                <p className="text-[10px] text-warning mt-0.5">Atenção: margem zero.</p>
               )}
               {!vendaMenorCusto && !margemZero && vendaAutoPreenchida && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">

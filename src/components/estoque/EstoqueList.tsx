@@ -101,6 +101,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 <th className="text-center">Qtd</th>
                 <th className="hidden sm:table-cell text-center">Mín</th>
                 <th className="hidden md:table-cell text-right">Custo</th>
+                <th className="hidden md:table-cell text-right">Venda</th>
                 <th className="hidden lg:table-cell">Local</th>
                 <th className="text-right">Ações</th>
               </tr>
@@ -149,6 +150,15 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                     </td>
                     <td className="hidden sm:table-cell text-center text-sm text-muted-foreground">{item.quantidade_minima || "—"}</td>
                     <td className="hidden md:table-cell text-sm text-right text-muted-foreground">{fmtCurrency(item.custo_unitario)}</td>
+                    <td className="hidden md:table-cell text-sm text-right">
+                      {item.preco_venda == null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : item.custo_unitario != null && item.preco_venda === item.custo_unitario ? (
+                        <span className="text-warning" title="Margem zero">{fmtCurrency(item.preco_venda)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">{fmtCurrency(item.preco_venda)}</span>
+                      )}
+                    </td>
                     <td className="hidden lg:table-cell text-sm text-muted-foreground">
                       {item.local_estoque ? (
                         <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{item.local_estoque}</span>
@@ -168,7 +178,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
+                <tr><td colSpan={9} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>
