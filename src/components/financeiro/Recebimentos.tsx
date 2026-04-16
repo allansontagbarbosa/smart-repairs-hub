@@ -199,7 +199,7 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
             </div>
             <div>
               <Label>OS vinculada (opcional)</Label>
-              <Select value={form.ordem_servico_id} onValueChange={v => setForm(f => ({ ...f, ordem_servico_id: v }))}>
+              <Select value={form.ordem_servico_id} onValueChange={v => setForm(f => ({ ...f, ordem_servico_id: v === "__none__" ? "" : v }))}>
                 <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">Nenhuma</SelectItem>
