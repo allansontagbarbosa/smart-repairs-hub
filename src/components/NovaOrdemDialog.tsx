@@ -5,7 +5,11 @@ import {
   Loader2, UserPlus, CalendarIcon, Smartphone, Search,
   CheckCircle2, AlertCircle, XCircle, ChevronRight,
   User, Wrench, ClipboardList, X, Plus, Minus, Package, Printer,
+  History, BatteryMedium, Power, MessageCircle, Phone, Mail,
 } from "lucide-react";
+import { luhnValid } from "@/lib/luhn";
+import { lookupCep, maskCep } from "@/lib/cep";
+import { formatCpfCnpj, onlyDigits, isValidCpfCnpj } from "@/lib/cpfCnpj";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
