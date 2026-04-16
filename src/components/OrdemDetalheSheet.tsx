@@ -281,6 +281,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const changeStatus = useMutation({
     mutationFn: async (newStatus: Status) => {
       if (!ordem) return;
+
+      // Bloqueio: só permite "em_reparo" se orçamento aprovado
+      const orcStatus = (ordem as any).aprovacao_orcamento;
+      if (newStatus === "em_reparo" && orcStatus && orcStatus !== "aprovado") {
+        throw new Error("Cliente ainda não aprovou o orçamento.");
+      }
+      // Bloqueio: se recusado, bloquear avanço (apenas voltar para "recebido" é permitido)
+      if (orcStatus === "recusado" && newStatus !== "recebido") {
+        throw new Error("Orçamento foi recusado pelo cliente. Reabra a aprovação para avançar.");
+      }
+
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
       if (newStatus === "pronto") updates.data_conclusao = new Date().toISOString();
       if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
@@ -295,9 +306,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
       queryClient.invalidateQueries({ queryKey: ["comissoes"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] });
       toast.success("Status atualizado!");
     },
-    onError: () => toast.error("Erro ao atualizar"),
+    onError: (e: any) => toast.error(e.message || "Erro ao atualizar"),
   });
 
   const saveEdit = useMutation({
@@ -353,6 +365,20 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <StatusBadge status={ordem.status} />
               </div>
             </SheetHeader>
+
+            {/* Badge orçamento */}
+            {(ordem as any).aprovacao_orcamento === "aguardando" && (
+              <div className="mb-4 p-2.5 rounded-lg border border-warning/30 bg-warning/10 text-warning flex items-center gap-2 text-xs font-medium">
+                <Clock className="h-3.5 w-3.5" />
+                Aguardando aprovação do cliente
+              </div>
+            )}
+            {(ordem as any).aprovacao_orcamento === "recusado" && (
+              <div className="mb-4 p-2.5 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 text-xs font-medium">
+                <X className="h-3.5 w-3.5" />
+                Orçamento recusado pelo cliente
+              </div>
+            )}
 
             {/* Quick actions */}
             {ordem.status !== "entregue" && (
@@ -640,6 +666,36 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     )}
                   </div>
                 </div>
+
+                {/* Painel Orçamento */}
+                {(() => {
+                  const o = ordem as any;
+                  const total = Number(o.valor_total ?? o.valor ?? 0);
+                  const sinal = Number(o.sinal_pago ?? 0);
+                  const desc = Number(o.desconto ?? 0);
+                  const adic = Number(o.mao_obra_adicional ?? 0);
+                  const pec = Number(o.custo_pecas ?? 0);
+                  const aRec = Math.max(0, total - sinal);
+                  if (total <= 0 && sinal <= 0) return null;
+                  return (
+                    <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 space-y-1.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Orçamento</p>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Peças (custo)</span><span className="font-medium">R$ {pec.toFixed(2)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Mão de obra adicional</span><span className="font-medium">R$ {adic.toFixed(2)}</span></div>
+                      {desc > 0 && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Desconto</span><span className="font-medium text-destructive">− R$ {desc.toFixed(2)}</span></div>}
+                      <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between text-sm font-bold"><span>TOTAL</span><span className="text-success">R$ {total.toFixed(2)}</span></div>
+                      {sinal > 0 && (
+                        <>
+                          <div className="flex justify-between text-xs pt-1"><span className="text-muted-foreground">Sinal pago{o.forma_pagamento_sinal ? ` (${o.forma_pagamento_sinal})` : ""}</span><span className="font-medium text-success">− R$ {sinal.toFixed(2)}</span></div>
+                          <div className="flex justify-between text-sm font-semibold border-t border-primary/20 pt-1.5 mt-1"><span>A receber na retirada</span><span className="text-primary">R$ {aRec.toFixed(2)}</span></div>
+                        </>
+                      )}
+                      {o.garantia_dias != null && (
+                        <p className="text-[10px] text-muted-foreground pt-1.5 border-t border-primary/20">Garantia do serviço: {o.garantia_dias} dias</p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Valores e Lucro Real */}
                 <div>

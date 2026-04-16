@@ -2390,13 +2390,17 @@ export type Database = {
           data_entrega: string | null
           defeito_relatado: string
           deleted_at: string | null
+          desconto: number
           diagnostico: string | null
           empresa_id: string | null
           forma_pagamento_id: string | null
+          forma_pagamento_sinal: string | null
           funcionario_id: string | null
+          garantia_dias: number
           id: string
           loja_id: string | null
           lojista_id: string | null
+          mao_obra_adicional: number
           motivo_reprovacao: string | null
           numero: number
           observacoes: string | null
@@ -2407,6 +2411,7 @@ export type Database = {
           referencia_lote: string | null
           retrabalho: boolean
           servico_realizado: string | null
+          sinal_pago: number
           status: Database["public"]["Enums"]["status_ordem"]
           tecnico: string | null
           tipo_servico_id: string | null
@@ -2415,6 +2420,7 @@ export type Database = {
           valor: number | null
           valor_pago: number | null
           valor_pendente: number | null
+          valor_total: number | null
         }
         Insert: {
           aparelho_id: string
@@ -2428,13 +2434,17 @@ export type Database = {
           data_entrega?: string | null
           defeito_relatado: string
           deleted_at?: string | null
+          desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
           forma_pagamento_id?: string | null
+          forma_pagamento_sinal?: string | null
           funcionario_id?: string | null
+          garantia_dias?: number
           id?: string
           loja_id?: string | null
           lojista_id?: string | null
+          mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
@@ -2445,6 +2455,7 @@ export type Database = {
           referencia_lote?: string | null
           retrabalho?: boolean
           servico_realizado?: string | null
+          sinal_pago?: number
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
           tipo_servico_id?: string | null
@@ -2453,6 +2464,7 @@ export type Database = {
           valor?: number | null
           valor_pago?: number | null
           valor_pendente?: number | null
+          valor_total?: number | null
         }
         Update: {
           aparelho_id?: string
@@ -2466,13 +2478,17 @@ export type Database = {
           data_entrega?: string | null
           defeito_relatado?: string
           deleted_at?: string | null
+          desconto?: number
           diagnostico?: string | null
           empresa_id?: string | null
           forma_pagamento_id?: string | null
+          forma_pagamento_sinal?: string | null
           funcionario_id?: string | null
+          garantia_dias?: number
           id?: string
           loja_id?: string | null
           lojista_id?: string | null
+          mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
           observacoes?: string | null
@@ -2483,6 +2499,7 @@ export type Database = {
           referencia_lote?: string | null
           retrabalho?: boolean
           servico_realizado?: string | null
+          sinal_pago?: number
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
           tipo_servico_id?: string | null
@@ -2491,6 +2508,7 @@ export type Database = {
           valor?: number | null
           valor_pago?: number | null
           valor_pendente?: number | null
+          valor_total?: number | null
         }
         Relationships: [
           {

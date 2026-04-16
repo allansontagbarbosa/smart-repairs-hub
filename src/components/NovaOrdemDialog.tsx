@@ -119,6 +119,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
   const [lojistaId, setLojistaId] = useState("");
 
+  // Financeiro
+  const [desconto, setDesconto] = useState("");
+  const [sinalPago, setSinalPago] = useState("");
+  const [formaPagamentoSinal, setFormaPagamentoSinal] = useState("nenhum");
+  const [orcamentoStatus, setOrcamentoStatus] = useState<"aguardando" | "aprovado" | "recusado">("aguardando");
+  const [garantiaDias, setGarantiaDias] = useState("90");
+
   const imeiRef = useRef<HTMLInputElement>(null);
 
   // Auto-set previsão when entering step servico
@@ -294,7 +301,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const totalPecas = pecasSelecionadas.reduce((s, p) => s + p.preco_venda * p.quantidade, 0);
   const custoPecas = pecasSelecionadas.reduce((s, p) => s + p.custo_unitario * p.quantidade, 0);
   const adicional = parseFloat(maoObraAdicional) || 0;
-  const valorTotal = totalMaoObraDefeitos + totalPecas + adicional;
+  const descontoNum = Math.max(0, parseFloat(desconto) || 0);
+  const sinalPagoNum = Math.max(0, parseFloat(sinalPago) || 0);
+  const garantiaDiasNum = Math.max(0, parseInt(garantiaDias, 10) || 0);
+  const subtotal = totalMaoObraDefeitos + totalPecas + adicional;
+  const valorTotal = Math.max(0, subtotal - descontoNum);
+  const aReceber = Math.max(0, valorTotal - sinalPagoNum);
 
   const defeitoRelatado = defeitosSelecionados.map(d => d.nome).join("; ");
 
@@ -403,6 +415,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setPrevisaoEntrega(undefined);
     setCreatedOS(null);
     setLojistaId("");
+    setDesconto("");
+    setSinalPago("");
+    setFormaPagamentoSinal("nenhum");
+    setOrcamentoStatus("aguardando");
+    setGarantiaDias("90");
   }
 
   function handleClose(v: boolean) {
@@ -517,13 +534,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         defeito_relatado: defeitoRelatado,
         observacoes: observacoes || null,
         valor: valorTotal || null,
+        valor_total: valorTotal || null,
         custo_pecas: custoPecas || 0,
+        mao_obra_adicional: adicional || 0,
+        desconto: descontoNum || 0,
+        sinal_pago: sinalPagoNum || 0,
+        valor_pago: sinalPagoNum || 0,
+        valor_pendente: aReceber,
+        forma_pagamento_sinal: sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
+        garantia_dias: garantiaDiasNum,
+        aprovacao_orcamento: orcamentoStatus,
+        data_aprovacao: orcamentoStatus === "aprovado" ? new Date().toISOString() : null,
         data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         previsao_entrega: previsaoEntrega ? previsaoEntrega.toISOString() : null,
         status: "recebido" as Status,
         lojista_id: lojistaId || null,
-      }).select("id, numero").single();
+      } as any).select("id, numero").single();
       if (osErr) throw osErr;
 
       // 3. Inserir os_servicos (N:N)
@@ -1024,48 +1051,130 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 )}
               </div>
 
-              {/* ── Mão de obra adicional ── */}
-              <div>
-                <Label className="text-xs text-muted-foreground">Mão de obra adicional (R$)</Label>
-                <div className="relative mt-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+              {/* ── Mão de obra adicional + Desconto ── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Mão de obra adicional (R$)</Label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                    <Input
+                      value={maoObraAdicional}
+                      onChange={(e) => setMaoObraAdicional(e.target.value)}
+                      type="number" step="0.01" min="0"
+                      placeholder="0,00" className="pl-8 h-9"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Desconto (R$)</Label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                    <Input
+                      value={desconto}
+                      onChange={(e) => setDesconto(e.target.value.replace(/^-/, ""))}
+                      type="number" step="0.01" min="0"
+                      placeholder="0,00" className="pl-8 h-9"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Sinal pago + Forma de pagamento ── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Sinal pago na entrada (R$)</Label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                    <Input
+                      value={sinalPago}
+                      onChange={(e) => setSinalPago(e.target.value.replace(/^-/, ""))}
+                      type="number" step="0.01" min="0"
+                      placeholder="0,00" className="pl-8 h-9"
+                    />
+                  </div>
+                </div>
+                {sinalPagoNum > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Forma de pagamento do sinal</Label>
+                    <select
+                      value={formaPagamentoSinal}
+                      onChange={(e) => setFormaPagamentoSinal(e.target.value)}
+                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="nenhum">Nenhum</option>
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="pix">Pix</option>
+                      <option value="debito">Débito</option>
+                      <option value="credito">Crédito</option>
+                      <option value="outro">Outro</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Status orçamento + Garantia ── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status do orçamento</Label>
+                  <select
+                    value={orcamentoStatus}
+                    onChange={(e) => setOrcamentoStatus(e.target.value as "aguardando" | "aprovado" | "recusado")}
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="aguardando">Aguardando aprovação</option>
+                    <option value="aprovado">Aprovado pelo cliente</option>
+                    <option value="recusado">Recusado pelo cliente</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Garantia do serviço (dias)</Label>
                   <Input
-                    value={maoObraAdicional}
-                    onChange={(e) => setMaoObraAdicional(e.target.value)}
-                    type="number" step="0.01" min="0"
-                    placeholder="0,00" className="pl-8 h-9"
+                    value={garantiaDias}
+                    onChange={(e) => setGarantiaDias(e.target.value.replace(/[^\d]/g, ""))}
+                    type="number" min="0"
+                    placeholder="90" className="mt-1 h-9"
                   />
                 </div>
               </div>
 
-              {/* ── Breakdown de valor ── */}
-              {(defeitosSelecionados.length > 0 || pecasSelecionadas.length > 0 || adicional > 0) && (
-                <div className="rounded-lg border bg-muted/20 px-3 py-2.5 space-y-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Valor do serviço</p>
-                  {totalMaoObraDefeitos > 0 && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Mão de obra ({defeitosSelecionados.length} defeito{defeitosSelecionados.length > 1 ? "s" : ""})</span>
-                      <span>R$ {totalMaoObraDefeitos.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {totalPecas > 0 && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Peças ({pecasSelecionadas.length})</span>
-                      <span>R$ {totalPecas.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {adicional > 0 && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Adicional</span>
-                      <span>R$ {adicional.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="border-t pt-1 mt-1 flex justify-between text-sm font-semibold">
-                    <span>Total</span>
-                    <span className="text-green-600">R$ {valorTotal.toFixed(2)}</span>
-                  </div>
+              {/* ── Painel Orçamento ── */}
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 space-y-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Orçamento</p>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Serviços</span>
+                  <span className="font-medium">R$ {totalMaoObraDefeitos.toFixed(2)}</span>
                 </div>
-              )}
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Peças</span>
+                  <span className="font-medium">R$ {totalPecas.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Mão de obra adicional</span>
+                  <span className="font-medium">R$ {adicional.toFixed(2)}</span>
+                </div>
+                {descontoNum > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Desconto</span>
+                    <span className="font-medium text-destructive">− R$ {descontoNum.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between text-sm font-bold">
+                  <span>TOTAL</span>
+                  <span className="text-success">R$ {valorTotal.toFixed(2)}</span>
+                </div>
+                {sinalPagoNum > 0 && (
+                  <>
+                    <div className="flex justify-between text-xs pt-1">
+                      <span className="text-muted-foreground">Sinal pago</span>
+                      <span className="font-medium text-success">− R$ {sinalPagoNum.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-semibold border-t border-primary/20 pt-1.5 mt-1">
+                      <span>A receber na retirada</span>
+                      <span className="text-primary">R$ {aReceber.toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* ── Observações ── */}
               <div>

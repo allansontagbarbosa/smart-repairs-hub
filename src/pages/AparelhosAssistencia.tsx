@@ -187,13 +187,17 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                 <th className="hidden lg:table-cell">IMEI</th>
                 <th className="hidden sm:table-cell">Entrada</th>
                 <th>Status</th>
+                <th className="text-right">Total</th>
                 <th className="hidden md:table-cell">Técnico</th>
                 <th className="hidden lg:table-cell">Prazo</th>
                 <th className="w-10"></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(a => (
+              {filtered.map(a => {
+                const total = a.valor_total ?? a.valor ?? 0;
+                const orc = a.aprovacao_orcamento;
+                return (
                 <tr key={a.os_id} className={a.prazo_vencido ? "bg-destructive/5" : ""}>
                   <td className="text-sm font-mono font-medium">#{a.os_numero}</td>
                   <td className="text-sm">{a.cliente_nome}</td>
@@ -213,6 +217,15 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                     {a.prazo_vencido && (
                       <span className="ml-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-destructive/10 text-destructive">ATRASADO</span>
                     )}
+                    {orc === "aguardando" && (
+                      <span className="ml-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-warning/10 text-warning">AGUARDA APROV.</span>
+                    )}
+                    {orc === "recusado" && (
+                      <span className="ml-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-destructive/10 text-destructive">RECUSADO</span>
+                    )}
+                  </td>
+                  <td className="text-right text-sm font-semibold">
+                    {total > 0 ? `R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                   </td>
                   <td className="hidden md:table-cell text-sm text-muted-foreground">{a.funcionario_nome ?? a.tecnico ?? "—"}</td>
                   <td className="hidden lg:table-cell text-sm text-muted-foreground">
@@ -244,9 +257,10 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
                     </Tooltip>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10} className="text-center text-muted-foreground py-10 text-sm">Nenhum aparelho encontrado</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground py-10 text-sm">Nenhum aparelho encontrado</td></tr>
               )}
             </tbody>
           </table>
