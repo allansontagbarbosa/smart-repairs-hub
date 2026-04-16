@@ -194,7 +194,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         .from("servico_pecas" as any)
         .select("servico_id, peca_id, quantidade, obrigatoria");
       if (error) throw error;
-      return (data ?? []) as Array<{ servico_id: string; peca_id: string; quantidade: number; obrigatoria: boolean }>;
+      return (data ?? []) as unknown as Array<{ servico_id: string; peca_id: string; quantidade: number; obrigatoria: boolean }>;
     },
   });
 
@@ -510,6 +510,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       custo_unitario: Number(p.custo_unitario ?? 0),
       preco_venda: Number(p.preco_venda ?? 0),
       estoque_disponivel: p.quantidade,
+      origens: [],
     }]);
     setPecaSearch("");
   }
@@ -517,12 +518,15 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   function updatePecaQtd(id: string, delta: number) {
     setPecasSelecionadas(prev => prev.map(p => {
       if (p.id !== id) return p;
-      const newQtd = Math.max(1, Math.min(p.estoque_disponivel, p.quantidade + delta));
+      // Permitir quantidade > estoque (com warning visual depois)
+      const novoMax = Math.max(p.estoque_disponivel, p.quantidade + delta);
+      const newQtd = Math.max(1, Math.min(novoMax, p.quantidade + delta));
       return { ...p, quantidade: newQtd };
     }));
   }
 
   function removePeca(id: string) {
+    // Remove peça mesmo que tenha vindo de um serviço (técnico decide)
     setPecasSelecionadas(prev => prev.filter(p => p.id !== id));
   }
 
