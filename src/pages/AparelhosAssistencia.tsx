@@ -48,8 +48,8 @@ type ConferenciaItemState = {
 export default function AparelhosAssistencia() {
   const { aparelhos, kpis, lojas, tecnicos, isLoading } = useAparelhosAssistencia();
   const [tab, setTab] = useState("lista");
-  const [entradaOpen, setEntradaOpen] = useState(false);
-  const [loteOpen, setLoteOpen] = useState(false);
+  const [novaOSOpen, setNovaOSOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -60,16 +60,11 @@ export default function AparelhosAssistencia() {
       <div className="page-header flex items-start justify-between">
         <div>
           <h1 className="page-title">Aparelhos na Assistência</h1>
-          <p className="page-subtitle">
-            {kpis.total} aparelhos em assistência {kpis.atrasados > 0 ? `· ${kpis.atrasados} atrasados` : ""}
-          </p>
+          <p className="page-subtitle">Aparelhos atualmente sob responsabilidade da loja</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 h-9" onClick={() => setLoteOpen(true)}>
-            <Package className="h-3.5 w-3.5" /> Entrada em Lote
-          </Button>
-          <Button size="sm" className="gap-1.5 h-9" onClick={() => setEntradaOpen(true)}>
-            <Plus className="h-3.5 w-3.5" /> Entrada Rápida
+          <Button size="sm" className="gap-1.5 h-9" onClick={() => setNovaOSOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> Nova OS
           </Button>
         </div>
       </div>
