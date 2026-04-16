@@ -110,10 +110,19 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 const name = getItemName(item);
                 const isBaixo = item.quantidade_minima > 0 && item.quantidade <= item.quantidade_minima;
                 return (
-                  <tr key={item.id} className={isBaixo ? "bg-destructive/5" : ""}>
+                  <tr key={item.id} className={isBaixo ? "bg-destructive/5 border-l-2 border-l-destructive" : ""}>
                     <td>
-                      <p className="text-sm font-medium">{name}</p>
-                      {item.sku && <p className="text-[10px] text-muted-foreground font-mono">SKU: {item.sku}</p>}
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <p className="text-sm font-medium">{name}</p>
+                          {item.sku && <p className="text-[10px] text-muted-foreground font-mono">SKU: {item.sku}</p>}
+                        </div>
+                        {isBaixo && (
+                          <span className="inline-flex items-center rounded-full bg-destructive/10 text-destructive text-[10px] font-semibold px-2 py-0.5 whitespace-nowrap">
+                            {item.quantidade === 0 ? "Esgotado" : "Estoque baixo"}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="hidden md:table-cell text-sm text-muted-foreground">{item.estoque_categorias?.nome ?? "—"}</td>
                     <td className="hidden lg:table-cell text-sm text-muted-foreground">
