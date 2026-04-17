@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScannableInput } from "@/components/ui/scannable-input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { EstoqueItem } from "@/hooks/useEstoque";
@@ -190,7 +191,7 @@ export function ConferenciaEstoque({ itens }: Props) {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-            <Input
+            <ScannableInput
               ref={inputRef}
               value={scanInput}
               onChange={e => setScanInput(e.target.value)}
@@ -198,6 +199,7 @@ export function ConferenciaEstoque({ itens }: Props) {
               placeholder="Bipar nome da peça ou SKU..."
               className="pl-9 h-11 text-base"
               autoFocus
+              scannerTitle="Bipar peça"
             />
           </div>
           <Button onClick={handleScan} className="h-11 px-6">Bipar</Button>
