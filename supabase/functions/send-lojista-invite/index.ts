@@ -109,6 +109,8 @@ Deno.serve(async (req) => {
           subject,
           html,
           template_name: "lojista_invite",
+          purpose: "transactional",
+          idempotency_key: `lojista_invite_${lojistaId}_${token.slice(0, 8)}`,
         },
       });
       if (!enqErr) emailQueued = true;
