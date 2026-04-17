@@ -54,26 +54,45 @@ export default function LojistaLogin() {
     if (!email.trim() || cooldown > 0) return;
     setLoading(true);
     try {
-      // Pré-validação: verificar se o email é de um lojista cadastrado
-      // (evita gastar tentativa de OTP do Supabase Auth com email errado)
+      // Pré-validação por status_acesso na tabela lojistas
+      const emailLower = email.trim().toLowerCase();
       const { data: lojistaCheck, error: checkError } = await supabase
-        .from("lojista_usuarios")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
+        .from("lojistas")
+        .select("status_acesso")
+        .eq("email", emailLower)
+        .is("deleted_at", null)
         .limit(1);
 
       if (checkError && !/load failed|failed to fetch|network/i.test(checkError.message || "")) {
-        // erro de query que não é rede - segue assim mesmo, deixa o auth decidir
         console.warn("[portal-lojista] check lojista falhou:", checkError);
       }
 
-      if ((!lojistaCheck || lojistaCheck.length === 0) && !checkError) {
-        toast({
-          title: "Email não cadastrado",
-          description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
-          variant: "destructive",
-        });
-        return;
+      const status = lojistaCheck?.[0]?.status_acesso;
+      if (!checkError) {
+        if (!status || status === "nao_convidado") {
+          toast({
+            title: "Email não cadastrado",
+            description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (status === "convidado") {
+          toast({
+            title: "Convite pendente",
+            description: "Seu convite ainda não foi aceito. Verifique seu email ou solicite reenvio à assistência.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (status === "inativo") {
+          toast({
+            title: "Acesso revogado",
+            description: "Seu acesso foi revogado. Entre em contato com a assistência.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       // IMPORTANTE: NÃO passar emailRedirectTo. Sem ele, o Supabase

@@ -2175,6 +2175,9 @@ export type Database = {
         Row: {
           ativo: boolean | null
           cnpj: string | null
+          convite_aceito_em: string | null
+          convite_enviado_em: string | null
+          convite_token: string | null
           created_at: string | null
           deleted_at: string | null
           email: string | null
@@ -2184,12 +2187,17 @@ export type Database = {
           observacoes: string | null
           razao_social: string | null
           responsavel: string | null
+          status_acesso: string
           telefone: string | null
+          user_id: string | null
           whatsapp: string | null
         }
         Insert: {
           ativo?: boolean | null
           cnpj?: string | null
+          convite_aceito_em?: string | null
+          convite_enviado_em?: string | null
+          convite_token?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
@@ -2199,12 +2207,17 @@ export type Database = {
           observacoes?: string | null
           razao_social?: string | null
           responsavel?: string | null
+          status_acesso?: string
           telefone?: string | null
+          user_id?: string | null
           whatsapp?: string | null
         }
         Update: {
           ativo?: boolean | null
           cnpj?: string | null
+          convite_aceito_em?: string | null
+          convite_enviado_em?: string | null
+          convite_token?: string | null
           created_at?: string | null
           deleted_at?: string | null
           email?: string | null
@@ -2214,7 +2227,9 @@ export type Database = {
           observacoes?: string | null
           razao_social?: string | null
           responsavel?: string | null
+          status_acesso?: string
           telefone?: string | null
+          user_id?: string | null
           whatsapp?: string | null
         }
         Relationships: [
