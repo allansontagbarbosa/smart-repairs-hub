@@ -208,7 +208,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tipos_servico")
-        .select("id, nome, categoria, valor_padrao, ativo")
+        .select("id, nome, categoria, valor_padrao, comissao_padrao, ativo")
         .eq("ativo", true)
         .order("categoria", { nullsFirst: false })
         .order("nome");
@@ -218,6 +218,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         nome: s.nome,
         categoria: s.categoria || "geral",
         valor_mao_obra: Number(s.valor_padrao) || 0,
+        comissao_padrao: Number(s.comissao_padrao) || 0,
       }));
     },
   });
