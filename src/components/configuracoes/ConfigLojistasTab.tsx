@@ -194,7 +194,7 @@ export function ConfigLojistasTab() {
     const status = l.status_acesso ?? "nao_convidado";
     if (status === "ativo") {
       return (
-        <Badge variant="outline" className="border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10">
           <ShieldCheck className="h-3 w-3 mr-1" /> Ativo
         </Badge>
       );
@@ -204,7 +204,7 @@ export function ConfigLojistasTab() {
       const expira = enviado ? Math.max(0, 7 - Math.floor((Date.now() - enviado.getTime()) / 86400000)) : null;
       return (
         <div className="flex flex-col items-start gap-0.5">
-          <Badge variant="outline" className="border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300">
+          <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">
             <MailPlus className="h-3 w-3 mr-1" /> Aguardando aceite
           </Badge>
           {expira !== null && (
@@ -349,7 +349,7 @@ export function ConfigLojistasTab() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <CheckCircle2 className="h-5 w-5 text-primary" />
               Convite gerado
             </DialogTitle>
           </DialogHeader>
