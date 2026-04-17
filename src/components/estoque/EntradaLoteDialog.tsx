@@ -58,6 +58,7 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
   const [defaultGrade, setDefaultGrade] = useState("seminovo_a");
   const [defaultFornecedor, setDefaultFornecedor] = useState("");
   const [defaultLocalizacao, setDefaultLocalizacao] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const handleAddImei = useCallback(async (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 15);
