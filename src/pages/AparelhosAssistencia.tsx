@@ -51,6 +51,7 @@ export default function AparelhosAssistencia() {
   const { aparelhos, kpis, lojas, tecnicos, isLoading } = useAparelhosAssistencia();
   const [tab, setTab] = useState("lista");
   const [novaOSOpen, setNovaOSOpen] = useState(false);
+  const [loteOpen, setLoteOpen] = useState(false);
   const queryClient = useQueryClient();
 
   if (isLoading) {
@@ -65,6 +66,9 @@ export default function AparelhosAssistencia() {
           <p className="page-subtitle">Aparelhos atualmente sob responsabilidade da loja</p>
         </div>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-1.5 h-9" onClick={() => setLoteOpen(true)}>
+            <Camera className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Cadastrar vários</span>
+          </Button>
           <Button size="sm" className="gap-1.5 h-9" onClick={() => setNovaOSOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Nova OS
           </Button>
