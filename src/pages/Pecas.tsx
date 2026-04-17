@@ -7,6 +7,7 @@ import { EstoqueList } from "@/components/estoque/EstoqueList";
 import { ConferenciaEstoque } from "@/components/estoque/ConferenciaEstoque";
 import { EntradasEstoque } from "@/components/estoque/EntradasEstoque";
 import { ConferenciaPecasButton } from "@/components/conferencia/ConferenciaPecasButton";
+import { HistoricoConferencias } from "@/components/conferencia/HistoricoConferencias";
 
 export default function Pecas() {
   const { itens, categorias, marcas, modelos, conferencias, isLoading, kpis } = useEstoque();
@@ -35,7 +36,7 @@ export default function Pecas() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="itens">
             Peças
@@ -47,6 +48,7 @@ export default function Pecas() {
           </TabsTrigger>
           <TabsTrigger value="entradas">Entradas</TabsTrigger>
           <TabsTrigger value="conferencia">Conferência</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -67,6 +69,10 @@ export default function Pecas() {
 
         <TabsContent value="conferencia">
           <ConferenciaEstoque itens={itens} conferencias={conferencias} />
+        </TabsContent>
+
+        <TabsContent value="historico">
+          <HistoricoConferencias tipo="pecas" />
         </TabsContent>
       </Tabs>
     </div>
