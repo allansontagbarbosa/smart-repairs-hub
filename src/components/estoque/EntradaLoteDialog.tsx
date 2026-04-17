@@ -224,22 +224,34 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
             </div>
           </div>
 
-          <div className="relative">
-            <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/60" />
-            <Input
-              ref={inputRef}
-              value={scanInput}
-              onChange={e => setScanInput(e.target.value.replace(/\D/g, "").slice(0, 15))}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder="Bipe ou cole IMEIs em sequência — cada um será consultado via API automaticamente"
-              className="pl-10 h-11 text-base font-mono tracking-wider border-2 border-primary/30 focus:border-primary"
-              autoFocus
-              inputMode="numeric"
-            />
-            {scanInput.length > 0 && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{scanInput.length}/15</span>
-            )}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/60" />
+              <Input
+                ref={inputRef}
+                value={scanInput}
+                onChange={e => setScanInput(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder="Bipe, cole ou use a câmera para escanear vários IMEIs"
+                className="pl-10 h-11 text-base font-mono tracking-wider border-2 border-primary/30 focus:border-primary"
+                autoFocus
+                inputMode="numeric"
+              />
+              {scanInput.length > 0 && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{scanInput.length}/15</span>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 gap-1.5 shrink-0"
+              onClick={() => setScannerOpen(true)}
+              title="Escanear vários IMEIs com a câmera"
+            >
+              <Camera className="h-4 w-4" />
+              <span className="hidden sm:inline">Escanear vários</span>
+            </Button>
           </div>
         </div>
 
