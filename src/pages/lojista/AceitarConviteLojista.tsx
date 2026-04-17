@@ -49,6 +49,14 @@ export default function AceitarConviteLojista() {
   async function aceitar() {
     setState({ kind: "accepting" });
     try {
+      // Encerra qualquer sessão anterior (admin testando, outro usuário, etc.)
+      // para evitar conflito de identidade após o magic link autenticar.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+
       const { data, error } = await supabase.functions.invoke("accept-lojista-invite", {
         body: { token, action: "accept" },
       });
