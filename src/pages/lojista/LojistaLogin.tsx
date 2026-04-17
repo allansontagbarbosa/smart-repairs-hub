@@ -58,16 +58,16 @@ export default function LojistaLogin() {
       // (evita gastar tentativa de OTP do Supabase Auth com email errado)
       const { data: lojistaCheck, error: checkError } = await supabase
         .from("lojista_usuarios")
-        .select("id, ativo")
+        .select("id")
         .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
+        .limit(1);
 
       if (checkError && !/load failed|failed to fetch|network/i.test(checkError.message || "")) {
         // erro de query que não é rede - segue assim mesmo, deixa o auth decidir
         console.warn("[portal-lojista] check lojista falhou:", checkError);
       }
 
-      if (!lojistaCheck && !checkError) {
+      if ((!lojistaCheck || lojistaCheck.length === 0) && !checkError) {
         toast({
           title: "Email não cadastrado",
           description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
