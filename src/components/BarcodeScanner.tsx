@@ -47,6 +47,8 @@ function ScannerCore({ onScan, onError, onReady }: {
             facingMode: { ideal: "environment" },
             width: { ideal: 1920 },
             height: { ideal: 1080 },
+            // Foco contínuo melhora leitura em Android; iOS ignora silenciosamente
+            advanced: [{ focusMode: "continuous" } as any],
           },
           audio: false,
         });
