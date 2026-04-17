@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi,
+  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi, Camera,
 } from "lucide-react";
 import {
   lookupImei as lookupImeiService,
   saveToImeiCache,
   type ImeiLookupStatus,
 } from "@/services/imeiLookupService";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 type RowStatus = "searching" | "found" | "partial" | "not_found" | "duplicate" | "invalid" | "error" | "ready";
 
