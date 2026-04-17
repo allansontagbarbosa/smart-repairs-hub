@@ -1703,7 +1703,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               )}
 
               {/* ── 8. CONFERÊNCIA FINAL ── */}
-              <div className="rounded-md border border-info/30 bg-info/5 p-4 space-y-3">
+              <div className="rounded-r-md border-l-[3px] border-info bg-secondary p-4 space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-info">
                   Conferência final
                 </p>
@@ -1712,26 +1712,26 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {relatoCliente.trim() && (
                   <>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-info/70 mb-1">Relato do cliente</p>
-                      <p className="text-xs italic leading-relaxed text-info-foreground">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Relato do cliente</p>
+                      <p className="text-xs italic leading-relaxed text-foreground">
                         "{relatoCliente.trim()}"
                       </p>
                     </div>
-                    <div className="border-t border-info/20" />
+                    <div className="border-t border-border/40" />
                   </>
                 )}
 
                 {/* Bloco 2: Serviços */}
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-info/70 mb-1.5">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
                     Serviços ({defeitosSelecionados.length})
                   </p>
                   {defeitosSelecionados.length === 0 ? (
-                    <p className="text-xs italic opacity-70 text-info-foreground">Nenhum serviço incluído</p>
+                    <p className="text-xs italic text-muted-foreground">Nenhum serviço incluído</p>
                   ) : (
                     <div className="space-y-1">
                       {defeitosSelecionados.map((d) => (
-                        <div key={d.id} className="flex justify-between text-xs text-info-foreground">
+                        <div key={d.id} className="flex justify-between text-xs text-foreground">
                           <span>• {d.nome}</span>
                           <span>R$ {d.valor_mao_obra.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
@@ -1740,19 +1740,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   )}
                 </div>
 
-                <div className="border-t border-info/20" />
+                <div className="border-t border-border/40" />
 
                 {/* Bloco 3: Peças */}
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-info/70 mb-1.5">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
                     Peças ({pecasSelecionadas.length})
                   </p>
                   {pecasSelecionadas.length === 0 ? (
-                    <p className="text-xs italic opacity-70 text-info-foreground">Nenhuma peça incluída</p>
+                    <p className="text-xs italic text-muted-foreground">Nenhuma peça incluída</p>
                   ) : (
                     <div className="space-y-1">
                       {pecasSelecionadas.map((p) => (
-                        <div key={p.id} className="flex justify-between text-xs text-info-foreground">
+                        <div key={p.id} className="flex justify-between text-xs text-foreground">
                           <span>• {p.nome} ×{p.quantidade}</span>
                           <span>R$ {(p.preco_venda * p.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
@@ -1761,35 +1761,35 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   )}
                 </div>
 
-                <div className="border-t border-info/20" />
+                <div className="border-t border-border/40" />
 
                 {/* Bloco 4: Totais */}
-                <div className="space-y-1 text-xs text-info-foreground">
+                <div className="space-y-1 text-xs text-foreground">
                   <div className="flex justify-between"><span>Subtotal serviços</span><span>R$ {totalMaoObraDefeitos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   <div className="flex justify-between"><span>Subtotal peças</span><span>R$ {totalPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   <div className="flex justify-between"><span>Mão de obra adicional</span><span>R$ {adicional.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   {descontoNum > 0 && (<div className="flex justify-between"><span>Desconto</span><span>− R$ {descontoNum.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>)}
                 </div>
 
-                <div className="border-t-2 border-info/30 pt-2 flex justify-between items-baseline">
-                  <span className="text-xs font-medium text-info-foreground">Total ao cliente</span>
-                  <span className="text-lg font-medium text-info-foreground">R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <div className="border-t-2 border-border pt-2 flex justify-between items-baseline">
+                  <span className="text-xs font-medium text-foreground">Total ao cliente</span>
+                  <span className="text-[18px] font-medium text-foreground">R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
 
                 {sinalPagoNum > 0 && (
-                  <div className="flex justify-between text-xs text-info-foreground">
+                  <div className="flex justify-between text-xs text-foreground">
                     <span>A receber na retirada</span>
                     <span className="font-medium">R$ {aReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
 
-                <div className="border-t border-info/20 pt-2 space-y-0.5 opacity-70">
-                  <div className="flex justify-between text-[11px] text-info-foreground">
+                <div className="border-t border-border/40 pt-2 space-y-0.5">
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
                     <span>Custo estimado de peças</span>
                     <span>R$ {custoPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span className="text-info-foreground">Lucro bruto estimado</span>
+                    <span className="text-muted-foreground">Lucro bruto estimado</span>
                     <span className="font-medium text-success">R$ {(valorTotal - custoPecas).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
