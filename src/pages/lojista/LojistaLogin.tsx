@@ -15,13 +15,53 @@ export default function LojistaLogin() {
   const [cooldown, setCooldown] = useState(0);
   const { toast } = useToast();
 
-  // Se já estiver logado, redireciona pro portal
+  // Se já estiver logado E for um lojista válido, redireciona pro portal.
+  // Se a sessão for de outro usuário (admin testando, etc), encerra para
+  // evitar loop entre /lojista/login → /lojista → guard rejeita → /lojista/login.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const userId = session.user.id;
+      const userEmail = (session.user.email || "").toLowerCase();
+
+      // Verifica vínculo por user_id
+      const { data: porUserId } = await supabase
+        .from("lojista_usuarios")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("ativo", true)
+        .limit(1);
+
+      if ((porUserId ?? []).length > 0) {
         window.location.replace("/lojista");
+        return;
       }
-    });
+
+      // Tenta backfill por email (caso o magic link de aceite acabou de autenticar)
+      if (userEmail) {
+        const { data: porEmail } = await supabase
+          .from("lojista_usuarios")
+          .select("id")
+          .eq("email", userEmail)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if ((porEmail ?? []).length > 0) {
+          await supabase
+            .from("lojista_usuarios")
+            .update({ user_id: userId, ativo: true })
+            .eq("id", porEmail[0].id);
+          window.location.replace("/lojista");
+          return;
+        }
+      }
+
+      // Sessão existe mas não pertence a nenhum lojista — encerra para
+      // permitir login com o email correto.
+      await supabase.auth.signOut();
+    })();
   }, []);
 
   // Countdown do botão de reenvio
