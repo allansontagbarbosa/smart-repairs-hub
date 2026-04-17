@@ -109,7 +109,6 @@ export default function LojistaLogin() {
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/lojista`,
         },
       });
       if (error) {
