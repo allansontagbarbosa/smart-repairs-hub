@@ -29,21 +29,29 @@ export function useLojistaAuth() {
         return;
       }
 
-      const { data } = await supabase
+      // Busca todos os vínculos ativos e prioriza o que tem lojista ativo.
+      // Usar .limit() em vez de .maybeSingle() pra não quebrar com duplicatas.
+      const { data: vinculos, error } = await supabase
         .from("lojista_usuarios")
-        .select("id, lojista_id, nome, email, lojistas(id, nome, razao_social, cnpj)")
+        .select("id, lojista_id, nome, email, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
         .eq("user_id", session.user.id)
         .eq("ativo", true)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
+
+      if (error) console.error("[useLojistaAuth] erro:", error);
+
+      const escolhido = (vinculos ?? []).find(
+        (v: any) => v.lojistas?.ativo === true,
+      ) ?? null;
 
       if (mounted) {
-        if (data) {
+        if (escolhido) {
           setLojistaUser({
-            id: data.id,
-            lojista_id: data.lojista_id,
-            nome: data.nome,
-            email: data.email,
-            lojista: (data as any).lojistas ?? undefined,
+            id: escolhido.id,
+            lojista_id: escolhido.lojista_id,
+            nome: escolhido.nome,
+            email: escolhido.email,
+            lojista: (escolhido as any).lojistas ?? undefined,
           });
         } else {
           setLojistaUser(null);
