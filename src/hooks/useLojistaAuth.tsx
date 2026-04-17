@@ -22,10 +22,16 @@ export function useLojistaAuth() {
   useEffect(() => {
     let mounted = true;
 
-    async function check() {
+    // Se a URL trouxer fragmento de auth (magic link), aguarda o Supabase
+    // processar antes de decidir loading=false. Sem isso, o guard redireciona
+    // pra /lojista/login antes do token virar sessão.
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const hasAuthHash = /access_token=|refresh_token=|type=magiclink|type=recovery/i.test(hash);
+
+    async function check(allowEmpty = true) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        if (mounted) { setLojistaUser(null); setLoading(false); }
+        if (mounted && allowEmpty) { setLojistaUser(null); setLoading(false); }
         return;
       }
 
