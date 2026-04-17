@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer } from "lucide-react";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
+import { ConferenciaAparelhosButton } from "@/components/conferencia/ConferenciaAparelhosButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -64,6 +65,7 @@ export default function AparelhosAssistencia() {
           <p className="page-subtitle">Aparelhos atualmente sob responsabilidade da loja</p>
         </div>
         <div className="flex gap-2">
+          <ConferenciaAparelhosButton aparelhos={aparelhos} />
           <Button size="sm" className="gap-1.5 h-9" onClick={() => setNovaOSOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Nova OS
           </Button>
