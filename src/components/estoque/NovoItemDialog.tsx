@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScannableInput } from "@/components/ui/scannable-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,7 @@ type FormValues = {
   capacidade: string;
   imei_serial: string;
   sku: string;
+  codigo_barras: string;
   quantidade: string;
   quantidade_minima: string;
   custo_unitario: string;
@@ -47,7 +49,7 @@ type FormValues = {
 
 const emptyForm: FormValues = {
   categoria_id: "", marca_id: "", modelo_id: "",
-  nome_personalizado: "", cor: "", capacidade: "", imei_serial: "", sku: "",
+  nome_personalizado: "", cor: "", capacidade: "", imei_serial: "", sku: "", codigo_barras: "",
   quantidade: "1", quantidade_minima: "0", custo_unitario: "", preco_venda: "",
   local_estoque: "", fornecedor: "", observacoes: "", descricao: "",
 };
@@ -79,6 +81,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         capacidade: editingItem.capacidade ?? "",
         imei_serial: editingItem.imei_serial ?? "",
         sku: editingItem.sku ?? "",
+        codigo_barras: (editingItem as any).codigo_barras ?? "",
         quantidade: String(editingItem.quantidade),
         quantidade_minima: String(editingItem.quantidade_minima),
         custo_unitario: editingItem.custo_unitario ? String(editingItem.custo_unitario) : "",
@@ -180,6 +183,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         capacidade: values.capacidade || null,
         imei_serial: values.imei_serial || null,
         sku: values.sku?.trim() || null,
+        codigo_barras: values.codigo_barras?.trim() || null,
         quantidade: parseInt(values.quantidade) || 0,
         quantidade_minima: parseInt(values.quantidade_minima) || 0,
         custo_unitario: custo,
@@ -349,11 +353,21 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             </div>
           </div>
 
-          {/* SKU + Local + Fornecedor */}
-          <div className="grid grid-cols-3 gap-3">
-            <div><Label className="text-xs">SKU</Label><Input {...register("sku")} placeholder="Auto" className="h-9 mt-1" /></div>
-            <div><Label className="text-xs">Local</Label><Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" /></div>
+          {/* SKU + Código de barras + Local */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">SKU</Label>
+              <ScannableInput {...register("sku")} scannerTitle="Escanear SKU" placeholder="Auto" className="h-9 mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs">Código de barras</Label>
+              <ScannableInput {...register("codigo_barras")} scannerTitle="Escanear código de barras" placeholder="Opcional" className="h-9 mt-1" />
+            </div>
             <div><Label className="text-xs">Fornecedor</Label><Input {...register("fornecedor")} placeholder="Nome" className="h-9 mt-1" /></div>
+          </div>
+          <div>
+            <Label className="text-xs">Local</Label>
+            <Input {...register("local_estoque")} placeholder="Prateleira A" className="h-9 mt-1" />
           </div>
 
           {/* Toggle advanced fields */}
@@ -373,7 +387,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
               </div>
               <div>
                 <Label className="text-xs">IMEI / Serial</Label>
-                <Input {...register("imei_serial")} placeholder="Opcional" className="h-9 mt-1" />
+                <ScannableInput {...register("imei_serial")} scannerTitle="Escanear IMEI / Serial" placeholder="Opcional" className="h-9 mt-1" />
               </div>
             </>
           )}

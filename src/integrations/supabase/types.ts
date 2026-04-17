@@ -1453,6 +1453,7 @@ export type Database = {
         Row: {
           capacidade: string | null
           categoria_id: string | null
+          codigo_barras: string | null
           cor: string | null
           created_at: string
           custo_unitario: number | null
@@ -1477,6 +1478,7 @@ export type Database = {
         Insert: {
           capacidade?: string | null
           categoria_id?: string | null
+          codigo_barras?: string | null
           cor?: string | null
           created_at?: string
           custo_unitario?: number | null
@@ -1501,6 +1503,7 @@ export type Database = {
         Update: {
           capacidade?: string | null
           categoria_id?: string | null
+          codigo_barras?: string | null
           cor?: string | null
           created_at?: string
           custo_unitario?: number | null

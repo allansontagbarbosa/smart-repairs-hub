@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScannableInput } from "@/components/ui/scannable-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,8 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     const matchSearch = !search ||
       name.includes(q) ||
       (i.sku?.toLowerCase().includes(q)) ||
+      ((i as any).codigo_barras?.toLowerCase().includes(q)) ||
+      (i.imei_serial?.toLowerCase().includes(q)) ||
       (i.fornecedor?.toLowerCase().includes(q)) ||
       (i.estoque_categorias?.nome?.toLowerCase().includes(q));
     const matchCat = filterCategoria === "todas" || i.categoria_id === filterCategoria;
@@ -75,8 +78,14 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar peça, SKU, fornecedor..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+          <ScannableInput
+            placeholder="Buscar peça, SKU, código de barras..."
+            className="pl-9 h-9"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            scannerTitle="Escanear código da peça"
+          />
         </div>
         <Select value={filterCategoria} onValueChange={setFilterCategoria}>
           <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue /></SelectTrigger>
