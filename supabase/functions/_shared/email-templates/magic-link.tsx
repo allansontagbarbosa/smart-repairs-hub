@@ -4,7 +4,6 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -15,29 +14,28 @@ import {
 
 interface MagicLinkEmailProps {
   siteName: string
-  confirmationUrl: string
+  confirmationUrl?: string
+  token?: string
 }
 
 export const MagicLinkEmail = ({
   siteName,
-  confirmationUrl,
+  token,
 }: MagicLinkEmailProps) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
-    <Preview>Seu link de acesso ao {siteName}</Preview>
+    <Preview>Seu código de acesso ao {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Seu link de acesso</Heading>
+        <Heading style={h1}>Seu código de acesso</Heading>
         <Text style={text}>
-          Clique no botão abaixo para acessar o {siteName}. Este link expira
-          em alguns minutos.
+          Use o código abaixo para entrar no {siteName}. Ele expira em 10 minutos.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Acessar
-        </Button>
+        <div style={codeBox}>
+          {token || '------'}
+        </div>
         <Text style={footer}>
-          Se você não solicitou este link, pode ignorar este email com
-          segurança.
+          Se você não solicitou este código, pode ignorar este email com segurança.
         </Text>
       </Container>
     </Body>
@@ -47,7 +45,7 @@ export const MagicLinkEmail = ({
 export default MagicLinkEmail
 
 const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif" }
-const container = { padding: '20px 25px' }
+const container = { padding: '20px 25px', maxWidth: '480px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
@@ -60,12 +58,16 @@ const text = {
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const button = {
-  backgroundColor: '#2563d4',
-  color: '#ffffff',
-  fontSize: '14px',
+const codeBox = {
+  fontSize: '32px',
+  fontWeight: 'bold' as const,
+  letterSpacing: '8px',
+  fontFamily: 'monospace',
+  padding: '20px',
+  backgroundColor: '#f5f5f5',
   borderRadius: '10px',
-  padding: '12px 20px',
-  textDecoration: 'none',
+  textAlign: 'center' as const,
+  color: '#1a2236',
+  margin: '0 0 25px',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
