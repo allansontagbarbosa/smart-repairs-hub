@@ -796,7 +796,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       } as any).select("id, numero, numero_formatado").single();
       if (osErr) throw osErr;
 
-      // 3. Inserir os_servicos (N:N)
+      // 3. Inserir os_servicos (N:N) — com snapshot de comissão do serviço
       if (defeitosSelecionados.length > 0) {
         const { error: defErr } = await supabase.from("os_servicos").insert(
           defeitosSelecionados.map(d => ({
@@ -805,12 +805,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             nome: d.nome,
             valor: d.valor_mao_obra,
             categoria: d.categoria,
-          }))
+            comissao: d.comissao_padrao || 0,
+          })) as any
         );
         if (defErr) throw defErr;
       }
 
-      // 4. Inserir pecas_utilizadas
+      // 4. Inserir pecas_utilizadas — com preço cobrado e origem (serviço auto vs avulsa)
       if (pecasSelecionadas.length > 0) {
         const { error: pecErr } = await supabase.from("pecas_utilizadas").insert(
           pecasSelecionadas.map(p => ({
@@ -818,7 +819,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             peca_id: p.id,
             quantidade: p.quantidade,
             custo_unitario: p.custo_unitario,
-          }))
+            preco_unitario: p.preco_venda,
+            // Se a peça veio de algum serviço, gravar o primeiro como origem
+            origem_servico_id: p.origens.length > 0 ? p.origens[0] : null,
+          })) as any
         );
         if (pecErr) throw pecErr;
       }
