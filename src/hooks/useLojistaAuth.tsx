@@ -96,10 +96,33 @@ export function useLojistaAuth() {
       }
     }
 
-    check();
+    // Se há hash de auth, NÃO chama check inicial — espera o
+    // onAuthStateChange disparar com SIGNED_IN. Marca loading=true.
+    if (hasAuthHash) {
+      // safety: se em 4s nada vier, força check sem hash
+      const safety = setTimeout(() => { if (mounted) check(true); }, 4000);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+          // limpa o hash da URL para não reprocessar
+          if (window.location.hash) {
+            history.replaceState(null, "", window.location.pathname + window.location.search);
+          }
+          check(true);
+        } else if (event === "SIGNED_OUT") {
+          if (mounted) { setLojistaUser(null); setLoading(false); }
+        }
+      });
+      return () => {
+        mounted = false;
+        clearTimeout(safety);
+        subscription.unsubscribe();
+      };
+    }
+
+    check(true);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      check();
+      check(true);
     });
 
     return () => {
