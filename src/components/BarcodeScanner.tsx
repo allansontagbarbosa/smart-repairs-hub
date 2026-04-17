@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,11 @@ interface Props {
 type ScannerState = "idle" | "loading" | "scanning" | "denied" | "no-camera" | "error";
 
 /**
- * Carrega o motor zxing apenas quando o modal abre (lazy).
- * Mantém uma instância ativa do reader e do stream para liberar no unmount.
+ * Scanner contínuo via câmera. Compatível com iOS Safari:
+ * - playsInline (não abre fullscreen nativo)
+ * - resolução alta (1920x1080) — necessária pra ler códigos finos
+ * - facingMode 'environment' — câmera traseira
+ * - decodeFromVideoElement em loop contínuo
  */
 function ScannerCore({ onScan, onError, onReady }: {
   onScan: (code: string) => void;
@@ -29,18 +32,22 @@ function ScannerCore({ onScan, onError, onReady }: {
 
   useEffect(() => {
     let cancelled = false;
+    stoppedRef.current = false;
 
     (async () => {
       try {
-        // Verificar suporte a câmera
         if (!navigator.mediaDevices?.getUserMedia) {
           onError("no-camera", "Câmera não disponível neste dispositivo/navegador");
           return;
         }
 
-        // Pedir permissão e obter stream traseira
+        // Resolução ALTA é crítica pra iOS detectar códigos de barras finos
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           audio: false,
         });
 
@@ -51,21 +58,50 @@ function ScannerCore({ onScan, onError, onReady }: {
 
         streamRef.current = stream;
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
+        const video = videoRef.current;
+        if (video) {
+          video.srcObject = stream;
+          // Atributos críticos pra iOS Safari não abrir em fullscreen nativo
+          video.setAttribute("playsinline", "true");
+          video.setAttribute("webkit-playsinline", "true");
+          video.setAttribute("muted", "true");
+          video.setAttribute("autoplay", "true");
+          video.muted = true;
+          video.playsInline = true;
+          await video.play().catch(() => {});
         }
 
-        // Carregar motor zxing dinamicamente
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        // Carregar motor zxing dinamicamente (lazy)
+        const [{ BrowserMultiFormatReader }, { DecodeHintType, BarcodeFormat }] = await Promise.all([
+          import("@zxing/browser"),
+          import("@zxing/library"),
+        ]);
         if (cancelled) return;
 
-        const reader = new BrowserMultiFormatReader();
+        // Hints: aceitar formatos comuns + try harder (mais lento porém preciso)
+        const hints = new Map();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.CODE_93,
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.ITF,
+          BarcodeFormat.QR_CODE,
+          BarcodeFormat.DATA_MATRIX,
+          BarcodeFormat.PDF_417,
+          BarcodeFormat.AZTEC,
+        ]);
+        hints.set(DecodeHintType.TRY_HARDER, true);
+
+        const reader = new BrowserMultiFormatReader(hints);
         onReady();
 
-        const controls = await reader.decodeFromStream(
-          stream,
-          videoRef.current!,
+        // Leitura CONTÍNUA em loop a partir do <video>
+        const controls = await reader.decodeFromVideoElement(
+          video!,
           (result, err) => {
             if (cancelled || stoppedRef.current) return;
             if (result) {
@@ -76,11 +112,18 @@ function ScannerCore({ onScan, onError, onReady }: {
                 onScan(text);
               }
             }
+            // NotFoundException é normal enquanto procura — ignorar
+            if (err && err.name && err.name !== "NotFoundException" && err.name !== "ChecksumException" && err.name !== "FormatException") {
+              // eslint-disable-next-line no-console
+              console.warn("[BarcodeScanner]", err.name, err.message);
+            }
           }
         );
         controlsRef.current = controls;
       } catch (e: any) {
         if (cancelled) return;
+        // eslint-disable-next-line no-console
+        console.error("[BarcodeScanner] init error:", e);
         if (e?.name === "NotAllowedError" || e?.name === "PermissionDeniedError") {
           onError("denied");
         } else if (e?.name === "NotFoundError" || e?.name === "OverconstrainedError") {
