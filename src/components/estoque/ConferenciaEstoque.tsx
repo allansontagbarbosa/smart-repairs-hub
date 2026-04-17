@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
 import { ScanLine, Check, X, AlertTriangle, ClipboardList, Play, Square } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScannableInput } from "@/components/ui/scannable-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { EstoqueItem } from "@/hooks/useEstoque";
@@ -31,6 +32,20 @@ export function ConferenciaEstoque({ itens }: Props) {
   const [extrasEncontrados, setExtrasEncontrados] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  const { data: funcionarios = [] } = useQuery({
+    queryKey: ["funcionarios-conferencia"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const getItemName = (item: EstoqueItem) => {
     if (item.nome_personalizado) return item.nome_personalizado;
@@ -148,7 +163,16 @@ export function ConferenciaEstoque({ itens }: Props) {
           </p>
           <div>
             <label className="text-sm font-medium">Responsável *</label>
-            <Input value={responsavel} onChange={e => setResponsavel(e.target.value)} placeholder="Nome do responsável" className="h-9 mt-1" />
+            <Select value={responsavel} onValueChange={setResponsavel}>
+              <SelectTrigger className="h-9 mt-1">
+                <SelectValue placeholder={funcionarios.length === 0 ? "Nenhum funcionário cadastrado" : "Selecione o responsável"} />
+              </SelectTrigger>
+              <SelectContent>
+                {funcionarios.map((f) => (
+                  <SelectItem key={f.id} value={f.nome}>{f.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="text-sm text-muted-foreground">
             {itens.length} peças serão incluídas nesta conferência
