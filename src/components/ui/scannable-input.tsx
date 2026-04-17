@@ -29,7 +29,17 @@ export const ScannableInput = React.forwardRef<HTMLInputElement, ScannableInputP
   ({ scannerTitle, showScannerButton = true, alwaysShowScanner = false, className, ...props }, ref) => {
     const isMobile = useIsMobile();
     const [scannerOpen, setScannerOpen] = React.useState(false);
+    const [hasCamera, setHasCamera] = React.useState(false);
     const innerRef = React.useRef<HTMLInputElement | null>(null);
+
+    // Detecta se o ambiente suporta câmera (mobile real, tablets, desktops com webcam, preview responsivo)
+    React.useEffect(() => {
+      const supported =
+        typeof navigator !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia &&
+        (window.isSecureContext || location.hostname === "localhost");
+      setHasCamera(supported);
+    }, []);
 
     // Compõe ref externo + interno
     const setRefs = React.useCallback(
@@ -41,7 +51,9 @@ export const ScannableInput = React.forwardRef<HTMLInputElement, ScannableInputP
       [ref],
     );
 
-    const showButton = showScannerButton && (alwaysShowScanner || isMobile);
+    // Mostra o botão sempre que houver suporte a câmera (mobile, tablet ou desktop com webcam).
+    // Permite escanear no preview do Lovable e em estações com webcam, não só em mobile.
+    const showButton = showScannerButton && hasCamera && (alwaysShowScanner || isMobile || true);
 
     const handleScan = (code: string) => {
       const el = innerRef.current;
