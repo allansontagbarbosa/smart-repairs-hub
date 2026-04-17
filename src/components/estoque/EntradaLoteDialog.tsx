@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi,
+  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi, Camera,
 } from "lucide-react";
 import {
   lookupImei as lookupImeiService,
   saveToImeiCache,
   type ImeiLookupStatus,
 } from "@/services/imeiLookupService";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 type RowStatus = "searching" | "found" | "partial" | "not_found" | "duplicate" | "invalid" | "error" | "ready";
 
@@ -57,6 +58,7 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
   const [defaultGrade, setDefaultGrade] = useState("seminovo_a");
   const [defaultFornecedor, setDefaultFornecedor] = useState("");
   const [defaultLocalizacao, setDefaultLocalizacao] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const handleAddImei = useCallback(async (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 15);
@@ -108,6 +110,20 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
     const lines = text.split(/[\n,;]+/).map(l => l.trim().replace(/\D/g, "")).filter(l => l.length === 15);
     if (lines.length > 1) { e.preventDefault(); setScanInput(""); lines.forEach((l, i) => setTimeout(() => handleAddImei(l), i * 300)); }
   };
+
+  const handleBatchScan = useCallback((codes: string[]) => {
+    const valid = codes.map(c => c.replace(/\D/g, "")).filter(c => c.length === 15);
+    const invalid = codes.length - valid.length;
+    if (invalid > 0) {
+      toast.warning(`${invalid} código(s) ignorado(s) (não são IMEI de 15 dígitos)`);
+    }
+    if (valid.length === 0) {
+      toast.error("Nenhum IMEI válido escaneado");
+      return;
+    }
+    toast.success(`${valid.length} IMEI(s) capturado(s) — consultando API...`);
+    valid.forEach((code, i) => setTimeout(() => handleAddImei(code), i * 300));
+  }, [handleAddImei]);
 
   const updateRow = (id: string, field: keyof BatchRow, value: string) => {
     setRows(prev => prev.map(r => {
@@ -208,22 +224,34 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
             </div>
           </div>
 
-          <div className="relative">
-            <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/60" />
-            <Input
-              ref={inputRef}
-              value={scanInput}
-              onChange={e => setScanInput(e.target.value.replace(/\D/g, "").slice(0, 15))}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              placeholder="Bipe ou cole IMEIs em sequência — cada um será consultado via API automaticamente"
-              className="pl-10 h-11 text-base font-mono tracking-wider border-2 border-primary/30 focus:border-primary"
-              autoFocus
-              inputMode="numeric"
-            />
-            {scanInput.length > 0 && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{scanInput.length}/15</span>
-            )}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/60" />
+              <Input
+                ref={inputRef}
+                value={scanInput}
+                onChange={e => setScanInput(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder="Bipe, cole ou use a câmera para escanear vários IMEIs"
+                className="pl-10 h-11 text-base font-mono tracking-wider border-2 border-primary/30 focus:border-primary"
+                autoFocus
+                inputMode="numeric"
+              />
+              {scanInput.length > 0 && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{scanInput.length}/15</span>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 gap-1.5 shrink-0"
+              onClick={() => setScannerOpen(true)}
+              title="Escanear vários IMEIs com a câmera"
+            >
+              <Camera className="h-4 w-4" />
+              <span className="hidden sm:inline">Escanear vários</span>
+            </Button>
           </div>
         </div>
 
@@ -322,6 +350,14 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
           </div>
         )}
       </DialogContent>
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        mode="batch"
+        title="Escanear IMEIs em lote"
+        onBatchComplete={handleBatchScan}
+      />
     </Dialog>
   );
 }
