@@ -56,8 +56,14 @@ export const ScannableInput = React.forwardRef<HTMLInputElement, ScannableInputP
     const showButton = showScannerButton && hasCamera && (alwaysShowScanner || isMobile || true);
 
     const handleScan = (code: string) => {
+      // eslint-disable-next-line no-console
+      console.log("[ScannableInput] Código recebido:", code, "campo:", props.name);
       const el = innerRef.current;
-      if (!el) return;
+      if (!el) {
+        // eslint-disable-next-line no-console
+        console.warn("[ScannableInput] input ref ausente — código não preenchido");
+        return;
+      }
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
       setter?.call(el, code);
       el.dispatchEvent(new Event("input", { bubbles: true }));
