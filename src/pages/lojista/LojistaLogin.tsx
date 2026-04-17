@@ -67,11 +67,12 @@ export default function LojistaLogin() {
         return;
       }
 
+      // IMPORTANTE: NÃO passar emailRedirectTo. Sem ele, o Supabase
+      // envia OTP de 6 dígitos puro (sem magic link) no template.
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}/lojista`,
         },
       });
       if (error) {
