@@ -6,6 +6,7 @@ import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { ScannableInput } from "@/components/ui/scannable-input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -145,8 +146,14 @@ function AparelhosLista({ aparelhos, lojas, tecnicos }: {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-2.5 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar OS, cliente, IMEI, aparelho..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+          <ScannableInput
+            placeholder="Buscar OS, cliente, IMEI, aparelho..."
+            className="pl-9 h-9"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            scannerTitle="Escanear IMEI do aparelho"
+          />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-full sm:w-40 h-9"><SelectValue /></SelectTrigger>

@@ -13,6 +13,7 @@ export type EstoqueItem = {
   capacidade: string | null;
   imei_serial: string | null;
   sku: string | null;
+  codigo_barras: string | null;
   quantidade: number;
   quantidade_minima: number;
   custo_unitario: number | null;

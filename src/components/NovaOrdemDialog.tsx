@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScannableInput } from "@/components/ui/scannable-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -959,11 +960,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               {!showNewClient ? (
                 <>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <ScannableInput
                       placeholder="Nome, telefone, CPF/CNPJ ou IMEI (15 dígitos)..."
                       value={clientSearch}
                       onChange={(e) => setClientSearch(e.target.value)}
+                      scannerTitle="Escanear IMEI"
                       className="pl-9 h-9 text-sm"
                     />
                     {isImeiSearch && (
@@ -1182,11 +1184,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 <Label className="text-xs text-muted-foreground flex items-center gap-1">IMEI — identificação automática</Label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Smartphone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Smartphone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <ScannableInput
                       ref={imeiRef} value={imei}
                       onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 15); setImei(v); if (imeiResult.status !== "idle") setImeiResult({ status: "idle" }); }}
                       placeholder="Digite os 15 dígitos do IMEI" className="pl-8 h-9 font-mono text-sm tracking-wider" maxLength={15} inputMode="numeric"
+                      scannerTitle="Escanear IMEI"
                     />
                   </div>
                   <Button size="sm" variant="outline" onClick={consultarImei} disabled={imeiResult.status === "loading" || imei.length !== 15}>
