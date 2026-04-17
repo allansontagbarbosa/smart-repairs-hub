@@ -742,39 +742,57 @@ export type Database = {
           data: string
           data_fim: string | null
           data_inicio: string | null
+          detalhes: Json
           empresa_id: string | null
           id: string
           observacoes: string | null
           responsavel: string
           status: Database["public"]["Enums"]["status_conferencia"]
+          tipo: string
           tipo_conferencia: string | null
+          total_conferido: number
+          total_divergencias: number
+          total_esperado: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           data?: string
           data_fim?: string | null
           data_inicio?: string | null
+          detalhes?: Json
           empresa_id?: string | null
           id?: string
           observacoes?: string | null
           responsavel: string
           status?: Database["public"]["Enums"]["status_conferencia"]
+          tipo?: string
           tipo_conferencia?: string | null
+          total_conferido?: number
+          total_divergencias?: number
+          total_esperado?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           data?: string
           data_fim?: string | null
           data_inicio?: string | null
+          detalhes?: Json
           empresa_id?: string | null
           id?: string
           observacoes?: string | null
           responsavel?: string
           status?: Database["public"]["Enums"]["status_conferencia"]
+          tipo?: string
           tipo_conferencia?: string | null
+          total_conferido?: number
+          total_divergencias?: number
+          total_esperado?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
