@@ -156,34 +156,41 @@ export default function LojistaLogin() {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Erro ao identificar usuário");
 
-      // Vincular registro pendente se existir
-      const { data: pendente } = await supabase
-        .from("lojista_usuarios")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
-        .eq("ativo", false)
-        .maybeSingle();
+      const emailLower = email.trim().toLowerCase();
 
-      if (pendente) {
-        await supabase
-          .from("lojista_usuarios")
-          .update({ user_id: userId, ativo: true })
-          .eq("id", pendente.id);
-      }
-
-      // Verificar acesso
-      const { data: lojistaUser } = await supabase
+      // 1) Procurar registro já vinculado e ativo
+      const { data: ativos } = await supabase
         .from("lojista_usuarios")
         .select("id")
         .eq("user_id", userId)
         .eq("ativo", true)
-        .maybeSingle();
+        .limit(1);
 
-      if (!lojistaUser) {
+      let temAcesso = (ativos ?? []).length > 0;
+
+      // 2) Se não, tenta backfill: buscar registros pendentes pelo email e vincular
+      if (!temAcesso) {
+        const { data: pendentes } = await supabase
+          .from("lojista_usuarios")
+          .select("id")
+          .eq("email", emailLower)
+          .order("created_at", { ascending: false });
+
+        if ((pendentes ?? []).length > 0) {
+          const primeiro = pendentes![0];
+          const { error: updErr } = await supabase
+            .from("lojista_usuarios")
+            .update({ user_id: userId, ativo: true })
+            .eq("id", primeiro.id);
+          if (!updErr) temAcesso = true;
+        }
+      }
+
+      if (!temAcesso) {
         await supabase.auth.signOut();
         toast({
           title: "Acesso não autorizado",
-          description: "Este email não tem acesso ao portal lojista.",
+          description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
           variant: "destructive",
         });
         setStep("email");
