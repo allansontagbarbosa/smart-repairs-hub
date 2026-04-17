@@ -6,6 +6,7 @@ import { EstoqueDashboard } from "@/components/estoque/EstoqueDashboard";
 import { EstoqueList } from "@/components/estoque/EstoqueList";
 import { ConferenciaEstoque } from "@/components/estoque/ConferenciaEstoque";
 import { EntradasEstoque } from "@/components/estoque/EntradasEstoque";
+import { ConferenciaPecasButton } from "@/components/conferencia/ConferenciaPecasButton";
 
 export default function Pecas() {
   const { itens, categorias, marcas, modelos, conferencias, isLoading, kpis } = useEstoque();
@@ -23,11 +24,14 @@ export default function Pecas() {
 
   return (
     <div className="space-y-5 md:space-y-6">
-      <div className="page-header">
-        <h1 className="page-title">Estoque de Peças</h1>
-        <p className="page-subtitle">
-          {kpis.total} peças cadastradas · {kpis.estoqueBaixo > 0 ? `${kpis.estoqueBaixo} com estoque baixo` : "estoque OK"}
-        </p>
+      <div className="page-header flex items-start justify-between gap-3">
+        <div>
+          <h1 className="page-title">Estoque de Peças</h1>
+          <p className="page-subtitle">
+            {kpis.total} peças cadastradas · {kpis.estoqueBaixo > 0 ? `${kpis.estoqueBaixo} com estoque baixo` : "estoque OK"}
+          </p>
+        </div>
+        <ConferenciaPecasButton itens={itens} />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
