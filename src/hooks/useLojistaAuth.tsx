@@ -29,20 +29,50 @@ export function useLojistaAuth() {
         return;
       }
 
-      // Busca todos os vínculos ativos e prioriza o que tem lojista ativo.
-      // Usar .limit() em vez de .maybeSingle() pra não quebrar com duplicatas.
+      const userId = session.user.id;
+      const userEmail = (session.user.email || "").toLowerCase();
+
+      // 1) Busca por user_id ativo
       const { data: vinculos, error } = await supabase
         .from("lojista_usuarios")
-        .select("id, lojista_id, nome, email, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
-        .eq("user_id", session.user.id)
+        .select("id, lojista_id, nome, email, user_id, ativo, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
+        .eq("user_id", userId)
         .eq("ativo", true)
         .order("created_at", { ascending: false });
 
       if (error) console.error("[useLojistaAuth] erro:", error);
 
-      const escolhido = (vinculos ?? []).find(
+      let escolhido = (vinculos ?? []).find(
         (v: any) => v.lojistas?.ativo === true,
       ) ?? null;
+
+      // 2) Fallback: backfill por email (registros pendentes com user_id placeholder)
+      if (!escolhido && userEmail) {
+        const { data: porEmail } = await supabase
+          .from("lojista_usuarios")
+          .select("id, lojista_id, nome, email, user_id, ativo, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
+          .eq("email", userEmail)
+          .order("created_at", { ascending: false });
+
+        const candidato = (porEmail ?? []).find((v: any) => v.lojistas?.ativo === true) ?? null;
+
+        if (candidato) {
+          // Vincular user_id real e ativar
+          const { data: atualizado, error: updErr } = await supabase
+            .from("lojista_usuarios")
+            .update({ user_id: userId, ativo: true })
+            .eq("id", candidato.id)
+            .select("id, lojista_id, nome, email, user_id, ativo, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
+            .maybeSingle();
+
+          if (updErr) {
+            console.error("[useLojistaAuth] backfill falhou:", updErr);
+            escolhido = candidato; // segue com o candidato mesmo sem update
+          } else {
+            escolhido = atualizado ?? candidato;
+          }
+        }
+      }
 
       if (mounted) {
         if (escolhido) {
