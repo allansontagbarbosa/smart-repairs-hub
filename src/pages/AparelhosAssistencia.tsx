@@ -1,8 +1,9 @@
 import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer } from "lucide-react";
+import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer, Camera } from "lucide-react";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
+import { EntradaLoteDialog } from "@/components/estoque/EntradaLoteDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
