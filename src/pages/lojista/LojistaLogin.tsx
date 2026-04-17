@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AssistProLogo } from "@/components/AssistProLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -12,68 +12,121 @@ export default function LojistaLogin() {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"email" | "otp">("email");
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const { toast } = useToast();
+
+  // Countdown do botão de reenvio
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const parseError = (err: any): string => {
+    const msg = err?.message || err?.error_description || err?.context?.error || "";
+    if (!msg) return "Erro desconhecido. Tente novamente.";
+    // Erros de rede
+    if (/load failed|failed to fetch|network|networkerror/i.test(msg)) {
+      return "Falha de conexão. Verifique sua internet e tente novamente.";
+    }
+    if (msg.includes("only request this after")) {
+      const match = msg.match(/after (\d+) seconds?/);
+      const seg = match ? match[1] : "alguns";
+      return `Aguarde ${seg} segundos antes de solicitar novo código.`;
+    }
+    if (/rate limit|too many/i.test(msg)) {
+      return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+    }
+    return msg;
+  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || cooldown > 0) return;
     setLoading(true);
     try {
+      // Pré-validação: verificar se o email é de um lojista cadastrado
+      // (evita gastar tentativa de OTP do Supabase Auth com email errado)
+      const { data: lojistaCheck, error: checkError } = await supabase
+        .from("lojista_usuarios")
+        .select("id, ativo")
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (checkError && !/load failed|failed to fetch|network/i.test(checkError.message || "")) {
+        // erro de query que não é rede - segue assim mesmo, deixa o auth decidir
+        console.warn("[portal-lojista] check lojista falhou:", checkError);
+      }
+
+      if (!lojistaCheck && !checkError) {
+        toast({
+          title: "Email não cadastrado",
+          description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: true,
           emailRedirectTo: `${window.location.origin}/lojista`,
         },
       });
       if (error) {
-        const msg = error.message || "";
-        if (msg.includes("only request this after")) {
-          const match = msg.match(/after (\d+) seconds?/);
-          const seg = match ? match[1] : "alguns";
-          toast({
-            title: "Aguarde um momento",
-            description: `Aguarde ${seg} segundos antes de solicitar novo código.`,
-            variant: "destructive",
-          });
-        } else if (msg.includes("rate limit") || msg.includes("too many")) {
-          toast({
-            title: "Muitas tentativas",
-            description: "Aguarde alguns minutos antes de tentar novamente.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Erro ao enviar código",
-            description: msg || "Verifique o email e tente novamente.",
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-      // ✅ SUCESSO — avançar para tela do código
-      toast({
-        title: "Código enviado!",
-        description: `Verifique seu email e insira o código de 6 dígitos.`,
-      });
-      setStep("otp");
-    } catch (err: any) {
-      const msg = err?.message || "";
-      if (msg.includes("only request this after")) {
-        const match = msg.match(/after (\d+) seconds?/);
-        const seg = match ? match[1] : "alguns";
-        toast({
-          title: "Aguarde um momento",
-          description: `Aguarde ${seg} segundos antes de solicitar novo código.`,
-          variant: "destructive",
-        });
-      } else {
         toast({
           title: "Erro ao enviar código",
-          description: msg || "Tente novamente.",
+          description: parseError(error),
           variant: "destructive",
         });
+        return;
       }
+      toast({
+        title: "Código enviado!",
+        description: "Verifique seu email e insira o código de 6 dígitos.",
+      });
+      setStep("otp");
+      setCooldown(60);
+    } catch (err: any) {
+      console.error("[portal-lojista] send-otp falhou:", err);
+      toast({
+        title: "Erro ao enviar código",
+        description: parseError(err),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (cooldown > 0 || loading) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/lojista`,
+        },
+      });
+      if (error) {
+        toast({
+          title: "Erro ao reenviar",
+          description: parseError(error),
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Código reenviado!", description: "Verifique seu email." });
+      setCooldown(60);
+    } catch (err: any) {
+      toast({
+        title: "Erro ao reenviar",
+        description: parseError(err),
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -85,7 +138,7 @@ export default function LojistaLogin() {
     setLoading(true);
     try {
       const { data: authData, error } = await supabase.auth.verifyOtp({
-        email,
+        email: email.trim().toLowerCase(),
         token: otp,
         type: "email",
       });
@@ -98,7 +151,7 @@ export default function LojistaLogin() {
       const { data: pendente } = await supabase
         .from("lojista_usuarios")
         .select("id")
-        .eq("email", email)
+        .eq("email", email.trim().toLowerCase())
         .eq("ativo", false)
         .maybeSingle();
 
@@ -131,9 +184,10 @@ export default function LojistaLogin() {
 
       window.location.replace("/lojista");
     } catch (err: any) {
+      console.error("[portal-lojista] verify-otp falhou:", err);
       toast({
         title: "Código inválido",
-        description: "O código está incorreto ou expirou. Tente novamente.",
+        description: parseError(err) || "O código está incorreto ou expirou. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -180,9 +234,11 @@ export default function LojistaLogin() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full h-11" disabled={loading}>
+              <Button type="submit" className="w-full h-11" disabled={loading || cooldown > 0}>
                 {loading ? (
                   <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                ) : cooldown > 0 ? (
+                  `Aguarde ${cooldown}s para reenviar`
                 ) : (
                   <>
                     <Mail className="h-4 w-4 mr-2" />
@@ -222,6 +278,17 @@ export default function LojistaLogin() {
                   </>
                 )}
               </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResend}
+                disabled={loading || cooldown > 0}
+              >
+                {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar código"}
+              </Button>
+
               <Button type="button" variant="ghost" className="w-full" onClick={() => { setStep("email"); setOtp(""); }}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Usar outro email
