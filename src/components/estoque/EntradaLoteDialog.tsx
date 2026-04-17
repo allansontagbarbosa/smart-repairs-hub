@@ -9,14 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi, Camera,
+  ScanLine, Loader2, CheckCircle, AlertTriangle, XCircle, Trash2, Save, Package, Wifi,
 } from "lucide-react";
 import {
   lookupImei as lookupImeiService,
   saveToImeiCache,
   type ImeiLookupStatus,
 } from "@/services/imeiLookupService";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
 
 type RowStatus = "searching" | "found" | "partial" | "not_found" | "duplicate" | "invalid" | "error" | "ready";
 
@@ -58,7 +57,6 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
   const [defaultGrade, setDefaultGrade] = useState("seminovo_a");
   const [defaultFornecedor, setDefaultFornecedor] = useState("");
   const [defaultLocalizacao, setDefaultLocalizacao] = useState("");
-  const [scannerOpen, setScannerOpen] = useState(false);
 
   const handleAddImei = useCallback(async (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 15);

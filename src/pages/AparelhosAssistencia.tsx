@@ -1,9 +1,8 @@
 import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer, Camera } from "lucide-react";
+import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer } from "lucide-react";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
-import { EntradaLoteDialog } from "@/components/estoque/EntradaLoteDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -51,7 +50,6 @@ export default function AparelhosAssistencia() {
   const { aparelhos, kpis, lojas, tecnicos, isLoading } = useAparelhosAssistencia();
   const [tab, setTab] = useState("lista");
   const [novaOSOpen, setNovaOSOpen] = useState(false);
-  const [loteOpen, setLoteOpen] = useState(false);
   const queryClient = useQueryClient();
 
   if (isLoading) {
@@ -66,9 +64,6 @@ export default function AparelhosAssistencia() {
           <p className="page-subtitle">Aparelhos atualmente sob responsabilidade da loja</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 h-9" onClick={() => setLoteOpen(true)}>
-            <Camera className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Cadastrar vários</span>
-          </Button>
           <Button size="sm" className="gap-1.5 h-9" onClick={() => setNovaOSOpen(true)}>
             <Plus className="h-3.5 w-3.5" /> Nova OS
           </Button>
@@ -105,8 +100,6 @@ export default function AparelhosAssistencia() {
         onOpenChange={setNovaOSOpen}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] })}
       />
-
-      <EntradaLoteDialog open={loteOpen} onOpenChange={setLoteOpen} />
     </div>
   );
 }
