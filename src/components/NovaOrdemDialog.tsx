@@ -30,6 +30,7 @@ import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
 import { Link } from "react-router-dom";
+import { suggestServicos } from "@/lib/sugestoesServico";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
