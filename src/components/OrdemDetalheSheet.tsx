@@ -740,17 +740,24 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Valores & Lucro Real</p>
                   {(() => {
-                    const valor = ordem.valor ?? 0;
-                    const custoPecas = ordem.custo_pecas ?? 0;
+                    const o = ordem as any;
+                    const valorTotal = Number(o.valor_total ?? 0);
+                    const valorCobrado = Number(o.valor ?? 0);
+                    const custoPecas = Number(o.custo_pecas ?? 0);
                     const totalComissoes = comissoesOS.reduce((s, c) => s + Number(c.valor), 0);
                     const totalDespesas = despesasOS.reduce((s, d) => s + Number(d.valor), 0);
-                    const lucroReal = valor - custoPecas - totalComissoes - totalDespesas;
+
+                    const temItens = pecasUtilizadas.length > 0;
+                    const temCustoCalculavel = custoPecas > 0 || totalComissoes > 0 || totalDespesas > 0;
+                    const lucroReal = valorTotal - custoPecas - totalComissoes - totalDespesas;
+                    const podeCalcularLucro = valorTotal > 0 && temCustoCalculavel;
+
                     return (
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="rounded-lg border p-2.5">
                             <p className="text-[10px] text-muted-foreground">Valor cobrado</p>
-                            <p className="text-sm font-semibold mt-0.5">{fmtCurrency(ordem.valor)}</p>
+                            <p className="text-sm font-semibold mt-0.5">{fmtCurrency(valorTotal || valorCobrado)}</p>
                           </div>
                           <div className="rounded-lg border p-2.5">
                             <p className="text-[10px] text-muted-foreground">Custo peças</p>
@@ -765,19 +772,30 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                             <p className="text-sm font-semibold mt-0.5 text-destructive">{totalDespesas > 0 ? `- ${fmtCurrency(totalDespesas)}` : "—"}</p>
                           </div>
                         </div>
-                        <div className={`rounded-lg border p-3 ${lucroReal > 0 ? "border-success/20 bg-success-muted" : lucroReal < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground font-medium">Lucro Real</p>
-                            <p className={`text-base font-bold ${lucroReal > 0 ? "text-success" : lucroReal < 0 ? "text-destructive" : ""}`}>
-                              {valor > 0 ? fmtCurrency(lucroReal) : "—"}
+                        {podeCalcularLucro ? (
+                          <div className={`rounded-lg border p-3 ${lucroReal > 0 ? "border-success/20 bg-success-muted" : lucroReal < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground font-medium">Lucro Real</p>
+                              <p className={`text-base font-bold ${lucroReal > 0 ? "text-success" : lucroReal < 0 ? "text-destructive" : ""}`}>
+                                {fmtCurrency(lucroReal)}
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {fmtCurrency(valorTotal)} − {fmtCurrency(custoPecas)} − {fmtCurrency(totalComissoes)} − {fmtCurrency(totalDespesas)}
                             </p>
                           </div>
-                          {valor > 0 && (
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              {fmtCurrency(valor)} − {fmtCurrency(custoPecas)} − {fmtCurrency(totalComissoes)} − {fmtCurrency(totalDespesas)}
+                        ) : valorTotal > 0 ? (
+                          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                            <p className="text-xs font-semibold text-warning-foreground flex items-center gap-1.5">
+                              <span>⚠️</span> Lucro não pode ser calculado
                             </p>
-                          )}
-                        </div>
+                            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                              {temItens
+                                ? "Esta OS não tem comissões ou despesas registradas. Adicione para visualizar o lucro real."
+                                : "OS sem peças nem custos registrados. Adicione peças/comissões para ver o lucro real."}
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })()}
