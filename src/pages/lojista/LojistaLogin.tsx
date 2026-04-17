@@ -15,6 +15,15 @@ export default function LojistaLogin() {
   const [cooldown, setCooldown] = useState(0);
   const { toast } = useToast();
 
+  // Se já estiver logado, redireciona pro portal
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        window.location.replace("/lojista");
+      }
+    });
+  }, []);
+
   // Countdown do botão de reenvio
   useEffect(() => {
     if (cooldown <= 0) return;
