@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Confirme seu email no AssistPro',
+  invite: 'Você foi convidado para o AssistPro',
+  magiclink: 'Seu código de acesso ao AssistPro',
+  recovery: 'Redefina sua senha no AssistPro',
+  email_change: 'Confirme seu novo email no AssistPro',
+  reauthentication: 'Seu código de verificação AssistPro',
 }
 
 // Template mapping
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "smart-repairs-hub"
+const SITE_NAME = "AssistPro"
 const SENDER_DOMAIN = "notify.mobilefix.dev"
 const ROOT_DOMAIN = "mobilefix.dev"
 const FROM_DOMAIN = "mobilefix.dev" // Domain shown in From address (may be root or sender subdomain)
