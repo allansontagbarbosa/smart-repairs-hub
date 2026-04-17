@@ -350,6 +350,14 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
           </div>
         )}
       </DialogContent>
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        mode="batch"
+        title="Escanear IMEIs em lote"
+        onBatchComplete={handleBatchScan}
+      />
     </Dialog>
   );
 }
