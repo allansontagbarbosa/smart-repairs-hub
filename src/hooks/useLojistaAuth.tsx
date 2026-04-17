@@ -22,10 +22,16 @@ export function useLojistaAuth() {
   useEffect(() => {
     let mounted = true;
 
-    async function check() {
+    // Se a URL trouxer fragmento de auth (magic link), aguarda o Supabase
+    // processar antes de decidir loading=false. Sem isso, o guard redireciona
+    // pra /lojista/login antes do token virar sessão.
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const hasAuthHash = /access_token=|refresh_token=|type=magiclink|type=recovery/i.test(hash);
+
+    async function check(allowEmpty = true) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        if (mounted) { setLojistaUser(null); setLoading(false); }
+        if (mounted && allowEmpty) { setLojistaUser(null); setLoading(false); }
         return;
       }
 
@@ -90,10 +96,33 @@ export function useLojistaAuth() {
       }
     }
 
-    check();
+    // Se há hash de auth, NÃO chama check inicial — espera o
+    // onAuthStateChange disparar com SIGNED_IN. Marca loading=true.
+    if (hasAuthHash) {
+      // safety: se em 4s nada vier, força check sem hash
+      const safety = setTimeout(() => { if (mounted) check(true); }, 4000);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+          // limpa o hash da URL para não reprocessar
+          if (window.location.hash) {
+            history.replaceState(null, "", window.location.pathname + window.location.search);
+          }
+          check(true);
+        } else if (event === "SIGNED_OUT") {
+          if (mounted) { setLojistaUser(null); setLoading(false); }
+        }
+      });
+      return () => {
+        mounted = false;
+        clearTimeout(safety);
+        subscription.unsubscribe();
+      };
+    }
+
+    check(true);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      check();
+      check(true);
     });
 
     return () => {
