@@ -65,6 +65,7 @@ interface DefeitoSelecionado {
   nome: string;
   categoria: string;
   valor_mao_obra: number;
+  comissao_padrao: number;
 }
 
 interface PecaSelecionada {
