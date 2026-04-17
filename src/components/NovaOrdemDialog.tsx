@@ -462,6 +462,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     );
   }, [pecasEstoque, pecaSearch, pecasSelecionadas]);
 
+  // ── Sugestões de serviço com base no relato (debounce 600ms) ──
+  const [relatoDebounced, setRelatoDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setRelatoDebounced(relatoCliente), 600);
+    return () => clearTimeout(t);
+  }, [relatoCliente]);
+
+  const sugestoesServico = useMemo(() => {
+    if (relatoDebounced.trim().length < 10) return [];
+    const excluirIds = new Set(defeitosSelecionados.map(d => d.id));
+    return suggestServicos(relatoDebounced, tiposDefeito as any[], { marca, modelo, excluirIds, topN: 3 });
+  }, [relatoDebounced, tiposDefeito, defeitosSelecionados, marca, modelo]);
+
   // ── Valores calculados ──
   const totalMaoObraDefeitos = defeitosSelecionados.reduce((s, d) => s + d.valor_mao_obra, 0);
   const totalPecas = pecasSelecionadas.reduce((s, p) => s + p.preco_venda * p.quantidade, 0);
