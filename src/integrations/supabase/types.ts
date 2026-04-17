@@ -1553,6 +1553,71 @@ export type Database = {
           },
         ]
       }
+      estoque_movimentos: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          id: string
+          motivo: string | null
+          os_id: string | null
+          peca_id: string
+          pecas_utilizadas_id: string | null
+          quantidade: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          motivo?: string | null
+          os_id?: string | null
+          peca_id: string
+          pecas_utilizadas_id?: string | null
+          quantidade: number
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          motivo?: string | null
+          os_id?: string | null
+          peca_id?: string
+          pecas_utilizadas_id?: string | null
+          quantidade?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentos_pecas_utilizadas_id_fkey"
+            columns: ["pecas_utilizadas_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_utilizadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -2415,6 +2480,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           custo_pecas: number | null
+          custo_total: number | null
           data_aprovacao: string | null
           data_conclusao: string | null
           data_entrada: string
@@ -2434,6 +2500,7 @@ export type Database = {
           liga: string | null
           loja_id: string | null
           lojista_id: string | null
+          lucro_bruto: number | null
           mao_obra_adicional: number
           motivo_reprovacao: string | null
           numero: number
@@ -2470,6 +2537,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custo_pecas?: number | null
+          custo_total?: number | null
           data_aprovacao?: string | null
           data_conclusao?: string | null
           data_entrada?: string
@@ -2489,6 +2557,7 @@ export type Database = {
           liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
+          lucro_bruto?: number | null
           mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
@@ -2525,6 +2594,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           custo_pecas?: number | null
+          custo_total?: number | null
           data_aprovacao?: string | null
           data_conclusao?: string | null
           data_entrada?: string
@@ -2544,6 +2614,7 @@ export type Database = {
           liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
+          lucro_bruto?: number | null
           mao_obra_adicional?: number
           motivo_reprovacao?: string | null
           numero?: number
@@ -3418,6 +3489,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalcular_totais_os: { Args: { p_ordem_id: string }; Returns: undefined }
     }
     Enums: {
       status_comissao: "pendente" | "liberada" | "paga"
