@@ -2440,6 +2440,7 @@ export type Database = {
           numero_formatado: string | null
           obs_cliente: string | null
           observacoes: string | null
+          orcamento_aprovado_em: string | null
           os_origem_id: string | null
           prazo_vencido: boolean
           previsao_entrega: string | null
@@ -2494,6 +2495,7 @@ export type Database = {
           numero_formatado?: string | null
           obs_cliente?: string | null
           observacoes?: string | null
+          orcamento_aprovado_em?: string | null
           os_origem_id?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
@@ -2548,6 +2550,7 @@ export type Database = {
           numero_formatado?: string | null
           obs_cliente?: string | null
           observacoes?: string | null
+          orcamento_aprovado_em?: string | null
           os_origem_id?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
@@ -2629,6 +2632,7 @@ export type Database = {
       os_servicos: {
         Row: {
           categoria: string | null
+          comissao: number
           created_at: string
           empresa_id: string | null
           id: string
@@ -2639,6 +2643,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string | null
+          comissao?: number
           created_at?: string
           empresa_id?: string | null
           id?: string
@@ -2649,6 +2654,7 @@ export type Database = {
         }
         Update: {
           categoria?: string | null
+          comissao?: number
           created_at?: string
           empresa_id?: string | null
           id?: string
@@ -2688,7 +2694,9 @@ export type Database = {
           empresa_id: string | null
           id: string
           ordem_id: string
+          origem_servico_id: string | null
           peca_id: string
+          preco_unitario: number
           quantidade: number
         }
         Insert: {
@@ -2697,7 +2705,9 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           ordem_id: string
+          origem_servico_id?: string | null
           peca_id: string
+          preco_unitario?: number
           quantidade?: number
         }
         Update: {
@@ -2706,7 +2716,9 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           ordem_id?: string
+          origem_servico_id?: string | null
           peca_id?: string
+          preco_unitario?: number
           quantidade?: number
         }
         Relationships: [
@@ -2725,10 +2737,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pecas_utilizadas_origem_servico_id_fkey"
+            columns: ["origem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pecas_utilizadas_peca_id_fkey"
             columns: ["peca_id"]
             isOneToOne: false
-            referencedRelation: "estoque"
+            referencedRelation: "estoque_itens"
             referencedColumns: ["id"]
           },
         ]

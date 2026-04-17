@@ -30,6 +30,7 @@ import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
 import { Link } from "react-router-dom";
+import { suggestServicos } from "@/lib/sugestoesServico";
 
 type Status = Database["public"]["Enums"]["status_ordem"];
 
@@ -65,6 +66,7 @@ interface DefeitoSelecionado {
   nome: string;
   categoria: string;
   valor_mao_obra: number;
+  comissao_padrao: number;
 }
 
 interface PecaSelecionada {
@@ -207,7 +209,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tipos_servico")
-        .select("id, nome, categoria, valor_padrao, ativo")
+        .select("id, nome, categoria, valor_padrao, comissao_padrao, ativo")
         .eq("ativo", true)
         .order("categoria", { nullsFirst: false })
         .order("nome");
@@ -217,6 +219,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         nome: s.nome,
         categoria: s.categoria || "geral",
         valor_mao_obra: Number(s.valor_padrao) || 0,
+        comissao_padrao: Number(s.comissao_padrao) || 0,
       }));
     },
   });
@@ -458,6 +461,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         (p.sku || "").toLowerCase().includes(pecaSearch.toLowerCase()))
     );
   }, [pecasEstoque, pecaSearch, pecasSelecionadas]);
+
+  // ── Sugestões de serviço com base no relato (debounce 600ms) ──
+  const [relatoDebounced, setRelatoDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setRelatoDebounced(relatoCliente), 600);
+    return () => clearTimeout(t);
+  }, [relatoCliente]);
+
+  const sugestoesServico = useMemo(() => {
+    if (relatoDebounced.trim().length < 10) return [];
+    const excluirIds = new Set(defeitosSelecionados.map(d => d.id));
+    return suggestServicos(relatoDebounced, tiposDefeito as any[], { marca, modelo, excluirIds, topN: 3 });
+  }, [relatoDebounced, tiposDefeito, defeitosSelecionados, marca, modelo]);
 
   // ── Valores calculados ──
   const totalMaoObraDefeitos = defeitosSelecionados.reduce((s, d) => s + d.valor_mao_obra, 0);
@@ -796,7 +812,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       } as any).select("id, numero, numero_formatado").single();
       if (osErr) throw osErr;
 
-      // 3. Inserir os_servicos (N:N)
+      // 3. Inserir os_servicos (N:N) — com snapshot de comissão do serviço
       if (defeitosSelecionados.length > 0) {
         const { error: defErr } = await supabase.from("os_servicos").insert(
           defeitosSelecionados.map(d => ({
@@ -805,12 +821,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             nome: d.nome,
             valor: d.valor_mao_obra,
             categoria: d.categoria,
-          }))
+            comissao: d.comissao_padrao || 0,
+          })) as any
         );
         if (defErr) throw defErr;
       }
 
-      // 4. Inserir pecas_utilizadas
+      // 4. Inserir pecas_utilizadas — com preço cobrado e origem (serviço auto vs avulsa)
       if (pecasSelecionadas.length > 0) {
         const { error: pecErr } = await supabase.from("pecas_utilizadas").insert(
           pecasSelecionadas.map(p => ({
@@ -818,7 +835,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             peca_id: p.id,
             quantidade: p.quantidade,
             custo_unitario: p.custo_unitario,
-          }))
+            preco_unitario: p.preco_venda,
+            // Se a peça veio de algum serviço, gravar o primeiro como origem
+            origem_servico_id: p.origens.length > 0 ? p.origens[0] : null,
+          })) as any
         );
         if (pecErr) throw pecErr;
       }
@@ -1271,173 +1291,265 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           {step === "servico" && (
             <div className="space-y-4">
 
-              {/* ── Serviços ── */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Serviço / Problema relatado *</Label>
-
-                {/* Tags selecionadas */}
-                {defeitosSelecionados.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {defeitosSelecionados.map(d => (
-                      <span key={d.id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        {d.nome}
-                        <button type="button" onClick={() => setDefeitosSelecionados(prev => prev.filter(x => x.id !== d.id))} className="hover:text-destructive">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar serviço..."
-                    value={defeitoSearch}
-                    onChange={(e) => setDefeitoSearch(e.target.value)}
-                    onFocus={() => setDefeitosFocused(true)}
-                    onBlur={() => setTimeout(() => setDefeitosFocused(false), 200)}
-                    className="pl-8 h-8 text-sm"
-                  />
-                </div>
-
-                {/* Dropdown */}
-                {defeitosFocused && defeitosFiltrados.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto rounded-lg border divide-y bg-popover shadow-md">
-                    {defeitosFiltrados.slice(0, 15).map(d => (
-                      <button
-                        key={d.id} type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setDefeitosSelecionados(prev => [...prev, {
-                            id: d.id, nome: d.nome, categoria: d.categoria, valor_mao_obra: Number(d.valor_mao_obra),
-                          }]);
-                          setDefeitoSearch("");
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
-                      >
-                        <div>
-                          <p className="text-sm">{d.nome}</p>
-                          <p className="text-[10px] text-muted-foreground capitalize">{d.categoria}</p>
-                        </div>
-                        <span className="text-xs font-medium text-green-600">
-                          R$ {Number(d.valor_mao_obra).toFixed(2)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ── Peças ── */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Package className="h-3.5 w-3.5" /> Peças utilizadas
+              {/* ── 1. RELATO DO CLIENTE * ── */}
+              <div>
+                <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  O que o cliente relatou *
                 </Label>
+                <Textarea
+                  value={relatoCliente}
+                  onChange={(e) => setRelatoCliente(e.target.value)}
+                  placeholder="Digite com as palavras do cliente: o que está acontecendo, quando começou, o que já tentaram..."
+                  className="mt-1.5 min-h-[70px] resize-none text-sm"
+                  required
+                />
+              </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar peça no estoque..."
-                    value={pecaSearch}
-                    onChange={(e) => setPecaSearch(e.target.value)}
-                    onFocus={() => setPecasFocused(true)}
-                    onBlur={() => setTimeout(() => setPecasFocused(false), 200)}
-                    className="pl-8 h-8 text-sm"
-                  />
+              {/* ── 2. SUGESTÕES baseadas no relato ── */}
+              {sugestoesServico.length > 0 && (
+                <div className="rounded-md border border-info/30 bg-info/5 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-info mb-2">
+                    Sugestões com base no relato
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sugestoesServico.map((s) => {
+                      const jaAdd = defeitosSelecionados.some((d) => d.id === s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          disabled={jaAdd}
+                          onClick={() => {
+                            setDefeitosSelecionados((prev) => [
+                              ...prev,
+                              { id: s.id, nome: s.nome, categoria: s.categoria, valor_mao_obra: s.valor_mao_obra, comissao_padrao: s.comissao_padrao },
+                            ]);
+                          }}
+                          className={cn(
+                            "text-[11px] px-2.5 py-1 rounded-full border border-info/40 bg-background transition",
+                            jaAdd
+                              ? "opacity-40 cursor-not-allowed"
+                              : "hover:bg-info/10 hover:border-info/60"
+                          )}
+                        >
+                          {jaAdd ? "✓ " : "+ "}
+                          {s.nome}
+                          {s.valor_mao_obra > 0 && <span className="text-muted-foreground ml-1">· R$ {s.valor_mao_obra.toFixed(2)}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── 3. SERVIÇOS SELECIONADOS ── */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Serviços selecionados
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setDefeitosFocused(true)}
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    + Adicionar serviço
+                  </button>
                 </div>
 
-                {pecasFocused && pecasFiltradas.length > 0 && (
-                  <div className="max-h-40 overflow-y-auto rounded-lg border divide-y bg-popover shadow-md">
-                    {pecasFiltradas.slice(0, 15).map(p => (
-                      <button
-                        key={p.id} type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => addPeca(p)}
-                        className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
-                      >
-                        <div>
-                          <p className="text-sm">{getPecaNome(p)}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            Estoque: <span className={p.quantidade === 0 ? "text-destructive font-medium" : ""}>{p.quantidade}</span> | SKU: {p.sku || "—"}
-                          </p>
-                        </div>
-                        <span className="text-xs font-medium text-success">
-                          R$ {Number(p.preco_venda ?? 0).toFixed(2)}
-                        </span>
-                      </button>
-                    ))}
+                {/* Busca/dropdown */}
+                {defeitosFocused && (
+                  <div className="mb-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        placeholder="Buscar serviço pelo nome..."
+                        value={defeitoSearch}
+                        onChange={(e) => setDefeitoSearch(e.target.value)}
+                        onBlur={() => setTimeout(() => setDefeitosFocused(false), 200)}
+                        className="pl-8 h-8 text-sm"
+                      />
+                    </div>
+                    {defeitosFiltrados.length > 0 && (
+                      <div className="mt-1 max-h-40 overflow-y-auto rounded-md border divide-y bg-popover shadow-md">
+                        {defeitosFiltrados.slice(0, 15).map((d) => (
+                          <button
+                            key={d.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setDefeitosSelecionados((prev) => [
+                                ...prev,
+                                { id: d.id, nome: d.nome, categoria: d.categoria, valor_mao_obra: Number(d.valor_mao_obra), comissao_padrao: Number(d.comissao_padrao) || 0 },
+                              ]);
+                              setDefeitoSearch("");
+                              setDefeitosFocused(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
+                          >
+                            <div>
+                              <p className="text-sm">{d.nome}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">{d.categoria}</p>
+                            </div>
+                            <span className="text-xs font-medium text-success">R$ {Number(d.valor_mao_obra).toFixed(2)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Peças selecionadas */}
-                {pecasSelecionadas.length > 0 && (
-                  <div className="rounded-lg border divide-y">
-                    {pecasSelecionadas.map(p => {
-                      const isAuto = p.origens.length > 0;
-                      const semEstoque = p.estoque_disponivel === 0;
-                      const estoqueInsuficiente = !semEstoque && p.estoque_disponivel < p.quantidade;
-                      const origemNomes = p.origens
-                        .map(id => servicoNomePorId.get(id))
-                        .filter(Boolean) as string[];
-                      return (
-                      <div key={p.id} className="flex items-center justify-between px-3 py-2">
+                {defeitosSelecionados.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
+                    Nenhum serviço selecionado. Use sugestões acima ou clique em "+ Adicionar serviço".
+                  </div>
+                ) : (
+                  <div className="rounded-md border divide-y">
+                    {defeitosSelecionados.map((d) => (
+                      <div key={d.id} className="px-3 py-2 flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-medium truncate">{p.nome}</p>
-                            {isAuto && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0">
-                                auto
-                              </span>
-                            )}
-                            {semEstoque && (
-                              <AlertCircle className="h-3 w-3 text-destructive shrink-0" />
-                            )}
-                            {estoqueInsuficiente && (
-                              <AlertCircle className="h-3 w-3 text-warning shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            R$ {p.preco_venda.toFixed(2)} / un
-                            {isAuto && origemNomes.length > 0 && (
-                              <span className="ml-1">· do serviço: {origemNomes.join(", ")}</span>
-                            )}
+                          <p className="text-sm font-medium truncate">{d.nome}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            <span className="capitalize">{d.categoria}</span>
+                            {d.comissao_padrao > 0 && <> · comissão técnico R$ {d.comissao_padrao.toFixed(2)}</>}
                           </p>
-                          {semEstoque && (
-                            <p className="text-[10px] text-destructive">Sem estoque — será necessário repor</p>
-                          )}
-                          {estoqueInsuficiente && (
-                            <p className="text-[10px] text-warning">
-                              Estoque insuficiente: {p.estoque_disponivel} disponível, {p.quantidade} necessária{p.quantidade > 1 ? "s" : ""}
-                            </p>
-                          )}
                         </div>
-                        <div className="flex items-center gap-1.5 ml-2">
-                          <button type="button" onClick={() => updatePecaQtd(p.id, -1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="text-xs font-medium w-6 text-center">{p.quantidade}</span>
-                          <button type="button" onClick={() => updatePecaQtd(p.id, 1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
-                            <Plus className="h-3 w-3" />
-                          </button>
-                          <button type="button" onClick={() => removePeca(p.id)} className="h-6 w-6 flex items-center justify-center rounded border text-destructive hover:bg-destructive/10 ml-1">
-                            <X className="h-3 w-3" />
+                        <div className="flex flex-col items-end ml-3">
+                          <span className="text-sm font-medium">R$ {d.valor_mao_obra.toFixed(2)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setDefeitosSelecionados((prev) => prev.filter((x) => x.id !== d.id))}
+                            className="text-[11px] text-destructive hover:underline mt-0.5"
+                          >
+                            remover
                           </button>
                         </div>
-                        <span className="text-xs font-medium ml-3 w-16 text-right">
-                          R$ {(p.preco_venda * p.quantidade).toFixed(2)}
-                        </span>
                       </div>
-                    );})}
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* ── Mão de obra adicional + Desconto ── */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* ── 4. PEÇAS UTILIZADAS ── */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Package className="h-3 w-3" /> Peças utilizadas
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => setPecasFocused(true)}
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    + Adicionar peça avulsa
+                  </button>
+                </div>
+
+                {pecasFocused && (
+                  <div className="mb-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        autoFocus
+                        placeholder="Buscar peça por nome ou SKU..."
+                        value={pecaSearch}
+                        onChange={(e) => setPecaSearch(e.target.value)}
+                        onBlur={() => setTimeout(() => setPecasFocused(false), 200)}
+                        className="pl-8 h-8 text-sm"
+                      />
+                    </div>
+                    {pecasFiltradas.length > 0 && (
+                      <div className="mt-1 max-h-40 overflow-y-auto rounded-md border divide-y bg-popover shadow-md">
+                        {pecasFiltradas.slice(0, 15).map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { addPeca(p); setPecasFocused(false); }}
+                            className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
+                          >
+                            <div>
+                              <p className="text-sm">{getPecaNome(p)}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Estoque: <span className={p.quantidade === 0 ? "text-destructive font-medium" : ""}>{p.quantidade}</span> · SKU: {p.sku || "—"}
+                              </p>
+                            </div>
+                            <span className="text-xs font-medium text-success">R$ {Number(p.preco_venda ?? 0).toFixed(2)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {pecasSelecionadas.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
+                    Nenhuma peça incluída. Selecione um serviço acima ou adicione manualmente.
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-md border divide-y">
+                      {pecasSelecionadas.map((p) => {
+                        const isAuto = p.origens.length > 0;
+                        const semEstoque = p.estoque_disponivel === 0;
+                        const insuficiente = !semEstoque && p.estoque_disponivel < p.quantidade;
+                        return (
+                          <div key={p.id} className="px-3 py-2 flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="text-sm font-medium truncate">{p.nome}</p>
+                                {isAuto && (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-info/10 text-info font-medium">
+                                    do serviço
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground">
+                                estoque: <span className={cn(semEstoque && "text-destructive font-medium", insuficiente && "text-warning font-medium")}>{p.estoque_disponivel}</span> un · custo R$ {p.custo_unitario.toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button type="button" onClick={() => updatePecaQtd(p.id, -1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={p.quantidade}
+                                onChange={(e) => {
+                                  const v = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                  setPecasSelecionadas((prev) => prev.map((x) => x.id === p.id ? { ...x, quantidade: v } : x));
+                                }}
+                                className="h-6 w-[44px] text-center text-xs px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                              <button type="button" onClick={() => updatePecaQtd(p.id, 1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <span className="text-sm font-medium w-[80px] text-right">R$ {(p.preco_venda * p.quantidade).toFixed(2)}</span>
+                            <button
+                              type="button"
+                              onClick={() => removePeca(p.id)}
+                              className="text-[11px] text-destructive border border-border rounded px-2 py-0.5 hover:bg-destructive/10"
+                            >
+                              remover
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
+                      Clique em "remover" se o cliente trouxe a própria peça ou se o serviço não precisa dela.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* ── 5. MÃO DE OBRA ADICIONAL + DESCONTO ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Mão de obra adicional (R$)</Label>
+                  <Label className="text-xs text-muted-foreground">Mão de obra adicional</Label>
                   <div className="relative mt-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                     <Input
@@ -1449,7 +1561,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Desconto (R$)</Label>
+                  <Label className="text-xs text-muted-foreground">Desconto</Label>
                   <div className="relative mt-1">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
                     <Input
@@ -1462,146 +1574,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </div>
 
-              {/* ── Sinal pago + Forma de pagamento ── */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Sinal pago na entrada (R$)</Label>
-                  <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                    <Input
-                      value={sinalPago}
-                      onChange={(e) => setSinalPago(e.target.value.replace(/^-/, ""))}
-                      type="number" step="0.01" min="0"
-                      placeholder="0,00" className="pl-8 h-9"
-                    />
-                  </div>
-                </div>
-                {sinalPagoNum > 0 && (
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Forma de pagamento do sinal</Label>
-                    <select
-                      value={formaPagamentoSinal}
-                      onChange={(e) => setFormaPagamentoSinal(e.target.value)}
-                      className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="nenhum">Nenhum</option>
-                      <option value="dinheiro">Dinheiro</option>
-                      <option value="pix">Pix</option>
-                      <option value="debito">Débito</option>
-                      <option value="credito">Crédito</option>
-                      <option value="outro">Outro</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* ── Status orçamento + Garantia ── */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Status do orçamento</Label>
-                  <select
-                    value={orcamentoStatus}
-                    onChange={(e) => setOrcamentoStatus(e.target.value as "aguardando" | "aprovado" | "recusado")}
-                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="aguardando">Aguardando aprovação</option>
-                    <option value="aprovado">Aprovado pelo cliente</option>
-                    <option value="recusado">Recusado pelo cliente</option>
-                  </select>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Garantia do serviço (dias)</Label>
-                  <Input
-                    value={garantiaDias}
-                    onChange={(e) => setGarantiaDias(e.target.value.replace(/[^\d]/g, ""))}
-                    type="number" min="0"
-                    placeholder="90" className="mt-1 h-9"
-                  />
-                </div>
-              </div>
-
-              {/* ── Painel Orçamento ── */}
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 space-y-1.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Orçamento</p>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Serviços</span>
-                  <span className="font-medium">R$ {totalMaoObraDefeitos.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Peças</span>
-                  <span className="font-medium">R$ {totalPecas.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Mão de obra adicional</span>
-                  <span className="font-medium">R$ {adicional.toFixed(2)}</span>
-                </div>
-                {descontoNum > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Desconto</span>
-                    <span className="font-medium text-destructive">− R$ {descontoNum.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between text-sm font-bold">
-                  <span>TOTAL</span>
-                  <span className="text-success">R$ {valorTotal.toFixed(2)}</span>
-                </div>
-                {sinalPagoNum > 0 && (
-                  <>
-                    <div className="flex justify-between text-xs pt-1">
-                      <span className="text-muted-foreground">Sinal pago</span>
-                      <span className="font-medium text-success">− R$ {sinalPagoNum.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-semibold border-t border-primary/20 pt-1.5 mt-1">
-                      <span>A receber na retirada</span>
-                      <span className="text-primary">R$ {aReceber.toFixed(2)}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* ── Conferência na entrada ── */}
-              <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Conferência na entrada
-                  </p>
-                </div>
-                <p className="text-[10px] text-muted-foreground -mt-1">
-                  Clique no status para alternar entre N/T → OK → Defeito. Esta lista será impressa para o cliente assinar.
-                </p>
-                <ChecklistEntrada
-                  value={checklist}
-                  onChange={setChecklist}
-                  customItems={checklistCustom}
-                  onCustomItemsChange={setChecklistCustom}
-                />
-              </div>
-
-              {/* ── Observações internas + Cliente ── */}
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Observações internas (só a loja vê)</Label>
-                  <Textarea
-                    value={observacoes}
-                    onChange={(e) => setObservacoes(e.target.value)}
-                    placeholder="Diagnóstico técnico, histórico, tentativas anteriores..."
-                    rows={2} className="mt-1 resize-none text-sm"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Observações para o cliente (aparecem no recibo)</Label>
-                  <Textarea
-                    value={obsCliente}
-                    onChange={(e) => setObsCliente(e.target.value)}
-                    placeholder='Ex: "aparelho sem garantia por já ter sido aberto", "não podemos garantir Face ID após troca de tela"...'
-                    rows={2} className="mt-1 resize-none text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* ── Previsão (data + hora) + Técnico ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* ── 6. PREVISÃO + TÉCNICO ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <Label className="text-xs text-muted-foreground">Previsão de entrega</Label>
                   <div className="mt-1 flex gap-1.5">
@@ -1623,29 +1597,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                       type="time"
                       value={previsaoHora}
                       onChange={(e) => setPrevisaoHora(e.target.value)}
-                      className="h-9 w-[110px] text-sm"
+                      className="h-9 w-[100px] text-sm"
                     />
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {[
-                      { label: "Hoje 18h", days: 0, hora: "18:00" },
-                      { label: "Amanhã 18h", days: 1, hora: "18:00" },
-                      { label: "2 dias", days: 2, hora: "18:00" },
-                      { label: "3 dias", days: 3, hora: "18:00" },
-                      { label: "1 semana", days: 7, hora: "18:00" },
-                    ].map((p) => (
-                      <button
-                        key={p.label}
-                        type="button"
-                        onClick={() => {
-                          setPrevisaoEntrega(addDays(new Date(), p.days));
-                          setPrevisaoHora(p.hora);
-                        }}
-                        className="text-[10px] px-2 py-0.5 rounded border border-border bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {p.label}
-                      </button>
-                    ))}
                   </div>
                 </div>
                 <div>
@@ -1655,19 +1608,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                       value={tecnicoId}
                       onChange={(id, nome) => { setTecnicoId(id); setTecnico(nome); }}
                       items={tecnicosList as any}
-                      placeholder="Selecione um técnico..."
+                      placeholder="Não atribuído"
                       entityName="técnico"
                       className="mt-1"
                     />
                   ) : (
                     <div className="mt-1 rounded-md border border-dashed border-border bg-muted/20 p-2 text-center">
-                      <p className="text-[11px] text-muted-foreground mb-1">Nenhum técnico cadastrado.</p>
-                      <Link
-                        to="/configuracoes/tecnicos"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-primary hover:underline font-medium"
-                      >
+                      <Link to="/configuracoes/tecnicos" target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary hover:underline font-medium">
                         Cadastrar primeiro técnico em Configurações →
                       </Link>
                     </div>
@@ -1675,58 +1622,177 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </div>
 
-              {/* ── Lojista parceiro ── */}
+              {/* ── 7. SWITCH "Cliente aprovou no ato?" ── */}
+              <div className="rounded-md bg-warning/10 border border-warning/30 px-3 py-2.5 flex items-center justify-between">
+                <div>
+                  <p className="text-[13px] font-medium text-warning-foreground">Cliente aprovou no ato?</p>
+                  <p className="text-[11px] text-warning-foreground/80">Se sim, pula "aguardando aprovação" e vai direto pra aprovado.</p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer ml-3">
+                  <input
+                    type="checkbox"
+                    checked={aprovadoNoAto}
+                    onChange={(e) => setAprovadoNoAto(e.target.checked)}
+                    className="h-4 w-4 rounded border-warning/40"
+                  />
+                  <span className="text-xs font-medium text-warning-foreground">Sim</span>
+                </label>
+              </div>
+
+              {/* ── Observações + Conferência (mantidos antes do resumo final) ── */}
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Observações internas (só a loja vê)</Label>
+                  <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Diagnóstico técnico, histórico..." rows={2} className="mt-1 resize-none text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Observações para o cliente (no recibo)</Label>
+                  <Textarea value={obsCliente} onChange={(e) => setObsCliente(e.target.value)} placeholder='Ex: "aparelho sem garantia por já ter sido aberto"...' rows={2} className="mt-1 resize-none text-sm" />
+                </div>
+              </div>
+
+              <div className="rounded-md border bg-muted/20 p-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Conferência na entrada</p>
+                </div>
+                <ChecklistEntrada
+                  value={checklist}
+                  onChange={setChecklist}
+                  customItems={checklistCustom}
+                  onCustomItemsChange={setChecklistCustom}
+                />
+              </div>
+
+              {/* Sinal pago + Forma + Garantia (linha compacta) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Sinal pago</Label>
+                  <div className="relative mt-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                    <Input value={sinalPago} onChange={(e) => setSinalPago(e.target.value.replace(/^-/, ""))} type="number" step="0.01" min="0" placeholder="0,00" className="pl-8 h-9" />
+                  </div>
+                </div>
+                {sinalPagoNum > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Forma do sinal</Label>
+                    <select value={formaPagamentoSinal} onChange={(e) => setFormaPagamentoSinal(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+                      <option value="nenhum">—</option>
+                      <option value="dinheiro">Dinheiro</option>
+                      <option value="pix">Pix</option>
+                      <option value="debito">Débito</option>
+                      <option value="credito">Crédito</option>
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Garantia (dias)</Label>
+                  <Input value={garantiaDias} onChange={(e) => setGarantiaDias(e.target.value.replace(/[^\d]/g, ""))} type="number" min="0" placeholder="90" className="mt-1 h-9" />
+                </div>
+              </div>
+
+              {/* Lojista parceiro */}
               {lojistasAtivos.length > 0 && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Lojista parceiro (opcional)</Label>
-                  <select
-                    value={lojistaId}
-                    onChange={(e) => setLojistaId(e.target.value)}
-                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  >
+                  <select value={lojistaId} onChange={(e) => setLojistaId(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
                     <option value="">Nenhum</option>
-                    {lojistasAtivos.map(l => (
-                      <option key={l.id} value={l.id}>{l.nome}</option>
-                    ))}
+                    {lojistasAtivos.map((l) => (<option key={l.id} value={l.id}>{l.nome}</option>))}
                   </select>
                 </div>
               )}
 
-              {/* ── Status ── */}
-              <div className="rounded-lg bg-muted/40 px-3 py-2 flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Status inicial</p>
-                <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Recebido</span>
-              </div>
+              {/* ── 8. CONFERÊNCIA FINAL ── */}
+              <div className="rounded-md border border-info/30 bg-info/5 p-4 space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-info">
+                  Conferência final
+                </p>
 
-              {/* ── Resumo ── */}
-              <div className="rounded-lg border bg-muted/20 px-3 py-2.5 space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Resumo</p>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Cliente</span>
-                  <span className="font-medium">{clienteSelecionado?.nome}</span>
+                {/* Bloco 1: Relato */}
+                {relatoCliente.trim() && (
+                  <>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-info/70 mb-1">Relato do cliente</p>
+                      <p className="text-xs italic leading-relaxed text-info-foreground">
+                        "{relatoCliente.trim()}"
+                      </p>
+                    </div>
+                    <div className="border-t border-info/20" />
+                  </>
+                )}
+
+                {/* Bloco 2: Serviços */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-info/70 mb-1.5">
+                    Serviços ({defeitosSelecionados.length})
+                  </p>
+                  {defeitosSelecionados.length === 0 ? (
+                    <p className="text-xs italic opacity-70 text-info-foreground">Nenhum serviço incluído</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {defeitosSelecionados.map((d) => (
+                        <div key={d.id} className="flex justify-between text-xs text-info-foreground">
+                          <span>• {d.nome}</span>
+                          <span>R$ {d.valor_mao_obra.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Aparelho</span>
-                  <span className="font-medium">{marca} {modelo}</span>
+
+                <div className="border-t border-info/20" />
+
+                {/* Bloco 3: Peças */}
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-info/70 mb-1.5">
+                    Peças ({pecasSelecionadas.length})
+                  </p>
+                  {pecasSelecionadas.length === 0 ? (
+                    <p className="text-xs italic opacity-70 text-info-foreground">Nenhuma peça incluída</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {pecasSelecionadas.map((p) => (
+                        <div key={p.id} className="flex justify-between text-xs text-info-foreground">
+                          <span>• {p.nome} ×{p.quantidade}</span>
+                          <span>R$ {(p.preco_venda * p.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {imei && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">IMEI</span>
-                    <span className="font-mono text-muted-foreground">{imei}</span>
+
+                <div className="border-t border-info/20" />
+
+                {/* Bloco 4: Totais */}
+                <div className="space-y-1 text-xs text-info-foreground">
+                  <div className="flex justify-between"><span>Subtotal serviços</span><span>R$ {totalMaoObraDefeitos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>Subtotal peças</span><span>R$ {totalPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>Mão de obra adicional</span><span>R$ {adicional.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  {descontoNum > 0 && (<div className="flex justify-between"><span>Desconto</span><span>− R$ {descontoNum.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>)}
+                </div>
+
+                <div className="border-t-2 border-info/30 pt-2 flex justify-between items-baseline">
+                  <span className="text-xs font-medium text-info-foreground">Total ao cliente</span>
+                  <span className="text-lg font-medium text-info-foreground">R$ {valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+
+                {sinalPagoNum > 0 && (
+                  <div className="flex justify-between text-xs text-info-foreground">
+                    <span>A receber na retirada</span>
+                    <span className="font-medium">R$ {aReceber.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                {defeitosSelecionados.length > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Defeitos</span>
-                    <span className="font-medium text-right max-w-[60%] truncate">{defeitoRelatado}</span>
+
+                <div className="border-t border-info/20 pt-2 space-y-0.5 opacity-70">
+                  <div className="flex justify-between text-[11px] text-info-foreground">
+                    <span>Custo estimado de peças</span>
+                    <span>R$ {custoPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                )}
-                {valorTotal > 0 && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Valor</span>
-                    <span className="font-medium text-green-600">R$ {valorTotal.toFixed(2)}</span>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-info-foreground">Lucro bruto estimado</span>
+                    <span className="font-medium text-success">R$ {(valorTotal - custoPecas).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* ── Actions ── */}
