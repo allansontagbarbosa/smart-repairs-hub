@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Search, Smartphone, Clock, Wrench, AlertTriangle, CheckCircle, Eye, ScanLine, Play, Square, Check, X, ClipboardList, Plus, Printer } from "lucide-react";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { ConferenciaAparelhosButton } from "@/components/conferencia/ConferenciaAparelhosButton";
+import { HistoricoConferencias } from "@/components/conferencia/HistoricoConferencias";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -83,9 +84,10 @@ export default function AparelhosAssistencia() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+        <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="conferencia">Conferência</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="lista">
@@ -94,6 +96,10 @@ export default function AparelhosAssistencia() {
 
         <TabsContent value="conferencia">
           <ConferenciaAparelhos aparelhos={aparelhos} lojas={lojas} />
+        </TabsContent>
+
+        <TabsContent value="historico">
+          <HistoricoConferencias tipo="aparelhos" />
         </TabsContent>
       </Tabs>
 
