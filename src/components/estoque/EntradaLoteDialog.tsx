@@ -111,6 +111,20 @@ export function EntradaLoteDialog({ open, onOpenChange }: Props) {
     if (lines.length > 1) { e.preventDefault(); setScanInput(""); lines.forEach((l, i) => setTimeout(() => handleAddImei(l), i * 300)); }
   };
 
+  const handleBatchScan = useCallback((codes: string[]) => {
+    const valid = codes.map(c => c.replace(/\D/g, "")).filter(c => c.length === 15);
+    const invalid = codes.length - valid.length;
+    if (invalid > 0) {
+      toast.warning(`${invalid} código(s) ignorado(s) (não são IMEI de 15 dígitos)`);
+    }
+    if (valid.length === 0) {
+      toast.error("Nenhum IMEI válido escaneado");
+      return;
+    }
+    toast.success(`${valid.length} IMEI(s) capturado(s) — consultando API...`);
+    valid.forEach((code, i) => setTimeout(() => handleAddImei(code), i * 300));
+  }, [handleAddImei]);
+
   const updateRow = (id: string, field: keyof BatchRow, value: string) => {
     setRows(prev => prev.map(r => {
       if (r.id !== id) return r;
