@@ -34,6 +34,7 @@ import Onboarding from "./pages/Onboarding";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
+import AceitarConviteLojista from "./pages/lojista/AceitarConviteLojista";
 import LojistaLayout from "./pages/lojista/LojistaLayout";
 import LojistaDashboard from "./pages/lojista/LojistaDashboard";
 import LojistaAparelhos from "./pages/lojista/LojistaAparelhos";
@@ -68,6 +69,7 @@ const App = () => (
 
               {/* Portal Lojista B2B */}
               <Route path="/lojista/login" element={<LojistaLogin />} />
+              <Route path="/lojista/aceitar-convite" element={<AceitarConviteLojista />} />
               <Route path="/lojista" element={<LojistaGuard><LojistaLayout><LojistaDashboard /></LojistaLayout></LojistaGuard>} />
               <Route path="/lojista/aparelhos" element={<LojistaGuard><LojistaLayout><LojistaAparelhos /></LojistaLayout></LojistaGuard>} />
               <Route path="/lojista/financeiro" element={<LojistaGuard><LojistaLayout><LojistaFinanceiro /></LojistaLayout></LojistaGuard>} />
