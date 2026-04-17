@@ -15,6 +15,15 @@ export default function LojistaLogin() {
   const [cooldown, setCooldown] = useState(0);
   const { toast } = useToast();
 
+  // Se já estiver logado, redireciona pro portal
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        window.location.replace("/lojista");
+      }
+    });
+  }, []);
+
   // Countdown do botão de reenvio
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -49,16 +58,16 @@ export default function LojistaLogin() {
       // (evita gastar tentativa de OTP do Supabase Auth com email errado)
       const { data: lojistaCheck, error: checkError } = await supabase
         .from("lojista_usuarios")
-        .select("id, ativo")
+        .select("id")
         .eq("email", email.trim().toLowerCase())
-        .maybeSingle();
+        .limit(1);
 
       if (checkError && !/load failed|failed to fetch|network/i.test(checkError.message || "")) {
         // erro de query que não é rede - segue assim mesmo, deixa o auth decidir
         console.warn("[portal-lojista] check lojista falhou:", checkError);
       }
 
-      if (!lojistaCheck && !checkError) {
+      if ((!lojistaCheck || lojistaCheck.length === 0) && !checkError) {
         toast({
           title: "Email não cadastrado",
           description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
@@ -147,34 +156,41 @@ export default function LojistaLogin() {
       const userId = authData.user?.id;
       if (!userId) throw new Error("Erro ao identificar usuário");
 
-      // Vincular registro pendente se existir
-      const { data: pendente } = await supabase
-        .from("lojista_usuarios")
-        .select("id")
-        .eq("email", email.trim().toLowerCase())
-        .eq("ativo", false)
-        .maybeSingle();
+      const emailLower = email.trim().toLowerCase();
 
-      if (pendente) {
-        await supabase
-          .from("lojista_usuarios")
-          .update({ user_id: userId, ativo: true })
-          .eq("id", pendente.id);
-      }
-
-      // Verificar acesso
-      const { data: lojistaUser } = await supabase
+      // 1) Procurar registro já vinculado e ativo
+      const { data: ativos } = await supabase
         .from("lojista_usuarios")
         .select("id")
         .eq("user_id", userId)
         .eq("ativo", true)
-        .maybeSingle();
+        .limit(1);
 
-      if (!lojistaUser) {
+      let temAcesso = (ativos ?? []).length > 0;
+
+      // 2) Se não, tenta backfill: buscar registros pendentes pelo email e vincular
+      if (!temAcesso) {
+        const { data: pendentes } = await supabase
+          .from("lojista_usuarios")
+          .select("id")
+          .eq("email", emailLower)
+          .order("created_at", { ascending: false });
+
+        if ((pendentes ?? []).length > 0) {
+          const primeiro = pendentes![0];
+          const { error: updErr } = await supabase
+            .from("lojista_usuarios")
+            .update({ user_id: userId, ativo: true })
+            .eq("id", primeiro.id);
+          if (!updErr) temAcesso = true;
+        }
+      }
+
+      if (!temAcesso) {
         await supabase.auth.signOut();
         toast({
           title: "Acesso não autorizado",
-          description: "Este email não tem acesso ao portal lojista.",
+          description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
           variant: "destructive",
         });
         setStep("email");
