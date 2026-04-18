@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, LogIn, Eye, EyeOff } from "lucide-react";
+import { Building2, LogIn, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LojistaLogin() {
   const [email, setEmail] = useState("");
