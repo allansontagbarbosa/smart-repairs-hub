@@ -76,7 +76,6 @@ export function useConfiguracoes() {
           id,
           user_id,
           nome_exibicao,
-          email,
           ativo,
           perfil_id,
           funcionario_id,
