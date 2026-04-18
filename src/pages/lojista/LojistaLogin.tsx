@@ -96,12 +96,15 @@ export default function LojistaLogin() {
     try {
       // Pré-validação por status_acesso na tabela lojistas
       const emailLower = email.trim().toLowerCase();
+      // Pode haver múltiplos registros com mesmo email (histórico) — pega o mais
+      // recente que tenha algum status de acesso definido (ativo > convidado > inativo)
       const { data: lojistaCheck, error: checkError } = await supabase
         .from("lojistas")
-        .select("status_acesso")
+        .select("status_acesso, created_at")
         .eq("email", emailLower)
         .is("deleted_at", null)
-        .limit(1);
+        .order("created_at", { ascending: false })
+        .limit(10);
 
       if (checkError && !/load failed|failed to fetch|network/i.test(checkError.message || "")) {
         console.warn("[portal-lojista] check lojista falhou:", checkError);
