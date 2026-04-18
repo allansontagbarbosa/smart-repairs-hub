@@ -44,7 +44,7 @@ const groups = [
   {
     label: "Cadastros Base",
     items: [
-      { id: "produtos", label: "Produtos", icon: Package, keywords: ["produto", "sku", "catalogo", "item"] },
+      { id: "produtos", label: "Peças", icon: Package, keywords: ["peca", "peça", "produto", "sku", "catalogo", "item", "estoque"] },
       { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao", "defeito", "problema", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
@@ -273,7 +273,7 @@ function getSubtitle(id: string): string {
   const map: Record<string, string> = {
     geral: "Nome, endereço, contato e identidade visual da empresa",
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
-    produtos: "Cadastro mãe de produtos para uso em todo o sistema",
+    produtos: "Cadastro mãe de peças (SKU, custo, preço) usado em estoque e OS",
     servicos: "Tipos de serviço (defeitos/reparos), valores, categorias e comissões",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
