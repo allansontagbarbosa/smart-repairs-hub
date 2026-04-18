@@ -9,8 +9,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FornecedorFormDialog } from "@/components/fornecedores/FornecedorFormDialog";
 import { FornecedorHistoricoSheet } from "@/components/fornecedores/FornecedorHistoricoSheet";
 import { PedidoCompraDialog } from "@/components/fornecedores/PedidoCompraDialog";
-import { PedidosCompraList } from "@/components/fornecedores/PedidosCompraList";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Fornecedores() {
   const qc = useQueryClient();
