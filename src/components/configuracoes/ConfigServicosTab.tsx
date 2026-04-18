@@ -52,6 +52,8 @@ export function ConfigServicosTab({ tiposServico }: Props) {
   const [editId, setEditId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [vinculos, setVinculos] = useState<VinculoPeca[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmStatus, setConfirmStatus] = useState<null | "ativar" | "inativar">(null);
 
   // Carrega contagem agregada de peças vinculadas por serviço
   const { data: pecasPorServico = {} } = useQuery({
@@ -85,6 +87,45 @@ export function ConfigServicosTab({ tiposServico }: Props) {
     const matchCat = filtroCategoria === "todas" || (s.categoria || "").toLowerCase() === filtroCategoria;
     return matchSearch && matchCat;
   });
+
+  const bulk = useBulkSelection(filtered);
+
+  const bulkDelete = async () => {
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from("tipos_servico").delete().in("id", ids);
+    if (error) { toast.error("Erro ao excluir", { description: error.message }); return; }
+    qc.invalidateQueries({ queryKey: ["tipos_servico"] });
+    qc.invalidateQueries({ queryKey: ["tipos_servico_os"] });
+    qc.invalidateQueries({ queryKey: ["servico_pecas_count"] });
+    toast.success(`${ids.length} ${ids.length === 1 ? "serviço removido" : "serviços removidos"}`);
+    bulk.clear();
+  };
+
+  const bulkToggleStatus = async (ativo: boolean) => {
+    const ids = Array.from(bulk.selectedIds);
+    const { error } = await supabase.from("tipos_servico").update({ ativo }).in("id", ids);
+    if (error) { toast.error("Erro ao atualizar", { description: error.message }); return; }
+    qc.invalidateQueries({ queryKey: ["tipos_servico"] });
+    toast.success(`${ids.length} ${ids.length === 1 ? "serviço" : "serviços"} ${ativo ? "ativado(s)" : "inativado(s)"}`);
+    bulk.clear();
+  };
+
+  const handleExport = () => {
+    const rows = bulk.count > 0 ? bulk.selectedItems : filtered;
+    if (!rows.length) { toast.warning("Nenhum serviço para exportar"); return; }
+    exportToCsv(`servicos-${new Date().toISOString().slice(0, 10)}.csv`, rows, [
+      { header: "Nome", value: r => r.nome ?? "" },
+      { header: "Categoria", value: r => r.categoria ?? "" },
+      { header: "Descrição", value: r => r.descricao ?? "" },
+      { header: "Valor padrão", value: r => r.valor_padrao ?? 0 },
+      { header: "Comissão", value: r => r.comissao_padrao ?? 0 },
+      { header: "Status", value: r => r.ativo ? "Ativo" : "Inativo" },
+    ]);
+    toast.success(`${rows.length} ${rows.length === 1 ? "serviço exportado" : "serviços exportados"}`);
+  };
+
+  const previewNames = bulk.selectedItems.slice(0, 5).map((s: any) => s.nome);
+  const restCount = Math.max(0, bulk.count - previewNames.length);
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
