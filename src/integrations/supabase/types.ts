@@ -3508,6 +3508,16 @@ export type Database = {
       get_my_lojista_id: { Args: never; Returns: string }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      lojista_verificar_acesso: {
+        Args: { email_input: string }
+        Returns: {
+          empresa_id: string
+          existe: boolean
+          lojista_id: string
+          status_acesso: string
+          user_id: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
