@@ -1,5 +1,5 @@
 // Edge function: send-lojista-invite
-// Gera token de convite, atualiza lojista e dispara email de convite via fila
+// Gera token de convite, atualiza lojista e dispara email de convite via send-transactional-email
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -92,30 +92,35 @@ Deno.serve(async (req) => {
     const origin = req.headers.get("origin") ?? req.headers.get("referer")?.replace(/\/$/, "") ?? "";
     const acceptUrl = `${origin}/lojista/aceitar-convite?token=${encodeURIComponent(token)}`;
 
-    // Tentar enfileirar email via pgmq (se existir)
-    const html = renderInviteEmail({
-      empresaNome,
-      lojistaNome: lojista.nome,
-      acceptUrl,
-    });
-    const subject = `${empresaNome} te convidou para o Portal Lojista`;
-
+    // Enviar email via send-transactional-email (template registrado)
     let emailQueued = false;
+    let emailError: string | null = null;
     try {
-      const { error: enqErr } = await admin.rpc("enqueue_email", {
-        queue_name: "transactional_emails",
-        payload: {
-          to: lojista.email,
-          subject,
-          html,
-          template_name: "lojista_invite",
-          purpose: "transactional",
-          idempotency_key: `lojista_invite_${lojistaId}_${token.slice(0, 8)}`,
+      const { data: sendData, error: sendErr } = await admin.functions.invoke(
+        "send-transactional-email",
+        {
+          body: {
+            templateName: "lojista-invite",
+            recipientEmail: lojista.email,
+            idempotencyKey: `lojista-invite-${lojistaId}-${token.slice(0, 8)}`,
+            templateData: {
+              empresaNome,
+              lojistaNome: lojista.nome,
+              acceptUrl,
+            },
+          },
         },
-      });
-      if (!enqErr) emailQueued = true;
-    } catch (_e) {
-      // sem fila configurada — segue sem enviar email automatico
+      );
+      if (sendErr) {
+        emailError = sendErr.message ?? String(sendErr);
+        console.error("[send-lojista-invite] send-transactional-email error:", sendErr);
+      } else {
+        emailQueued = true;
+        console.log("[send-lojista-invite] email enqueued:", sendData);
+      }
+    } catch (e: any) {
+      emailError = e?.message ?? String(e);
+      console.error("[send-lojista-invite] exception calling send-transactional-email:", e);
     }
 
     return new Response(
@@ -123,6 +128,7 @@ Deno.serve(async (req) => {
         ok: true,
         accept_url: acceptUrl,
         email_queued: emailQueued,
+        email_error: emailError,
         email: lojista.email,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -134,31 +140,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-function renderInviteEmail(p: { empresaNome: string; lojistaNome: string; acceptUrl: string }) {
-  return `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f4f4f5;padding:20px;color:#1a2236">
-<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px">
-  <h1 style="font-size:22px;margin:0 0 16px">Você foi convidado!</h1>
-  <p style="font-size:14px;line-height:1.6;color:#4b5563">
-    A <strong>${escapeHtml(p.empresaNome)}</strong> convidou <strong>${escapeHtml(p.lojistaNome)}</strong>
-    para acessar o Portal Lojista — o painel de parceiros da assistência técnica.
-  </p>
-  <p style="font-size:14px;line-height:1.6;color:#4b5563">
-    Como parceiro, você poderá acompanhar o status dos aparelhos dos seus clientes,
-    consultar orçamentos e o histórico completo dos serviços.
-  </p>
-  <p style="text-align:center;margin:28px 0">
-    <a href="${p.acceptUrl}" style="background:#2563d4;color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-weight:600;font-size:14px;display:inline-block">
-      Aceitar convite e acessar
-    </a>
-  </p>
-  <p style="font-size:12px;color:#9ca3af;margin-top:24px">
-    Se você não esperava esse convite, pode ignorar este email com segurança.
-    Este link expira em 7 dias.
-  </p>
-</div></body></html>`;
-}
-
-function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-}
