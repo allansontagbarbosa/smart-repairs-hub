@@ -251,7 +251,7 @@ export default function Configuracoes() {
           {/* Content area */}
           <div className="p-4 md:p-6 max-w-4xl">
             {active === "geral" && <ConfigGeralTab empresa={data.empresa} saveEmpresa={data.saveEmpresa} />}
-            {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} />}
+            {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} loading={data.userProfilesLoading} error={data.userProfilesError as Error | null} onRetry={() => data.refetchUserProfiles?.()} />}
             {active === "pecas" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}

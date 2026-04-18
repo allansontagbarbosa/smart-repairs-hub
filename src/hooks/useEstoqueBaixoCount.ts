@@ -8,21 +8,14 @@ export function useEstoqueBaixoCount() {
   const { data: count = 0 } = useQuery({
     queryKey: ["estoque_baixo_count"],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from("estoque_itens")
-        .select("id", { count: "exact", head: true })
-        .is("deleted_at", null)
-        .gt("quantidade_minima", 0)
-        .lte("quantidade", 0); // will be refined below
-
-      if (error) throw error;
-
-      // Supabase doesn't support lte(col, other_col), so fetch and filter
-      const { data } = await supabase
+      // PostgREST não suporta comparar duas colunas na URL — filtro feito no cliente
+      const { data, error } = await supabase
         .from("estoque_itens")
         .select("id, quantidade, quantidade_minima")
         .is("deleted_at", null)
         .gt("quantidade_minima", 0);
+
+      if (error) throw error;
 
       return (data ?? []).filter(i => i.quantidade <= i.quantidade_minima).length;
     },

@@ -22,6 +22,9 @@ interface Props {
   userProfiles: any[];
   perfisAcesso: any[];
   funcionarios: any[];
+  loading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 const MODULOS_CRUD = [
@@ -56,7 +59,7 @@ function buildDefaultPermissoes() {
 
 const PAGE_SIZE = 20;
 
-export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: Props) {
+export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, loading, error, onRetry }: Props) {
   const qc = useQueryClient();
   const { isAdmin } = usePermissoes();
   const { registrar } = useAuditoria();
@@ -280,7 +283,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   };
 
   const handleResendInvite = async (profile: any) => {
-    const email = profile.email || profile.funcionarios?.email;
+    const email = profile.funcionarios?.email;
     if (!email) {
       toast.error("Email não encontrado para este usuário");
       return;
@@ -456,7 +459,19 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                 </tr>
               </thead>
               <tbody>
-                {filteredProfiles.map((u) => (
+                {loading && (
+                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Carregando usuários...
+                  </td></tr>
+                )}
+                {!loading && error && (
+                  <tr><td colSpan={5} className="p-6 text-center">
+                    <p className="text-sm text-destructive mb-2">Não foi possível carregar a lista.</p>
+                    <p className="text-xs text-muted-foreground mb-3">{error.message}</p>
+                    {onRetry && <Button size="sm" variant="outline" onClick={onRetry}>Tentar novamente</Button>}
+                  </td></tr>
+                )}
+                {!loading && !error && filteredProfiles.map((u) => (
                   <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="p-3 font-medium">{u.nome_exibicao || "Sem nome"}</td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
@@ -521,8 +536,10 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
                     </td>
                   </tr>
                 ))}
-                {filteredProfiles.length === 0 && (
-                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">Nenhum usuário encontrado</td></tr>
+                {!loading && !error && filteredProfiles.length === 0 && (
+                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                    {search ? "Nenhum usuário encontrado para a busca." : "Nenhum usuário ainda. Convide o primeiro pelo botão acima."}
+                  </td></tr>
                 )}
               </tbody>
             </table>
