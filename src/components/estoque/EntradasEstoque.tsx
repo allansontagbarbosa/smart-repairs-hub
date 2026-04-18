@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
+import { PecaFormModal } from "@/components/pecas/PecaFormModal";
 import { toast } from "sonner";
-import { Plus, Loader2, CalendarIcon, Trash2, Eye, Package } from "lucide-react";
+import { Plus, Loader2, CalendarIcon, Trash2, Eye, ShoppingCart, PackagePlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -23,6 +26,7 @@ interface EntradaItem {
   nome: string;
   quantidade: number;
   custo_unitario: number;
+  imei_serial?: string;
 }
 
 interface Props {
@@ -31,12 +35,14 @@ interface Props {
   onClearPreSelected?: () => void;
 }
 
+const fmtBRL = (v: number) =>
+  `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailEntradaId, setDetailEntradaId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Open dialog with pre-selected item
   const openWithPreSelected = preSelectedItemId != null;
 
   const { data: entradas = [], isLoading } = useQuery({
@@ -71,21 +77,20 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
   const fmtDate = (d: string) => {
     try { return new Date(d + "T12:00:00").toLocaleDateString("pt-BR"); } catch { return d; }
   };
-  const fmtCurrency = (v: number) => `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{entradas.length} entradas registradas</p>
+        <p className="text-sm font-medium text-muted-foreground">{entradas.length} compras registradas</p>
         <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1.5" /> Nova Entrada
+          <ShoppingCart className="h-4 w-4 mr-1.5" /> Nova Compra
         </Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : entradas.length === 0 ? (
-        <div className="text-center py-10 text-sm text-muted-foreground">Nenhuma entrada registrada.</div>
+        <div className="text-center py-10 text-sm text-muted-foreground">Nenhuma compra registrada.</div>
       ) : (
         <div className="section-card">
           <div className="overflow-x-auto">
@@ -111,7 +116,7 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
                         {e.entradas_estoque_itens?.length ?? 0}
                       </span>
                     </td>
-                    <td className="text-right text-sm font-medium">{e.valor_total ? fmtCurrency(e.valor_total) : "—"}</td>
+                    <td className="text-right text-sm font-medium">{e.valor_total ? fmtBRL(e.valor_total) : "—"}</td>
                     <td>
                       <button onClick={() => setDetailEntradaId(e.id)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
                         <Eye className="h-3.5 w-3.5" />
@@ -125,7 +130,7 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
         </div>
       )}
 
-      <NovaEntradaDialog
+      <NovaCompraDialog
         open={dialogOpen || openWithPreSelected}
         onOpenChange={(open) => {
           setDialogOpen(open);
@@ -144,7 +149,7 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
           {detailEntrada && (
             <>
               <SheetHeader>
-                <SheetTitle>Detalhes da Entrada</SheetTitle>
+                <SheetTitle>Detalhes da Compra</SheetTitle>
               </SheetHeader>
               <div className="space-y-3 mt-4">
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -152,7 +157,7 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
                   <div><span className="text-muted-foreground">Nota:</span> <span className="font-medium">{detailEntrada.numero_nota || "—"}</span></div>
                   <div className="col-span-2"><span className="text-muted-foreground">Fornecedor:</span> <span className="font-medium">{detailEntrada.fornecedor_nome || "—"}</span></div>
                   {detailEntrada.valor_total > 0 && (
-                    <div className="col-span-2"><span className="text-muted-foreground">Valor Total:</span> <span className="font-medium">{fmtCurrency(detailEntrada.valor_total)}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Valor Total:</span> <span className="font-medium">{fmtBRL(detailEntrada.valor_total)}</span></div>
                   )}
                   {detailEntrada.observacoes && (
                     <div className="col-span-2"><span className="text-muted-foreground">Obs:</span> <span className="text-sm">{detailEntrada.observacoes}</span></div>
@@ -168,9 +173,9 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
                       <div key={item.id} className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/30 text-sm">
                         <div>
                           <p className="font-medium">{nome}</p>
-                          <p className="text-xs text-muted-foreground">{item.quantidade}× {fmtCurrency(item.custo_unitario)}</p>
+                          <p className="text-xs text-muted-foreground">{item.quantidade}× {fmtBRL(item.custo_unitario)}</p>
                         </div>
-                        <span className="font-medium">{fmtCurrency(item.quantidade * item.custo_unitario)}</span>
+                        <span className="font-medium">{fmtBRL(item.quantidade * item.custo_unitario)}</span>
                       </div>
                     );
                   })}
@@ -184,8 +189,8 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
   );
 }
 
-/* ── Nova Entrada Dialog ── */
-function NovaEntradaDialog({
+/* ── Nova Compra Dialog ── */
+function NovaCompraDialog({
   open, onOpenChange, estoqueItens, preSelectedItemId, onSuccess,
 }: {
   open: boolean;
@@ -198,11 +203,14 @@ function NovaEntradaDialog({
   const [fornecedorNome, setFornecedorNome] = useState("");
   const [dataCompra, setDataCompra] = useState<Date>(new Date());
   const [numeroNota, setNumeroNota] = useState("");
-  const [valorTotal, setValorTotal] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [linhas, setLinhas] = useState<EntradaItem[]>([]);
   const [selectedPecaId, setSelectedPecaId] = useState("");
+  const [desconto, setDesconto] = useState<number>(0);
+  const [frete, setFrete] = useState<number>(0);
   const [saving, setSaving] = useState(false);
+  const [pecaModalOpen, setPecaModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: fornecedores = [] } = useQuery({
     queryKey: ["fornecedores-ativos"],
@@ -214,15 +222,15 @@ function NovaEntradaDialog({
   });
 
   // Pre-select item
-  useState(() => {
-    if (preSelectedItemId && linhas.length === 0) {
+  useEffect(() => {
+    if (open && preSelectedItemId && linhas.length === 0) {
       const item = estoqueItens.find((i) => i.id === preSelectedItemId);
       if (item) {
         const nome = item.nome_personalizado || [item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" ") || "Peça";
         setLinhas([{ estoque_item_id: item.id, nome, quantidade: 1, custo_unitario: Number(item.custo_unitario ?? 0) }]);
       }
     }
-  });
+  }, [open, preSelectedItemId, estoqueItens, linhas.length]);
 
   const addItem = () => {
     if (!selectedPecaId) return;
@@ -233,17 +241,18 @@ function NovaEntradaDialog({
     const item = estoqueItens.find((i) => i.id === selectedPecaId);
     if (!item) return;
     const nome = item.nome_personalizado || [item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" ") || "Peça";
-    setLinhas([...linhas, { estoque_item_id: item.id, nome, quantidade: 1, custo_unitario: Number(item.custo_unitario ?? 0) }]);
+    setLinhas([...linhas, { estoque_item_id: item.id, nome, quantidade: 1, custo_unitario: Number(item.custo_unitario ?? 0), imei_serial: "" }]);
     setSelectedPecaId("");
   };
 
   const removeItem = (idx: number) => setLinhas(linhas.filter((_, i) => i !== idx));
 
-  const updateItem = (idx: number, field: keyof EntradaItem, value: number) => {
+  const updateItem = (idx: number, field: keyof EntradaItem, value: any) => {
     setLinhas(linhas.map((l, i) => i === idx ? { ...l, [field]: value } : l));
   };
 
-  const totalCalculado = linhas.reduce((s, l) => s + l.quantidade * l.custo_unitario, 0);
+  const subtotal = linhas.reduce((s, l) => s + l.quantidade * l.custo_unitario, 0);
+  const total = Math.max(0, subtotal - (desconto || 0) + (frete || 0));
 
   const handleSubmit = async () => {
     if (linhas.length === 0) { toast.error("Adicione pelo menos uma peça"); return; }
@@ -253,20 +262,16 @@ function NovaEntradaDialog({
         ? fornecedorNome
         : fornecedores.find((f) => f.id === fornecedorId)?.nome ?? fornecedorNome;
 
-      const vTotal = valorTotal ? parseFloat(valorTotal) : totalCalculado;
-
-      // Insert entrada
       const { data: entrada, error: e1 } = await supabase.from("entradas_estoque").insert({
         fornecedor_id: fornecedorId && fornecedorId !== "__outro" ? fornecedorId : null,
         fornecedor_nome: fornNome || null,
         data_compra: format(dataCompra, "yyyy-MM-dd"),
         numero_nota: numeroNota || null,
-        valor_total: vTotal,
+        valor_total: total,
         observacoes: observacoes || null,
       }).select("id").single();
       if (e1) throw e1;
 
-      // Insert items
       const { error: e2 } = await supabase.from("entradas_estoque_itens").insert(
         linhas.map((l) => ({
           entrada_id: entrada.id,
@@ -277,34 +282,33 @@ function NovaEntradaDialog({
       );
       if (e2) throw e2;
 
-      // Update stock quantities and costs
       for (const l of linhas) {
         const item = estoqueItens.find((i) => i.id === l.estoque_item_id);
         if (item) {
           await supabase.from("estoque_itens").update({
             quantidade: item.quantidade + l.quantidade,
             custo_unitario: l.custo_unitario,
+            ...(l.imei_serial ? { imei_serial: l.imei_serial } : {}),
           }).eq("id", l.estoque_item_id);
         }
       }
 
-      // Insert financial movement if total > 0
-      if (vTotal > 0) {
+      if (total > 0) {
         await supabase.from("movimentacoes_financeiras").insert({
           tipo: "saida" as const,
-          valor: vTotal,
+          valor: total,
           descricao: `Compra peças${numeroNota ? ` NF ${numeroNota}` : ""}${fornNome ? ` - ${fornNome}` : ""}`,
           data: new Date().toISOString(),
         });
       }
 
-      toast.success("Entrada registrada com sucesso!");
+      toast.success("Compra registrada com sucesso!");
       onSuccess();
       resetForm();
       onOpenChange(false);
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao registrar entrada");
+      toast.error("Erro ao registrar compra");
     } finally {
       setSaving(false);
     }
@@ -315,16 +319,23 @@ function NovaEntradaDialog({
     setFornecedorNome("");
     setDataCompra(new Date());
     setNumeroNota("");
-    setValorTotal("");
     setObservacoes("");
     setLinhas([]);
     setSelectedPecaId("");
+    setDesconto(0);
+    setFrete(0);
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => { if (!o) resetForm(); onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nova Entrada de Peças</DialogTitle></DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-primary" />
+            Nova Compra
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="space-y-4 mt-2">
           {/* Header fields */}
@@ -365,21 +376,16 @@ function NovaEntradaDialog({
               <Input className="mt-1" placeholder="Opcional" value={numeroNota} onChange={(e) => setNumeroNota(e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Valor Total (R$)</Label>
-              <Input className="mt-1" type="number" step="0.01" placeholder={totalCalculado.toFixed(2)} value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} />
+              <Label className="text-xs">Observações</Label>
+              <Input className="mt-1" placeholder="Opcional" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
             </div>
-          </div>
-
-          <div>
-            <Label className="text-xs">Observações</Label>
-            <Textarea className="mt-1 resize-none" rows={2} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} />
           </div>
 
           <Separator />
 
           {/* Items section */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens da Entrada</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens da Compra</p>
             <div className="flex gap-2">
               <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
                 <SelectTrigger className="flex-1"><SelectValue placeholder="Buscar peça..." /></SelectTrigger>
@@ -391,49 +397,120 @@ function NovaEntradaDialog({
                 </SelectContent>
               </Select>
               <Button type="button" size="sm" variant="outline" onClick={addItem} disabled={!selectedPecaId}>
-                <Plus className="h-4 w-4" />
+                Adicionar
               </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setPecaModalOpen(true)}>
+                      <PackagePlus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Cadastrar nova peça</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             {linhas.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {linhas.map((l, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{l.nome}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Input
-                        type="number" min={1} className="w-16 h-8 text-center text-sm"
-                        value={l.quantidade} onChange={(e) => updateItem(idx, "quantidade", Math.max(1, parseInt(e.target.value) || 1))}
+              <div className="mt-3 border rounded-md overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr className="text-xs text-muted-foreground">
+                      <th className="text-left py-2 px-3 font-medium">Peça</th>
+                      <th className="text-left py-2 px-2 font-medium w-20">Qtd.</th>
+                      <th className="text-left py-2 px-2 font-medium w-32">Custo unit. (R$)</th>
+                      <th className="text-right py-2 px-3 font-medium w-28">Subtotal</th>
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linhas.map((l, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="py-2 px-3">
+                          <p className="font-medium truncate">{l.nome}</p>
+                        </td>
+                        <td className="py-2 px-2">
+                          <Input
+                            type="number" min={1} className="h-8 text-center text-sm"
+                            value={l.quantidade}
+                            onChange={(e) => updateItem(idx, "quantidade", Math.max(1, parseInt(e.target.value) || 1))}
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <CurrencyInput
+                            value={l.custo_unitario}
+                            onValueChange={(v) => updateItem(idx, "custo_unitario", v)}
+                            placeholder="0,00"
+                            className="h-8 text-sm"
+                          />
+                        </td>
+                        <td className="py-2 px-3 text-right text-sm font-medium tabular-nums">
+                          {fmtBRL(l.quantidade * l.custo_unitario)}
+                        </td>
+                        <td className="py-2 px-2">
+                          <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Totais */}
+                <div className="border-t bg-muted/20 px-3 py-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium tabular-nums">{fmtBRL(subtotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm gap-3">
+                    <span className="text-muted-foreground">Desconto:</span>
+                    <div className="w-32">
+                      <CurrencyInput
+                        value={desconto}
+                        onValueChange={setDesconto}
+                        placeholder="0,00"
+                        className="h-7 text-sm text-right"
                       />
-                      <span className="text-xs text-muted-foreground">×</span>
-                      <Input
-                        type="number" step="0.01" min={0} className="w-24 h-8 text-sm"
-                        value={l.custo_unitario} onChange={(e) => updateItem(idx, "custo_unitario", Math.max(0, parseFloat(e.target.value) || 0))}
-                      />
-                      <span className="text-xs font-medium w-20 text-right">
-                        R$ {(l.quantidade * l.custo_unitario).toFixed(2)}
-                      </span>
-                      <button onClick={() => removeItem(idx)} className="p-1 text-muted-foreground hover:text-destructive">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   </div>
-                ))}
-                <div className="flex justify-end pt-1">
-                  <span className="text-sm font-semibold">Total: R$ {totalCalculado.toFixed(2)}</span>
+                  <div className="flex items-center justify-between text-sm gap-3">
+                    <span className="text-muted-foreground">Frete:</span>
+                    <div className="w-32">
+                      <CurrencyInput
+                        value={frete}
+                        onValueChange={setFrete}
+                        placeholder="0,00"
+                        className="h-7 text-sm text-right"
+                      />
+                    </div>
+                  </div>
+                  <Separator className="my-1.5" />
+                  <div className="flex items-center justify-between text-base font-semibold">
+                    <span>Total:</span>
+                    <span className="tabular-nums">{fmtBRL(total)}</span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           <Button className="w-full" onClick={handleSubmit} disabled={saving || linhas.length === 0}>
-            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Package className="h-4 w-4 mr-2" />}
-            Registrar Entrada
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ShoppingCart className="h-4 w-4 mr-2" />}
+            Registrar Compra
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+
+    <PecaFormModal
+      open={pecaModalOpen}
+      onOpenChange={setPecaModalOpen}
+      onSaved={() => {
+        queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
+        toast.success("Peça cadastrada! Agora selecione na lista para adicioná-la à compra.");
+      }}
+    />
+    </>
   );
 }
