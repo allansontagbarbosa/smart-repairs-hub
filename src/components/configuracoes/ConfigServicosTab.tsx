@@ -278,11 +278,24 @@ export function ConfigServicosTab({ tiposServico }: Props) {
       </div>
       <ImportIADialog open={importOpen} onOpenChange={setImportOpen} />
 
+      <BulkActionBar
+        count={bulk.count}
+        onClear={bulk.clear}
+        entityLabel="serviços"
+        actions={[
+          { id: "export", label: "Exportar CSV", icon: <Download className="h-3.5 w-3.5" />, onClick: handleExport },
+          { id: "ativar", label: "Ativar", icon: <Power className="h-3.5 w-3.5" />, onClick: () => setConfirmStatus("ativar") },
+          { id: "inativar", label: "Inativar", icon: <Power className="h-3.5 w-3.5" />, onClick: () => setConfirmStatus("inativar") },
+          { id: "delete", label: "Excluir", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive", onClick: () => setConfirmDelete(true) },
+        ]}
+      />
+
       <Card>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-muted/50">
+                <th className="w-8 p-3"><HeaderCheckbox allSelected={bulk.allSelected} someSelected={bulk.someSelected} onToggle={bulk.toggleAll} /></th>
                 <th className="text-left p-3 font-medium">Serviço</th>
                 <th className="text-left p-3 font-medium">Categoria</th>
                 <th className="text-left p-3 font-medium hidden md:table-cell">Valor</th>
@@ -295,7 +308,8 @@ export function ConfigServicosTab({ tiposServico }: Props) {
                 {filtered.map((s) => {
                   const pecasInfo = (pecasPorServico as any)[s.id];
                   return (
-                  <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <tr key={s.id} className={`border-b last:border-0 hover:bg-muted/30 ${bulk.isSelected(s.id) ? "bg-primary/5" : ""}`}>
+                    <td className="p-3"><RowCheckbox checked={bulk.isSelected(s.id)} onToggle={(e) => bulk.toggle(s.id, e)} /></td>
                     <td className="p-3 font-medium">{s.nome}<div className="text-xs text-muted-foreground">{s.descricao}</div></td>
                     <td className="p-3">
                       {s.categoria ? <Badge variant="outline" className="text-[10px] capitalize">{s.categoria}</Badge> : <span className="text-xs text-muted-foreground">—</span>}
