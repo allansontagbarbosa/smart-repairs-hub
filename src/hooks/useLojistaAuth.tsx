@@ -32,16 +32,17 @@ export function useLojistaAuth() {
         return;
       }
 
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('lojista_usuarios')
         .select('id, lojista_id, nome, email, ativo, lojistas:lojista_id(id, nome, razao_social, cnpj, ativo)')
         .eq('user_id', session.user.id)
         .eq('ativo', true)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
       if (cancelado) return;
+
+      const data = (rows ?? [])[0];
 
       if (!data) {
         setLojistaUser(null);
