@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Wrench } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useEstoque } from "@/hooks/useEstoque";
 import { EstoqueDashboard } from "@/components/estoque/EstoqueDashboard";
 import { EstoqueList } from "@/components/estoque/EstoqueList";
 import { ConferenciaEstoque } from "@/components/estoque/ConferenciaEstoque";
 import { EntradasEstoque } from "@/components/estoque/EntradasEstoque";
+import { AjusteEstoqueDialog } from "@/components/estoque/AjusteEstoqueDialog";
 import { ConferenciaPecasButton } from "@/components/conferencia/ConferenciaPecasButton";
 import { HistoricoConferencias } from "@/components/conferencia/HistoricoConferencias";
 
@@ -13,6 +15,7 @@ export default function Pecas() {
   const { itens, categorias, marcas, modelos, conferencias, isLoading, kpis } = useEstoque();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [preSelectedItemId, setPreSelectedItemId] = useState<string | null>(null);
+  const [ajusteOpen, setAjusteOpen] = useState(false);
 
   const handleRegistrarEntrada = (itemId: string) => {
     setPreSelectedItemId(itemId);
@@ -32,8 +35,15 @@ export default function Pecas() {
             {kpis.total} peças cadastradas · {kpis.estoqueBaixo > 0 ? `${kpis.estoqueBaixo} com estoque baixo` : "estoque OK"}
           </p>
         </div>
-        <ConferenciaPecasButton itens={itens} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAjusteOpen(true)}>
+            <Wrench className="h-4 w-4 mr-1.5" /> Registrar ajuste
+          </Button>
+          <ConferenciaPecasButton itens={itens} />
+        </div>
       </div>
+
+      <AjusteEstoqueDialog open={ajusteOpen} onOpenChange={setAjusteOpen} itens={itens} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl">
