@@ -273,7 +273,7 @@ function getSubtitle(id: string): string {
   const map: Record<string, string> = {
     geral: "Nome, endereço, contato e identidade visual da empresa",
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
-    produtos: "Cadastro mãe de produtos para uso em todo o sistema",
+    produtos: "Cadastro mãe de peças (SKU, custo, preço) usado em estoque e OS",
     servicos: "Tipos de serviço (defeitos/reparos), valores, categorias e comissões",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",

@@ -49,7 +49,7 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
       await supabase.from("produtos_base").insert(payload);
     }
     qc.invalidateQueries({ queryKey: ["produtos_base"] });
-    toast.success(editId ? "Produto atualizado" : "Produto cadastrado");
+    toast.success(editId ? "Peça atualizada" : "Peça cadastrada");
     setOpen(false); setForm(emptyForm); setEditId(null);
   };
 
@@ -61,7 +61,7 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
   const handleDelete = async (id: string) => {
     await supabase.from("produtos_base").delete().eq("id", id);
     qc.invalidateQueries({ queryKey: ["produtos_base"] });
-    toast.success("Produto removido");
+    toast.success("Peça removida");
   };
 
   const createCategoria = async (nome: string) => {
@@ -93,9 +93,9 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
             <Sparkles className="h-4 w-4 mr-1" />Importar via IA
           </Button>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setForm(emptyForm); setEditId(null); } }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Produto</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Nova Peça</Button></DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{editId ? "Editar" : "Novo"} Produto</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editId ? "Editar" : "Nova"} Peça</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div><Label>Nome *</Label><Input value={form.nome} onChange={(e) => set("nome", e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -132,7 +132,7 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium">Produto</th><th className="text-left p-3 font-medium hidden md:table-cell">SKU</th><th className="text-left p-3 font-medium hidden md:table-cell">Custo</th><th className="text-left p-3 font-medium hidden md:table-cell">Preço</th><th className="text-left p-3 font-medium">Status</th><th className="p-3"></th></tr></thead>
+              <thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium">Peça</th><th className="text-left p-3 font-medium hidden md:table-cell">SKU</th><th className="text-left p-3 font-medium hidden md:table-cell">Custo</th><th className="text-left p-3 font-medium hidden md:table-cell">Preço</th><th className="text-left p-3 font-medium">Status</th><th className="p-3"></th></tr></thead>
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -147,7 +147,7 @@ export function ConfigProdutosTab({ produtosBase, marcas, modelos, categorias }:
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhum produto cadastrado</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhuma peça cadastrada</td></tr>}
               </tbody>
             </table>
           </div>
