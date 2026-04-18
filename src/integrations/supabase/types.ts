@@ -3526,6 +3526,13 @@ export type Database = {
         }[]
       }
       recalcular_totais_os: { Args: { p_ordem_id: string }; Returns: undefined }
+      verificar_lojista_por_email: {
+        Args: { email_input: string }
+        Returns: {
+          existe: boolean
+          status: string
+        }[]
+      }
     }
     Enums: {
       status_comissao: "pendente" | "liberada" | "paga"
