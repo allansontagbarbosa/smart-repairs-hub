@@ -118,7 +118,9 @@ export default function AceitarConviteLojista() {
           console.error("[aceitar-convite] setSession error:", setErr);
         }
         toast({ title: "Bem-vindo ao portal!" });
-        navigate("/lojista", { replace: true });
+        // Aguarda contexto de auth propagar antes do redirect
+        await new Promise((r) => setTimeout(r, 400));
+        window.location.replace("/lojista/dashboard");
         return;
       }
 
