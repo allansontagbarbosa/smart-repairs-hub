@@ -346,12 +346,51 @@ export function ConfigServicosTab({ tiposServico }: Props) {
                   </tr>
                   );
                 })}
-                {filtered.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Nenhum serviço cadastrado</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Nenhum serviço cadastrado</td></tr>}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {bulk.count} {bulk.count === 1 ? "serviço" : "serviços"}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Esta ação é permanente. OS que usam estes serviços manterão o nome em snapshot.</p>
+                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+                  {previewNames.map((n, i) => <li key={i}>{n}</li>)}
+                  {restCount > 0 && <li>...e mais {restCount}</li>}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={bulkDelete}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmStatus !== null} onOpenChange={(o) => !o && setConfirmStatus(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmStatus === "ativar" ? "Ativar" : "Inativar"} {bulk.count} {bulk.count === 1 ? "serviço" : "serviços"}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+                {previewNames.map((n, i) => <li key={i}>{n}</li>)}
+                {restCount > 0 && <li>...e mais {restCount}</li>}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { bulkToggleStatus(confirmStatus === "ativar"); setConfirmStatus(null); }}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
