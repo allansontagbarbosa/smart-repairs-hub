@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Pencil, Trash2, Search, Sparkles, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, Package, Download, Power } from "lucide-react";
 import { ImportIADialog } from "./ImportIADialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +21,10 @@ import { ServicoPecasSection, saveServicoPecas, type VinculoPeca } from "./Servi
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { BulkActionBar } from "@/components/BulkActionBar";
+import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
+import { exportToCsv } from "@/lib/export-csv";
 
 interface Props { tiposServico: any[] }
 
