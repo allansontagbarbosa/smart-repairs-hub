@@ -68,35 +68,24 @@ export default function LojistaLogin() {
     try {
       const emailLower = email.trim().toLowerCase();
 
-      // 1) Pré-validação consultando lojista_usuarios (fonte da verdade do acesso)
-      //    + lojistas (para distinguir "convite pendente" de "não cadastrado")
-      const [{ data: usuarios }, { data: lojistasRows }] = await Promise.all([
-        supabase
-          .from("lojista_usuarios")
-          .select("ativo, user_id")
-          .eq("email", emailLower)
-          .order("created_at", { ascending: false })
-          .limit(10),
-        supabase
-          .from("lojistas")
-          .select("status_acesso")
-          .eq("email", emailLower)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .limit(10),
-      ]);
+      // 1) Pré-validação via RPC SECURITY DEFINER (não depende de RLS/sessão)
+      const { data: verificacao, error: verifError } = await supabase.rpc(
+        "verificar_lojista_por_email",
+        { email_input: emailLower }
+      );
 
-      const temUsuarioAtivo = (usuarios ?? []).some((u) => u.ativo === true && u.user_id);
-      const prio = (s?: string | null) =>
-        s === "ativo" ? 4 : s === "convidado" ? 3 : s === "inativo" ? 2 : 1;
-      const bestLojista = (lojistasRows ?? [])
-        .slice()
-        .sort((a, b) => prio(b.status_acesso) - prio(a.status_acesso))[0];
-      const statusLojista = bestLojista?.status_acesso;
+      if (verifError) {
+        console.error("[lojista-login] verificacao erro:", verifError);
+        toast({
+          title: "Erro ao verificar cadastro",
+          description: "Tente novamente em instantes.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // Se já tem usuário ativo vinculado, considera "ativo" mesmo que lojistas
-      // ainda mostre "convidado" por dessincronia (corrigido pela nova edge function).
-      const status = temUsuarioAtivo ? "ativo" : statusLojista;
+      const info = (verificacao ?? [])[0];
+      const status = info?.existe ? info.status : "nao_convidado";
 
       if (!status || status === "nao_convidado") {
         toast({
