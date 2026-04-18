@@ -68,19 +68,35 @@ export default function LojistaLogin() {
     try {
       const emailLower = email.trim().toLowerCase();
 
-      // 1) Pré-validação por status do lojista
-      const { data: rows } = await supabase
-        .from("lojistas")
-        .select("status_acesso")
-        .eq("email", emailLower)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      // 1) Pré-validação consultando lojista_usuarios (fonte da verdade do acesso)
+      //    + lojistas (para distinguir "convite pendente" de "não cadastrado")
+      const [{ data: usuarios }, { data: lojistasRows }] = await Promise.all([
+        supabase
+          .from("lojista_usuarios")
+          .select("ativo, user_id")
+          .eq("email", emailLower)
+          .order("created_at", { ascending: false })
+          .limit(10),
+        supabase
+          .from("lojistas")
+          .select("status_acesso")
+          .eq("email", emailLower)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
 
+      const temUsuarioAtivo = (usuarios ?? []).some((u) => u.ativo === true && u.user_id);
       const prio = (s?: string | null) =>
         s === "ativo" ? 4 : s === "convidado" ? 3 : s === "inativo" ? 2 : 1;
-      const best = (rows ?? []).slice().sort((a, b) => prio(b.status_acesso) - prio(a.status_acesso))[0];
-      const status = best?.status_acesso;
+      const bestLojista = (lojistasRows ?? [])
+        .slice()
+        .sort((a, b) => prio(b.status_acesso) - prio(a.status_acesso))[0];
+      const statusLojista = bestLojista?.status_acesso;
+
+      // Se já tem usuário ativo vinculado, considera "ativo" mesmo que lojistas
+      // ainda mostre "convidado" por dessincronia (corrigido pela nova edge function).
+      const status = temUsuarioAtivo ? "ativo" : statusLojista;
 
       if (!status || status === "nao_convidado") {
         toast({
@@ -122,6 +138,8 @@ export default function LojistaLogin() {
         return;
       }
 
+      // Aguardar PostgREST propagar a sessão antes de o guard ler lojista_usuarios
+      await new Promise((r) => setTimeout(r, 300));
       navigate("/lojista", { replace: true });
     } catch (err: any) {
       console.error("[lojista-login] erro:", err);

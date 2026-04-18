@@ -162,7 +162,13 @@ Deno.serve(async (req) => {
     }
 
     // 2) Atualizar lojista — ativo, vincular user_id, limpar token
-    await admin
+    console.log("[accept-with-password] antes do update lojistas:", {
+      userId,
+      lojistaId: lojista.id,
+      email: emailLower,
+    });
+
+    const { data: updatedLojista, error: updLojistaErr } = await admin
       .from("lojistas")
       .update({
         status_acesso: "ativo",
@@ -170,7 +176,33 @@ Deno.serve(async (req) => {
         convite_token: null,
         user_id: userId,
       })
-      .eq("id", lojista.id);
+      .eq("id", lojista.id)
+      .select()
+      .single();
+
+    if (updLojistaErr) {
+      console.error("[accept-with-password] UPDATE lojistas FALHOU:", updLojistaErr);
+      return json({
+        ok: false,
+        code: "update_lojista_failed",
+        message: "Falha ao ativar cadastro: " + updLojistaErr.message,
+      });
+    }
+
+    console.log("[accept-with-password] UPDATE lojistas OK:", {
+      id: updatedLojista?.id,
+      status_acesso: updatedLojista?.status_acesso,
+      user_id: updatedLojista?.user_id,
+    });
+
+    if (!updatedLojista?.user_id || updatedLojista?.status_acesso !== "ativo") {
+      console.error("[accept-with-password] Update lojistas não persistiu:", updatedLojista);
+      return json({
+        ok: false,
+        code: "lojista_not_active",
+        message: "Cadastro não foi ativado corretamente.",
+      });
+    }
 
     // 3) Garantir vínculo em lojista_usuarios
     const { data: existingLU } = await admin
