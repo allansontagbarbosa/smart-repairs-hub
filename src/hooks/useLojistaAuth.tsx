@@ -32,16 +32,17 @@ export function useLojistaAuth() {
         return;
       }
 
-      const { data } = await supabase
+      const { data: rows } = await supabase
         .from('lojista_usuarios')
         .select('id, lojista_id, nome, email, ativo, lojistas:lojista_id(id, nome, razao_social, cnpj, ativo)')
         .eq('user_id', session.user.id)
         .eq('ativo', true)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
       if (cancelado) return;
+
+      const data = (rows ?? [])[0];
 
       if (!data) {
         setLojistaUser(null);
@@ -89,16 +90,19 @@ export function LojistaGuard({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: lojista } = await supabase
+      const { data: vinculos, error: vincErr } = await supabase
         .from('lojista_usuarios')
-        .select('ativo')
+        .select('id, ativo')
         .eq('user_id', session.user.id)
         .eq('ativo', true)
-        .maybeSingle();
+        .limit(1);
+
+      console.log('[LojistaGuard] user:', session.user.id, 'vinculos:', vinculos, 'err:', vincErr);
 
       if (cancelado) return;
 
-      if (!lojista) {
+      if (vincErr || !vinculos || vinculos.length === 0) {
+        console.warn('[LojistaGuard] sem vínculo ativo, deslogando');
         await supabase.auth.signOut();
         setEstado('bloqueado');
         navigate('/lojista/login', { replace: true });
