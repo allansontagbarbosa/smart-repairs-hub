@@ -1,5 +1,8 @@
 // Edge function: accept-lojista-invite
-// Aceita o convite por token, cria/recupera o auth user e gera magic link de 1 clique
+// Valida token de convite e gera magic link de 1 clique para o lojista.
+// Retorna SEMPRE status 200 com payload estruturado { ok, code, message } para
+// que o frontend possa exibir mensagens amigáveis (o Supabase SDK descarta o
+// body em respostas não-2xx, então usamos códigos no corpo).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -7,6 +10,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+const json = (payload: unknown) =>
+  new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -16,28 +25,35 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const body = await req.json().catch(() => ({}));
-    const token: string | undefined = body?.token;
+    const tokenRaw: string | undefined = body?.token;
+    const token = typeof tokenRaw === "string" ? tokenRaw.trim() : "";
     const action: string = body?.action ?? "validate"; // validate | accept
 
     if (!token) {
-      return new Response(JSON.stringify({ error: "token obrigatório" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ ok: false, code: "token_missing", message: "Token ausente." });
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     const { data: lojista, error: lErr } = await admin
       .from("lojistas")
-      .select("id, nome, email, status_acesso, convite_token, convite_enviado_em, empresa_id")
+      .select("id, nome, email, status_acesso, convite_token, convite_enviado_em, convite_aceito_em, empresa_id")
       .eq("convite_token", token)
       .maybeSingle();
 
-    if (lErr || !lojista) {
-      return new Response(JSON.stringify({ error: "Convite inválido ou expirado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (lErr) {
+      console.error("[accept-lojista-invite] db error:", lErr);
+      return json({ ok: false, code: "db_error", message: "Erro ao consultar convite." });
+    }
+
+    if (!lojista) {
+      // Pode ter sido aceito (token zerado) ou um link antigo após reenvio
+      return json({
+        ok: false,
+        code: "token_not_found",
+        message:
+          "Este convite não é mais válido. Pode ter sido aceito ou substituído por um novo. " +
+          "Solicite à assistência um novo link.",
       });
     }
 
@@ -47,17 +63,19 @@ Deno.serve(async (req) => {
       const agora = Date.now();
       const diasMs = 7 * 24 * 60 * 60 * 1000;
       if (agora - enviado > diasMs) {
-        return new Response(JSON.stringify({ error: "Convite expirado. Solicite um novo." }), {
-          status: 410,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return json({
+          ok: false,
+          code: "token_expired",
+          message: "Este convite expirou. Peça à assistência para enviar um novo.",
         });
       }
     }
 
     if (!lojista.email) {
-      return new Response(JSON.stringify({ error: "Lojista sem email cadastrado" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return json({
+        ok: false,
+        code: "no_email",
+        message: "Lojista sem email cadastrado. Contate a assistência.",
       });
     }
 
@@ -73,14 +91,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === "validate") {
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          lojista: { id: lojista.id, nome: lojista.nome, email: lojista.email },
-          empresa_nome: empresaNome,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return json({
+        ok: true,
+        lojista: { id: lojista.id, nome: lojista.nome, email: lojista.email },
+        empresa_nome: empresaNome,
+      });
     }
 
     // ACTION=accept — gerar magic link e marcar como ativo
@@ -94,9 +109,11 @@ Deno.serve(async (req) => {
     });
 
     if (linkErr || !linkData) {
-      return new Response(JSON.stringify({ error: linkErr?.message ?? "Falha ao gerar link" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.error("[accept-lojista-invite] generateLink error:", linkErr);
+      return json({
+        ok: false,
+        code: "magiclink_failed",
+        message: "Não foi possível gerar o link de acesso. Tente novamente em instantes.",
       });
     }
 
@@ -115,7 +132,7 @@ Deno.serve(async (req) => {
         })
         .eq("id", lojista.id);
 
-      // Garantir vínculo em lojista_usuarios (para compatibilidade com guard atual)
+      // Garantir vínculo em lojista_usuarios (compat com guard atual)
       const { data: existing } = await admin
         .from("lojista_usuarios")
         .select("id")
@@ -139,18 +156,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        action_link: actionLink,
-        redirect_to: redirectTo,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json({
+      ok: true,
+      action_link: actionLink,
+      redirect_to: redirectTo,
+    });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err?.message ?? "Erro" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error("[accept-lojista-invite] unexpected:", err);
+    return json({
+      ok: false,
+      code: "unexpected_error",
+      message: "Erro inesperado. Atualize a página ou contate a assistência.",
     });
   }
 });
