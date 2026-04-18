@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
-interface LojistaUser {
+type LojistaUser = {
   id: string;
   lojista_id: string;
   nome: string;
@@ -13,122 +13,55 @@ interface LojistaUser {
     razao_social: string | null;
     cnpj: string | null;
   };
-}
+};
 
 export function useLojistaAuth() {
   const [lojistaUser, setLojistaUser] = useState<LojistaUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    let cancelado = false;
 
-    // Se a URL trouxer fragmento de auth (magic link), aguarda o Supabase
-    // processar antes de decidir loading=false. Sem isso, o guard redireciona
-    // pra /lojista/login antes do token virar sessão.
-    const hash = typeof window !== "undefined" ? window.location.hash : "";
-    const hasAuthHash = /access_token=|refresh_token=|type=magiclink|type=recovery/i.test(hash);
-
-    async function check(allowEmpty = true) {
+    async function carregar() {
       const { data: { session } } = await supabase.auth.getSession();
+      if (cancelado) return;
+
       if (!session?.user) {
-        if (mounted && allowEmpty) { setLojistaUser(null); setLoading(false); }
+        setLojistaUser(null);
+        setLoading(false);
         return;
       }
 
-      const userId = session.user.id;
-      const userEmail = (session.user.email || "").toLowerCase();
+      const { data } = await supabase
+        .from('lojista_usuarios')
+        .select('id, lojista_id, nome, email, ativo, lojistas:lojista_id(id, nome, razao_social, cnpj, ativo)')
+        .eq('user_id', session.user.id)
+        .eq('ativo', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      // 1) Busca por user_id ativo
-      const { data: vinculos, error } = await supabase
-        .from("lojista_usuarios")
-        .select("id, lojista_id, nome, email, user_id, ativo, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
-        .eq("user_id", userId)
-        .eq("ativo", true)
-        .order("created_at", { ascending: false });
+      if (cancelado) return;
 
-      if (error) console.error("[useLojistaAuth] erro:", error);
-
-      let escolhido = (vinculos ?? []).find(
-        (v: any) => v.lojistas?.ativo === true,
-      ) ?? null;
-
-      // 2) Fallback: backfill por email (registros pendentes com user_id placeholder)
-      if (!escolhido && userEmail) {
-        const { data: porEmail } = await supabase
-          .from("lojista_usuarios")
-          .select("id, lojista_id, nome, email, user_id, ativo, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
-          .eq("email", userEmail)
-          .order("created_at", { ascending: false });
-
-        const candidato = (porEmail ?? []).find((v: any) => v.lojistas?.ativo === true) ?? null;
-
-        if (candidato) {
-          // Vincular user_id real e ativar
-          const { data: atualizado, error: updErr } = await supabase
-            .from("lojista_usuarios")
-            .update({ user_id: userId, ativo: true })
-            .eq("id", candidato.id)
-            .select("id, lojista_id, nome, email, user_id, ativo, lojistas!inner(id, nome, razao_social, cnpj, ativo)")
-            .maybeSingle();
-
-          if (updErr) {
-            console.error("[useLojistaAuth] backfill falhou:", updErr);
-            escolhido = candidato; // segue com o candidato mesmo sem update
-          } else {
-            escolhido = atualizado ?? candidato;
-          }
-        }
-      }
-
-      if (mounted) {
-        if (escolhido) {
-          setLojistaUser({
-            id: escolhido.id,
-            lojista_id: escolhido.lojista_id,
-            nome: escolhido.nome,
-            email: escolhido.email,
-            lojista: (escolhido as any).lojistas ?? undefined,
-          });
-        } else {
-          setLojistaUser(null);
-        }
+      if (!data) {
+        setLojistaUser(null);
         setLoading(false);
+        return;
       }
-    }
 
-    // Se há hash de auth, NÃO chama check inicial — espera o
-    // onAuthStateChange disparar com SIGNED_IN. Marca loading=true.
-    if (hasAuthHash) {
-      // safety: se em 4s nada vier, força check sem hash
-      const safety = setTimeout(() => { if (mounted) check(true); }, 4000);
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
-          // limpa o hash da URL para não reprocessar
-          if (window.location.hash) {
-            history.replaceState(null, "", window.location.pathname + window.location.search);
-          }
-          check(true);
-        } else if (event === "SIGNED_OUT") {
-          if (mounted) { setLojistaUser(null); setLoading(false); }
-        }
+      setLojistaUser({
+        id: data.id,
+        lojista_id: data.lojista_id,
+        nome: data.nome,
+        email: data.email,
+        lojista: (data as any).lojistas ?? undefined,
       });
-      return () => {
-        mounted = false;
-        clearTimeout(safety);
-        subscription.unsubscribe();
-      };
+      setLoading(false);
     }
 
-    check(true);
+    carregar();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      check(true);
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    return () => { cancelado = true; };
   }, []);
 
   async function lojistaSignOut() {
@@ -139,17 +72,48 @@ export function useLojistaAuth() {
   return { lojistaUser, loading, lojistaSignOut };
 }
 
-export function LojistaGuard({ children }: { children: React.ReactNode }) {
-  const { lojistaUser, loading } = useLojistaAuth();
+export function LojistaGuard({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
+  const [estado, setEstado] = useState<'verificando' | 'ok' | 'bloqueado'>('verificando');
 
   useEffect(() => {
-    if (!loading && !lojistaUser) {
-      navigate("/lojista/login", { replace: true });
-    }
-  }, [loading, lojistaUser, navigate]);
+    let cancelado = false;
 
-  if (loading) {
+    async function verificar() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelado) return;
+
+      if (!session?.user) {
+        setEstado('bloqueado');
+        navigate('/lojista/login', { replace: true });
+        return;
+      }
+
+      const { data: lojista } = await supabase
+        .from('lojista_usuarios')
+        .select('ativo')
+        .eq('user_id', session.user.id)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (cancelado) return;
+
+      if (!lojista) {
+        await supabase.auth.signOut();
+        setEstado('bloqueado');
+        navigate('/lojista/login', { replace: true });
+        return;
+      }
+
+      setEstado('ok');
+    }
+
+    verificar();
+
+    return () => { cancelado = true; };
+  }, []);
+
+  if (estado === 'verificando') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -157,7 +121,7 @@ export function LojistaGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!lojistaUser) return null;
+  if (estado === 'bloqueado') return null;
 
   return <>{children}</>;
 }
