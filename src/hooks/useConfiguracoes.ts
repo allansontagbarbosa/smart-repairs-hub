@@ -240,5 +240,6 @@ export function useConfiguracoes() {
     formasPagamento, estoqueCategorias, marcas, modelos, cores, capacidades,
     statusOrdem, templatesMensagem, modelosDocumento, listasPreco,
     saveEmpresa, isLoading,
+    userProfilesLoading, userProfilesError, refetchUserProfiles,
   };
 }
