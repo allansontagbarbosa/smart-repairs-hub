@@ -37,6 +37,10 @@ const LojistaInviteEmail = ({
           <strong>{lojistaNome}</strong> para acessar o Portal Lojista
           como parceiro comercial.
         </Text>
+        <Text style={text}>
+          Clique no botão abaixo para criar seu acesso. Você vai
+          definir uma senha no próximo passo.
+        </Text>
         <Text style={text}>Como parceiro, você poderá:</Text>
         <Section style={list}>
           <Text style={listItem}>• Acompanhar aparelhos em reparo</Text>
@@ -45,7 +49,7 @@ const LojistaInviteEmail = ({
         </Section>
         <Section style={buttonWrapper}>
           <Button style={button} href={acceptUrl}>
-            Aceitar convite e acessar o portal
+            Criar meu acesso
           </Button>
         </Section>
         <Text style={footer}>
