@@ -28,10 +28,18 @@ export default function AceitarConviteLojista() {
         const { data, error } = await supabase.functions.invoke("accept-lojista-invite", {
           body: { token, action: "validate" },
         });
-        if (error || !data?.ok) {
+        if (error) {
+          console.error("[aceitar-convite] validate error:", error);
           setState({
             kind: "invalid",
-            reason: (data as any)?.error ?? error?.message ?? "Convite inválido ou expirado.",
+            reason: "Não foi possível validar o convite. Tente novamente em instantes.",
+          });
+          return;
+        }
+        if (!data?.ok) {
+          setState({
+            kind: "invalid",
+            reason: data?.message ?? "Convite inválido ou expirado.",
           });
           return;
         }
@@ -41,7 +49,11 @@ export default function AceitarConviteLojista() {
           empresaNome: data.empresa_nome,
         });
       } catch (e: any) {
-        setState({ kind: "invalid", reason: e?.message ?? "Erro ao validar convite." });
+        console.error("[aceitar-convite] unexpected:", e);
+        setState({
+          kind: "invalid",
+          reason: "Erro inesperado ao validar convite. Atualize a página.",
+        });
       }
     })();
   }, [token]);
@@ -60,17 +72,29 @@ export default function AceitarConviteLojista() {
       const { data, error } = await supabase.functions.invoke("accept-lojista-invite", {
         body: { token, action: "accept" },
       });
-      if (error || !data?.ok || !data?.action_link) {
+      if (error) {
+        console.error("[aceitar-convite] accept error:", error);
         setState({
           kind: "error",
-          reason: (data as any)?.error ?? error?.message ?? "Falha ao aceitar convite.",
+          reason: "Não foi possível aceitar o convite agora. Tente novamente em instantes.",
+        });
+        return;
+      }
+      if (!data?.ok || !data?.action_link) {
+        setState({
+          kind: "error",
+          reason: data?.message ?? "Falha ao aceitar convite.",
         });
         return;
       }
       // Redireciona pro magic link — Supabase processa e leva pro /lojista
       window.location.replace(data.action_link as string);
     } catch (e: any) {
-      setState({ kind: "error", reason: e?.message ?? "Erro inesperado." });
+      console.error("[aceitar-convite] unexpected:", e);
+      setState({
+        kind: "error",
+        reason: "Erro inesperado. Atualize a página ou contate a assistência.",
+      });
     }
   }
 
