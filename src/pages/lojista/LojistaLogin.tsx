@@ -1,23 +1,22 @@
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { AssistProLogo } from "@/components/AssistProLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, LogIn, Mail, ArrowLeft } from "lucide-react";
+import { Building2, LogIn, Eye, EyeOff } from "lucide-react";
 
 export default function LojistaLogin() {
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<"email" | "otp">("email");
+  const [senha, setSenha] = useState("");
+  const [showSenha, setShowSenha] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Se já estiver logado E for um lojista válido, redireciona pro portal.
-  // Se a sessão for de outro usuário (admin testando, etc), encerra para
-  // evitar loop entre /lojista/login → /lojista → guard rejeita → /lojista/login.
+  // Se já autenticado e for lojista válido, redireciona pro portal.
   useEffect(() => {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -26,7 +25,6 @@ export default function LojistaLogin() {
       const userId = session.user.id;
       const userEmail = (session.user.email || "").toLowerCase();
 
-      // Verifica vínculo por user_id
       const { data: porUserId } = await supabase
         .from("lojista_usuarios")
         .select("id")
@@ -35,11 +33,10 @@ export default function LojistaLogin() {
         .limit(1);
 
       if ((porUserId ?? []).length > 0) {
-        window.location.replace("/lojista");
+        navigate("/lojista", { replace: true });
         return;
       }
 
-      // Tenta backfill por email (caso o magic link de aceite acabou de autenticar)
       if (userEmail) {
         const { data: porEmail } = await supabase
           .from("lojista_usuarios")
@@ -53,230 +50,90 @@ export default function LojistaLogin() {
             .from("lojista_usuarios")
             .update({ user_id: userId, ativo: true })
             .eq("id", porEmail[0].id);
-          window.location.replace("/lojista");
+          navigate("/lojista", { replace: true });
           return;
         }
       }
 
-      // Sessão existe mas não pertence a nenhum lojista — encerra para
-      // permitir login com o email correto.
+      // Sessão de outro perfil — encerra
       await supabase.auth.signOut();
     })();
-  }, []);
+  }, [navigate]);
 
-  // Countdown do botão de reenvio
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cooldown]);
-
-  const parseError = (err: any): string => {
-    const msg = err?.message || err?.error_description || err?.context?.error || "";
-    if (!msg) return "Erro desconhecido. Tente novamente.";
-    // Erros de rede
-    if (/load failed|failed to fetch|network|networkerror/i.test(msg)) {
-      return "Falha de conexão. Verifique sua internet e tente novamente.";
-    }
-    if (msg.includes("only request this after")) {
-      const match = msg.match(/after (\d+) seconds?/);
-      const seg = match ? match[1] : "alguns";
-      return `Aguarde ${seg} segundos antes de solicitar novo código.`;
-    }
-    if (/rate limit|too many/i.test(msg)) {
-      return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
-    }
-    return msg;
-  };
-
-  const handleSendOtp = async (e: React.FormEvent) => {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || cooldown > 0) return;
+    if (!email.trim() || !senha) return;
     setLoading(true);
+
     try {
-      // Pré-validação por status_acesso na tabela lojistas
       const emailLower = email.trim().toLowerCase();
-      // Pode haver múltiplos registros com mesmo email (histórico) — pega o mais
-      // recente que tenha algum status de acesso definido (ativo > convidado > inativo)
-      const { data: lojistaCheck, error: checkError } = await supabase
+
+      // 1) Pré-validação por status do lojista
+      const { data: rows } = await supabase
         .from("lojistas")
-        .select("status_acesso, created_at")
+        .select("status_acesso")
         .eq("email", emailLower)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(10);
 
-      if (checkError && !/load failed|failed to fetch|network/i.test(checkError.message || "")) {
-        console.warn("[portal-lojista] check lojista falhou:", checkError);
-      }
-
-      // Prioriza ativo > convidado > inativo > nao_convidado entre os registros
-      const rows = lojistaCheck ?? [];
       const prio = (s?: string | null) =>
         s === "ativo" ? 4 : s === "convidado" ? 3 : s === "inativo" ? 2 : 1;
-      const best = rows.slice().sort((a, b) => prio(b.status_acesso) - prio(a.status_acesso))[0];
+      const best = (rows ?? []).slice().sort((a, b) => prio(b.status_acesso) - prio(a.status_acesso))[0];
       const status = best?.status_acesso;
-      if (!checkError) {
-        if (!status || status === "nao_convidado") {
-          toast({
-            title: "Email não cadastrado",
-            description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (status === "convidado") {
-          toast({
-            title: "Convite pendente",
-            description: "Seu convite ainda não foi aceito. Verifique seu email ou solicite reenvio à assistência.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (status === "inativo") {
-          toast({
-            title: "Acesso revogado",
-            description: "Seu acesso foi revogado. Entre em contato com a assistência.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
 
-      // IMPORTANTE: NÃO passar emailRedirectTo. Sem ele, o Supabase
-      // envia OTP de 6 dígitos puro (sem magic link) no template.
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-      if (error) {
+      if (!status || status === "nao_convidado") {
         toast({
-          title: "Erro ao enviar código",
-          description: parseError(error),
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({
-        title: "Código enviado!",
-        description: "Verifique seu email e insira o código de 6 dígitos.",
-      });
-      setStep("otp");
-      setCooldown(60);
-    } catch (err: any) {
-      console.error("[portal-lojista] send-otp falhou:", err);
-      toast({
-        title: "Erro ao enviar código",
-        description: parseError(err),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    if (cooldown > 0 || loading) return;
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-      if (error) {
-        toast({
-          title: "Erro ao reenviar",
-          description: parseError(error),
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({ title: "Código reenviado!", description: "Verifique seu email." });
-      setCooldown(60);
-    } catch (err: any) {
-      toast({
-        title: "Erro ao reenviar",
-        description: parseError(err),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp.trim()) return;
-    setLoading(true);
-    try {
-      const { data: authData, error } = await supabase.auth.verifyOtp({
-        email: email.trim().toLowerCase(),
-        token: otp,
-        type: "email",
-      });
-      if (error) throw error;
-
-      const userId = authData.user?.id;
-      if (!userId) throw new Error("Erro ao identificar usuário");
-
-      const emailLower = email.trim().toLowerCase();
-
-      // 1) Procurar registro já vinculado e ativo
-      const { data: ativos } = await supabase
-        .from("lojista_usuarios")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("ativo", true)
-        .limit(1);
-
-      let temAcesso = (ativos ?? []).length > 0;
-
-      // 2) Se não, tenta backfill: buscar registros pendentes pelo email e vincular
-      if (!temAcesso) {
-        const { data: pendentes } = await supabase
-          .from("lojista_usuarios")
-          .select("id")
-          .eq("email", emailLower)
-          .order("created_at", { ascending: false });
-
-        if ((pendentes ?? []).length > 0) {
-          const primeiro = pendentes![0];
-          const { error: updErr } = await supabase
-            .from("lojista_usuarios")
-            .update({ user_id: userId, ativo: true })
-            .eq("id", primeiro.id);
-          if (!updErr) temAcesso = true;
-        }
-      }
-
-      if (!temAcesso) {
-        await supabase.auth.signOut();
-        toast({
-          title: "Acesso não autorizado",
+          title: "Email não cadastrado",
           description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
           variant: "destructive",
         });
-        setStep("email");
-        setOtp("");
+        return;
+      }
+      if (status === "convidado") {
+        toast({
+          title: "Convite pendente",
+          description: "Aceite seu convite primeiro pelo link enviado por email.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (status === "inativo") {
+        toast({
+          title: "Acesso revogado",
+          description: "Seu acesso foi revogado. Contate a assistência.",
+          variant: "destructive",
+        });
         return;
       }
 
-      window.location.replace("/lojista");
+      // 2) Login com senha
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailLower,
+        password: senha,
+      });
+
+      if (error) {
+        toast({
+          title: "Email ou senha inválidos",
+          description: "Verifique suas credenciais e tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      navigate("/lojista", { replace: true });
     } catch (err: any) {
-      console.error("[portal-lojista] verify-otp falhou:", err);
+      console.error("[lojista-login] erro:", err);
       toast({
-        title: "Código inválido",
-        description: parseError(err) || "O código está incorreto ou expirou. Tente novamente.",
+        title: "Erro ao entrar",
+        description: "Tente novamente em instantes.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -298,86 +155,67 @@ export default function LojistaLogin() {
             </div>
             <h1 className="text-xl font-semibold tracking-tight">Portal Lojista</h1>
             <p className="text-sm text-muted-foreground">
-              {step === "email"
-                ? "Acesse o painel do parceiro para acompanhar seus aparelhos"
-                : `Insira o código de 6 dígitos enviado para ${email}`}
+              Acesse o painel do parceiro com seu email e senha
             </p>
           </div>
 
-          {step === "email" ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="senha">Senha</Label>
+              <div className="relative">
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="senha"
+                  type={showSenha ? "text" : "password"}
+                  placeholder="Sua senha"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  autoComplete="current-password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-              <Button type="submit" className="w-full h-11" disabled={loading || cooldown > 0}>
-                {loading ? (
-                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                ) : cooldown > 0 ? (
-                  `Aguarde ${cooldown}s para reenviar`
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    Enviar código de acesso
-                  </>
-                )}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="otp">Código de verificação</Label>
-                <Input
-                  id="otp"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  className="text-center text-2xl tracking-widest h-14"
-                  required
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground text-center">
-                  Verifique sua caixa de entrada e spam
-                </p>
-              </div>
+            </div>
 
-              <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? (
-                  <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Entrar
-                  </>
-                )}
-              </Button>
+            <Button type="submit" className="w-full h-11" disabled={loading}>
+              {loading ? (
+                <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              ) : (
+                <>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Entrar
+                </>
+              )}
+            </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleResend}
-                disabled={loading || cooldown > 0}
+            <div className="text-center">
+              <Link
+                to="/lojista/recuperar-senha"
+                className="text-xs text-primary hover:underline"
               >
-                {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar código"}
-              </Button>
-
-              <Button type="button" variant="ghost" className="w-full" onClick={() => { setStep("email"); setOtp(""); }}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Usar outro email
-              </Button>
-            </form>
-          )}
+                Esqueci a senha
+              </Link>
+            </div>
+          </form>
         </div>
       </div>
 
