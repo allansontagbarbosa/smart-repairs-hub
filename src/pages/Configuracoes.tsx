@@ -44,7 +44,7 @@ const groups = [
   {
     label: "Cadastros Base",
     items: [
-      { id: "produtos", label: "Peças", icon: Package, keywords: ["peca", "peça", "produto", "sku", "catalogo", "item", "estoque"] },
+      { id: "pecas", label: "Peças", icon: Package, keywords: ["peca", "peça", "produto", "sku", "catalogo", "item", "estoque"] },
       { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao", "defeito", "problema", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
@@ -95,15 +95,17 @@ const allItems = groups.flatMap((g) => g.items);
 export default function Configuracoes() {
   const { aba } = useParams();
   const data = useConfiguracoes();
-  const [active, setActive] = useState(aba || "geral");
+  // Compat: a aba antiga "produtos" virou "pecas" — redireciona transparentemente
+  const normalizedAba = aba === "produtos" ? "pecas" : aba;
+  const [active, setActive] = useState(normalizedAba || "geral");
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (aba && allItems.some((i) => i.id === aba)) {
-      setActive(aba);
+    if (normalizedAba && allItems.some((i) => i.id === normalizedAba)) {
+      setActive(normalizedAba);
     }
-  }, [aba]);
+  }, [normalizedAba]);
 
   const activeItem = allItems.find((i) => i.id === active);
 
@@ -250,7 +252,7 @@ export default function Configuracoes() {
           <div className="p-4 md:p-6 max-w-4xl">
             {active === "geral" && <ConfigGeralTab empresa={data.empresa} saveEmpresa={data.saveEmpresa} />}
             {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} />}
-            {active === "produtos" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
+            {active === "pecas" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
@@ -273,7 +275,7 @@ function getSubtitle(id: string): string {
   const map: Record<string, string> = {
     geral: "Nome, endereço, contato e identidade visual da empresa",
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
-    produtos: "Cadastro mãe de peças (SKU, custo, preço) usado em estoque e OS",
+    pecas: "Catálogo de peças — o que cada peça é. Quantidades vêm das compras.",
     servicos: "Tipos de serviço (defeitos/reparos), valores, categorias e comissões",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
