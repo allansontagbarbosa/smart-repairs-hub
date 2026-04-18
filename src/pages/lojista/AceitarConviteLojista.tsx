@@ -8,13 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
-type State =
-  | { kind: "loading" }
-  | { kind: "invalid"; reason: string }
-  | { kind: "ready"; lojista: { id: string; nome: string; email: string }; empresaNome: string }
-  | { kind: "accepting" };
+type ConviteInfo = {
+  lojistaId: string;
+  lojistaNome: string;
+  email: string;
+  empresaNome: string;
+};
 
-function calcularForcaSenha(s: string): { label: string; color: string; level: number } {
+type Estado = "carregando" | "formulario" | "processando" | "sucesso" | "erro";
+
+function calcularForcaSenha(s: string) {
   let score = 0;
   if (s.length >= 8) score++;
   if (/[A-Z]/.test(s) && /[a-z]/.test(s)) score++;
@@ -28,10 +31,13 @@ function calcularForcaSenha(s: string): { label: string; color: string; level: n
 
 export default function AceitarConviteLojista() {
   const [params] = useSearchParams();
-  const token = params.get("token") ?? "";
+  const token = (params.get("token") ?? "").trim();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [state, setState] = useState<State>({ kind: "loading" });
+
+  const [estado, setEstado] = useState<Estado>("carregando");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [convite, setConvite] = useState<ConviteInfo | null>(null);
 
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
@@ -39,43 +45,78 @@ export default function AceitarConviteLojista() {
 
   useEffect(() => {
     if (!token) {
-      setState({ kind: "invalid", reason: "Link inválido — token ausente." });
+      setErrorMessage("Link inválido — token ausente.");
+      setEstado("erro");
       return;
     }
-    (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("accept-lojista-invite", {
-          body: { token, action: "validate" },
-        });
-        if (error) {
-          setState({
-            kind: "invalid",
-            reason: "Não foi possível validar o convite. Tente novamente em instantes.",
-          });
-          return;
-        }
-        if (!data?.ok) {
-          setState({ kind: "invalid", reason: data?.message ?? "Convite inválido ou expirado." });
-          return;
-        }
-        setState({
-          kind: "ready",
-          lojista: data.lojista,
-          empresaNome: data.empresa_nome,
-        });
-      } catch (e) {
-        console.error("[aceitar-convite] unexpected:", e);
-        setState({
-          kind: "invalid",
-          reason: "Erro inesperado ao validar convite. Atualize a página.",
-        });
-      }
-    })();
+    carregarConvite();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function handleAceitarComSenha(e: React.FormEvent) {
+  async function carregarConvite() {
+    try {
+      // Garante sessão limpa para evitar conflito de auth no aceite
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+
+      const { data, error } = await supabase
+        .from("lojistas")
+        .select("id, nome, email, status_acesso, convite_enviado_em, empresa_id, empresas:empresa_id(nome)")
+        .eq("convite_token", token)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[carregar-convite] erro:", error);
+        setErrorMessage("Erro ao validar convite. Tente novamente em instantes.");
+        setEstado("erro");
+        return;
+      }
+
+      if (!data) {
+        setErrorMessage("Convite não encontrado. Pode ter sido aceito ou substituído por um novo.");
+        setEstado("erro");
+        return;
+      }
+
+      if (data.status_acesso === "ativo") {
+        setErrorMessage("Este convite já foi aceito. Faça login com seu email e senha.");
+        setEstado("erro");
+        return;
+      }
+
+      // Expiração: 7 dias
+      if (data.convite_enviado_em) {
+        const enviado = new Date(data.convite_enviado_em).getTime();
+        const dias = (Date.now() - enviado) / (1000 * 60 * 60 * 24);
+        if (dias > 7) {
+          setErrorMessage("Este convite expirou. Peça à assistência para enviar um novo.");
+          setEstado("erro");
+          return;
+        }
+      }
+
+      if (!data.email) {
+        setErrorMessage("Lojista sem email cadastrado. Contate a assistência.");
+        setEstado("erro");
+        return;
+      }
+
+      setConvite({
+        lojistaId: data.id,
+        lojistaNome: data.nome ?? "Loja parceira",
+        email: data.email,
+        empresaNome: (data.empresas as any)?.nome ?? "Assistência técnica",
+      });
+      setEstado("formulario");
+    } catch (e) {
+      console.error("[carregar-convite] unexpected:", e);
+      setErrorMessage("Erro inesperado ao validar convite. Atualize a página.");
+      setEstado("erro");
+    }
+  }
+
+  async function handleAceitar(e: React.FormEvent) {
     e.preventDefault();
-    if (state.kind !== "ready") return;
+    if (!convite) return;
     if (senha.length < 8) {
       toast({ title: "Senha muito curta", description: "Mínimo 8 caracteres.", variant: "destructive" });
       return;
@@ -85,30 +126,22 @@ export default function AceitarConviteLojista() {
       return;
     }
 
-    setState({ kind: "accepting" });
+    setEstado("processando");
 
     try {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // ignore
-      }
-
       const { data, error } = await supabase.functions.invoke(
         "accept-lojista-invite-with-password",
         { body: { token, senha } },
       );
 
       if (error || !data?.ok) {
-        toast({
-          title: "Erro ao aceitar convite",
-          description: data?.message ?? "Tente novamente em instantes.",
-          variant: "destructive",
-        });
-        setState({ kind: "ready", lojista: (state as any).lojista, empresaNome: (state as any).empresaNome });
+        const msg = data?.message || (error as any)?.message || "Erro ao aceitar convite";
+        toast({ title: "Erro ao aceitar convite", description: msg, variant: "destructive" });
+        setEstado("formulario");
         return;
       }
 
+      // Caminho 1: edge function devolveu sessão pronta
       if (data.session?.access_token && data.session?.refresh_token) {
         const { error: setErr } = await supabase.auth.setSession({
           access_token: data.session.access_token,
@@ -117,31 +150,36 @@ export default function AceitarConviteLojista() {
         if (setErr) {
           console.error("[aceitar-convite] setSession error:", setErr);
         }
-        toast({ title: "Bem-vindo ao portal!" });
-        // Aguarda contexto de auth propagar antes do redirect
-        await new Promise((r) => setTimeout(r, 400));
-        window.location.replace("/lojista/dashboard");
-        return;
+      } else {
+        // Caminho 2: sem sessão — login direto com a senha recém criada
+        const { error: signErr } = await supabase.auth.signInWithPassword({
+          email: convite.email,
+          password: senha,
+        });
+        if (signErr) {
+          toast({
+            title: "Acesso criado!",
+            description: "Faça login com seu email e nova senha.",
+          });
+          setEstado("sucesso");
+          setTimeout(() => navigate("/lojista/login", { replace: true }), 800);
+          return;
+        }
       }
 
-      // Sem sessão — manda para login
-      toast({
-        title: "Acesso criado!",
-        description: "Faça login com seu email e nova senha.",
-      });
-      navigate("/lojista/login", { replace: true });
+      toast({ title: "Bem-vindo ao portal!" });
+      setEstado("sucesso");
+      // Hard redirect garante contexto de auth limpo
+      await new Promise((r) => setTimeout(r, 400));
+      window.location.replace("/lojista");
     } catch (e: any) {
-      console.error("[aceitar-convite] aceite com senha falhou:", e);
+      console.error("[aceitar-convite] erro:", e);
       toast({
         title: "Erro inesperado",
-        description: "Atualize a página ou contate a assistência.",
+        description: "Tente novamente em instantes.",
         variant: "destructive",
       });
-      setState((prev) =>
-        prev.kind === "accepting"
-          ? { kind: "ready", lojista: (state as any).lojista, empresaNome: (state as any).empresaNome }
-          : prev,
-      );
+      setEstado("formulario");
     }
   }
 
@@ -163,27 +201,38 @@ export default function AceitarConviteLojista() {
 
       <div className="flex-1 flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md space-y-6">
-          {state.kind === "loading" && (
+          {estado === "carregando" && (
             <div className="text-center space-y-3">
               <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Validando convite…</p>
             </div>
           )}
 
-          {state.kind === "invalid" && (
+          {estado === "erro" && (
             <div className="text-center space-y-4">
               <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center mx-auto">
                 <XCircle className="h-6 w-6 text-destructive" />
               </div>
               <h1 className="text-xl font-semibold">Convite inválido</h1>
-              <p className="text-sm text-muted-foreground">{state.reason}</p>
-              <p className="text-xs text-muted-foreground">
-                Entre em contato com a assistência para receber um novo convite.
-              </p>
+              <p className="text-sm text-muted-foreground">{errorMessage}</p>
+              <Button
+                variant="outline"
+                className="mt-2"
+                onClick={() => navigate("/lojista/login", { replace: true })}
+              >
+                Ir para o login
+              </Button>
             </div>
           )}
 
-          {(state.kind === "ready" || state.kind === "accepting") && (
+          {estado === "sucesso" && (
+            <div className="text-center space-y-3">
+              <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Entrando no portal…</p>
+            </div>
+          )}
+
+          {(estado === "formulario" || estado === "processando") && convite && (
             <div className="space-y-5">
               <div className="text-center space-y-2">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -191,7 +240,7 @@ export default function AceitarConviteLojista() {
                 </div>
                 <h1 className="text-xl font-semibold">Você foi convidado!</h1>
                 <p className="text-sm text-muted-foreground">
-                  <strong>{(state as any).empresaNome}</strong> convidou você para acessar o Portal
+                  <strong>{convite.empresaNome}</strong> convidou você para acessar o Portal
                   Lojista como parceiro comercial.
                 </p>
               </div>
@@ -199,17 +248,15 @@ export default function AceitarConviteLojista() {
               <div className="rounded-xl border bg-card p-4 space-y-3 text-sm">
                 <div className="flex justify-between gap-3">
                   <span className="text-muted-foreground">Lojista</span>
-                  <span className="font-medium text-right">{(state as any).lojista.nome}</span>
+                  <span className="font-medium text-right">{convite.lojistaNome}</span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="text-muted-foreground">Email vinculado</span>
-                  <span className="font-medium text-right break-all">
-                    {(state as any).lojista.email}
-                  </span>
+                  <span className="font-medium text-right break-all">{convite.email}</span>
                 </div>
               </div>
 
-              <form onSubmit={handleAceitarComSenha} className="space-y-4">
+              <form onSubmit={handleAceitar} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="senha">Defina sua senha de acesso</Label>
                   <div className="relative">
@@ -222,7 +269,7 @@ export default function AceitarConviteLojista() {
                       autoComplete="new-password"
                       required
                       minLength={8}
-                      disabled={state.kind === "accepting"}
+                      disabled={estado === "processando"}
                     />
                     <button
                       type="button"
@@ -261,15 +308,15 @@ export default function AceitarConviteLojista() {
                     autoComplete="new-password"
                     required
                     minLength={8}
-                    disabled={state.kind === "accepting"}
+                    disabled={estado === "processando"}
                   />
                   {confirmar && senha !== confirmar && (
                     <p className="text-xs text-destructive">As senhas não coincidem</p>
                   )}
                 </div>
 
-                <Button type="submit" className="w-full h-11" disabled={state.kind === "accepting"}>
-                  {state.kind === "accepting" ? (
+                <Button type="submit" className="w-full h-11" disabled={estado === "processando"}>
+                  {estado === "processando" ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
