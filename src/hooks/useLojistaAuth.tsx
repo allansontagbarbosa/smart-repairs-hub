@@ -89,16 +89,19 @@ export function LojistaGuard({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: lojista } = await supabase
+      const { data: vinculos, error: vincErr } = await supabase
         .from('lojista_usuarios')
-        .select('ativo')
+        .select('id, ativo')
         .eq('user_id', session.user.id)
         .eq('ativo', true)
-        .maybeSingle();
+        .limit(1);
+
+      console.log('[LojistaGuard] user:', session.user.id, 'vinculos:', vinculos, 'err:', vincErr);
 
       if (cancelado) return;
 
-      if (!lojista) {
+      if (vincErr || !vinculos || vinculos.length === 0) {
+        console.warn('[LojistaGuard] sem vínculo ativo, deslogando');
         await supabase.auth.signOut();
         setEstado('bloqueado');
         navigate('/lojista/login', { replace: true });
