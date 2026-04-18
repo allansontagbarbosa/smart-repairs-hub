@@ -35,6 +35,8 @@ import Unsubscribe from "./pages/Unsubscribe";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
+import LojistaRecuperarSenha from "./pages/lojista/LojistaRecuperarSenha";
+import LojistaRedefinirSenha from "./pages/lojista/LojistaRedefinirSenha";
 import AceitarConviteLojista from "./pages/lojista/AceitarConviteLojista";
 import LojistaLayout from "./pages/lojista/LojistaLayout";
 import LojistaDashboard from "./pages/lojista/LojistaDashboard";
@@ -70,6 +72,8 @@ const App = () => (
 
               {/* Portal Lojista B2B */}
               <Route path="/lojista/login" element={<LojistaLogin />} />
+              <Route path="/lojista/recuperar-senha" element={<LojistaRecuperarSenha />} />
+              <Route path="/lojista/redefinir-senha" element={<LojistaRedefinirSenha />} />
               <Route path="/lojista/aceitar-convite" element={<AceitarConviteLojista />} />
               <Route path="/lojista" element={<LojistaGuard><LojistaLayout><LojistaDashboard /></LojistaLayout></LojistaGuard>} />
               <Route path="/lojista/aparelhos" element={<LojistaGuard><LojistaLayout><LojistaAparelhos /></LojistaLayout></LojistaGuard>} />

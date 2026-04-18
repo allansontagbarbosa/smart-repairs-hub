@@ -13,3 +13,7 @@ project_id = "cgsdnvuigolxwzfmnykk"
     verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
+  [functions.accept-lojista-invite]
+    verify_jwt = false
+  [functions.accept-lojista-invite-with-password]
+    verify_jwt = false
