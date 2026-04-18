@@ -239,7 +239,10 @@ export default function LojistaLogin() {
 
             <Button type="submit" className="w-full h-11" disabled={loading}>
               {loading ? (
-                <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Entrando...
+                </>
               ) : (
                 <>
                   <LogIn className="h-4 w-4 mr-2" />
