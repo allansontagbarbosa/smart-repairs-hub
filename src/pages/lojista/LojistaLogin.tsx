@@ -62,15 +62,22 @@ export default function LojistaLogin() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !senha) return;
+    if (loading) return;
+    if (!email.trim() || !senha) {
+      toast({
+        title: "Preencha email e senha",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
 
     try {
       const emailLower = email.trim().toLowerCase();
 
-      // 1) Pré-validação via RPC SECURITY DEFINER (não depende de RLS/sessão)
+      // 1) Verificação SECURITY DEFINER (não depende de RLS/sessão)
       const { data: verificacao, error: verifError } = await supabase.rpc(
-        "verificar_lojista_por_email",
+        "lojista_verificar_acesso",
         { email_input: emailLower }
       );
 
@@ -78,32 +85,35 @@ export default function LojistaLogin() {
         console.error("[lojista-login] verificacao erro:", verifError);
         toast({
           title: "Erro ao verificar cadastro",
-          description: "Tente novamente em instantes.",
+          description: verifError.message ?? "Tente novamente em instantes.",
           variant: "destructive",
         });
         return;
       }
 
       const info = (verificacao ?? [])[0];
-      const status = info?.existe ? info.status : "nao_convidado";
 
-      if (!status || status === "nao_convidado") {
+      if (!info?.existe) {
         toast({
           title: "Email não cadastrado",
-          description: "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
+          description:
+            "Este email não está cadastrado como lojista parceiro. Fale com a assistência.",
           variant: "destructive",
         });
         return;
       }
-      if (status === "convidado") {
+
+      if (info.status_acesso === "convidado") {
         toast({
           title: "Convite pendente",
-          description: "Aceite seu convite primeiro pelo link enviado por email.",
+          description:
+            "Aceite seu convite primeiro pelo link enviado por email.",
           variant: "destructive",
         });
         return;
       }
-      if (status === "inativo") {
+
+      if (info.status_acesso === "inativo") {
         toast({
           title: "Acesso revogado",
           description: "Seu acesso foi revogado. Contate a assistência.",
@@ -112,29 +122,53 @@ export default function LojistaLogin() {
         return;
       }
 
-      // 2) Login com senha
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailLower,
-        password: senha,
-      });
-
-      if (error) {
+      if (info.status_acesso !== "ativo") {
         toast({
-          title: "Email ou senha inválidos",
-          description: "Verifique suas credenciais e tente novamente.",
+          title: "Acesso indisponível",
+          description: "Seu cadastro ainda não está liberado para acesso.",
           variant: "destructive",
         });
         return;
       }
 
-      // Aguardar PostgREST propagar a sessão antes de o guard ler lojista_usuarios
+      // 2) Login com senha (SEMPRE chamado quando status = ativo)
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: emailLower,
+        password: senha,
+      });
+
+      if (authError) {
+        console.error("[lojista-login] auth erro:", authError);
+        const msg = (authError.message || "").toLowerCase();
+        if (msg.includes("invalid login") || msg.includes("invalid_credentials")) {
+          toast({
+            title: "Email ou senha inválidos",
+            description: "Verifique suas credenciais e tente novamente.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Erro ao entrar",
+            description: authError.message,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      toast({
+        title: "Login realizado!",
+        description: "Redirecionando para o portal...",
+      });
+
+      // Aguardar PostgREST propagar a sessão antes do guard
       await new Promise((r) => setTimeout(r, 300));
       navigate("/lojista", { replace: true });
     } catch (err: any) {
-      console.error("[lojista-login] erro:", err);
+      console.error("[lojista-login] erro inesperado:", err);
       toast({
-        title: "Erro ao entrar",
-        description: "Tente novamente em instantes.",
+        title: "Erro de conexão",
+        description: err?.message ?? "Tente novamente em instantes.",
         variant: "destructive",
       });
     } finally {
