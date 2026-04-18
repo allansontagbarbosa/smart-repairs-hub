@@ -22,6 +22,9 @@ interface Props {
   userProfiles: any[];
   perfisAcesso: any[];
   funcionarios: any[];
+  loading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
 }
 
 const MODULOS_CRUD = [
@@ -56,7 +59,7 @@ function buildDefaultPermissoes() {
 
 const PAGE_SIZE = 20;
 
-export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: Props) {
+export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, loading, error, onRetry }: Props) {
   const qc = useQueryClient();
   const { isAdmin } = usePermissoes();
   const { registrar } = useAuditoria();
@@ -280,7 +283,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios }: 
   };
 
   const handleResendInvite = async (profile: any) => {
-    const email = profile.email || profile.funcionarios?.email;
+    const email = profile.funcionarios?.email;
     if (!email) {
       toast.error("Email não encontrado para este usuário");
       return;
