@@ -31,6 +31,7 @@ import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import AceitarConvite from "./pages/AceitarConvite";
 import Onboarding from "./pages/Onboarding";
+import Unsubscribe from "./pages/Unsubscribe";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/aceitar-convite" element={<AceitarConvite />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
