@@ -5,13 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { FornecedorFormDialog } from "@/components/fornecedores/FornecedorFormDialog";
 import { FornecedorHistoricoSheet } from "@/components/fornecedores/FornecedorHistoricoSheet";
 import { PedidoCompraDialog } from "@/components/fornecedores/PedidoCompraDialog";
 
 export default function Fornecedores() {
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editFornecedor, setEditFornecedor] = useState<any>(null);
