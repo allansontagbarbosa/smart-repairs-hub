@@ -62,15 +62,36 @@ export function useConfiguracoes() {
     },
   });
 
-  const { data: userProfiles = [] } = useQuery({
+  const {
+    data: userProfiles = [],
+    isLoading: userProfilesLoading,
+    error: userProfilesError,
+    refetch: refetchUserProfiles,
+  } = useQuery({
     queryKey: ["user_profiles"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_profiles")
-        .select("*, perfis_acesso(nome_perfil), funcionarios(nome, email), email")
-        .or("ativo.eq.true,ativo.is.null")
+        .select(`
+          id,
+          user_id,
+          nome_exibicao,
+          email,
+          ativo,
+          perfil_id,
+          funcionario_id,
+          empresa_id,
+          created_at,
+          perfis_acesso ( nome_perfil, permissoes ),
+          funcionarios ( nome, email )
+        `)
         .order("created_at", { ascending: true });
-      return data || [];
+      if (error) {
+        console.error("[useConfiguracoes] erro ao listar user_profiles:", error);
+        throw error;
+      }
+      // Filtra ativo=true OU null em JS (contorna conflitos com RLS no or=)
+      return (data || []).filter((u: any) => u.ativo === true || u.ativo === null);
     },
   });
 
