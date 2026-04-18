@@ -225,7 +225,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 <th className="hidden lg:table-cell">Marca / Modelo</th>
                 <th className="text-center">Qtd</th>
                 <th className="hidden sm:table-cell text-center">Mín</th>
-                <th className="hidden md:table-cell text-right">Custo</th>
                 <th className="hidden md:table-cell text-right">Venda</th>
                 <th className="hidden lg:table-cell">Local</th>
                 <th className="text-right">Ações</th>
@@ -287,7 +286,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                       </div>
                     </td>
                     <td className="hidden sm:table-cell text-center text-sm text-muted-foreground">{item.quantidade_minima || "—"}</td>
-                    <td className="hidden md:table-cell text-sm text-right text-muted-foreground">{fmtCurrency(item.custo_unitario)}</td>
                     <td className="hidden md:table-cell text-sm text-right">
                       {item.preco_venda == null ? (
                         <span className="text-muted-foreground">—</span>
@@ -316,7 +314,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={10} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
+                <tr><td colSpan={9} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>

@@ -108,22 +108,14 @@ export default function Fornecedores() {
           <p className="text-sm text-muted-foreground">{fornecedores.length} fornecedores cadastrados</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => handleNewPedido()}>
-            <ShoppingCart className="h-4 w-4 mr-1" /> Novo Pedido
-          </Button>
           <Button size="sm" onClick={() => { setEditFornecedor(null); setFormOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Novo Fornecedor
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="fornecedores">
-        <TabsList>
-          <TabsTrigger value="fornecedores">Fornecedores</TabsTrigger>
-          <TabsTrigger value="pedidos">Pedidos de Compra</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="fornecedores" className="space-y-4">
+      <div>
+        <div className="space-y-4">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar fornecedor..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -194,12 +186,8 @@ export default function Fornecedores() {
               </div>
             )}
           </div>
-        </TabsContent>
-
-        <TabsContent value="pedidos">
-          <PedidosCompraList onNewPedido={() => handleNewPedido()} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <FornecedorFormDialog
         open={formOpen}
