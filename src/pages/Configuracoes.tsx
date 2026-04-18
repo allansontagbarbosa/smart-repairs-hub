@@ -44,7 +44,7 @@ const groups = [
   {
     label: "Cadastros Base",
     items: [
-      { id: "produtos", label: "Produtos", icon: Package, keywords: ["produto", "sku", "catalogo", "item"] },
+      { id: "produtos", label: "Peças", icon: Package, keywords: ["peca", "peça", "produto", "sku", "catalogo", "item", "estoque"] },
       { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao", "defeito", "problema", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
