@@ -110,7 +110,12 @@ export default function LojistaLogin() {
         console.warn("[portal-lojista] check lojista falhou:", checkError);
       }
 
-      const status = lojistaCheck?.[0]?.status_acesso;
+      // Prioriza ativo > convidado > inativo > nao_convidado entre os registros
+      const rows = lojistaCheck ?? [];
+      const prio = (s?: string | null) =>
+        s === "ativo" ? 4 : s === "convidado" ? 3 : s === "inativo" ? 2 : 1;
+      const best = rows.slice().sort((a, b) => prio(b.status_acesso) - prio(a.status_acesso))[0];
+      const status = best?.status_acesso;
       if (!checkError) {
         if (!status || status === "nao_convidado") {
           toast({
