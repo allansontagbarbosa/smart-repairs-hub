@@ -52,11 +52,18 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   const [comissoesPorServico, setComissoesPorServico] = useState<Record<string, { tipo: string; valor: number }>>({});
   const [loadingComissoes, setLoadingComissoes] = useState(false);
 
-  const filtered = funcionarios.filter((f) =>
-    f.nome?.toLowerCase().includes(search.toLowerCase()) ||
-    f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
-    f.especialidade?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = funcionarios.filter((f) => {
+    const matchSearch =
+      f.nome?.toLowerCase().includes(search.toLowerCase()) ||
+      f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
+      f.especialidade?.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (funcaoFiltro === "tecnico") return matchTecnico(f);
+    if (funcaoFiltro === "outros") return !matchTecnico(f);
+    return true; // "todos"
+  });
+
+  const totalTecnicos = funcionarios.filter(matchTecnico).length;
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
