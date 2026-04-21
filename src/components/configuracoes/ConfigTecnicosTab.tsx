@@ -30,10 +30,16 @@ const emptyForm = {
 export function ConfigTecnicosTab({ funcionarios }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [funcaoFiltro, setFuncaoFiltro] = useState<string>("tecnico");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ ...emptyForm });
   const [tab, setTab] = useState("dados");
+
+  const matchTecnico = (f: any) => {
+    const blob = `${f.funcao || ""} ${f.cargo || ""} ${f.especialidade || ""}`.toLowerCase();
+    return blob.includes("técnic") || blob.includes("tecnic");
+  };
 
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico"],
