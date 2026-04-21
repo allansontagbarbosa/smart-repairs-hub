@@ -458,6 +458,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-3 font-medium">Nome</th>
+                  <th className="text-left p-3 font-medium">Função</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Cargo</th>
                   <th className="text-left p-3 font-medium hidden lg:table-cell">Especialidade</th>
                   <th className="text-left p-3 font-medium hidden lg:table-cell">Salário</th>
@@ -472,6 +473,13 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                     <td className="p-3">
                       <div className="font-medium">{f.nome}</div>
                       <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
+                    </td>
+                    <td className="p-3">
+                      {matchTecnico(f) ? (
+                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
+                      ) : (
+                        <Badge variant="outline">{f.funcao || f.cargo || "Outro"}</Badge>
+                      )}
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
                     <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
