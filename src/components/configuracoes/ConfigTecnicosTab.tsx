@@ -178,9 +178,21 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-1 gap-2 max-w-xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={funcaoFiltro} onValueChange={setFuncaoFiltro}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tecnico">Técnicos ({totalTecnicos})</SelectItem>
+              <SelectItem value="outros">Outras funções</SelectItem>
+              <SelectItem value="todos">Todos ({funcionarios.length})</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados"); } }}>
           <DialogTrigger asChild>
