@@ -503,7 +503,15 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum técnico cadastrado</td></tr>
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                      {funcionarios.length === 0
+                        ? "Nenhum funcionário cadastrado. Clique em 'Novo Técnico' para começar."
+                        : funcaoFiltro === "tecnico"
+                        ? "Nenhum técnico encontrado. Cadastre um funcionário com função/cargo contendo 'Técnico' ou troque o filtro para 'Todos'."
+                        : "Nenhum resultado para os filtros atuais."}
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
