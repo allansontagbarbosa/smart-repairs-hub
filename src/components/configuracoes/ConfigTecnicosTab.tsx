@@ -30,10 +30,16 @@ const emptyForm = {
 export function ConfigTecnicosTab({ funcionarios }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [funcaoFiltro, setFuncaoFiltro] = useState<string>("tecnico");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ ...emptyForm });
   const [tab, setTab] = useState("dados");
+
+  const matchTecnico = (f: any) => {
+    const blob = `${f.funcao || ""} ${f.cargo || ""} ${f.especialidade || ""}`.toLowerCase();
+    return blob.includes("técnic") || blob.includes("tecnic");
+  };
 
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico"],
@@ -46,11 +52,18 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   const [comissoesPorServico, setComissoesPorServico] = useState<Record<string, { tipo: string; valor: number }>>({});
   const [loadingComissoes, setLoadingComissoes] = useState(false);
 
-  const filtered = funcionarios.filter((f) =>
-    f.nome?.toLowerCase().includes(search.toLowerCase()) ||
-    f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
-    f.especialidade?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = funcionarios.filter((f) => {
+    const matchSearch =
+      f.nome?.toLowerCase().includes(search.toLowerCase()) ||
+      f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
+      f.especialidade?.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (funcaoFiltro === "tecnico") return matchTecnico(f);
+    if (funcaoFiltro === "outros") return !matchTecnico(f);
+    return true; // "todos"
+  });
+
+  const totalTecnicos = funcionarios.filter(matchTecnico).length;
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
@@ -165,9 +178,21 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-1 gap-2 max-w-xl">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={funcaoFiltro} onValueChange={setFuncaoFiltro}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="tecnico">Técnicos ({totalTecnicos})</SelectItem>
+              <SelectItem value="outros">Outras funções</SelectItem>
+              <SelectItem value="todos">Todos ({funcionarios.length})</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados"); } }}>
           <DialogTrigger asChild>
@@ -433,6 +458,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-3 font-medium">Nome</th>
+                  <th className="text-left p-3 font-medium">Função</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Cargo</th>
                   <th className="text-left p-3 font-medium hidden lg:table-cell">Especialidade</th>
                   <th className="text-left p-3 font-medium hidden lg:table-cell">Salário</th>
@@ -447,6 +473,13 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                     <td className="p-3">
                       <div className="font-medium">{f.nome}</div>
                       <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
+                    </td>
+                    <td className="p-3">
+                      {matchTecnico(f) ? (
+                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
+                      ) : (
+                        <Badge variant="outline">{f.funcao || f.cargo || "Outro"}</Badge>
+                      )}
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
                     <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
@@ -470,7 +503,15 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum técnico cadastrado</td></tr>
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                      {funcionarios.length === 0
+                        ? "Nenhum funcionário cadastrado. Clique em 'Novo Técnico' para começar."
+                        : funcaoFiltro === "tecnico"
+                        ? "Nenhum técnico encontrado. Cadastre um funcionário com função/cargo contendo 'Técnico' ou troque o filtro para 'Todos'."
+                        : "Nenhum resultado para os filtros atuais."}
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
