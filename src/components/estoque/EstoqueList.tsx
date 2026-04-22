@@ -350,7 +350,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>
