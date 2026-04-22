@@ -46,7 +46,6 @@ const emptyForm = {
   marca_id: "",
   modelo_id: "",
   descricao: "",
-  custo: null as number | null,
   preco_padrao: null as number | null,
   preco_especial: null as number | null,
   sku: "",
@@ -95,7 +94,6 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
         marca_id: data.marca_id ?? "",
         modelo_id: data.modelo_id ?? "",
         descricao: data.descricao ?? "",
-        custo: data.custo ?? null,
         preco_padrao: data.preco_padrao ?? null,
         preco_especial: data.preco_especial ?? null,
         sku: data.sku ?? "",
@@ -139,7 +137,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
         categoria_id: form.categoria_id || null,
         marca_id: form.marca_id || null,
         modelo_id: form.modelo_id || null,
-        custo: Number(form.custo) || 0,
+        // custo NÃO é mais editável manualmente — vem das compras (média ponderada em estoque_itens.custo_medio)
         preco_padrao: Number(form.preco_padrao) || 0,
         preco_especial: form.preco_especial != null ? Number(form.preco_especial) : null,
       };
@@ -258,17 +256,9 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Custo de referência</Label>
-              <CurrencyInput
-                value={form.custo}
-                onValueChange={(v) => set("custo", v)}
-                className="h-9 mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Preço padrão</Label>
+              <Label className="text-xs">Preço padrão de venda</Label>
               <CurrencyInput
                 value={form.preco_padrao}
                 onValueChange={(v) => set("preco_padrao", v)}
@@ -284,6 +274,14 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
               />
             </div>
           </div>
+
+          <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 -mt-1">
+            <Info className="h-3 w-3 mt-0.5 shrink-0" />
+            <span>
+              O custo desta peça é calculado automaticamente pelas compras registradas
+              (média ponderada). Não há campo de custo manual.
+            </span>
+          </p>
 
           <div className="flex items-center gap-2 pt-1">
             <Switch checked={form.ativo} onCheckedChange={(v) => set("ativo", v)} />
