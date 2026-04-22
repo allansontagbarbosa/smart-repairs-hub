@@ -146,7 +146,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
           .from("produtos_base")
           .update(payload)
           .eq("id", pecaId!)
-          .select("id, nome, sku, custo, preco_padrao, ativo")
+          .select("id, nome, sku, preco_padrao, ativo")
           .single();
         if (error) throw error;
         return data as PecaSalva;
@@ -154,7 +154,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
         const { data, error } = await supabase
           .from("produtos_base")
           .insert(payload)
-          .select("id, nome, sku, custo, preco_padrao, ativo")
+          .select("id, nome, sku, preco_padrao, ativo")
           .single();
         if (error) throw error;
         return data as PecaSalva;
