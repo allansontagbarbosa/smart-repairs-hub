@@ -27,7 +27,6 @@ export interface PecaSalva {
   id: string;
   nome: string;
   sku: string | null;
-  custo: number | null;
   preco_padrao: number | null;
   ativo: boolean;
 }
