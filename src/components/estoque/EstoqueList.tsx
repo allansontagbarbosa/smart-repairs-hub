@@ -155,7 +155,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
       { header: "Capacidade", value: r => r.capacidade ?? "" },
       { header: "Quantidade", value: r => r.quantidade },
       { header: "Mínimo", value: r => r.quantidade_minima },
-      { header: "Custo", value: r => r.custo_unitario ?? "" },
+      { header: "Custo médio", value: r => r.custo_medio ?? "" },
       { header: "Venda", value: r => r.preco_venda ?? "" },
       { header: "Local", value: r => r.local_estoque ?? "" },
       { header: "Fornecedor", value: r => r.fornecedor ?? "" },
@@ -239,11 +239,13 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 </th>
                 <th>Peça</th>
                 <th className="hidden md:table-cell">Categoria</th>
-                <th className="hidden lg:table-cell">Marca / Modelo</th>
+                <th className="hidden xl:table-cell">Marca / Modelo</th>
                 <th className="text-center">Qtd</th>
                 <th className="hidden sm:table-cell text-center">Mín</th>
+                <th className="hidden md:table-cell text-right">Custo médio</th>
                 <th className="hidden md:table-cell text-right">Venda</th>
-                <th className="hidden lg:table-cell">Local</th>
+                <th className="hidden lg:table-cell text-center">Margem</th>
+                <th className="hidden xl:table-cell">Local</th>
                 <th className="text-right">Ações</th>
               </tr>
             </thead>
@@ -280,7 +282,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                       </div>
                     </td>
                     <td className="hidden md:table-cell text-sm text-muted-foreground">{item.estoque_categorias?.nome ?? "—"}</td>
-                    <td className="hidden lg:table-cell text-sm text-muted-foreground">
+                    <td className="hidden xl:table-cell text-sm text-muted-foreground">
                       {[item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" / ") || "—"}
                     </td>
                     <td className="text-center">
@@ -304,15 +306,32 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                     </td>
                     <td className="hidden sm:table-cell text-center text-sm text-muted-foreground">{item.quantidade_minima || "—"}</td>
                     <td className="hidden md:table-cell text-sm text-right">
-                      {item.preco_venda == null ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : item.custo_unitario != null && item.preco_venda === item.custo_unitario ? (
-                        <span className="text-warning" title="Margem zero">{fmtCurrency(item.preco_venda)}</span>
+                      {item.custo_medio && item.custo_medio > 0 ? (
+                        <span className="font-mono text-xs">{fmtCurrency(item.custo_medio)}</span>
                       ) : (
-                        <span className="text-muted-foreground">{fmtCurrency(item.preco_venda)}</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help">—</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              Sem custo registrado. Registre uma compra ou faça ajuste de estoque inicial.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </td>
-                    <td className="hidden lg:table-cell text-sm text-muted-foreground">
+                    <td className="hidden md:table-cell text-sm text-right">
+                      {item.preco_venda == null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className="font-mono text-xs">{fmtCurrency(item.preco_venda)}</span>
+                      )}
+                    </td>
+                    <td className="hidden lg:table-cell text-center">
+                      <MargemBadge custo={item.custo_medio} venda={item.preco_venda} />
+                    </td>
+                    <td className="hidden xl:table-cell text-sm text-muted-foreground">
                       {item.local_estoque ? (
                         <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{item.local_estoque}</span>
                       ) : "—"}
