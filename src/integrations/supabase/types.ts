@@ -1474,6 +1474,7 @@ export type Database = {
           codigo_barras: string | null
           cor: string | null
           created_at: string
+          custo_medio: number
           custo_unitario: number | null
           deleted_at: string | null
           empresa_id: string | null
@@ -1499,6 +1500,7 @@ export type Database = {
           codigo_barras?: string | null
           cor?: string | null
           created_at?: string
+          custo_medio?: number
           custo_unitario?: number | null
           deleted_at?: string | null
           empresa_id?: string | null
@@ -1524,6 +1526,7 @@ export type Database = {
           codigo_barras?: string | null
           cor?: string | null
           created_at?: string
+          custo_medio?: number
           custo_unitario?: number | null
           deleted_at?: string | null
           empresa_id?: string | null
@@ -1881,6 +1884,59 @@ export type Database = {
             columns: ["ordem_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_custo_peca: {
+        Row: {
+          custo_anterior: number | null
+          custo_novo: number
+          empresa_id: string
+          id: string
+          origem: string
+          origem_id: string | null
+          peca_id: string
+          preco_compra_unitario: number | null
+          quantidade_anterior: number | null
+          quantidade_movimentada: number | null
+          registrado_em: string
+          registrado_por: string | null
+        }
+        Insert: {
+          custo_anterior?: number | null
+          custo_novo: number
+          empresa_id: string
+          id?: string
+          origem: string
+          origem_id?: string | null
+          peca_id: string
+          preco_compra_unitario?: number | null
+          quantidade_anterior?: number | null
+          quantidade_movimentada?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+        }
+        Update: {
+          custo_anterior?: number | null
+          custo_novo?: number
+          empresa_id?: string
+          id?: string
+          origem?: string
+          origem_id?: string | null
+          peca_id?: string
+          preco_compra_unitario?: number | null
+          quantidade_anterior?: number | null
+          quantidade_movimentada?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_custo_peca_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
             referencedColumns: ["id"]
           },
         ]
@@ -2515,6 +2571,7 @@ export type Database = {
           contato_preferido: string | null
           created_at: string
           created_by: string | null
+          custo_mao_de_obra: number
           custo_pecas: number | null
           custo_total: number | null
           data_aprovacao: string | null
@@ -2538,6 +2595,7 @@ export type Database = {
           lojista_id: string | null
           lucro_bruto: number | null
           mao_obra_adicional: number
+          margem_calculada: number
           motivo_reprovacao: string | null
           numero: number
           numero_formatado: string | null
@@ -2562,6 +2620,8 @@ export type Database = {
           valor_pago: number | null
           valor_pendente: number | null
           valor_total: number | null
+          valor_total_pecas: number
+          valor_total_servicos: number
         }
         Insert: {
           aparelho_id: string
@@ -2572,6 +2632,7 @@ export type Database = {
           contato_preferido?: string | null
           created_at?: string
           created_by?: string | null
+          custo_mao_de_obra?: number
           custo_pecas?: number | null
           custo_total?: number | null
           data_aprovacao?: string | null
@@ -2595,6 +2656,7 @@ export type Database = {
           lojista_id?: string | null
           lucro_bruto?: number | null
           mao_obra_adicional?: number
+          margem_calculada?: number
           motivo_reprovacao?: string | null
           numero?: number
           numero_formatado?: string | null
@@ -2619,6 +2681,8 @@ export type Database = {
           valor_pago?: number | null
           valor_pendente?: number | null
           valor_total?: number | null
+          valor_total_pecas?: number
+          valor_total_servicos?: number
         }
         Update: {
           aparelho_id?: string
@@ -2629,6 +2693,7 @@ export type Database = {
           contato_preferido?: string | null
           created_at?: string
           created_by?: string | null
+          custo_mao_de_obra?: number
           custo_pecas?: number | null
           custo_total?: number | null
           data_aprovacao?: string | null
@@ -2652,6 +2717,7 @@ export type Database = {
           lojista_id?: string | null
           lucro_bruto?: number | null
           mao_obra_adicional?: number
+          margem_calculada?: number
           motivo_reprovacao?: string | null
           numero?: number
           numero_formatado?: string | null
@@ -2676,6 +2742,8 @@ export type Database = {
           valor_pago?: number | null
           valor_pendente?: number | null
           valor_total?: number | null
+          valor_total_pecas?: number
+          valor_total_servicos?: number
         }
         Relationships: [
           {
@@ -3535,6 +3603,16 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recalcular_custo_medio: {
+        Args: {
+          p_origem: string
+          p_origem_id?: string
+          p_peca_id: string
+          p_preco_compra_unitario: number
+          p_quantidade_entrada: number
+        }
+        Returns: number
+      }
       recalcular_totais_os: { Args: { p_ordem_id: string }; Returns: undefined }
       verificar_lojista_por_email: {
         Args: { email_input: string }
@@ -3562,7 +3640,7 @@ export type Database = {
         | "aguardando_peca"
         | "pronto"
         | "entregue"
-      tipo_comissao: "fixa" | "percentual"
+      tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
       tipo_movimentacao: "entrada" | "saida"
     }
     CompositeTypes: {
@@ -3710,7 +3788,7 @@ export const Constants = {
         "pronto",
         "entregue",
       ],
-      tipo_comissao: ["fixa", "percentual"],
+      tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
       tipo_movimentacao: ["entrada", "saida"],
     },
   },

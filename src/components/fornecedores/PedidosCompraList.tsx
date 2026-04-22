@@ -60,7 +60,7 @@ export function PedidosCompraList({ onNewPedido }: Props) {
         .single();
 
       if (entrada) {
-        // Insert items and update stock
+        // Insert items and update stock with weighted average cost
         for (const item of itens) {
           if (item.estoque_item_id) {
             await supabase.from("entradas_estoque_itens").insert({
@@ -70,19 +70,15 @@ export function PedidosCompraList({ onNewPedido }: Props) {
               custo_unitario: item.custo_unitario,
             });
 
-            // Update stock quantity
-            const { data: current } = await supabase
-              .from("estoque_itens")
-              .select("quantidade")
-              .eq("id", item.estoque_item_id)
-              .single();
-
-            if (current) {
-              await supabase
-                .from("estoque_itens")
-                .update({ quantidade: (current.quantidade || 0) + item.quantidade })
-                .eq("id", item.estoque_item_id);
-            }
+            // Recalculate weighted average cost (updates quantity + custo_medio + history)
+            const { error: rpcErr } = await supabase.rpc("recalcular_custo_medio", {
+              p_peca_id: item.estoque_item_id,
+              p_quantidade_entrada: item.quantidade,
+              p_preco_compra_unitario: item.custo_unitario,
+              p_origem: "compra_formal",
+              p_origem_id: pedido.id,
+            });
+            if (rpcErr) console.error("recalcular_custo_medio falhou:", rpcErr);
           }
 
           // Update received qty

@@ -283,13 +283,18 @@ function NovaCompraDialog({
       if (e2) throw e2;
 
       for (const l of linhas) {
-        const item = estoqueItens.find((i) => i.id === l.estoque_item_id);
-        if (item) {
-          await supabase.from("estoque_itens").update({
-            quantidade: item.quantidade + l.quantidade,
-            custo_unitario: l.custo_unitario,
-            ...(l.imei_serial ? { imei_serial: l.imei_serial } : {}),
-          }).eq("id", l.estoque_item_id);
+        // Recalculate weighted average cost (updates quantity + custo_medio + history)
+        const { error: rpcErr } = await supabase.rpc("recalcular_custo_medio", {
+          p_peca_id: l.estoque_item_id,
+          p_quantidade_entrada: l.quantidade,
+          p_preco_compra_unitario: l.custo_unitario,
+          p_origem: "entrada_direta",
+          p_origem_id: entrada.id,
+        });
+        if (rpcErr) console.error("recalcular_custo_medio falhou:", rpcErr);
+
+        if (l.imei_serial) {
+          await supabase.from("estoque_itens").update({ imei_serial: l.imei_serial }).eq("id", l.estoque_item_id);
         }
       }
 
