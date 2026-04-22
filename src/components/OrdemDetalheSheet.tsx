@@ -18,6 +18,7 @@ import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { cn } from "@/lib/utils";
 import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
 import { ImpressaoOS, type ImpressaoOSData } from "@/components/ImpressaoOS";
+import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
 
 
