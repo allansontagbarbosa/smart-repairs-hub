@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { toast } from "sonner";
-import { Loader2, Wrench } from "lucide-react";
+import { Loader2, Wrench, Info } from "lucide-react";
 import type { EstoqueItem } from "@/hooks/useEstoque";
 
 interface Props {
@@ -32,6 +33,7 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
   const [pecaId, setPecaId] = useState("");
   const [tipo, setTipo] = useState<"entrada" | "saida">("entrada");
   const [quantidade, setQuantidade] = useState<string>("1");
+  const [precoUnitario, setPrecoUnitario] = useState<number>(0);
   const [motivo, setMotivo] = useState("");
   const [observacao, setObservacao] = useState("");
 
@@ -39,6 +41,7 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
     setPecaId("");
     setTipo("entrada");
     setQuantidade("1");
+    setPrecoUnitario(0);
     setMotivo("");
     setObservacao("");
   };
@@ -49,26 +52,43 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
     i.sku ||
     "Peça";
 
+  const itemSelecionado = itens.find((i) => i.id === pecaId);
+
   const mutation = useMutation({
     mutationFn: async () => {
-      const item = itens.find((i) => i.id === pecaId);
+      const item = itemSelecionado;
       if (!item) throw new Error("Peça não selecionada");
       const qtd = parseInt(quantidade) || 0;
       if (qtd <= 0) throw new Error("Quantidade inválida");
       if (!motivo) throw new Error("Selecione um motivo");
 
-      const novaQtd = tipo === "entrada" ? item.quantidade + qtd : item.quantidade - qtd;
-      if (novaQtd < 0) throw new Error("Estoque ficaria negativo");
-
-      const { error: e1 } = await supabase
-        .from("estoque_itens")
-        .update({ quantidade: novaQtd })
-        .eq("id", pecaId);
-      if (e1) throw e1;
+      if (tipo === "entrada") {
+        if (!precoUnitario || precoUnitario <= 0) {
+          throw new Error("Informe o preço unitário desta entrada");
+        }
+        // Recalcula custo médio + atualiza quantidade + grava histórico
+        const { error: rpcErr } = await supabase.rpc("recalcular_custo_medio", {
+          p_peca_id: pecaId,
+          p_quantidade_entrada: qtd,
+          p_preco_compra_unitario: precoUnitario,
+          p_origem: "ajuste_manual",
+          p_origem_id: null,
+        });
+        if (rpcErr) throw rpcErr;
+      } else {
+        // Saída: só decrementa quantidade, não mexe no custo médio
+        const novaQtd = item.quantidade - qtd;
+        if (novaQtd < 0) throw new Error("Estoque ficaria negativo");
+        const { error: e1 } = await supabase
+          .from("estoque_itens")
+          .update({ quantidade: novaQtd })
+          .eq("id", pecaId);
+        if (e1) throw e1;
+      }
 
       const { error: e2 } = await supabase.from("estoque_movimentos").insert({
         peca_id: pecaId,
-        tipo: tipo,
+        tipo,
         quantidade: qtd,
         motivo: `${motivos.find((m) => m.value === motivo)?.label || motivo}${observacao ? ` — ${observacao}` : ""}`,
       });
@@ -168,6 +188,28 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
             </div>
           </div>
 
+          {tipo === "entrada" && (
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <Label className="text-xs">Preço unitário desta entrada (R$) *</Label>
+              <CurrencyInput
+                value={precoUnitario}
+                onValueChange={setPrecoUnitario}
+                placeholder="0,00"
+                className="bg-background"
+              />
+              <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                <span>
+                  Informe quanto custou cada unidade nesta entrada. O sistema vai recalcular o
+                  custo médio da peça (média ponderada) usado no cálculo de lucro.
+                  {itemSelecionado && itemSelecionado.quantidade > 0 ? (
+                    <> Custo médio atual: <strong>R$ {Number((itemSelecionado as any).custo_medio ?? itemSelecionado.custo_unitario ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>.</>
+                  ) : null}
+                </span>
+              </p>
+            </div>
+          )}
+
           <div>
             <Label className="text-xs">Observação</Label>
             <Textarea
@@ -185,7 +227,7 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
             </Button>
             <Button
               onClick={() => mutation.mutate()}
-              disabled={mutation.isPending || !pecaId || !motivo}
+              disabled={mutation.isPending || !pecaId || !motivo || (tipo === "entrada" && precoUnitario <= 0)}
             >
               {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Registrar ajuste
