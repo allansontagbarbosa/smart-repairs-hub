@@ -802,6 +802,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   })()}
                 </div>
 
+                {/* Resultado financeiro (custo médio + comissão tipada) — visível só p/ Admin/Financeiro */}
+                <ResultadoFinanceiroOS ordem={ordem} />
+
                 {/* Peças utilizadas */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
