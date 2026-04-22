@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScannableInput } from "@/components/ui/scannable-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,22 @@ const fmtCurrency = (v: number | null) => {
   if (v == null) return "—";
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 };
+
+function MargemBadge({ custo, venda }: { custo: number | null; venda: number | null }) {
+  if (!custo || custo <= 0 || !venda || venda <= 0) {
+    return <span className="text-muted-foreground text-xs">—</span>;
+  }
+  const margem = ((venda - custo) / venda) * 100;
+  const txt = `${margem.toFixed(0)}%`;
+  let cls = "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
+  if (margem < 0) cls = "bg-destructive/10 text-destructive border-destructive/40 font-semibold";
+  else if (margem < 20) cls = "bg-amber-500/10 text-amber-600 border-amber-500/30";
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", cls)}>
+      {margem < 0 ? `↓ ${txt}` : txt}
+    </span>
+  );
+}
 
 interface Props {
   itens: EstoqueItem[];
@@ -138,7 +155,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
       { header: "Capacidade", value: r => r.capacidade ?? "" },
       { header: "Quantidade", value: r => r.quantidade },
       { header: "Mínimo", value: r => r.quantidade_minima },
-      { header: "Custo", value: r => r.custo_unitario ?? "" },
+      { header: "Custo médio", value: r => r.custo_medio ?? "" },
       { header: "Venda", value: r => r.preco_venda ?? "" },
       { header: "Local", value: r => r.local_estoque ?? "" },
       { header: "Fornecedor", value: r => r.fornecedor ?? "" },
@@ -222,11 +239,13 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 </th>
                 <th>Peça</th>
                 <th className="hidden md:table-cell">Categoria</th>
-                <th className="hidden lg:table-cell">Marca / Modelo</th>
+                <th className="hidden xl:table-cell">Marca / Modelo</th>
                 <th className="text-center">Qtd</th>
                 <th className="hidden sm:table-cell text-center">Mín</th>
+                <th className="hidden md:table-cell text-right">Custo médio</th>
                 <th className="hidden md:table-cell text-right">Venda</th>
-                <th className="hidden lg:table-cell">Local</th>
+                <th className="hidden lg:table-cell text-center">Margem</th>
+                <th className="hidden xl:table-cell">Local</th>
                 <th className="text-right">Ações</th>
               </tr>
             </thead>
@@ -263,7 +282,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                       </div>
                     </td>
                     <td className="hidden md:table-cell text-sm text-muted-foreground">{item.estoque_categorias?.nome ?? "—"}</td>
-                    <td className="hidden lg:table-cell text-sm text-muted-foreground">
+                    <td className="hidden xl:table-cell text-sm text-muted-foreground">
                       {[item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" / ") || "—"}
                     </td>
                     <td className="text-center">
@@ -287,15 +306,32 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                     </td>
                     <td className="hidden sm:table-cell text-center text-sm text-muted-foreground">{item.quantidade_minima || "—"}</td>
                     <td className="hidden md:table-cell text-sm text-right">
-                      {item.preco_venda == null ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : item.custo_unitario != null && item.preco_venda === item.custo_unitario ? (
-                        <span className="text-warning" title="Margem zero">{fmtCurrency(item.preco_venda)}</span>
+                      {item.custo_medio && item.custo_medio > 0 ? (
+                        <span className="font-mono text-xs">{fmtCurrency(item.custo_medio)}</span>
                       ) : (
-                        <span className="text-muted-foreground">{fmtCurrency(item.preco_venda)}</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help">—</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              Sem custo registrado. Registre uma compra ou faça ajuste de estoque inicial.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </td>
-                    <td className="hidden lg:table-cell text-sm text-muted-foreground">
+                    <td className="hidden md:table-cell text-sm text-right">
+                      {item.preco_venda == null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className="font-mono text-xs">{fmtCurrency(item.preco_venda)}</span>
+                      )}
+                    </td>
+                    <td className="hidden lg:table-cell text-center">
+                      <MargemBadge custo={item.custo_medio} venda={item.preco_venda} />
+                    </td>
+                    <td className="hidden xl:table-cell text-sm text-muted-foreground">
                       {item.local_estoque ? (
                         <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{item.local_estoque}</span>
                       ) : "—"}
@@ -314,7 +350,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
+                <tr><td colSpan={11} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>

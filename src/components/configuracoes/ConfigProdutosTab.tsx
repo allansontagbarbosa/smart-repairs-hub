@@ -75,7 +75,6 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
       { header: "Marca", value: r => (r as any).marcas?.nome ?? "" },
       { header: "Modelo", value: r => (r as any).modelos?.nome ?? "" },
       { header: "Categoria", value: r => (r as any).estoque_categorias?.nome ?? "" },
-      { header: "Custo ref.", value: r => r.custo ?? 0 },
       { header: "Preço padrão", value: r => r.preco_padrao ?? 0 },
       { header: "Preço especial", value: r => r.preco_especial ?? "" },
       { header: "Status", value: r => r.ativo ? "Ativo" : "Inativo" },
@@ -95,7 +94,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
         <div>
           <p className="font-medium text-foreground">Cadastro de peças (catálogo)</p>
           <p className="text-muted-foreground">
-            Aqui vive <strong>o que cada peça é</strong> (nome, SKU, custo de referência). A quantidade em estoque não aparece aqui — ela vem das compras.
+            Aqui vive <strong>o que cada peça é</strong> (nome, SKU, preço de venda). O custo é calculado automaticamente pelas compras (média ponderada) e fica visível em <strong>/pecas</strong>.
           </p>
         </div>
       </div>
@@ -154,7 +153,6 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                   <th className="text-left p-3 font-medium">Peça</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">SKU</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Categoria</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Custo ref.</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Preço</th>
                   <th className="text-left p-3 font-medium">Status</th>
                   <th className="p-3"></th>
@@ -178,7 +176,6 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{p.sku || "—"}</td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{(p as any).estoque_categorias?.nome || "—"}</td>
-                    <td className="p-3 hidden md:table-cell">{fmt(p.custo || 0)}</td>
                     <td className="p-3 hidden md:table-cell">{fmt(p.preco_padrao || 0)}</td>
                     <td className="p-3">
                       <Badge variant={p.ativo ? "default" : "secondary"}>
@@ -197,7 +194,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-10 text-center">
+                    <td colSpan={7} className="p-10 text-center">
                       <div className="space-y-2">
                         <p className="text-muted-foreground text-sm">Nenhuma peça cadastrada no catálogo.</p>
                         <Button size="sm" onClick={openCreate}>

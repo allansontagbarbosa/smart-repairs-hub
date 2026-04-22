@@ -17,6 +17,7 @@ export type EstoqueItem = {
   quantidade: number;
   quantidade_minima: number;
   custo_unitario: number | null;
+  custo_medio: number | null;
   preco_venda: number | null;
   local_estoque: string | null;
   fornecedor: string | null;
