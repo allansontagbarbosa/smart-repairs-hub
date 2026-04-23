@@ -377,6 +377,10 @@ function AssinaturasSection({
 
   const salvar = async () => {
     if (!dataUrl || !empresaId || !open) return;
+    if (!checklistCompleto) {
+      toast({ title: "Checklist incompleto", description: "Conclua todos os itens antes de salvar a assinatura.", variant: "destructive" });
+      return;
+    }
     setSalvando(true);
     const nome = open === "tecnico_conclusao" ? tecnicoNome : nomeCliente.trim();
     if (!nome) {
