@@ -783,6 +783,10 @@ export default function Assistencia() {
         }}
         onCancel={cancelar}
       />
+      <CancelarOSDialog
+        ordemId={cancelOrderId}
+        onClose={() => setCancelOrderId(null)}
+      />
     </div>
   );
 }
