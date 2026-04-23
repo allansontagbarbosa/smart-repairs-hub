@@ -48,6 +48,14 @@ import LojistaGarantias from "./pages/lojista/LojistaGarantias";
 import LojistaHistorico from "./pages/lojista/LojistaHistorico";
 import { LojistaGuard } from "@/hooks/useLojistaAuth";
 
+// Portal do Técnico
+import { TecnicoGuard, TecnicoLayout } from "@/components/tecnico/TecnicoLayout";
+import TecnicoHome from "./pages/tecnico/TecnicoHome";
+import TecnicoOrdens from "./pages/tecnico/TecnicoOrdens";
+import TecnicoOrdemDetalhe from "./pages/tecnico/TecnicoOrdemDetalhe";
+import TecnicoMetas from "./pages/tecnico/TecnicoMetas";
+import TecnicoTransferencias from "./pages/tecnico/TecnicoTransferencias";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -90,6 +98,13 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/aceitar-convite" element={<AceitarConvite />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+
+              {/* Portal do Técnico */}
+              <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/ordens/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/metas" element={<TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/transferencias" element={<TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard>} />
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
