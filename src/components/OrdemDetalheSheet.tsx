@@ -1642,40 +1642,88 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 {/* Comissões da OS */}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
-                  {comissoesOS.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {comissoesOS.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}
-                              {c.observacoes && ` · ${c.observacoes}`}
-                            </p>
+                  {(() => {
+                    const statusAtual = ordem.status;
+                    const osFinalizada = statusAtual === "pronto" || statusAtual === "entregue";
+                    const osCancelada = statusAtual === "cancelado";
+                    const tecnicoNome =
+                      funcionariosAtivos.find((f) => f.id === ordem.funcionario_id)?.nome ??
+                      ordem.tecnico ??
+                      "o técnico";
+
+                    if (osCancelada) {
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          OS cancelada · Nenhuma comissão gerada
+                        </p>
+                      );
+                    }
+
+                    if (comissoesOS.length > 0) {
+                      return (
+                        <div className="space-y-1.5">
+                          {comissoesOS.map((c) => (
+                            <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                              <div>
+                                <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}
+                                  {c.observacoes && ` · ${c.observacoes}`}
+                                </p>
+                              </div>
+                              <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    if (!ordem.funcionario_id) {
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          Atribua um técnico para ver a comissão prevista
+                        </p>
+                      );
+                    }
+
+                    if (comissaoPreview && comissaoPreview.calculado > 0) {
+                      return (
+                        <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-medium text-warning">Comissão prevista</p>
+                            <span className="text-sm font-semibold text-warning">
+                              {fmtCurrency(comissaoPreview.calculado)}
+                            </span>
                           </div>
-                          <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : comissaoPreview ? (
-                    <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-warning">Comissão prevista</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {comissaoPreview.tipo === "percentual" ? `${comissaoPreview.config}%` : fmtCurrency(comissaoPreview.config)}
-                            {" · "}Regra {comissaoPreview.origem}
+                          <p className="text-[10px] text-muted-foreground">
+                            {comissaoPreview.tipo === "percentual"
+                              ? `${comissaoPreview.config}% · `
+                              : `Valor fixo · `}
+                            Origem: {comissaoPreview.origem === "comissoes_servico"
+                              ? "regra por serviço"
+                              : "padrão do técnico"}
                           </p>
+                          {!osFinalizada && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              Será gerada ao marcar OS como "Pronto"
+                            </p>
+                          )}
                         </div>
-                        <span className="text-sm font-semibold text-warning">{fmtCurrency(comissaoPreview.calculado)}</span>
+                      );
+                    }
+
+                    return (
+                      <div className="rounded-lg border border-dashed border-muted px-3 py-2.5">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Comissão não configurada para {tecnicoNome}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Configure em Configurações → Funcionários → {tecnicoNome} (valor padrão)
+                          ou em Configurações → Comissões por serviço (valor específico).
+                        </p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">Será gerada automaticamente ao marcar como "Pronto"</p>
-                    </div>
-                  ) : ordem.funcionario_id ? (
-                    <p className="text-xs text-muted-foreground">Nenhuma comissão configurada para este técnico/serviço</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Selecione um técnico para ver a comissão prevista</p>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Despesas vinculadas */}
