@@ -22,6 +22,7 @@ const statusHeaderColors: Record<Status, string> = {
   aguardando_peca: "bg-warning/20",
   pronto: "bg-success/20",
   entregue: "bg-muted/40",
+  cancelado: "bg-destructive/20",
 };
 
 const statusDotColors: Record<Status, string> = {
@@ -33,6 +34,7 @@ const statusDotColors: Record<Status, string> = {
   aguardando_peca: "bg-warning",
   pronto: "bg-success",
   entregue: "bg-muted-foreground/50",
+  cancelado: "bg-destructive",
 };
 
 async function fetchOrders() {
