@@ -22,15 +22,6 @@ interface ClienteInfo {
   ultimo_atendimento: string | null;
 }
 
-interface AparelhoComOS {
-  id: string;
-  marca: string;
-  modelo: string;
-  cor: string | null;
-  capacidade: string | null;
-  imei: string | null;
-}
-
 export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
