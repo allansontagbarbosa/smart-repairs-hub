@@ -554,8 +554,17 @@ export default function Assistencia() {
     const temGarantia = garantiaOrdemIds.has(order.id);
     const podeCancelar = isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(order.status);
 
+    const isSelected = isAdmin && bulk.isSelected(order.id);
     return (
-      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""}`}>
+      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
+        {isAdmin && (
+          <td className="px-3 py-2.5 w-8" onClick={(e) => e.stopPropagation()}>
+            <RowCheckbox
+              checked={bulk.isSelected(order.id)}
+              onToggle={(opts) => bulk.toggle(order.id, opts)}
+            />
+          </td>
+        )}
         <td className="px-3 py-2.5 font-mono text-xs text-primary cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
@@ -754,6 +763,22 @@ export default function Assistencia() {
           <table className="w-full text-left">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
+                {isAdmin && (
+                  <th className="px-3 py-2 w-8">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <HeaderCheckbox
+                            allSelected={bulk.allSelected}
+                            someSelected={bulk.someSelected}
+                            onToggle={bulk.toggleAll}
+                          />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Selecionar página</TooltipContent>
+                    </Tooltip>
+                  </th>
+                )}
                 <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">OS</th>
                 <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Cliente / Aparelho</th>
                 <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Prioridade</th>
@@ -770,7 +795,7 @@ export default function Assistencia() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-16">
+                  <td colSpan={isAdmin ? 9 : 8} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <Wrench className="h-10 w-10 text-muted-foreground/30" />
                       <p className="text-sm text-muted-foreground">Nenhuma ordem de serviço encontrada</p>
@@ -940,6 +965,31 @@ export default function Assistencia() {
         ordemId={cancelOrderId}
         onClose={() => setCancelOrderId(null)}
       />
+
+      {isAdmin && (
+        <>
+          <BulkActionBar
+            count={bulk.count}
+            tecnicos={tecnicos}
+            onChangeStatus={(status) => setPendingBulk({ kind: "status", status })}
+            onAtribuirTecnico={(funcionarioId, nome) =>
+              setPendingBulk({ kind: "tecnico", funcionarioId, nome })
+            }
+            onExportCSV={handleExportCSV}
+            onClear={bulk.clear}
+          />
+          <BulkActionConfirmDialog
+            open={!!pendingBulk}
+            onClose={() => setPendingBulk(null)}
+            onConfirm={handleConfirmBulk}
+            title={confirmTitle}
+            description={confirmDescription}
+            affected={affectedItems}
+            warningMessage={confirmWarning}
+            confirmLabel={confirmLabel}
+          />
+        </>
+      )}
     </div>
   );
 }
