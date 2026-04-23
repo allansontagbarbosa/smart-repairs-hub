@@ -224,6 +224,13 @@ export default function Assistencia() {
   const [showOlder, setShowOlder] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
+  // Bulk action: confirmação pendente
+  type PendingBulk =
+    | { kind: "status"; status: Status }
+    | { kind: "tecnico"; funcionarioId: string; nome: string }
+    | null;
+  const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
+
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
