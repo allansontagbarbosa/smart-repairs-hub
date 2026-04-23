@@ -98,11 +98,13 @@ export default function TecnicoOrdemDetalhe() {
   useEffect(() => {
     if (!id || !ordem || checklist.length > 0) return;
     (async () => {
+      if (!identidade?.empresa_id) return;
       const rows = DEFAULT_CHECKLIST.map(i => ({
         ordem_id: id,
         item_key: i.key,
         item_label: i.label,
         testado: false,
+        empresa_id: identidade.empresa_id!,
       }));
       await supabase.from("os_checklist_saida").insert(rows);
       refetchChecklist();
@@ -154,6 +156,7 @@ export default function TecnicoOrdemDetalhe() {
       tipo,
       url_storage: path,
       uploaded_by: identidade.user_id,
+      empresa_id: identidade.empresa_id!,
     });
     if (insErr) toast({ title: "Erro ao salvar foto", description: insErr.message, variant: "destructive" });
     else {
@@ -385,6 +388,7 @@ function AssinaturasSection({
       signatario_nome: nome,
       assinatura_base64: dataUrl,
       user_agent: navigator.userAgent,
+      empresa_id: empresaId,
     });
     setSalvando(false);
     if (error) {

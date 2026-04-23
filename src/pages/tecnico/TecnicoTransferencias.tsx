@@ -166,6 +166,7 @@ function NovaTransferenciaDialog({
         motivo: motivo.trim() || null,
         solicitado_por: identidade.user_id,
         status: "pendente",
+        empresa_id: identidade.empresa_id,
       });
       if (error) throw error;
     },
