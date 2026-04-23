@@ -504,7 +504,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
       queryClient.invalidateQueries({ queryKey: ["pecas"] });
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       setAddingPart(false);
       setSelectedPecaId("");
       setPecaQtd(1);
@@ -539,7 +539,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
       queryClient.invalidateQueries({ queryKey: ["pecas"] });
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       toast.success("Peça removida e estoque devolvido!");
     },
     onError: (e: any) => toast.error(e.message),
@@ -571,9 +571,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
       queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
       queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
-      queryClient.invalidateQueries({ queryKey: ["comissoes"] });
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
-      queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] });
+      invalidateOrdensDependentes(queryClient);
       toast.success("Status atualizado!");
     },
     onError: (e: any) => toast.error(e.message || "Erro ao atualizar"),
@@ -633,11 +631,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
       queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
       queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
       queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
-      queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] });
+      invalidateOrdensDependentes(queryClient);
       const n = data?.campos_alterados ?? 0;
       const formatted = formatNumeroOS((ordem as any)?.numero, (ordem as any)?.numero_formatado);
       if (n === 0) {
@@ -668,7 +665,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       setEditing(false);
       toast.success("Ordem atualizada!");
     },
@@ -1833,7 +1830,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                                     .eq("id", garantia.id);
 
                                   queryClient.invalidateQueries({ queryKey: ["garantia_os", orderId] });
-                                  queryClient.invalidateQueries({ queryKey: ["ordens"] });
+                                  invalidateOrdensDependentes(queryClient);
                                   queryClient.invalidateQueries({ queryKey: ["garantias_list"] });
                                   toast.success(`OS de garantia #${novaOS.numero} criada com sucesso!`);
                                 } catch (err: any) {
@@ -1995,8 +1992,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           onClose={() => setCancelOpen(false)}
           onCancelled={() => {
             queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
-            queryClient.invalidateQueries({ queryKey: ["ordens"] });
             queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
+            invalidateOrdensDependentes(queryClient);
             setCancelOpen(false);
           }}
         />
