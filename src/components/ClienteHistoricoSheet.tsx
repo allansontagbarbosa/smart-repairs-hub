@@ -29,18 +29,6 @@ interface AparelhoComOS {
   cor: string | null;
   capacidade: string | null;
   imei: string | null;
-  ordens: OSResumida[];
-}
-
-interface OSResumida {
-  id: string;
-  numero: number;
-  data_entrada: string;
-  defeito_relatado: string;
-  status: Status;
-  valor: number | null;
-  aparelho_marca: string;
-  aparelho_modelo: string;
 }
 
 export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
