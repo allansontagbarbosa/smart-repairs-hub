@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTecnicoIdentidade, useMinhasOS } from "@/hooks/useTecnico";
-import { getStatusLabel } from "@/lib/status";
+import { statusLabels } from "@/lib/status";
 import { ChevronRight, Search } from "lucide-react";
 
 const FILTROS = [
@@ -73,7 +73,7 @@ export default function TecnicoOrdens() {
                       <span className="text-xs font-mono text-muted-foreground">
                         #{os.numero_formatado || os.numero}
                       </span>
-                      <Badge variant="outline" className="text-[10px]">{getStatusLabel(os.status)}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{statusLabels[os.status as keyof typeof statusLabels] ?? os.status}</Badge>
                       {os.prioridade === "alta" && <Badge variant="destructive" className="text-[10px]">Alta</Badge>}
                     </div>
                     <p className="text-sm font-medium truncate">

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTecnicoIdentidade, useMinhasOS, useTecnicoMetricas } from "@/hooks/useTecnico";
 import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign } from "lucide-react";
-import { getStatusLabel } from "@/lib/status";
+import { statusLabels } from "@/lib/status";
 
 export default function TecnicoHome() {
   const { data: identidade } = useTecnicoIdentidade();
@@ -55,7 +55,7 @@ export default function TecnicoHome() {
                         <span className="text-xs font-mono text-muted-foreground">
                           #{os.numero_formatado || os.numero}
                         </span>
-                        <Badge variant="outline" className="text-[10px]">{getStatusLabel(os.status)}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{statusLabels[os.status as keyof typeof statusLabels] ?? os.status}</Badge>
                       </div>
                       <p className="text-sm font-medium truncate">
                         {os.aparelhos?.marca} {os.aparelhos?.modelo}
