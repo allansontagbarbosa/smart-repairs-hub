@@ -566,12 +566,41 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
           <>
-            <SheetHeader className="pb-4">
+            <SheetHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-lg">
                   {labelOS((ordem as any).numero, (ordem as any).numero_formatado)}
                 </SheetTitle>
-                <StatusBadge status={ordem.status} />
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1 text-left">
+                <p className="truncate">
+                  <span className="font-medium text-foreground">{ordem.aparelhos?.clientes?.nome ?? "—"}</span>
+                  {" • "}
+                  {ordem.aparelhos?.marca} {ordem.aparelhos?.modelo}
+                  {ordem.aparelhos?.imei ? <> {" • "}IMEI {String(ordem.aparelhos.imei).slice(0, 8)}…</> : null}
+                </p>
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  <StatusBadge status={ordem.status} />
+                  {(ordem as any).eh_retroativa && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="bg-info/15 text-info border-info/30 gap-1 cursor-help">
+                            <Clock className="h-3 w-3" />Retroativa
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-medium mb-0.5">Cadastro retroativo</p>
+                          <p className="text-xs">{(ordem as any).justificativa_retroativa || "—"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                <p className="text-[11px] pt-0.5">
+                  Cadastrada por <span className="text-foreground">{criador || "—"}</span>
+                  {" em "}{new Date(ordem.created_at).toLocaleDateString("pt-BR")} às {new Date(ordem.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </p>
               </div>
             </SheetHeader>
 
