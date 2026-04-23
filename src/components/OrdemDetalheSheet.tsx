@@ -367,7 +367,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
   const fmtDateTime = (d: string) => new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const fmtCurrency = (v: number | null) => v ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—";
+  const brl = (v: number | null | undefined) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
+  const fmtCurrency = (v: number | null | undefined) => brl(v);
 
   const nextStatus = ordem ? statusFlow[statusFlow.indexOf(ordem.status) + 1] : null;
 
@@ -734,24 +736,29 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 {/* Painel Orçamento */}
                 {(() => {
                   const o = ordem as any;
-                  const total = Number(o.valor_total ?? o.valor ?? 0);
-                  const sinal = Number(o.sinal_pago ?? 0);
-                  const desc = Number(o.desconto ?? 0);
+                  const servico = Number(o.valor_total_servicos ?? o.valor ?? 0);
+                  const pecasCobradas = Number(o.valor_total_pecas ?? 0);
                   const adic = Number(o.mao_obra_adicional ?? 0);
-                  const pec = Number(o.custo_pecas ?? 0);
+                  const desc = Number(o.desconto ?? 0);
+                  // Usa valor_total da tabela (calculado por trigger) — garante que sempre fecha.
+                  // Fallback: soma manual.
+                  const totalCalculado = servico + pecasCobradas + adic - desc;
+                  const total = Number(o.valor_total ?? totalCalculado ?? 0);
+                  const sinal = Number(o.sinal_pago ?? 0);
                   const aRec = Math.max(0, total - sinal);
-                  if (total <= 0 && sinal <= 0) return null;
+                  if (total <= 0 && sinal <= 0 && servico <= 0 && pecasCobradas <= 0) return null;
                   return (
                     <div className="rounded-lg border-2 border-primary/30 bg-primary/5 px-4 py-3 space-y-1.5">
                       <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-2">Orçamento</p>
-                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Peças (custo)</span><span className="font-medium">R$ {pec.toFixed(2)}</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Mão de obra adicional</span><span className="font-medium">R$ {adic.toFixed(2)}</span></div>
-                      {desc > 0 && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Desconto</span><span className="font-medium text-destructive">− R$ {desc.toFixed(2)}</span></div>}
-                      <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between text-sm font-bold"><span>TOTAL</span><span className="text-success">R$ {total.toFixed(2)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Serviço (mão de obra)</span><span className="font-medium">{brl(servico)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Peças cobradas ao cliente</span><span className="font-medium">{brl(pecasCobradas)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Mão de obra adicional</span><span className="font-medium">{brl(adic)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Desconto</span><span className={desc > 0 ? "font-medium text-destructive" : "font-medium"}>{desc > 0 ? `− ${brl(desc)}` : brl(0)}</span></div>
+                      <div className="border-t border-primary/20 pt-1.5 mt-1.5 flex justify-between text-sm font-bold"><span>TOTAL</span><span className="text-success">{brl(total)}</span></div>
                       {sinal > 0 && (
                         <>
-                          <div className="flex justify-between text-xs pt-1"><span className="text-muted-foreground">Sinal pago{o.forma_pagamento_sinal ? ` (${o.forma_pagamento_sinal})` : ""}</span><span className="font-medium text-success">− R$ {sinal.toFixed(2)}</span></div>
-                          <div className="flex justify-between text-sm font-semibold border-t border-primary/20 pt-1.5 mt-1"><span>A receber na retirada</span><span className="text-primary">R$ {aRec.toFixed(2)}</span></div>
+                          <div className="flex justify-between text-xs pt-1"><span className="text-muted-foreground">Sinal pago{o.forma_pagamento_sinal ? ` (${o.forma_pagamento_sinal})` : ""}</span><span className="font-medium text-success">− {brl(sinal)}</span></div>
+                          <div className="flex justify-between text-sm font-semibold border-t border-primary/20 pt-1.5 mt-1"><span>A receber na retirada</span><span className="text-primary">{brl(aRec)}</span></div>
                         </>
                       )}
                       {o.garantia_dias != null && (
@@ -761,73 +768,14 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   );
                 })()}
 
-                {/* Valores e Lucro Real */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Valores & Lucro Real</p>
-                  {(() => {
-                    const o = ordem as any;
-                    const valorTotal = Number(o.valor_total ?? 0);
-                    const valorCobrado = Number(o.valor ?? 0);
-                    const custoPecas = Number(o.custo_pecas ?? 0);
-                    const totalComissoes = comissoesOS.reduce((s, c) => s + Number(c.valor), 0);
-                    const totalDespesas = despesasOS.reduce((s, d) => s + Number(d.valor), 0);
-
-                    const temItens = pecasUtilizadas.length > 0;
-                    const temCustoCalculavel = custoPecas > 0 || totalComissoes > 0 || totalDespesas > 0;
-                    const lucroReal = valorTotal - custoPecas - totalComissoes - totalDespesas;
-                    const podeCalcularLucro = valorTotal > 0 && temCustoCalculavel;
-
-                    return (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-lg border p-2.5">
-                            <p className="text-[10px] text-muted-foreground">Valor cobrado</p>
-                            <p className="text-sm font-semibold mt-0.5">{fmtCurrency(valorTotal || valorCobrado)}</p>
-                          </div>
-                          <div className="rounded-lg border p-2.5">
-                            <p className="text-[10px] text-muted-foreground">Custo peças</p>
-                            <p className="text-sm font-semibold mt-0.5 text-destructive">{custoPecas > 0 ? `- ${fmtCurrency(custoPecas)}` : "—"}</p>
-                          </div>
-                          <div className="rounded-lg border p-2.5">
-                            <p className="text-[10px] text-muted-foreground">Comissões</p>
-                            <p className="text-sm font-semibold mt-0.5 text-warning">{totalComissoes > 0 ? `- ${fmtCurrency(totalComissoes)}` : "—"}</p>
-                          </div>
-                          <div className="rounded-lg border p-2.5">
-                            <p className="text-[10px] text-muted-foreground">Despesas vinculadas</p>
-                            <p className="text-sm font-semibold mt-0.5 text-destructive">{totalDespesas > 0 ? `- ${fmtCurrency(totalDespesas)}` : "—"}</p>
-                          </div>
-                        </div>
-                        {podeCalcularLucro ? (
-                          <div className={`rounded-lg border p-3 ${lucroReal > 0 ? "border-success/20 bg-success-muted" : lucroReal < 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs text-muted-foreground font-medium">Lucro Real</p>
-                              <p className={`text-base font-bold ${lucroReal > 0 ? "text-success" : lucroReal < 0 ? "text-destructive" : ""}`}>
-                                {fmtCurrency(lucroReal)}
-                              </p>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              {fmtCurrency(valorTotal)} − {fmtCurrency(custoPecas)} − {fmtCurrency(totalComissoes)} − {fmtCurrency(totalDespesas)}
-                            </p>
-                          </div>
-                        ) : valorTotal > 0 ? (
-                          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
-                            <p className="text-xs font-semibold text-warning-foreground flex items-center gap-1.5">
-                              <span>⚠️</span> Lucro não pode ser calculado
-                            </p>
-                            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                              {temItens
-                                ? "Esta OS não tem comissões ou despesas registradas. Adicione para visualizar o lucro real."
-                                : "OS sem peças nem custos registrados. Adicione peças/comissões para ver o lucro real."}
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })()}
-                </div>
-
                 {/* Resultado financeiro (custo médio + comissão tipada) — visível só p/ Admin/Financeiro */}
-                <ResultadoFinanceiroOS ordem={ordem} />
+                <ResultadoFinanceiroOS
+                  ordem={ordem}
+                  totalDespesasVinculadas={despesasOS.reduce((s, d) => s + Number(d.valor), 0)}
+                  totalComissoesReais={comissoesOS.reduce((s, c) => s + Number(c.valor), 0)}
+                  qtdPecasUtilizadas={pecasUtilizadas.length}
+                  qtdComissoes={comissoesOS.length}
+                />
 
                 {/* Peças utilizadas */}
                 <div>
