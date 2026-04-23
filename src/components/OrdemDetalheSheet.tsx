@@ -848,7 +848,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Técnico</Label>
-                    <Select defaultValue={(ordem as any).funcionario_id ?? "__none__"} name="funcionario_id">
+                    <Select
+                      defaultValue={(ordem as any).funcionario_id ?? "__none__"}
+                      onValueChange={(v) => {
+                        const el = document.getElementById(`func-hidden-${ordem.id}`) as HTMLInputElement | null;
+                        if (el) el.value = v === "__none__" ? "" : v;
+                      }}
+                    >
                       <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">— Sem técnico —</SelectItem>
@@ -857,8 +863,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
-                    {/* Hidden input para FormData (Select shadcn não envia value nativo) */}
-                    <input type="hidden" name="funcionario_id" value={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
+                    {/* Hidden input lido pelo FormData (Select shadcn não envia value nativo) */}
+                    <input type="hidden" name="funcionario_id" defaultValue={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
                   </div>
                   <div>
                     <Label className="text-xs">Previsão entrega</Label>
