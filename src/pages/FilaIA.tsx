@@ -40,10 +40,11 @@ type FilaResult = {
 
 async function fetchFilaData() {
   // 1. OS pendentes com dados do aparelho/cliente/defeitos
+  // NOTA: prazo_vencido do banco é stale; calculamos no frontend.
   const { data: osPendentes } = await supabase
     .from("ordens_de_servico")
     .select(`
-      id, numero, status, data_entrada, previsao_entrega, prazo_vencido,
+      id, numero, status, data_entrada, previsao_entrega,
       funcionario_id, valor, defeito_relatado,
       aparelhos!inner ( marca, modelo, imei, capacidade, clientes!inner ( nome, telefone ) )
     `)
@@ -65,13 +66,15 @@ async function fetchFilaData() {
     });
   }
 
+  const nowFila = new Date();
+  const finalizados = new Set(["pronto", "entregue", "cancelado"]);
   const osMapped = (osPendentes ?? []).map((o: any) => ({
     id: o.id,
     numero: o.numero,
     status: o.status,
     data_entrada: o.data_entrada,
     previsao_entrega: o.previsao_entrega,
-    prazo_vencido: o.prazo_vencido,
+    prazo_vencido: !!(o.previsao_entrega && new Date(o.previsao_entrega) < nowFila && !finalizados.has(o.status)),
     funcionario_id: o.funcionario_id,
     valor: o.valor,
     cliente: o.aparelhos?.clientes?.nome ?? "—",

@@ -28,6 +28,7 @@ import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
+import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 
 
 
