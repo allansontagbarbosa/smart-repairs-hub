@@ -339,36 +339,88 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId && historicoOpen,
   });
 
-  // Fetch per-service commission for commission preview
+  // Fetch commission preview: tries per-service rules (over os_servicos N:N) first,
+  // then falls back to funcionario.valor_comissao default.
   const { data: comissaoPreview } = useQuery({
-    queryKey: ["comissao_preview", ordem?.funcionario_id, ordem?.tipo_servico_id],
+    queryKey: ["comissao_preview", ordem?.funcionario_id, ordem?.tipo_servico_id, ordem?.id, ordem?.valor],
     queryFn: async () => {
       if (!ordem?.funcionario_id) return null;
-      // Try per-service
-      if (ordem.tipo_servico_id) {
-        const { data } = await supabase
-          .from("comissoes_servico")
-          .select("tipo_comissao, valor")
-          .eq("funcionario_id", ordem.funcionario_id)
-          .eq("tipo_servico_id", ordem.tipo_servico_id)
-          .maybeSingle();
-        if (data && Number(data.valor) > 0) {
-          const tipoLabel = data.tipo_comissao === "percentual" ? "%" : "R$";
-          const valorCalc = data.tipo_comissao === "percentual"
-            ? (ordem.valor ?? 0) * Number(data.valor) / 100
-            : Number(data.valor);
-          return { tipo: data.tipo_comissao, config: Number(data.valor), calculado: valorCalc, origem: "por serviço" };
+
+      // 1) Buscar funcionário (precisa estar ativo)
+      const { data: func } = await supabase
+        .from("funcionarios")
+        .select("id, nome, tipo_comissao, valor_comissao, ativo")
+        .eq("id", ordem.funcionario_id)
+        .maybeSingle();
+
+      if (!func || !func.ativo) {
+        return { tipo: null as any, config: 0, calculado: 0, origem: "sem_config" as const };
+      }
+
+      // 2) Coletar tipo_servico_ids (preferir N:N os_servicos; fallback ao tipo_servico_id legado)
+      const servicoIds: string[] = [];
+      const valorPorServico: Record<string, number> = {};
+      for (const s of (servicosAtuais as any[])) {
+        if (s.servico_id) {
+          servicoIds.push(s.servico_id);
+          valorPorServico[s.servico_id] = Number(s.valor ?? 0);
         }
       }
-      // Fallback to default
-      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
-      if (func && Number(func.valor_comissao) > 0) {
-        const valorCalc = func.tipo_comissao === "percentual"
-          ? (ordem.valor ?? 0) * Number(func.valor_comissao) / 100
-          : Number(func.valor_comissao);
-        return { tipo: func.tipo_comissao, config: Number(func.valor_comissao), calculado: valorCalc, origem: "padrão" };
+      if (servicoIds.length === 0 && ordem.tipo_servico_id) {
+        servicoIds.push(ordem.tipo_servico_id);
+        valorPorServico[ordem.tipo_servico_id] = Number(ordem.valor ?? 0);
       }
-      return null;
+
+      // 3) Tentar comissoes_servico específicas
+      let totalEspecifico = 0;
+      let tipoEncontrado: "percentual" | "fixo" | null = null;
+      let configEncontrado = 0;
+      if (servicoIds.length > 0) {
+        const { data: regras } = await supabase
+          .from("comissoes_servico")
+          .select("tipo_servico_id, tipo_comissao, valor")
+          .eq("funcionario_id", ordem.funcionario_id)
+          .in("tipo_servico_id", servicoIds);
+
+        for (const r of regras ?? []) {
+          const valorRegra = Number(r.valor ?? 0);
+          if (valorRegra <= 0) continue;
+          const baseValor = valorPorServico[r.tipo_servico_id] ?? 0;
+          const itemCalc = r.tipo_comissao === "percentual"
+            ? baseValor * valorRegra / 100
+            : valorRegra;
+          totalEspecifico += itemCalc;
+          if (!tipoEncontrado) {
+            tipoEncontrado = r.tipo_comissao as any;
+            configEncontrado = valorRegra;
+          }
+        }
+      }
+
+      if (totalEspecifico > 0) {
+        return {
+          tipo: tipoEncontrado,
+          config: configEncontrado,
+          calculado: totalEspecifico,
+          origem: "comissoes_servico" as const,
+        };
+      }
+
+      // 4) Fallback: comissão padrão do funcionário
+      if (Number(func.valor_comissao) > 0) {
+        const valorCalc = func.tipo_comissao === "percentual"
+          ? Number(ordem.valor ?? 0) * Number(func.valor_comissao) / 100
+          : Number(func.valor_comissao);
+        return {
+          tipo: func.tipo_comissao as any,
+          config: Number(func.valor_comissao),
+          calculado: valorCalc,
+          origem: "funcionario_padrao" as const,
+        };
+      }
+
+      // 5) Sem configuração
+      return { tipo: null as any, config: 0, calculado: 0, origem: "sem_config" as const };
     },
     enabled: !!ordem?.funcionario_id && comissoesOS.length === 0,
   });
@@ -1590,40 +1642,88 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 {/* Comissões da OS */}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
-                  {comissoesOS.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {comissoesOS.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                          <div>
-                            <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}
-                              {c.observacoes && ` · ${c.observacoes}`}
-                            </p>
+                  {(() => {
+                    const statusAtual = ordem.status;
+                    const osFinalizada = statusAtual === "pronto" || statusAtual === "entregue";
+                    const osCancelada = statusAtual === "cancelado";
+                    const tecnicoNome =
+                      funcionariosAtivos.find((f) => f.id === ordem.funcionario_id)?.nome ??
+                      ordem.tecnico ??
+                      "o técnico";
+
+                    if (osCancelada) {
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          OS cancelada · Nenhuma comissão gerada
+                        </p>
+                      );
+                    }
+
+                    if (comissoesOS.length > 0) {
+                      return (
+                        <div className="space-y-1.5">
+                          {comissoesOS.map((c) => (
+                            <div key={c.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                              <div>
+                                <p className="text-sm font-medium">{(c as any).funcionarios?.nome ?? "—"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {c.tipo === "percentual" ? "Percentual" : "Fixa"} · {c.status}
+                                  {c.observacoes && ` · ${c.observacoes}`}
+                                </p>
+                              </div>
+                              <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    if (!ordem.funcionario_id) {
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          Atribua um técnico para ver a comissão prevista
+                        </p>
+                      );
+                    }
+
+                    if (comissaoPreview && comissaoPreview.calculado > 0) {
+                      return (
+                        <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-medium text-warning">Comissão prevista</p>
+                            <span className="text-sm font-semibold text-warning">
+                              {fmtCurrency(comissaoPreview.calculado)}
+                            </span>
                           </div>
-                          <span className="text-sm font-medium text-warning">{fmtCurrency(c.valor)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : comissaoPreview ? (
-                    <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium text-warning">Comissão prevista</p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {comissaoPreview.tipo === "percentual" ? `${comissaoPreview.config}%` : fmtCurrency(comissaoPreview.config)}
-                            {" · "}Regra {comissaoPreview.origem}
+                          <p className="text-[10px] text-muted-foreground">
+                            {comissaoPreview.tipo === "percentual"
+                              ? `${comissaoPreview.config}% · `
+                              : `Valor fixo · `}
+                            Origem: {comissaoPreview.origem === "comissoes_servico"
+                              ? "regra por serviço"
+                              : "padrão do técnico"}
                           </p>
+                          {!osFinalizada && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              Será gerada ao marcar OS como "Pronto"
+                            </p>
+                          )}
                         </div>
-                        <span className="text-sm font-semibold text-warning">{fmtCurrency(comissaoPreview.calculado)}</span>
+                      );
+                    }
+
+                    return (
+                      <div className="rounded-lg border border-dashed border-muted px-3 py-2.5">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Comissão não configurada para {tecnicoNome}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Configure em Configurações → Funcionários → {tecnicoNome} (valor padrão)
+                          ou em Configurações → Comissões por serviço (valor específico).
+                        </p>
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">Será gerada automaticamente ao marcar como "Pronto"</p>
-                    </div>
-                  ) : ordem.funcionario_id ? (
-                    <p className="text-xs text-muted-foreground">Nenhuma comissão configurada para este técnico/serviço</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Selecione um técnico para ver a comissão prevista</p>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Despesas vinculadas */}
