@@ -24,9 +24,11 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
@@ -84,8 +86,39 @@ interface PecaSelecionada {
 
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
   const queryClient = useQueryClient();
+  const { isAdmin } = usePermissoes();
 
   const [step, setStep] = useState<Step>("cliente");
+
+  // Data de entrada (admin pode editar; demais roles ficam em readonly = agora)
+  const nowLocalIso = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  };
+  const [dataEntrada, setDataEntrada] = useState<string>(nowLocalIso());
+  const [justificativaRetroativa, setJustificativaRetroativa] = useState("");
+
+  // True quando a data informada está mais de 1 hora no passado
+  const isRetroativa = useMemo(() => {
+    if (!dataEntrada) return false;
+    const informada = new Date(dataEntrada).getTime();
+    return informada < Date.now() - 60 * 60 * 1000;
+  }, [dataEntrada]);
+
+  const diasRetroativos = useMemo(() => {
+    if (!isRetroativa) return 0;
+    const ms = Date.now() - new Date(dataEntrada).getTime();
+    return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+  }, [isRetroativa, dataEntrada]);
+
+  // Re-sincroniza a data quando o diálogo é aberto
+  useEffect(() => {
+    if (open) {
+      setDataEntrada(nowLocalIso());
+      setJustificativaRetroativa("");
+    }
+  }, [open]);
 
   // Cliente
   const [showNewClient, setShowNewClient] = useState(false);
@@ -769,8 +802,21 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       // Status final depende do "Aprovado no ato"
       const finalAprovacao = aprovadoNoAto ? "aprovado" : orcamentoStatus;
 
-      // 2. Criar OS
-      const { data: ordem, error: osErr } = await supabase.from("ordens_de_servico").insert({
+      // 2. Criar OS via RPC criar_os_com_data (centraliza validação retroativa)
+      const dataEntradaIso = dataEntrada
+        ? new Date(dataEntrada).toISOString()
+        : new Date().toISOString();
+
+      const previsaoIso = previsaoEntrega
+        ? (() => {
+            const [hh, mm] = (previsaoHora || "18:00").split(":").map(Number);
+            const d = new Date(previsaoEntrega);
+            d.setHours(hh || 18, mm || 0, 0, 0);
+            return d.toISOString();
+          })()
+        : null;
+
+      const payload: Record<string, any> = {
         aparelho_id: aparelhoId,
         defeito_relatado: defeitoRelatado,
         relato_cliente: relatoCliente || null,
@@ -783,35 +829,49 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         sinal_pago: sinalPagoNum || 0,
         valor_pago: sinalPagoNum || 0,
         valor_pendente: aReceber,
-        forma_pagamento_sinal: sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
+        forma_pagamento_sinal:
+          sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
         garantia_dias: garantiaDiasNum,
         aprovacao_orcamento: finalAprovacao,
         aprovado_no_ato: aprovadoNoAto,
         data_aprovacao: finalAprovacao === "aprovado" ? new Date().toISOString() : null,
-        data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         funcionario_id: tecnicoId || null,
         obs_cliente: obsCliente || null,
         liga,
-        bateria_entrada: bateriaEntrada ? Math.max(0, Math.min(100, parseInt(bateriaEntrada, 10))) : null,
+        bateria_entrada: bateriaEntrada
+          ? Math.max(0, Math.min(100, parseInt(bateriaEntrada, 10)))
+          : null,
         estado_geral: estadoGeral || null,
         imei2: imei2.replace(/\D/g, "") || null,
         contato_preferido: contatoPreferido,
-        checklist_entrada: Object.keys(checklist).length > 0 || checklistCustom.length > 0
-          ? { itens: checklist, custom: checklistCustom }
-          : null,
-        previsao_entrega: previsaoEntrega
-          ? (() => {
-              const [hh, mm] = (previsaoHora || "18:00").split(":").map(Number);
-              const d = new Date(previsaoEntrega);
-              d.setHours(hh || 18, mm || 0, 0, 0);
-              return d.toISOString();
-            })()
-          : null,
-        status: "recebido" as Status,
+        checklist_entrada:
+          Object.keys(checklist).length > 0 || checklistCustom.length > 0
+            ? { itens: checklist, custom: checklistCustom }
+            : null,
+        previsao_entrega: previsaoIso,
+        status: "recebido",
         lojista_id: lojistaId || null,
-      } as any).select("id, numero, numero_formatado").single();
-      if (osErr) throw osErr;
+      };
+
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("criar_os_com_data", {
+        p_dados: payload as any,
+        p_data_entrada: dataEntradaIso,
+        p_justificativa: isRetroativa ? justificativaRetroativa.trim() : null,
+      });
+      if (rpcErr) throw rpcErr;
+
+      const novaOsId = (rpcData as any)?.os_id as string;
+      const novoNumero = (rpcData as any)?.numero as number;
+      const novoNumeroFormatado = (rpcData as any)?.numero_formatado as string | null;
+
+      // Buscar a OS recém-criada para manter compatibilidade com o resto do fluxo
+      const ordem = { id: novaOsId, numero: novoNumero, numero_formatado: novoNumeroFormatado } as {
+        id: string;
+        numero: number;
+        numero_formatado: string | null;
+      };
+
 
       // 3. Inserir os_servicos (N:N) — com snapshot de comissão do serviço
       if (defeitosSelecionados.length > 0) {
@@ -861,7 +921,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // ── Validação ──
   const canAdvanceCliente = !!selectedClientId;
   const canAdvanceAparelho = !!marca && !!modelo;
-  const canSubmit = canAdvanceCliente && canAdvanceAparelho && (defeitosSelecionados.length > 0 || !!relatoCliente.trim());
+  const justificativaOk = !isRetroativa || justificativaRetroativa.trim().length >= 10;
+  const podeRetroativa = !isRetroativa || isAdmin;
+  const canSubmit =
+    canAdvanceCliente &&
+    canAdvanceAparelho &&
+    (defeitosSelecionados.length > 0 || !!relatoCliente.trim()) &&
+    justificativaOk &&
+    podeRetroativa;
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
@@ -1576,6 +1643,72 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   </div>
                 </div>
               </div>
+
+              {/* ── 5b. DATA DE ENTRADA (admin pode editar; demais veem somente leitura) ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Data de entrada {isAdmin ? "(editável)" : "(automática)"}
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={dataEntrada}
+                    onChange={(e) => setDataEntrada(e.target.value)}
+                    readOnly={!isAdmin}
+                    disabled={!isAdmin}
+                    max={(() => {
+                      const d = new Date();
+                      d.setHours(d.getHours() + 1);
+                      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                      return d.toISOString().slice(0, 16);
+                    })()}
+                    className={cn("mt-1 h-9 text-sm", !isAdmin && "cursor-not-allowed opacity-70")}
+                  />
+                  {!isAdmin && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Apenas administradores podem alterar a data de entrada.
+                    </p>
+                  )}
+                </div>
+                {isAdmin && isRetroativa && (
+                  <div className="sm:col-span-1 flex items-end">
+                    <p className="text-[11px] text-warning-foreground/80">
+                      Esta OS será marcada como retroativa ({diasRetroativos}{" "}
+                      {diasRetroativos === 1 ? "dia" : "dias"} atrás).
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {isAdmin && isRetroativa && (
+                <Alert className="border-warning/40 bg-warning/10">
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                  <AlertTitle className="text-sm">Cadastro retroativo</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p className="text-xs">
+                      Você está lançando uma OS com data de{" "}
+                      <strong>{diasRetroativos}</strong>{" "}
+                      {diasRetroativos === 1 ? "dia" : "dias"} atrás. Esta ação fica
+                      registrada na auditoria. Limite: 30 dias.
+                    </p>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Justificativa (mínimo 10 caracteres) *
+                      </Label>
+                      <Textarea
+                        value={justificativaRetroativa}
+                        onChange={(e) => setJustificativaRetroativa(e.target.value)}
+                        placeholder="Ex.: cliente trouxe o aparelho na semana passada e a OS não foi cadastrada na hora..."
+                        rows={2}
+                        className="mt-1 resize-none text-sm"
+                      />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {justificativaRetroativa.trim().length}/10
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* ── 6. PREVISÃO + TÉCNICO ── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
