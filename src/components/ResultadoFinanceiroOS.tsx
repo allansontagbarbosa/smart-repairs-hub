@@ -143,6 +143,11 @@ export function ResultadoFinanceiroOS({
             label={
               <span className="inline-flex items-center gap-1">
                 (−) Comissão do técnico
+                {comissaoPrevista && (
+                  <span className="text-[10px] font-normal text-muted-foreground">
+                    (prevista)
+                  </span>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3 w-3 text-muted-foreground cursor-help" />
