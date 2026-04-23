@@ -55,6 +55,7 @@ import TecnicoOrdens from "./pages/tecnico/TecnicoOrdens";
 import TecnicoOrdemDetalhe from "./pages/tecnico/TecnicoOrdemDetalhe";
 import TecnicoMetas from "./pages/tecnico/TecnicoMetas";
 import TecnicoTransferencias from "./pages/tecnico/TecnicoTransferencias";
+import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
 
 const queryClient = new QueryClient();
 
@@ -103,8 +104,11 @@ const App = () => (
               <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/os" element={<Navigate to="/tecnico/ordens" replace />} />
+              <Route path="/tecnico/os/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/metas" element={<TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/transferencias" element={<TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/historico" element={<TecnicoGuard><TecnicoLayout><TecnicoHistorico /></TecnicoLayout></TecnicoGuard>} />
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
