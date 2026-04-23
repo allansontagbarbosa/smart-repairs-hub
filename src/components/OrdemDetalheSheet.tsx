@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,17 +9,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText, Info, History, Ban, AlertTriangle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
+import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { cn } from "@/lib/utils";
 import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
 import { ImpressaoOS, type ImpressaoOSData } from "@/components/ImpressaoOS";
 import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 
 
@@ -38,9 +43,23 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [diagValue, setDiagValue] = useState("");
   const [editingServico, setEditingServico] = useState(false);
   const [servicoValue, setServicoValue] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
+  const [valorWarningOpen, setValorWarningOpen] = useState(false);
+  const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const printRef = useRef<HTMLDivElement>(null);
+  const { isAdmin } = usePermissoes();
+
+  // Bloqueia entrada não-admin no modo edição
+  useEffect(() => {
+    if (editing && !isAdmin) {
+      toast.error("Apenas administradores podem editar OS");
+      setEditing(false);
+    }
+  }, [editing, isAdmin]);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["ordem", orderId],
