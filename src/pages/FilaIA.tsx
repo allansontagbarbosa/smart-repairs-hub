@@ -48,7 +48,7 @@ async function fetchFilaData() {
       aparelhos!inner ( marca, modelo, imei, capacidade, clientes!inner ( nome, telefone ) )
     `)
     .is("deleted_at", null)
-    .not("status", "eq", "entregue")
+    .not("status", "in", '("entregue","cancelado")')
     .order("data_entrada", { ascending: true });
 
   // 2. Serviços de cada OS

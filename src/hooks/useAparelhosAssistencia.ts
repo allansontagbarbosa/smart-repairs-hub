@@ -40,7 +40,7 @@ async function fetchAparelhosAssistencia() {
       funcionarios ( nome )
     `)
     .is("deleted_at", null)
-    .not("status", "eq", "entregue")
+    .not("status", "in", '("entregue","cancelado")')
     .order("data_entrada", { ascending: false });
 
   if (error) throw error;
