@@ -23,37 +23,46 @@ export function useConfiguracoes() {
   });
 
   const { data: fornecedores = [], isLoading: loadingFornecedores } = useQuery({
-    queryKey: ["fornecedores"],
+    queryKey: ["fornecedores", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("fornecedores").select("*").order("nome");
+      const { data } = await supabase.from("fornecedores").select("*").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
 
   const { data: produtosBase = [], isLoading: loadingProdutos } = useQuery({
-    queryKey: ["produtos_base"],
+    queryKey: ["produtos_base", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("produtos_base").select("*, marcas(nome), modelos(nome), estoque_categorias(nome)").order("nome");
+      const { data } = await supabase
+        .from("produtos_base")
+        .select("*, marcas(nome), modelos(nome), estoque_categorias(nome)")
+        .eq("empresa_id", empresaId!)
+        .order("nome");
       return data || [];
     },
   });
 
   const { data: tiposServico = [], isLoading: loadingServicos } = useQuery({
-    queryKey: ["tipos_servico"],
+    queryKey: ["tipos_servico", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("tipos_servico").select("*").order("nome");
+      const { data } = await supabase.from("tipos_servico").select("*").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
 
   const { data: funcionarios = [] } = useQuery({
-    queryKey: ["funcionarios"],
+    queryKey: ["funcionarios", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("funcionarios").select("*").is("deleted_at", null).order("nome");
+      const { data } = await supabase.from("funcionarios").select("*").eq("empresa_id", empresaId!).is("deleted_at", null).order("nome");
       return data || [];
     },
   });
 
+  // perfis_acesso: tabela GLOBAL — não filtrar por empresa_id.
   const { data: perfisAcesso = [] } = useQuery({
     queryKey: ["perfis_acesso"],
     queryFn: async () => {
@@ -68,7 +77,8 @@ export function useConfiguracoes() {
     error: userProfilesError,
     refetch: refetchUserProfiles,
   } = useQuery({
-    queryKey: ["user_profiles"],
+    queryKey: ["user_profiles", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_profiles")
@@ -84,6 +94,7 @@ export function useConfiguracoes() {
           perfis_acesso ( nome_perfil, permissoes ),
           funcionarios ( nome, email )
         `)
+        .eq("empresa_id", empresaId!)
         .order("created_at", { ascending: true });
       if (error) {
         console.error("[useConfiguracoes] erro ao listar user_profiles:", error);
@@ -95,37 +106,42 @@ export function useConfiguracoes() {
   });
 
   const { data: categoriasFinanceiras = [] } = useQuery({
-    queryKey: ["categorias_financeiras"],
+    queryKey: ["categorias_financeiras", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("categorias_financeiras").select("*").order("nome");
+      const { data } = await supabase.from("categorias_financeiras").select("*").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
 
   const { data: centrosCusto = [] } = useQuery({
-    queryKey: ["centros_custo"],
+    queryKey: ["centros_custo", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("centros_custo").select("*").order("nome");
+      const { data } = await supabase.from("centros_custo").select("*").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
 
   const { data: formasPagamento = [] } = useQuery({
-    queryKey: ["formas_pagamento"],
+    queryKey: ["formas_pagamento", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("formas_pagamento").select("*").order("nome");
+      const { data } = await supabase.from("formas_pagamento").select("*").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
 
   const { data: estoqueCategorias = [] } = useQuery({
-    queryKey: ["estoque_categorias"],
+    queryKey: ["estoque_categorias", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("estoque_categorias").select("*").order("nome");
+      const { data } = await supabase.from("estoque_categorias").select("*").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
 
+  // marcas/modelos/cores/capacidades: tabelas de catálogo compartilhadas — não filtrar por empresa.
   const { data: marcas = [] } = useQuery({
     queryKey: ["marcas"],
     queryFn: async () => {
@@ -158,6 +174,7 @@ export function useConfiguracoes() {
     },
   });
 
+  // status_ordem_servico: pulo (não tem coluna empresa_id confirmada — manter como estava)
   const { data: statusOrdem = [] } = useQuery({
     queryKey: ["status_ordem_servico"],
     queryFn: async () => {
@@ -167,25 +184,28 @@ export function useConfiguracoes() {
   });
 
   const { data: templatesMensagem = [] } = useQuery({
-    queryKey: ["templates_mensagem"],
+    queryKey: ["templates_mensagem", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("templates_mensagem").select("*").order("evento");
+      const { data } = await supabase.from("templates_mensagem").select("*").eq("empresa_id", empresaId!).order("evento");
       return data || [];
     },
   });
 
   const { data: modelosDocumento = [] } = useQuery({
-    queryKey: ["modelos_documento"],
+    queryKey: ["modelos_documento", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("modelos_documento").select("*").order("tipo");
+      const { data } = await supabase.from("modelos_documento").select("*").eq("empresa_id", empresaId!).order("tipo");
       return data || [];
     },
   });
 
   const { data: listasPreco = [] } = useQuery({
-    queryKey: ["listas_preco"],
+    queryKey: ["listas_preco", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("listas_preco").select("*, clientes(nome)").order("nome");
+      const { data } = await supabase.from("listas_preco").select("*, clientes(nome)").eq("empresa_id", empresaId!).order("nome");
       return data || [];
     },
   });
