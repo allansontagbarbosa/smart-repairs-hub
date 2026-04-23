@@ -46,7 +46,7 @@ const DEFAULT_PERMISSOES: Permissoes = {
 };
 
 function parsePermissoes(raw: any): Permissoes {
-  if (!raw || typeof raw !== "object") return ADMIN_PERMISSOES;
+  if (!raw || typeof raw !== "object") return DEFAULT_PERMISSOES;
   const p = { ...DEFAULT_PERMISSOES };
   const modules: (keyof Permissoes)[] = ["dashboard", "assistencia", "financeiro", "pecas", "clientes", "relatorios", "configuracoes", "fila_ia"];
   for (const key of modules) {
@@ -67,13 +67,17 @@ function parsePermissoes(raw: any): Permissoes {
 
 export function usePermissoes() {
   const { user } = useAuth();
-  const [permissoes, setPermissoes] = useState<Permissoes>(ADMIN_PERMISSOES);
-  const [perfil, setPerfil] = useState<string>("admin");
-  const [isAdmin, setIsAdmin] = useState(true);
+  // SECURITY: fail-closed. Estado inicial é VAZIO; só vira admin após confirmação do backend.
+  const [permissoes, setPermissoes] = useState<Permissoes>(DEFAULT_PERMISSOES);
+  const [perfil, setPerfil] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
+      setPermissoes(DEFAULT_PERMISSOES);
+      setIsAdmin(false);
+      setPerfil("");
       setLoading(false);
       return;
     }
@@ -89,20 +93,22 @@ export function usePermissoes() {
 
         if (profile?.perfis_acesso) {
           const pa = profile.perfis_acesso as any;
-          const nome = pa.nome_perfil || "Administrador";
+          const nome = pa.nome_perfil || "";
           setPerfil(nome);
           setIsAdmin(nome === "admin" || nome === "Administrador");
           setPermissoes(parsePermissoes(pa.permissoes));
         } else {
-          // No profile or no perfil assigned → admin by default
-          setPerfil("admin");
-          setIsAdmin(true);
-          setPermissoes(ADMIN_PERMISSOES);
+          // Sem perfil atribuído → acesso mínimo, NÃO admin
+          setPerfil("sem_perfil");
+          setIsAdmin(false);
+          setPermissoes(DEFAULT_PERMISSOES);
         }
-      } catch {
-        // Fallback to admin on error
-        setPermissoes(ADMIN_PERMISSOES);
-        setIsAdmin(true);
+      } catch (err) {
+        // Erro de rede/RLS → fail-closed, NÃO admin
+        console.error("Erro ao carregar permissões:", err);
+        setPermissoes(DEFAULT_PERMISSOES);
+        setIsAdmin(false);
+        setPerfil("sem_perfil");
       } finally {
         setLoading(false);
       }
