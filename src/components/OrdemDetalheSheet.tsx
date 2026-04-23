@@ -557,26 +557,77 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     const valorStr = (fd.get("valor") as string) || "";
     const previsaoStr = (fd.get("previsao_entrega") as string) || "";
     const funcId = (fd.get("funcionario_id") as string) || "";
+    const lojistaIdStr = (fd.get("lojista_id") as string) || "";
+    const maoObraStr = (fd.get("mao_obra_adicional") as string) || "";
+    const descontoStr = (fd.get("desconto") as string) || "";
+    const sinalStr = (fd.get("sinal_pago") as string) || "";
+    const bateriaStr = (fd.get("bateria_entrada") as string) || "";
+    const formaPag = (fd.get("forma_pagamento_sinal") as string) || "";
+    const liga = (fd.get("liga") as string) || "";
+    const contatoPref = (fd.get("contato_preferido") as string) || "";
 
     // Validações
     if (valorStr && (isNaN(parseFloat(valorStr)) || parseFloat(valorStr) < 0)) {
-      toast.error("Valor inválido"); return;
+      toast.error("Valor cobrado inválido"); return;
     }
     if (funcId && !/^[0-9a-f-]{36}$/i.test(funcId)) {
       toast.error("Técnico inválido"); return;
     }
+    if (lojistaIdStr && !/^[0-9a-f-]{36}$/i.test(lojistaIdStr)) {
+      toast.error("Lojista inválido"); return;
+    }
+    for (const [label, raw] of [["Mão de obra adicional", maoObraStr], ["Desconto", descontoStr], ["Sinal pago", sinalStr]] as const) {
+      if (raw && (isNaN(parseFloat(raw)) || parseFloat(raw) < 0)) {
+        toast.error(`${label} deve ser ≥ 0`); return;
+      }
+    }
+    if (bateriaStr) {
+      const b = parseInt(bateriaStr, 10);
+      if (isNaN(b) || b < 0 || b > 100) { toast.error("Bateria deve estar entre 0 e 100"); return; }
+    }
+    if (liga && !["sim", "nao", "parcial"].includes(liga)) { toast.error("Estado 'liga' inválido"); return; }
+    if (contatoPref && !["whatsapp", "ligacao", "sms", "email"].includes(contatoPref)) {
+      toast.error("Contato preferido inválido"); return;
+    }
+    if (formaPag && !["nenhum", "dinheiro", "pix", "cartao_credito", "cartao_debito", "boleto", "transferencia"].includes(formaPag)) {
+      toast.error("Forma de pagamento do sinal inválida"); return;
+    }
+
+    // Checklist (vem do state, não do FormData)
+    const temChecklist = Object.keys(editForm.checklist_itens).length > 0 || editForm.checklist_custom.length > 0;
+    const checklistPayload = temChecklist
+      ? { itens: editForm.checklist_itens, custom: editForm.checklist_custom }
+      : null;
 
     const payload: Record<string, any> = {
+      // Diagnóstico/relato
       defeito_relatado: fd.get("defeito_relatado") as string,
       diagnostico: (fd.get("diagnostico") as string) || "",
       servico_realizado: (fd.get("servico_realizado") as string) || "",
-      valor: valorStr,
-      funcionario_id: funcId,
+      relato_cliente: (fd.get("relato_cliente") as string) || "",
+      obs_cliente: (fd.get("obs_cliente") as string) || "",
       observacoes: (fd.get("observacoes") as string) || "",
+      // Operacional
+      funcionario_id: funcId,
       previsao_entrega: previsaoStr ? new Date(previsaoStr).toISOString() : "",
       prioridade: (fd.get("prioridade") as string) || "normal",
+      localizacao: (fd.get("localizacao") as string) || "",
+      lojista_id: lojistaIdStr,
+      contato_preferido: contatoPref,
+      // Financeiro
+      valor: valorStr,
+      mao_obra_adicional: maoObraStr || "0",
+      desconto: descontoStr || "0",
+      sinal_pago: sinalStr || "0",
+      forma_pagamento_sinal: formaPag === "nenhum" ? "" : formaPag,
       garantia_dias: (fd.get("garantia_dias") as string) || "",
       aprovacao_orcamento: (fd.get("aprovacao_orcamento") as string) || "",
+      aprovado_no_ato: editForm.aprovado_no_ato,
+      // Estado entrada
+      liga: liga || "",
+      bateria_entrada: bateriaStr || "",
+      estado_geral: (fd.get("estado_geral") as string) || "",
+      checklist_entrada: checklistPayload,
     };
 
     // Diff vazio? fecha sem chamar RPC
