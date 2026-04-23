@@ -68,7 +68,7 @@ const STEPS: { key: Step; label: string; icon: typeof User }[] = [
 interface DefeitoSelecionado {
   id: string;
   nome: string;
-  categoria: string;
+  categoria?: string;
   valor_mao_obra: number;
   comissao_padrao: number;
 }
