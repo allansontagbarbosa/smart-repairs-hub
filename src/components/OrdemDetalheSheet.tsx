@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -48,6 +50,19 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
   const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
+
+  // Estado controlado dos campos do form de edição (para Selects/radios shadcn)
+  const [editForm, setEditForm] = useState({
+    funcionario_id: "",
+    lojista_id: "",
+    contato_preferido: "whatsapp",
+    forma_pagamento_sinal: "nenhum",
+    liga: "sim",
+    aprovado_no_ato: false,
+    checklist_itens: {} as Record<string, ChecklistStatus>,
+    checklist_custom: [] as { key: string; label: string }[],
+  });
+
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const printRef = useRef<HTMLDivElement>(null);
@@ -167,6 +182,38 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   // Lista filtrada para dropdown de técnico (todos ativos; UI prioriza técnicos se houver cargo)
   const tecnicos = funcionariosAtivos;
+
+  // Lista de lojistas ativos da empresa
+  const { data: lojistasAtivos = [] } = useQuery({
+    queryKey: ["lojistas_ativos_os"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lojistas")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      return data || [];
+    },
+  });
+
+  // Hidrata editForm quando entra em modo edição
+  useEffect(() => {
+    if (editing && ordem) {
+      const o = ordem as any;
+      const cl = o.checklist_entrada || {};
+      setEditForm({
+        funcionario_id: o.funcionario_id ?? "",
+        lojista_id: o.lojista_id ?? "",
+        contato_preferido: o.contato_preferido ?? "whatsapp",
+        forma_pagamento_sinal: o.forma_pagamento_sinal ?? "nenhum",
+        liga: o.liga ?? "sim",
+        aprovado_no_ato: !!o.aprovado_no_ato,
+        checklist_itens: (cl.itens && typeof cl.itens === "object") ? cl.itens : {},
+        checklist_custom: Array.isArray(cl.custom) ? cl.custom : [],
+      });
+    }
+  }, [editing, ordem]);
 
   // Criador da OS (para o header enriquecido)
   const { data: criador } = useQuery({
@@ -510,26 +557,77 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     const valorStr = (fd.get("valor") as string) || "";
     const previsaoStr = (fd.get("previsao_entrega") as string) || "";
     const funcId = (fd.get("funcionario_id") as string) || "";
+    const lojistaIdStr = (fd.get("lojista_id") as string) || "";
+    const maoObraStr = (fd.get("mao_obra_adicional") as string) || "";
+    const descontoStr = (fd.get("desconto") as string) || "";
+    const sinalStr = (fd.get("sinal_pago") as string) || "";
+    const bateriaStr = (fd.get("bateria_entrada") as string) || "";
+    const formaPag = (fd.get("forma_pagamento_sinal") as string) || "";
+    const liga = (fd.get("liga") as string) || "";
+    const contatoPref = (fd.get("contato_preferido") as string) || "";
 
     // Validações
     if (valorStr && (isNaN(parseFloat(valorStr)) || parseFloat(valorStr) < 0)) {
-      toast.error("Valor inválido"); return;
+      toast.error("Valor cobrado inválido"); return;
     }
     if (funcId && !/^[0-9a-f-]{36}$/i.test(funcId)) {
       toast.error("Técnico inválido"); return;
     }
+    if (lojistaIdStr && !/^[0-9a-f-]{36}$/i.test(lojistaIdStr)) {
+      toast.error("Lojista inválido"); return;
+    }
+    for (const [label, raw] of [["Mão de obra adicional", maoObraStr], ["Desconto", descontoStr], ["Sinal pago", sinalStr]] as const) {
+      if (raw && (isNaN(parseFloat(raw)) || parseFloat(raw) < 0)) {
+        toast.error(`${label} deve ser ≥ 0`); return;
+      }
+    }
+    if (bateriaStr) {
+      const b = parseInt(bateriaStr, 10);
+      if (isNaN(b) || b < 0 || b > 100) { toast.error("Bateria deve estar entre 0 e 100"); return; }
+    }
+    if (liga && !["sim", "nao", "parcial"].includes(liga)) { toast.error("Estado 'liga' inválido"); return; }
+    if (contatoPref && !["whatsapp", "ligacao", "sms", "email"].includes(contatoPref)) {
+      toast.error("Contato preferido inválido"); return;
+    }
+    if (formaPag && !["nenhum", "dinheiro", "pix", "cartao_credito", "cartao_debito", "boleto", "transferencia"].includes(formaPag)) {
+      toast.error("Forma de pagamento do sinal inválida"); return;
+    }
+
+    // Checklist (vem do state, não do FormData)
+    const temChecklist = Object.keys(editForm.checklist_itens).length > 0 || editForm.checklist_custom.length > 0;
+    const checklistPayload = temChecklist
+      ? { itens: editForm.checklist_itens, custom: editForm.checklist_custom }
+      : null;
 
     const payload: Record<string, any> = {
+      // Diagnóstico/relato
       defeito_relatado: fd.get("defeito_relatado") as string,
       diagnostico: (fd.get("diagnostico") as string) || "",
       servico_realizado: (fd.get("servico_realizado") as string) || "",
-      valor: valorStr,
-      funcionario_id: funcId,
+      relato_cliente: (fd.get("relato_cliente") as string) || "",
+      obs_cliente: (fd.get("obs_cliente") as string) || "",
       observacoes: (fd.get("observacoes") as string) || "",
+      // Operacional
+      funcionario_id: funcId,
       previsao_entrega: previsaoStr ? new Date(previsaoStr).toISOString() : "",
       prioridade: (fd.get("prioridade") as string) || "normal",
+      localizacao: (fd.get("localizacao") as string) || "",
+      lojista_id: lojistaIdStr,
+      contato_preferido: contatoPref,
+      // Financeiro
+      valor: valorStr,
+      mao_obra_adicional: maoObraStr || "0",
+      desconto: descontoStr || "0",
+      sinal_pago: sinalStr || "0",
+      forma_pagamento_sinal: formaPag === "nenhum" ? "" : formaPag,
       garantia_dias: (fd.get("garantia_dias") as string) || "",
       aprovacao_orcamento: (fd.get("aprovacao_orcamento") as string) || "",
+      aprovado_no_ato: editForm.aprovado_no_ato,
+      // Estado entrada
+      liga: liga || "",
+      bateria_entrada: bateriaStr || "",
+      estado_geral: (fd.get("estado_geral") as string) || "",
+      checklist_entrada: checklistPayload,
     };
 
     // Diff vazio? fecha sem chamar RPC
@@ -809,98 +907,269 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             <Separator className="mb-5" />
 
             {editing ? (
-              /* ── Edit mode (Admin) ── */
+              /* ── Edit mode (Admin) — Accordion 4 seções ── */
               <form onSubmit={handleSave} className="space-y-4">
-                <div>
-                  <Label className="text-xs">Defeito relatado</Label>
-                  <Textarea name="defeito_relatado" defaultValue={ordem.defeito_relatado} className="mt-1 resize-none" rows={2} required />
-                </div>
-                <div>
-                  <Label className="text-xs">Diagnóstico</Label>
-                  <Textarea name="diagnostico" defaultValue={ordem.diagnostico ?? ""} className="mt-1 resize-none" rows={2} />
-                </div>
-                <div>
-                  <Label className="text-xs">Serviço realizado</Label>
-                  <Textarea name="servico_realizado" defaultValue={ordem.servico_realizado ?? ""} className="mt-1 resize-none" rows={2} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Valor cobrado</Label>
-                    <Input name="valor" type="number" step="0.01" min="0" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs flex items-center gap-1">
-                      Custo de peças
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-xs">Calculado automaticamente das peças vinculadas. Para alterar, adicione/remova peças no scanner.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </Label>
-                    <div className="mt-1 px-3 h-8 flex items-center bg-muted rounded-md text-sm">
-                      {brl(ordem.custo_pecas)}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Técnico</Label>
-                    <Select
-                      defaultValue={(ordem as any).funcionario_id ?? "__none__"}
-                      onValueChange={(v) => {
-                        const el = document.getElementById(`func-hidden-${ordem.id}`) as HTMLInputElement | null;
-                        if (el) el.value = v === "__none__" ? "" : v;
-                      }}
-                    >
-                      <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">— Sem técnico —</SelectItem>
-                        {tecnicos.map((t: any) => (
-                          <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {/* Hidden input lido pelo FormData (Select shadcn não envia value nativo) */}
-                    <input type="hidden" name="funcionario_id" defaultValue={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Previsão entrega</Label>
-                    <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Prioridade</Label>
-                    <select name="prioridade" defaultValue={(ordem as any).prioridade || "normal"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
-                      <option value="normal">Normal</option>
-                      <option value="urgente">Urgente</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Garantia (dias)</Label>
-                    <Input name="garantia_dias" type="number" min="0" defaultValue={(ordem as any).garantia_dias ?? 90} className="mt-1 h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Aprovação</Label>
-                    <select name="aprovacao_orcamento" defaultValue={(ordem as any).aprovacao_orcamento || "pendente"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
-                      <option value="pendente">Pendente</option>
-                      <option value="aprovado">Aprovado</option>
-                      <option value="recusado">Recusado</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Observações internas</Label>
-                  <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
-                </div>
-                {comissoesOS.length > 0 && (
-                  <div className="text-[11px] text-muted-foreground p-2 bg-muted/50 rounded border">
-                    ⚠️ Esta OS já gerou comissão. Mudar o valor não recalcula automaticamente.
-                  </div>
-                )}
+                <Accordion type="multiple" defaultValue={["diagnostico-servico"]} className="w-full">
+
+                  {/* ─── A) Diagnóstico e Serviço ─── */}
+                  <AccordionItem value="diagnostico-servico">
+                    <AccordionTrigger className="text-sm font-semibold">Diagnóstico e Serviço</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div>
+                        <Label className="text-xs">Defeito relatado</Label>
+                        <Textarea name="defeito_relatado" defaultValue={ordem.defeito_relatado} className="mt-1 resize-none" rows={2} required />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Relato literal do cliente</Label>
+                        <Textarea name="relato_cliente" defaultValue={(ordem as any).relato_cliente ?? ""} className="mt-1 resize-none" rows={2} placeholder="O que ele disse quando trouxe" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Diagnóstico técnico</Label>
+                        <Textarea name="diagnostico" defaultValue={ordem.diagnostico ?? ""} className="mt-1 resize-none" rows={2} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Serviço realizado</Label>
+                        <Textarea name="servico_realizado" defaultValue={ordem.servico_realizado ?? ""} className="mt-1 resize-none" rows={2} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Observações visíveis ao cliente</Label>
+                        <Textarea name="obs_cliente" defaultValue={(ordem as any).obs_cliente ?? ""} className="mt-1 resize-none" rows={2} placeholder="Aparece no PDF e WhatsApp" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Observações internas (só equipe vê)</Label>
+                        <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground italic pt-1 border-t">
+                        Para adicionar/remover serviços ou peças vinculados, use as ações dedicadas fora deste formulário.
+                        {/* TODO: criar_fluxo_edicao_itens — tratar em rodada separada */}
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* ─── B) Operacional ─── */}
+                  <AccordionItem value="operacional">
+                    <AccordionTrigger className="text-sm font-semibold">Operacional</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Técnico</Label>
+                          <Select
+                            value={editForm.funcionario_id || "__none__"}
+                            onValueChange={(v) => setEditForm(p => ({ ...p, funcionario_id: v === "__none__" ? "" : v }))}
+                          >
+                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Sem técnico —</SelectItem>
+                              {tecnicos.map((t: any) => (
+                                <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <input type="hidden" name="funcionario_id" value={editForm.funcionario_id} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Previsão entrega</Label>
+                          <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Prioridade</Label>
+                          <select name="prioridade" defaultValue={(ordem as any).prioridade || "normal"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                            <option value="normal">Normal</option>
+                            <option value="urgente">Urgente</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Localização física</Label>
+                          <Input name="localizacao" defaultValue={(ordem as any).localizacao ?? ""} placeholder="Ex: gaveta 3, bancada azul" className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Lojista vinculado (opcional)</Label>
+                        <Select
+                          value={editForm.lojista_id || "__none__"}
+                          onValueChange={(v) => setEditForm(p => ({ ...p, lojista_id: v === "__none__" ? "" : v }))}
+                        >
+                          <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">— Sem lojista —</SelectItem>
+                            {lojistasAtivos.map((l: any) => (
+                              <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <input type="hidden" name="lojista_id" value={editForm.lojista_id} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Contato preferido</Label>
+                        <div className="mt-1 flex gap-3 flex-wrap">
+                          {(["whatsapp", "ligacao", "sms", "email"] as const).map((c) => (
+                            <label key={c} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                              <input
+                                type="radio"
+                                value={c}
+                                checked={editForm.contato_preferido === c}
+                                onChange={() => setEditForm(p => ({ ...p, contato_preferido: c }))}
+                                className="accent-primary"
+                              />
+                              <span className="capitalize">{c === "ligacao" ? "Ligação" : c}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <input type="hidden" name="contato_preferido" value={editForm.contato_preferido} />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* ─── C) Financeiro ─── */}
+                  <AccordionItem value="financeiro">
+                    <AccordionTrigger className="text-sm font-semibold">Financeiro</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Valor cobrado</Label>
+                          <Input name="valor" type="number" step="0.01" min="0" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs flex items-center gap-1">
+                            Custo de peças
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Calculado automaticamente das peças vinculadas. Para alterar, adicione/remova peças no scanner.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </Label>
+                          <div className="mt-1 px-3 h-8 flex items-center bg-muted rounded-md text-sm">
+                            {brl(ordem.custo_pecas)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs flex items-center gap-1">
+                            Mão de obra adicional
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Adicional manual sobre o valor dos serviços.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </Label>
+                          <Input name="mao_obra_adicional" type="number" step="0.01" min="0" defaultValue={(ordem as any).mao_obra_adicional ?? 0} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Desconto</Label>
+                          <Input name="desconto" type="number" step="0.01" min="0" defaultValue={(ordem as any).desconto ?? 0} className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Sinal pago</Label>
+                          <Input name="sinal_pago" type="number" step="0.01" min="0" defaultValue={(ordem as any).sinal_pago ?? 0} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Forma do sinal</Label>
+                          <Select
+                            value={editForm.forma_pagamento_sinal || "nenhum"}
+                            onValueChange={(v) => setEditForm(p => ({ ...p, forma_pagamento_sinal: v }))}
+                          >
+                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nenhum">Nenhum</SelectItem>
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                              <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                              <SelectItem value="transferencia">Transferência</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <input type="hidden" name="forma_pagamento_sinal" value={editForm.forma_pagamento_sinal} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Garantia (dias)</Label>
+                          <Input name="garantia_dias" type="number" min="0" defaultValue={(ordem as any).garantia_dias ?? 90} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Aprovação</Label>
+                          <select name="aprovacao_orcamento" defaultValue={(ordem as any).aprovacao_orcamento || "pendente"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                            <option value="pendente">Pendente</option>
+                            <option value="aprovado">Aprovado</option>
+                            <option value="recusado">Recusado</option>
+                          </select>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={editForm.aprovado_no_ato}
+                          onChange={(e) => setEditForm(p => ({ ...p, aprovado_no_ato: e.target.checked }))}
+                          className="accent-primary"
+                        />
+                        Cliente aprovou orçamento na hora
+                      </label>
+                      {comissoesOS.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground p-2 bg-muted/50 rounded border">
+                          ⚠️ Esta OS já gerou comissão. Mudar o valor não recalcula automaticamente.
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* ─── D) Estado na Entrada ─── */}
+                  <AccordionItem value="estado-entrada">
+                    <AccordionTrigger className="text-sm font-semibold">Estado na Entrada</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div>
+                        <Label className="text-xs">Aparelho liga?</Label>
+                        <div className="mt-1 flex gap-3">
+                          {(["sim", "nao", "parcial"] as const).map((v) => (
+                            <label key={v} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                              <input
+                                type="radio"
+                                value={v}
+                                checked={editForm.liga === v}
+                                onChange={() => setEditForm(p => ({ ...p, liga: v }))}
+                                className="accent-primary"
+                              />
+                              <span className="capitalize">{v === "nao" ? "Não" : v}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <input type="hidden" name="liga" value={editForm.liga} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Bateria entrada (%)</Label>
+                          <Input name="bateria_entrada" type="number" min="0" max="100" defaultValue={(ordem as any).bateria_entrada ?? ""} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Estado geral</Label>
+                          <Input name="estado_geral" defaultValue={(ordem as any).estado_geral ?? ""} className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-2 block">Checklist de entrada</Label>
+                        <ChecklistEntrada
+                          value={editForm.checklist_itens}
+                          onChange={(v) => setEditForm(p => ({ ...p, checklist_itens: v }))}
+                          customItems={editForm.checklist_custom}
+                          onCustomItemsChange={(items) => setEditForm(p => ({ ...p, checklist_custom: items }))}
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                </Accordion>
+
                 <Button type="submit" className="w-full" disabled={editarOSAdmin.isPending || saveEdit.isPending}>
                   {(editarOSAdmin.isPending || saveEdit.isPending) ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Salvar Alterações
