@@ -172,6 +172,7 @@ export default function TecnicoOrdemDetalhe() {
   };
 
   const checklistCompleto = checklist.length > 0 && checklist.every(c => c.testado);
+  const itensPendentes = checklist.filter(c => !c.testado).length;
 
   if (isLoading || !ordem) {
     return <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>;
@@ -291,6 +292,7 @@ export default function TecnicoOrdemDetalhe() {
             assinaturas={assinaturas}
             onChange={refetchAssinaturas}
             checklistCompleto={checklistCompleto}
+            itensPendentes={itensPendentes}
           />
         </TabsContent>
       </Tabs>
@@ -361,10 +363,10 @@ function FotoTile({ foto, onDelete }: { foto: any; onDelete: () => void }) {
 }
 
 function AssinaturasSection({
-  ordemId, empresaId, tecnicoNome, assinaturas, onChange, checklistCompleto,
+  ordemId, empresaId, tecnicoNome, assinaturas, onChange, checklistCompleto, itensPendentes,
 }: {
   ordemId: string; empresaId: string | null; tecnicoNome: string;
-  assinaturas: any[]; onChange: () => void; checklistCompleto: boolean;
+  assinaturas: any[]; onChange: () => void; checklistCompleto: boolean; itensPendentes: number;
 }) {
   const [open, setOpen] = useState<null | "tecnico_conclusao" | "cliente_entrega">(null);
   const [nomeCliente, setNomeCliente] = useState("");
@@ -375,6 +377,10 @@ function AssinaturasSection({
 
   const salvar = async () => {
     if (!dataUrl || !empresaId || !open) return;
+    if (!checklistCompleto) {
+      toast({ title: "Checklist incompleto", description: "Conclua todos os itens antes de salvar a assinatura.", variant: "destructive" });
+      return;
+    }
     setSalvando(true);
     const nome = open === "tecnico_conclusao" ? tecnicoNome : nomeCliente.trim();
     if (!nome) {
@@ -402,6 +408,13 @@ function AssinaturasSection({
 
   return (
     <div className="space-y-3">
+      {!checklistCompleto && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+          ⚠ Conclua o checklist antes de coletar assinaturas.
+          {itensPendentes > 0 && <> Faltam <strong>{itensPendentes}</strong> {itensPendentes === 1 ? "item" : "itens"}.</>}
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-3 flex items-center justify-between">
           <div>
@@ -413,7 +426,13 @@ function AssinaturasSection({
           <Button
             size="sm"
             disabled={tem("tecnico_conclusao") || !checklistCompleto}
-            onClick={() => setOpen("tecnico_conclusao")}
+            onClick={() => {
+              if (!checklistCompleto) {
+                toast({ title: "Checklist incompleto", description: "Marque todos os itens antes de assinar.", variant: "destructive" });
+                return;
+              }
+              setOpen("tecnico_conclusao");
+            }}
           >
             <FileSignature className="h-4 w-4 mr-1" /> Assinar
           </Button>
@@ -428,7 +447,18 @@ function AssinaturasSection({
               {tem("cliente_entrega") ? "Assinada ✓" : "Pendente"}
             </p>
           </div>
-          <Button size="sm" variant="outline" disabled={tem("cliente_entrega")} onClick={() => setOpen("cliente_entrega")}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={tem("cliente_entrega") || !checklistCompleto}
+            onClick={() => {
+              if (!checklistCompleto) {
+                toast({ title: "Checklist incompleto", description: "Marque todos os itens antes de coletar a assinatura do cliente.", variant: "destructive" });
+                return;
+              }
+              setOpen("cliente_entrega");
+            }}
+          >
             <FileSignature className="h-4 w-4 mr-1" /> Coletar
           </Button>
         </CardContent>
