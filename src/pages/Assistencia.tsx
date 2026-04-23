@@ -32,6 +32,11 @@ import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { CancelarOSDialog } from "@/components/CancelarOSDialog";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
+import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
+import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
+import { exportOSToCSV } from "@/lib/exportOSCsv";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -219,6 +224,13 @@ export default function Assistencia() {
   const [showOlder, setShowOlder] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
+  // Bulk action: confirmação pendente
+  type PendingBulk =
+    | { kind: "status"; status: Status }
+    | { kind: "tecnico"; funcionarioId: string; nome: string }
+    | null;
+  const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
+
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
@@ -278,6 +290,26 @@ export default function Assistencia() {
       toast.success("Status atualizado!");
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  // ── BULK ACTIONS — só carrega técnicos se admin ───────────────────────────
+  const { data: tecnicos = [] } = useQuery<TecnicoOption[]>({
+    queryKey: ["funcionarios-tecnicos-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, funcao, cargo")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      const isTecnico = (s?: string | null) =>
+        !!s && /tecn/i.test(s);
+      return (data ?? [])
+        .filter((f: any) => isTecnico(f.funcao) || isTecnico(f.cargo))
+        .map((f: any) => ({ id: f.id, nome: f.nome }));
+    },
+    enabled: isAdmin,
   });
 
   const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
@@ -350,6 +382,127 @@ export default function Assistencia() {
     });
   }, [filtered, sortKey, sortDir]);
 
+  // ── BULK SELECTION ────────────────────────────────────────────────────────
+  // Itens selecionáveis = a página atual visível (sorted)
+  const bulk = useBulkSelection(isAdmin ? sorted : undefined);
+
+  // Limpa seleção quando filtro/busca/página muda
+  useEffect(() => {
+    bulk.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterStatus, filterPrioridade, search, page, showOlder]);
+
+  const affectedItems: BulkAffectedItem[] = useMemo(
+    () =>
+      bulk.selectedItems.map((o: any) => ({
+        id: o.id,
+        numero: o.numero,
+        cliente: o.aparelhos?.clientes?.nome ?? "—",
+        aparelho: [o.aparelhos?.marca, o.aparelhos?.modelo].filter(Boolean).join(" "),
+      })),
+    [bulk.selectedItems],
+  );
+
+  // Helper: exibe toast com motivos de itens ignorados
+  const showBulkResultToast = (atualizadas: number, ignoradas: number, motivos: any[]) => {
+    if (ignoradas === 0) {
+      toast.success(`✅ ${atualizadas} OS atualizada${atualizadas === 1 ? "" : "s"} com sucesso`);
+      return;
+    }
+    toast.message(`✅ ${atualizadas} atualizada${atualizadas === 1 ? "" : "s"}, ⚠️ ${ignoradas} ignorada${ignoradas === 1 ? "" : "s"}`, {
+      description:
+        motivos && motivos.length > 0
+          ? motivos
+              .slice(0, 5)
+              .map((m: any) => `#${String(m.numero).padStart(3, "0")} — ${m.motivo}`)
+              .join("\n") + (motivos.length > 5 ? `\n+ ${motivos.length - 5} outras` : "")
+          : undefined,
+      duration: 8000,
+    });
+  };
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: async (status: Status) => {
+      const ids = Array.from(bulk.selectedIds);
+      const { data, error } = await supabase.rpc("bulk_atualizar_status_os" as any, {
+        p_ordem_ids: ids,
+        p_novo_status: status,
+      });
+      if (error) throw error;
+      return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };
+    },
+    onSuccess: (res) => {
+      showBulkResultToast(res.atualizadas, res.ignoradas, res.motivos_ignoradas);
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
+  const bulkTecnicoMutation = useMutation({
+    mutationFn: async ({ funcionarioId }: { funcionarioId: string }) => {
+      const ids = Array.from(bulk.selectedIds);
+      const { data, error } = await supabase.rpc("bulk_atribuir_tecnico_os" as any, {
+        p_ordem_ids: ids,
+        p_funcionario_id: funcionarioId,
+      });
+      if (error) throw error;
+      return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[]; tecnico_nome: string };
+    },
+    onSuccess: (res) => {
+      showBulkResultToast(res.atualizadas, res.ignoradas, res.motivos_ignoradas);
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
+  const handleConfirmBulk = async () => {
+    if (!pendingBulk) return;
+    if (pendingBulk.kind === "status") {
+      await bulkStatusMutation.mutateAsync(pendingBulk.status);
+    } else if (pendingBulk.kind === "tecnico") {
+      await bulkTecnicoMutation.mutateAsync({ funcionarioId: pendingBulk.funcionarioId });
+    }
+  };
+
+  const handleExportCSV = () => {
+    exportOSToCSV(bulk.selectedItems as any[]);
+  };
+
+  // Texto e flags para o modal de confirmação
+  const tecnicosComAtual = useMemo(
+    () => bulk.selectedItems.filter((o: any) => !!o.funcionario_id).length,
+    [bulk.selectedItems],
+  );
+
+  let confirmTitle = "";
+  let confirmDescription = "";
+  let confirmLabel = "";
+  let confirmWarning: string | undefined;
+  if (pendingBulk?.kind === "status") {
+    confirmTitle = `Marcar ${affectedItems.length} OS como ${statusLabels[pendingBulk.status]}`;
+    confirmDescription =
+      "Esta ação atualizará o status das ordens selecionadas. As mudanças serão registradas no histórico de cada OS.";
+    confirmLabel = `Marcar como ${statusLabels[pendingBulk.status]}`;
+  } else if (pendingBulk?.kind === "tecnico") {
+    confirmTitle = `Atribuir ${pendingBulk.nome} a ${affectedItems.length} OS`;
+    confirmDescription =
+      "Esta ação substituirá o técnico atual das ordens selecionadas. O histórico de transferências NÃO será criado para mudanças em massa (use a transferência individual no portal do técnico para isso).";
+    confirmLabel = "Atribuir técnico";
+    if (tecnicosComAtual > 0) {
+      confirmWarning = `${tecnicosComAtual} OS já possuem técnico atribuído e serão substituídas.`;
+    }
+  }
+
   const grupos = useMemo(() => {
     if (!agrupar) return null;
     const map = new Map<string, typeof sorted>();
@@ -401,8 +554,17 @@ export default function Assistencia() {
     const temGarantia = garantiaOrdemIds.has(order.id);
     const podeCancelar = isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(order.status);
 
+    const isSelected = isAdmin && bulk.isSelected(order.id);
     return (
-      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""}`}>
+      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
+        {isAdmin && (
+          <td className="px-3 py-2.5 w-8" onClick={(e) => e.stopPropagation()}>
+            <RowCheckbox
+              checked={bulk.isSelected(order.id)}
+              onToggle={(opts) => bulk.toggle(order.id, opts)}
+            />
+          </td>
+        )}
         <td className="px-3 py-2.5 font-mono text-xs text-primary cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
@@ -601,6 +763,22 @@ export default function Assistencia() {
           <table className="w-full text-left">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
+                {isAdmin && (
+                  <th className="px-3 py-2 w-8">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          <HeaderCheckbox
+                            allSelected={bulk.allSelected}
+                            someSelected={bulk.someSelected}
+                            onToggle={bulk.toggleAll}
+                          />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Selecionar página</TooltipContent>
+                    </Tooltip>
+                  </th>
+                )}
                 <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">OS</th>
                 <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Cliente / Aparelho</th>
                 <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Prioridade</th>
@@ -617,7 +795,7 @@ export default function Assistencia() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-16">
+                  <td colSpan={isAdmin ? 9 : 8} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <Wrench className="h-10 w-10 text-muted-foreground/30" />
                       <p className="text-sm text-muted-foreground">Nenhuma ordem de serviço encontrada</p>
@@ -787,6 +965,31 @@ export default function Assistencia() {
         ordemId={cancelOrderId}
         onClose={() => setCancelOrderId(null)}
       />
+
+      {isAdmin && (
+        <>
+          <BulkActionBar
+            count={bulk.count}
+            tecnicos={tecnicos}
+            onChangeStatus={(status) => setPendingBulk({ kind: "status", status })}
+            onAtribuirTecnico={(funcionarioId, nome) =>
+              setPendingBulk({ kind: "tecnico", funcionarioId, nome })
+            }
+            onExportCSV={handleExportCSV}
+            onClear={bulk.clear}
+          />
+          <BulkActionConfirmDialog
+            open={!!pendingBulk}
+            onClose={() => setPendingBulk(null)}
+            onConfirm={handleConfirmBulk}
+            title={confirmTitle}
+            description={confirmDescription}
+            affected={affectedItems}
+            warningMessage={confirmWarning}
+            confirmLabel={confirmLabel}
+          />
+        </>
+      )}
     </div>
   );
 }
