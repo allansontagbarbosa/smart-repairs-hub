@@ -292,7 +292,26 @@ export default function Assistencia() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
+  // ── BULK ACTIONS — só carrega técnicos se admin ───────────────────────────
+  const { data: tecnicos = [] } = useQuery<TecnicoOption[]>({
+    queryKey: ["funcionarios-tecnicos-ativos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, funcao, cargo")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      const isTecnico = (s?: string | null) =>
+        !!s && /tecn/i.test(s);
+      return (data ?? [])
+        .filter((f: any) => isTecnico(f.funcao) || isTecnico(f.cargo))
+        .map((f: any) => ({ id: f.id, nome: f.nome }));
+    },
+    enabled: isAdmin,
+  });
+
     if (!phone) return toast.error("Cliente sem telefone cadastrado");
     abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}. Por favor, entre em contato conosco.`);
   };
