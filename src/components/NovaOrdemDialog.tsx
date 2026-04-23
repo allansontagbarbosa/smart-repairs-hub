@@ -802,8 +802,21 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       // Status final depende do "Aprovado no ato"
       const finalAprovacao = aprovadoNoAto ? "aprovado" : orcamentoStatus;
 
-      // 2. Criar OS
-      const { data: ordem, error: osErr } = await supabase.from("ordens_de_servico").insert({
+      // 2. Criar OS via RPC criar_os_com_data (centraliza validação retroativa)
+      const dataEntradaIso = dataEntrada
+        ? new Date(dataEntrada).toISOString()
+        : new Date().toISOString();
+
+      const previsaoIso = previsaoEntrega
+        ? (() => {
+            const [hh, mm] = (previsaoHora || "18:00").split(":").map(Number);
+            const d = new Date(previsaoEntrega);
+            d.setHours(hh || 18, mm || 0, 0, 0);
+            return d.toISOString();
+          })()
+        : null;
+
+      const payload: Record<string, any> = {
         aparelho_id: aparelhoId,
         defeito_relatado: defeitoRelatado,
         relato_cliente: relatoCliente || null,
@@ -816,35 +829,49 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         sinal_pago: sinalPagoNum || 0,
         valor_pago: sinalPagoNum || 0,
         valor_pendente: aReceber,
-        forma_pagamento_sinal: sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
+        forma_pagamento_sinal:
+          sinalPagoNum > 0 && formaPagamentoSinal !== "nenhum" ? formaPagamentoSinal : null,
         garantia_dias: garantiaDiasNum,
         aprovacao_orcamento: finalAprovacao,
         aprovado_no_ato: aprovadoNoAto,
         data_aprovacao: finalAprovacao === "aprovado" ? new Date().toISOString() : null,
-        data_entrada: new Date().toISOString(),
         tecnico: tecnico || null,
         funcionario_id: tecnicoId || null,
         obs_cliente: obsCliente || null,
         liga,
-        bateria_entrada: bateriaEntrada ? Math.max(0, Math.min(100, parseInt(bateriaEntrada, 10))) : null,
+        bateria_entrada: bateriaEntrada
+          ? Math.max(0, Math.min(100, parseInt(bateriaEntrada, 10)))
+          : null,
         estado_geral: estadoGeral || null,
         imei2: imei2.replace(/\D/g, "") || null,
         contato_preferido: contatoPreferido,
-        checklist_entrada: Object.keys(checklist).length > 0 || checklistCustom.length > 0
-          ? { itens: checklist, custom: checklistCustom }
-          : null,
-        previsao_entrega: previsaoEntrega
-          ? (() => {
-              const [hh, mm] = (previsaoHora || "18:00").split(":").map(Number);
-              const d = new Date(previsaoEntrega);
-              d.setHours(hh || 18, mm || 0, 0, 0);
-              return d.toISOString();
-            })()
-          : null,
-        status: "recebido" as Status,
+        checklist_entrada:
+          Object.keys(checklist).length > 0 || checklistCustom.length > 0
+            ? { itens: checklist, custom: checklistCustom }
+            : null,
+        previsao_entrega: previsaoIso,
+        status: "recebido",
         lojista_id: lojistaId || null,
-      } as any).select("id, numero, numero_formatado").single();
-      if (osErr) throw osErr;
+      };
+
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("criar_os_com_data", {
+        p_dados: payload as any,
+        p_data_entrada: dataEntradaIso,
+        p_justificativa: isRetroativa ? justificativaRetroativa.trim() : null,
+      });
+      if (rpcErr) throw rpcErr;
+
+      const novaOsId = (rpcData as any)?.os_id as string;
+      const novoNumero = (rpcData as any)?.numero as number;
+      const novoNumeroFormatado = (rpcData as any)?.numero_formatado as string | null;
+
+      // Buscar a OS recém-criada para manter compatibilidade com o resto do fluxo
+      const ordem = { id: novaOsId, numero: novoNumero, numero_formatado: novoNumeroFormatado } as {
+        id: string;
+        numero: number;
+        numero_formatado: string | null;
+      };
+
 
       // 3. Inserir os_servicos (N:N) — com snapshot de comissão do serviço
       if (defeitosSelecionados.length > 0) {
