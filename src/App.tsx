@@ -104,7 +104,7 @@ const App = () => (
               <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/os" element={<Navigate to="/tecnico/ordens" replace />} />
+              <Route path="/tecnico/os" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/os/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/metas" element={<TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/transferencias" element={<TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard>} />
