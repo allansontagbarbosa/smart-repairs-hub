@@ -390,23 +390,92 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     onError: (e: any) => toast.error(e.message || "Erro ao atualizar"),
   });
 
-  const saveEdit = useMutation({
-    mutationFn: async (fd: FormData) => {
-      if (!ordem) return;
-      const valorStr = fd.get("valor") as string;
-      const custoStr = fd.get("custo_pecas") as string;
+  // ─── Detecção de pulo de fluxo ───
+  const detectarPulosFluxo = async (statusAtual: Status, novoStatus: Status): Promise<string[]> => {
+    if (!ordem) return [];
+    const motivos: string[] = [];
+    const idxAtual = statusFlow.indexOf(statusAtual);
+    const idxNovo = statusFlow.indexOf(novoStatus);
 
-      const { error } = await supabase.from("ordens_de_servico").update({
-        defeito_relatado: fd.get("defeito_relatado") as string,
-        diagnostico: (fd.get("diagnostico") as string) || null,
-        servico_realizado: (fd.get("servico_realizado") as string) || null,
-        valor: valorStr ? parseFloat(valorStr) : null,
-        custo_pecas: custoStr ? parseFloat(custoStr) : null,
-        tecnico: (fd.get("tecnico") as string) || null,
-        observacoes: (fd.get("observacoes") as string) || null,
-        previsao_entrega: (fd.get("previsao_entrega") as string) || null,
-      }).eq("id", ordem.id);
+    // Pulo de etapas (mais de uma posição à frente)
+    if (idxNovo > idxAtual + 1) {
+      const puladas = statusFlow.slice(idxAtual + 1, idxNovo).map(s => statusLabels[s]);
+      motivos.push(`Esta mudança pula ${puladas.length} etapa(s): ${puladas.join(", ")}`);
+    }
+
+    // Pronto sem checklist de saída
+    if (novoStatus === "pronto") {
+      const { count } = await supabase
+        .from("os_checklist_saida" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("ordem_id", ordem.id);
+      if (!count || count === 0) {
+        motivos.push("Esta OS não passou pelo checklist de saída do técnico");
+      }
+    }
+
+    // Entregue sem assinatura digital do cliente
+    if (novoStatus === "entregue") {
+      const { count } = await supabase
+        .from("assinaturas_digitais")
+        .select("id", { count: "exact", head: true })
+        .eq("ordem_id", ordem.id)
+        .eq("tipo", "cliente_entrega");
+      if (!count || count === 0) {
+        motivos.push("Esta OS não tem assinatura digital do cliente registrada");
+      }
+    }
+
+    return motivos;
+  };
+
+  // ─── Mutation: editar OS via RPC ───
+  const editarOSAdmin = useMutation({
+    mutationFn: async (args: { dados: Record<string, any>; pulou_fluxo?: boolean; motivo_pulo?: string | null }) => {
+      if (!ordem) return null;
+      const { data, error } = await supabase.rpc("editar_os_admin" as any, {
+        p_ordem_id: ordem.id,
+        p_dados: args.dados,
+        p_pulou_fluxo: args.pulou_fluxo ?? false,
+        p_motivo_pulo: args.motivo_pulo ?? null,
+      });
       if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] });
+      const n = data?.campos_alterados ?? 0;
+      const formatted = formatNumeroOS((ordem as any)?.numero, (ordem as any)?.numero_formatado);
+      if (n === 0) {
+        // No-op silencioso
+      } else if (data?.pulou_fluxo) {
+        toast.success(`OS ${formatted} atualizada com pulo de fluxo. Registrado em auditoria.`);
+      } else {
+        toast.success(`OS ${formatted} atualizada (${n} ${n === 1 ? "campo alterado" : "campos alterados"})`);
+      }
+      setEditing(false);
+      setPendingEditPayload(null);
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
+  });
+
+  // ─── saveEdit (compat com forma antiga via FormData) ───
+  const saveEdit = useMutation({
+    mutationFn: async (payload: Record<string, any>) => {
+      if (!ordem) return null;
+      const { data, error } = await supabase.rpc("editar_os_admin" as any, {
+        p_ordem_id: ordem.id,
+        p_dados: payload,
+        p_pulou_fluxo: false,
+        p_motivo_pulo: null,
+      });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
@@ -414,12 +483,72 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       setEditing(false);
       toast.success("Ordem atualizada!");
     },
-    onError: () => toast.error("Erro ao salvar"),
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
   });
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  // Calcular diff frontend (somente p/ saber se muda algo)
+  const calcularDiff = (original: any, atual: Record<string, any>): Record<string, [any, any]> => {
+    const diff: Record<string, [any, any]> = {};
+    for (const k of Object.keys(atual)) {
+      const a = original?.[k] ?? null;
+      const b = atual[k] === "" ? null : atual[k];
+      // Normaliza datas e números
+      const aN = a == null ? null : String(a);
+      const bN = b == null ? null : String(b);
+      if (aN !== bN) diff[k] = [a, b];
+    }
+    return diff;
+  };
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    saveEdit.mutate(new FormData(e.currentTarget));
+    if (!ordem || !isAdmin) {
+      toast.error("Apenas administradores podem editar OS");
+      return;
+    }
+    const fd = new FormData(e.currentTarget);
+    const valorStr = (fd.get("valor") as string) || "";
+    const previsaoStr = (fd.get("previsao_entrega") as string) || "";
+    const funcId = (fd.get("funcionario_id") as string) || "";
+
+    // Validações
+    if (valorStr && (isNaN(parseFloat(valorStr)) || parseFloat(valorStr) < 0)) {
+      toast.error("Valor inválido"); return;
+    }
+    if (funcId && !/^[0-9a-f-]{36}$/i.test(funcId)) {
+      toast.error("Técnico inválido"); return;
+    }
+
+    const payload: Record<string, any> = {
+      defeito_relatado: fd.get("defeito_relatado") as string,
+      diagnostico: (fd.get("diagnostico") as string) || "",
+      servico_realizado: (fd.get("servico_realizado") as string) || "",
+      valor: valorStr,
+      funcionario_id: funcId,
+      observacoes: (fd.get("observacoes") as string) || "",
+      previsao_entrega: previsaoStr ? new Date(previsaoStr).toISOString() : "",
+      prioridade: (fd.get("prioridade") as string) || "normal",
+      garantia_dias: (fd.get("garantia_dias") as string) || "",
+      aprovacao_orcamento: (fd.get("aprovacao_orcamento") as string) || "",
+    };
+
+    // Diff vazio? fecha sem chamar RPC
+    const diff = calcularDiff(ordem, payload);
+    if (Object.keys(diff).length === 0) {
+      setEditing(false);
+      return;
+    }
+
+    // Warning se valor mudou e já existe comissão
+    const valorNovo = valorStr ? parseFloat(valorStr) : null;
+    const valorAtual = (ordem as any).valor ?? null;
+    if (valorNovo !== valorAtual && comissoesOS.length > 0) {
+      setPendingEditPayload(payload);
+      setValorWarningOpen(true);
+      return;
+    }
+
+    editarOSAdmin.mutate({ dados: payload, pulou_fluxo: false });
   };
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
