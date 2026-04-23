@@ -149,6 +149,53 @@ export type Database = {
           },
         ]
       }
+      assinaturas_digitais: {
+        Row: {
+          assinatura_base64: string
+          created_at: string
+          empresa_id: string
+          id: string
+          ip_address: string | null
+          ordem_id: string
+          signatario_nome: string
+          signatario_user_id: string | null
+          tipo: string
+          user_agent: string | null
+        }
+        Insert: {
+          assinatura_base64: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          ip_address?: string | null
+          ordem_id: string
+          signatario_nome: string
+          signatario_user_id?: string | null
+          tipo: string
+          user_agent?: string | null
+        }
+        Update: {
+          assinatura_base64?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          ip_address?: string | null
+          ordem_id?: string
+          signatario_nome?: string
+          signatario_user_id?: string | null
+          tipo?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinaturas_digitais_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria: {
         Row: {
           acao: string
@@ -450,6 +497,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      checklist_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          itens: Json
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          itens?: Json
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          itens?: Json
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       clientes: {
         Row: {
@@ -1322,6 +1399,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      equipe_metas: {
+        Row: {
+          ano: number
+          bonus_equipe_batida: number | null
+          created_at: string
+          empresa_id: string
+          id: string
+          mes: number
+          meta_faturamento: number | null
+          meta_quantidade_os: number | null
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          bonus_equipe_batida?: number | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          mes: number
+          meta_faturamento?: number | null
+          meta_quantidade_os?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          bonus_equipe_batida?: number | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          mes?: number
+          meta_faturamento?: number | null
+          meta_quantidade_os?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       estoque: {
         Row: {
@@ -2613,6 +2726,7 @@ export type Database = {
           sinal_pago: number
           status: Database["public"]["Enums"]["status_ordem"]
           tecnico: string | null
+          tipo_servico: string | null
           tipo_servico_id: string | null
           updated_at: string
           updated_by: string | null
@@ -2674,6 +2788,7 @@ export type Database = {
           sinal_pago?: number
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
+          tipo_servico?: string | null
           tipo_servico_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -2735,6 +2850,7 @@ export type Database = {
           sinal_pago?: number
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
+          tipo_servico?: string | null
           tipo_servico_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -2804,6 +2920,94 @@ export type Database = {
           },
         ]
       }
+      os_checklist_saida: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          item_key: string
+          item_label: string
+          observacao: string | null
+          ordem_id: string
+          testado: boolean
+          testado_em: string | null
+          testado_por: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          item_key: string
+          item_label: string
+          observacao?: string | null
+          ordem_id: string
+          testado?: boolean
+          testado_em?: string | null
+          testado_por?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          item_key?: string
+          item_label?: string
+          observacao?: string | null
+          ordem_id?: string
+          testado?: boolean
+          testado_em?: string | null
+          testado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_checklist_saida_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_fotos: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          legenda: string | null
+          ordem_id: string
+          tipo: string
+          uploaded_by: string | null
+          url_storage: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          legenda?: string | null
+          ordem_id: string
+          tipo: string
+          uploaded_by?: string | null
+          url_storage: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          legenda?: string | null
+          ordem_id?: string
+          tipo?: string
+          uploaded_by?: string | null
+          url_storage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_fotos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       os_servicos: {
         Row: {
           categoria: string | null
@@ -2858,6 +3062,62 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_transferencias: {
+        Row: {
+          created_at: string
+          data_resposta: string | null
+          data_solicitacao: string
+          empresa_id: string
+          funcionario_destino_id: string
+          funcionario_origem_id: string
+          id: string
+          motivo: string | null
+          ordem_id: string
+          respondido_por: string | null
+          resposta_observacao: string | null
+          solicitado_por: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          data_resposta?: string | null
+          data_solicitacao?: string
+          empresa_id: string
+          funcionario_destino_id: string
+          funcionario_origem_id: string
+          id?: string
+          motivo?: string | null
+          ordem_id: string
+          respondido_por?: string | null
+          resposta_observacao?: string | null
+          solicitado_por?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          data_resposta?: string | null
+          data_solicitacao?: string
+          empresa_id?: string
+          funcionario_destino_id?: string
+          funcionario_origem_id?: string
+          id?: string
+          motivo?: string | null
+          ordem_id?: string
+          respondido_por?: string | null
+          resposta_observacao?: string | null
+          solicitado_por?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_transferencias_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
         ]
@@ -3392,6 +3652,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnicos_metas: {
+        Row: {
+          ano: number
+          bonus_meta_batida: number | null
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          mes: number
+          meta_quantidade_os: number | null
+          meta_valor_servicos: number | null
+          observacoes: string | null
+          salario_base: number | null
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          bonus_meta_batida?: number | null
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          mes: number
+          meta_quantidade_os?: number | null
+          meta_valor_servicos?: number | null
+          observacoes?: string | null
+          salario_base?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          bonus_meta_batida?: number | null
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          mes?: number
+          meta_quantidade_os?: number | null
+          meta_valor_servicos?: number | null
+          observacoes?: string | null
+          salario_base?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       templates_mensagem: {
         Row: {
           ativo: boolean
@@ -3574,6 +3882,7 @@ export type Database = {
       get_dashboard_summary: { Args: never; Returns: Json }
       get_my_empresa_id: { Args: never; Returns: string }
       get_my_lojista_id: { Args: never; Returns: string }
+      get_my_role: { Args: never; Returns: string }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       lojista_verificar_acesso: {
