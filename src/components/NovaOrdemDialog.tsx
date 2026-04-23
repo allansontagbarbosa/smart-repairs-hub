@@ -852,6 +852,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         previsao_entrega: previsaoIso,
         status: "recebido",
         lojista_id: lojistaId || null,
+        localizacao: localizacao?.trim() || null,
       };
 
       const { data: rpcData, error: rpcErr } = await supabase.rpc("criar_os_com_data", {
