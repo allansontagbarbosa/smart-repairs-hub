@@ -570,6 +570,22 @@ export default function Assistencia() {
               </TooltipTrigger>
               <TooltipContent>Imprimir Etiqueta</TooltipContent>
             </Tooltip>
+
+            {podeCancelar && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setCancelOrderId(order.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cancelar OS</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </td>
       </tr>
