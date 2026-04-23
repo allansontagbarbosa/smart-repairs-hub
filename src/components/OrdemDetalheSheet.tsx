@@ -183,6 +183,38 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   // Lista filtrada para dropdown de técnico (todos ativos; UI prioriza técnicos se houver cargo)
   const tecnicos = funcionariosAtivos;
 
+  // Lista de lojistas ativos da empresa
+  const { data: lojistasAtivos = [] } = useQuery({
+    queryKey: ["lojistas_ativos_os"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lojistas")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      return data || [];
+    },
+  });
+
+  // Hidrata editForm quando entra em modo edição
+  useEffect(() => {
+    if (editing && ordem) {
+      const o = ordem as any;
+      const cl = o.checklist_entrada || {};
+      setEditForm({
+        funcionario_id: o.funcionario_id ?? "",
+        lojista_id: o.lojista_id ?? "",
+        contato_preferido: o.contato_preferido ?? "whatsapp",
+        forma_pagamento_sinal: o.forma_pagamento_sinal ?? "nenhum",
+        liga: o.liga ?? "sim",
+        aprovado_no_ato: !!o.aprovado_no_ato,
+        checklist_itens: (cl.itens && typeof cl.itens === "object") ? cl.itens : {},
+        checklist_custom: Array.isArray(cl.custom) ? cl.custom : [],
+      });
+    }
+  }, [editing, ordem]);
+
   // Criador da OS (para o header enriquecido)
   const { data: criador } = useQuery({
     queryKey: ["criador_os", (ordem as any)?.created_by, (ordem as any)?.criada_retroativamente_por],
