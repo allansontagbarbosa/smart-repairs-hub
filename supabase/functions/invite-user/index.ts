@@ -47,6 +47,19 @@ Deno.serve(async (req) => {
 
     const { email, nome, perfil_id, empresa_id } = await req.json();
 
+    // IU-01: mapear cargo do funcionário a partir do perfil de acesso
+    let cargoFuncionario = "Colaborador";
+    if (perfil_id) {
+      const { data: perfilData } = await adminClient
+        .from("perfis_acesso")
+        .select("nome_perfil")
+        .eq("id", perfil_id)
+        .maybeSingle();
+      if (perfilData?.nome_perfil) {
+        cargoFuncionario = perfilData.nome_perfil;
+      }
+    }
+
     if (!email || !nome || !empresa_id) {
       return new Response(JSON.stringify({ error: "Email, nome e empresa_id são obrigatórios" }), {
         status: 400,
