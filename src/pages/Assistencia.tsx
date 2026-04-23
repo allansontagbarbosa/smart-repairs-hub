@@ -3,7 +3,7 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
-  CalendarClock, SortAsc, Filter, Printer, Brain, Shield,
+  CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,7 @@ import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
