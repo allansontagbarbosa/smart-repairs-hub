@@ -160,9 +160,47 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { data: funcionariosAtivos = [] } = useQuery({
     queryKey: ["funcionarios_os"],
     queryFn: async () => {
-      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao, cargo, funcao").eq("ativo", true).order("nome");
       return data || [];
     },
+  });
+
+  // Lista filtrada para dropdown de técnico (todos ativos; UI prioriza técnicos se houver cargo)
+  const tecnicos = funcionariosAtivos;
+
+  // Criador da OS (para o header enriquecido)
+  const { data: criador } = useQuery({
+    queryKey: ["criador_os", (ordem as any)?.created_by, (ordem as any)?.criada_retroativamente_por],
+    queryFn: async () => {
+      const o = ordem as any;
+      const userId = o?.criada_retroativamente_por;
+      if (userId) {
+        const { data } = await supabase
+          .from("user_profiles")
+          .select("nome_exibicao")
+          .or(`user_id.eq.${userId},id.eq.${userId}`)
+          .maybeSingle();
+        if (data?.nome_exibicao) return data.nome_exibicao;
+      }
+      return o?.created_by || null;
+    },
+    enabled: !!ordem,
+  });
+
+  // Histórico de auditoria (drawer)
+  const { data: historicoAuditoria = [] } = useQuery({
+    queryKey: ["os_auditoria", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("os_auditoria" as any)
+        .select("*")
+        .eq("ordem_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!orderId && historicoOpen,
   });
 
   // Fetch per-service commission for commission preview
