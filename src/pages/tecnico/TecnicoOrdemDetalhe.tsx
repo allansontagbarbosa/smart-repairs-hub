@@ -363,10 +363,10 @@ function FotoTile({ foto, onDelete }: { foto: any; onDelete: () => void }) {
 }
 
 function AssinaturasSection({
-  ordemId, empresaId, tecnicoNome, assinaturas, onChange, checklistCompleto,
+  ordemId, empresaId, tecnicoNome, assinaturas, onChange, checklistCompleto, itensPendentes,
 }: {
   ordemId: string; empresaId: string | null; tecnicoNome: string;
-  assinaturas: any[]; onChange: () => void; checklistCompleto: boolean;
+  assinaturas: any[]; onChange: () => void; checklistCompleto: boolean; itensPendentes: number;
 }) {
   const [open, setOpen] = useState<null | "tecnico_conclusao" | "cliente_entrega">(null);
   const [nomeCliente, setNomeCliente] = useState("");
