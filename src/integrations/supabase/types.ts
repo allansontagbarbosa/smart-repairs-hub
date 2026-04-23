@@ -633,6 +633,7 @@ export type Database = {
           estornada_por: string | null
           funcionario_id: string
           id: string
+          mes_competencia: string | null
           observacoes: string | null
           ordem_id: string | null
           status: Database["public"]["Enums"]["status_comissao"]
@@ -649,6 +650,7 @@ export type Database = {
           estornada_por?: string | null
           funcionario_id: string
           id?: string
+          mes_competencia?: string | null
           observacoes?: string | null
           ordem_id?: string | null
           status?: Database["public"]["Enums"]["status_comissao"]
@@ -665,6 +667,7 @@ export type Database = {
           estornada_por?: string | null
           funcionario_id?: string
           id?: string
+          mes_competencia?: string | null
           observacoes?: string | null
           ordem_id?: string | null
           status?: Database["public"]["Enums"]["status_comissao"]
@@ -2692,6 +2695,7 @@ export type Database = {
           contato_preferido: string | null
           created_at: string
           created_by: string | null
+          criada_retroativamente_por: string | null
           custo_mao_de_obra: number
           custo_pecas: number | null
           custo_total: number | null
@@ -2703,6 +2707,7 @@ export type Database = {
           deleted_at: string | null
           desconto: number
           diagnostico: string | null
+          eh_retroativa: boolean
           empresa_id: string | null
           estado_geral: string | null
           forma_pagamento_id: string | null
@@ -2712,6 +2717,7 @@ export type Database = {
           id: string
           imei2: string | null
           impacto_cancelamento: Json | null
+          justificativa_retroativa: string | null
           liga: string | null
           loja_id: string | null
           lojista_id: string | null
@@ -2758,6 +2764,7 @@ export type Database = {
           contato_preferido?: string | null
           created_at?: string
           created_by?: string | null
+          criada_retroativamente_por?: string | null
           custo_mao_de_obra?: number
           custo_pecas?: number | null
           custo_total?: number | null
@@ -2769,6 +2776,7 @@ export type Database = {
           deleted_at?: string | null
           desconto?: number
           diagnostico?: string | null
+          eh_retroativa?: boolean
           empresa_id?: string | null
           estado_geral?: string | null
           forma_pagamento_id?: string | null
@@ -2778,6 +2786,7 @@ export type Database = {
           id?: string
           imei2?: string | null
           impacto_cancelamento?: Json | null
+          justificativa_retroativa?: string | null
           liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
@@ -2824,6 +2833,7 @@ export type Database = {
           contato_preferido?: string | null
           created_at?: string
           created_by?: string | null
+          criada_retroativamente_por?: string | null
           custo_mao_de_obra?: number
           custo_pecas?: number | null
           custo_total?: number | null
@@ -2835,6 +2845,7 @@ export type Database = {
           deleted_at?: string | null
           desconto?: number
           diagnostico?: string | null
+          eh_retroativa?: boolean
           empresa_id?: string | null
           estado_geral?: string | null
           forma_pagamento_id?: string | null
@@ -2844,6 +2855,7 @@ export type Database = {
           id?: string
           imei2?: string | null
           impacto_cancelamento?: Json | null
+          justificativa_retroativa?: string | null
           liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
@@ -3924,6 +3936,14 @@ export type Database = {
     Functions: {
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
+        Returns: Json
+      }
+      criar_os_com_data: {
+        Args: {
+          p_dados: Json
+          p_data_entrada: string
+          p_justificativa?: string
+        }
         Returns: Json
       }
       delete_email: {
