@@ -32,6 +32,11 @@ import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { CancelarOSDialog } from "@/components/CancelarOSDialog";
+import { useBulkSelection } from "@/hooks/useBulkSelection";
+import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
+import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
+import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
+import { exportOSToCSV } from "@/lib/exportOSCsv";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
