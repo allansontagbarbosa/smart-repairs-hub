@@ -3961,6 +3961,15 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      editar_os_admin: {
+        Args: {
+          p_dados: Json
+          p_motivo_pulo?: string
+          p_ordem_id: string
+          p_pulou_fluxo?: boolean
+        }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
