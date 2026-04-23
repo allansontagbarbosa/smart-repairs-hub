@@ -1637,6 +1637,72 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </div>
 
+              {/* ── 5b. DATA DE ENTRADA (admin pode editar; demais veem somente leitura) ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Data de entrada {isAdmin ? "(editável)" : "(automática)"}
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={dataEntrada}
+                    onChange={(e) => setDataEntrada(e.target.value)}
+                    readOnly={!isAdmin}
+                    disabled={!isAdmin}
+                    max={(() => {
+                      const d = new Date();
+                      d.setHours(d.getHours() + 1);
+                      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                      return d.toISOString().slice(0, 16);
+                    })()}
+                    className={cn("mt-1 h-9 text-sm", !isAdmin && "cursor-not-allowed opacity-70")}
+                  />
+                  {!isAdmin && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Apenas administradores podem alterar a data de entrada.
+                    </p>
+                  )}
+                </div>
+                {isAdmin && isRetroativa && (
+                  <div className="sm:col-span-1 flex items-end">
+                    <p className="text-[11px] text-warning-foreground/80">
+                      Esta OS será marcada como retroativa ({diasRetroativos}{" "}
+                      {diasRetroativos === 1 ? "dia" : "dias"} atrás).
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {isAdmin && isRetroativa && (
+                <Alert className="border-warning/40 bg-warning/10">
+                  <AlertCircle className="h-4 w-4 text-warning" />
+                  <AlertTitle className="text-sm">Cadastro retroativo</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p className="text-xs">
+                      Você está lançando uma OS com data de{" "}
+                      <strong>{diasRetroativos}</strong>{" "}
+                      {diasRetroativos === 1 ? "dia" : "dias"} atrás. Esta ação fica
+                      registrada na auditoria. Limite: 30 dias.
+                    </p>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">
+                        Justificativa (mínimo 10 caracteres) *
+                      </Label>
+                      <Textarea
+                        value={justificativaRetroativa}
+                        onChange={(e) => setJustificativaRetroativa(e.target.value)}
+                        placeholder="Ex.: cliente trouxe o aparelho na semana passada e a OS não foi cadastrada na hora..."
+                        rows={2}
+                        className="mt-1 resize-none text-sm"
+                      />
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {justificativaRetroativa.trim().length}/10
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* ── 6. PREVISÃO + TÉCNICO ── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
