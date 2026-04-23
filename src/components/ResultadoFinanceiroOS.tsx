@@ -52,11 +52,16 @@ export function ResultadoFinanceiroOS({
   const desconto = Number(ordem.desconto ?? 0);
   const valorTotal = Number(ordem.valor_total ?? ordem.valor ?? 0);
   const custoPecas = Number(ordem.custo_pecas ?? 0);
-  // Prioriza soma real de comissões (do parent); fallback para snapshot custo_mao_de_obra.
-  const comissao =
-    typeof totalComissoesReais === "number"
-      ? totalComissoesReais
-      : Number(ordem.custo_mao_de_obra ?? 0);
+  // Prioriza soma real de comissões já lançadas. Se ainda não há comissões
+  // lançadas (OS antes de "Pronto"), mostra a comissão prevista calculada
+  // pelo backend (snapshot custo_mao_de_obra).
+  const snapshotComissao = Number(ordem.custo_mao_de_obra ?? 0);
+  const temComissoesReais =
+    typeof totalComissoesReais === "number" && qtdComissoes > 0;
+  const comissao = temComissoesReais
+    ? (totalComissoesReais as number)
+    : snapshotComissao;
+  const comissaoPrevista = !temComissoesReais && snapshotComissao > 0;
   const despesas = Number(totalDespesasVinculadas ?? 0);
 
   const valorCobradoBruto = valorServicos + valorPecas + maoObraAdic;
