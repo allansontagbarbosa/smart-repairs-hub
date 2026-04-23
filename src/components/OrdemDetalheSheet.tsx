@@ -1943,6 +1943,64 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Warning ao remover serviços com comissão (estorno automático via trigger) */}
+      <AlertDialog open={removeServicosWarnOpen} onOpenChange={setRemoveServicosWarnOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Remover estes serviços vai estornar comissões
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <ul className="list-disc pl-5 space-y-0.5">
+                  {pendingRemovedServicos.map((s) => (
+                    <li key={s.id}>
+                      <span className="font-medium">{s.nome}</span>
+                      {" — Comissão: "}
+                      <span className="text-foreground">{brl(s.comissao)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="pt-1 border-t">
+                  <strong>Total a estornar:</strong>{" "}
+                  {brl(pendingRemovedServicos.reduce((s, r) => s + r.comissao, 0))}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setRemoveServicosWarnOpen(false);
+                setPendingRemovedServicos([]);
+                setPendingEditPayload(null);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const { adicionar, remover } = calcDiffServicos();
+                if (pendingEditPayload) {
+                  editarOSAdmin.mutate({ dados: pendingEditPayload, pulou_fluxo: false });
+                } else {
+                  setEditing(false);
+                }
+                if (adicionar.length > 0 || remover.length > 0) {
+                  editarServicos.mutate({ adicionar, remover });
+                }
+                setRemoveServicosWarnOpen(false);
+                setPendingRemovedServicos([]);
+                setPendingEditPayload(null);
+              }}
+            >
+              Remover e estornar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Warning de mudança de valor com comissão já gerada */}
       <AlertDialog open={valorWarningOpen} onOpenChange={setValorWarningOpen}>
         <AlertDialogContent>
