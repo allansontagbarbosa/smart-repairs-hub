@@ -249,6 +249,39 @@ export type Database = {
           },
         ]
       }
+      auditoria_falhas: {
+        Row: {
+          acao: string | null
+          created_at: string
+          empresa_id: string | null
+          erro: string | null
+          id: string
+          modulo: string | null
+          registro_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          acao?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          erro?: string | null
+          id?: string
+          modulo?: string | null
+          registro_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          erro?: string | null
+          id?: string
+          modulo?: string | null
+          registro_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
           comentario: string | null
