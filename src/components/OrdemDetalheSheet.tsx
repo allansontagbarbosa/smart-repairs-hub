@@ -367,7 +367,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
   const fmtDateTime = (d: string) => new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-  const fmtCurrency = (v: number | null) => v ? `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—";
+  const brl = (v: number | null | undefined) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
+  const fmtCurrency = (v: number | null | undefined) => brl(v);
 
   const nextStatus = ordem ? statusFlow[statusFlow.indexOf(ordem.status) + 1] : null;
 

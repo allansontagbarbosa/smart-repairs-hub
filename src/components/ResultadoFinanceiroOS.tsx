@@ -7,17 +7,34 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   ordem: any;
+  /** Soma das despesas vinculadas a esta OS (calculada no parent). */
+  totalDespesasVinculadas?: number;
+  /** Soma real das comissões já lançadas para esta OS (preferida sobre custo_mao_de_obra). */
+  totalComissoesReais?: number;
+  /** Quantidade de peças utilizadas registradas (para alerta de auditoria). */
+  qtdPecasUtilizadas?: number;
+  /** Quantidade de comissões já lançadas (para alerta de auditoria). */
+  qtdComissoes?: number;
 }
 
-const fmtBRL = (n: number | null | undefined) =>
-  Number(n ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const brl = (v: number | null | undefined) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
 
 /**
  * Card "Resultado Financeiro" da OS — visível apenas para perfis Admin / Financeiro.
  * Mostra valor cobrado, custo das peças (média ponderada congelada),
- * comissão do técnico e lucro/margem calculados.
+ * comissão do técnico, despesas vinculadas e lucro/margem calculados.
+ *
+ * Fórmula:
+ *   Lucro = Valor cobrado − Custo peças − Comissão − Despesas vinculadas
  */
-export function ResultadoFinanceiroOS({ ordem }: Props) {
+export function ResultadoFinanceiroOS({
+  ordem,
+  totalDespesasVinculadas = 0,
+  totalComissoesReais,
+  qtdPecasUtilizadas = 0,
+  qtdComissoes = 0,
+}: Props) {
   const { perfil, isAdmin } = usePermissoes();
 
   const perfilNorm = (perfil || "").toLowerCase();
@@ -35,14 +52,28 @@ export function ResultadoFinanceiroOS({ ordem }: Props) {
   const desconto = Number(ordem.desconto ?? 0);
   const valorTotal = Number(ordem.valor_total ?? ordem.valor ?? 0);
   const custoPecas = Number(ordem.custo_pecas ?? 0);
-  const custoMaoObra = Number(ordem.custo_mao_de_obra ?? 0);
-  const lucro = Number(ordem.lucro_bruto ?? 0);
-  const margem = Number(ordem.margem_calculada ?? 0);
+  // Prioriza soma real de comissões (do parent); fallback para snapshot custo_mao_de_obra.
+  const comissao =
+    typeof totalComissoesReais === "number"
+      ? totalComissoesReais
+      : Number(ordem.custo_mao_de_obra ?? 0);
+  const despesas = Number(totalDespesasVinculadas ?? 0);
 
+  const valorCobradoBruto = valorServicos + valorPecas + maoObraAdic;
+  const lucro = valorTotal - custoPecas - comissao - despesas;
+  const margem = valorTotal > 0 ? (lucro / valorTotal) * 100 : null;
   const lucroPositivo = lucro >= 0;
-  const valorCobrado = valorServicos + valorPecas + maoObraAdic;
 
-  // Aviso para OSs antigas: peças sem custo registrado
+  // Alerta de auditoria: tem comissão mas zero peças e zero custo de peças
+  const status = String(ordem.status ?? "");
+  const statusRelevante = ["pronto", "entregue", "em_reparo"].includes(status);
+  const mostrarAlertaSemPecas =
+    statusRelevante &&
+    custoPecas === 0 &&
+    qtdPecasUtilizadas === 0 &&
+    qtdComissoes > 0;
+
+  // Aviso para OSs antigas: peças cobradas sem custo registrado
   const temPecasSemCusto = valorPecas > 0 && custoPecas === 0;
 
   return (
@@ -76,7 +107,7 @@ export function ResultadoFinanceiroOS({ ordem }: Props) {
               <span className="inline-flex items-center gap-1">
                 Valor cobrado
                 <span className="text-[11px] text-muted-foreground">
-                  (= {fmtBRL(valorCobrado)} {desconto > 0 ? `− ${fmtBRL(desconto)}` : ""})
+                  (= {brl(valorCobradoBruto)} {desconto > 0 ? `− ${brl(desconto)}` : ""})
                 </span>
               </span>
             }
@@ -103,28 +134,39 @@ export function ResultadoFinanceiroOS({ ordem }: Props) {
             className="text-destructive"
           />
 
-          {custoMaoObra > 0 && (
-            <Linha
-              label={
-                <span className="inline-flex items-center gap-1">
-                  (−) Comissão do técnico
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[260px]">
-                      Calculada conforme o tipo de comissão configurado para o
-                      técnico responsável (percentual, fixo por OS, etc.).
-                    </TooltipContent>
-                  </Tooltip>
-                </span>
-              }
-              valor={-custoMaoObra}
-              className="text-destructive"
-            />
-          )}
+          <Linha
+            label={
+              <span className="inline-flex items-center gap-1">
+                (−) Comissão do técnico
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[260px]">
+                    Calculada conforme o tipo de comissão configurado para o
+                    técnico responsável (percentual, fixo por OS, etc.).
+                  </TooltipContent>
+                </Tooltip>
+              </span>
+            }
+            valor={-comissao}
+            className="text-destructive"
+          />
+
+          <Linha
+            label="(−) Despesas vinculadas"
+            valor={-despesas}
+            className="text-destructive"
+          />
 
           <div className="border-t border-border/60 my-2" />
+
+          {mostrarAlertaSemPecas && (
+            <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+              <Info className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>Nenhuma peça registrada — confirme se foi serviço puro.</span>
+            </p>
+          )}
 
           <div className="flex items-center justify-between">
             <span className="font-semibold">Lucro</span>
@@ -138,13 +180,11 @@ export function ResultadoFinanceiroOS({ ordem }: Props) {
                     : ""
                 )}
               >
-                {fmtBRL(lucro)}
+                {brl(lucro)}
               </Badge>
-              {valorTotal > 0 && (
-                <Badge variant="outline" className="text-[11px] tabular-nums">
-                  {margem.toFixed(1)}%
-                </Badge>
-              )}
+              <Badge variant="outline" className="text-[11px] tabular-nums">
+                {margem === null ? "—" : `${margem.toFixed(1)}%`}
+              </Badge>
             </div>
           </div>
 
@@ -176,7 +216,7 @@ function Linha({
   return (
     <div className={cn("flex items-center justify-between", className)}>
       <span>{label}</span>
-      <span className="tabular-nums">{fmtBRL(valor)}</span>
+      <span className="tabular-nums">{brl(valor)}</span>
     </div>
   );
 }
