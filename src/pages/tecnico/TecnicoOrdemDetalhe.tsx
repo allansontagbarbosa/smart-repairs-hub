@@ -172,6 +172,7 @@ export default function TecnicoOrdemDetalhe() {
   };
 
   const checklistCompleto = checklist.length > 0 && checklist.every(c => c.testado);
+  const itensPendentes = checklist.filter(c => !c.testado).length;
 
   if (isLoading || !ordem) {
     return <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>;
