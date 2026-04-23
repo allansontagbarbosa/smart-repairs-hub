@@ -292,6 +292,7 @@ export default function TecnicoOrdemDetalhe() {
             assinaturas={assinaturas}
             onChange={refetchAssinaturas}
             checklistCompleto={checklistCompleto}
+            itensPendentes={itensPendentes}
           />
         </TabsContent>
       </Tabs>
