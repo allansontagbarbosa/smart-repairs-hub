@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       targetUserId = inviteData?.user?.id;
       if (targetUserId) {
         const { data: func } = await adminClient.from("funcionarios").insert({
-          nome, email, empresa_id, cargo: "Colaborador", ativo: true,
+          nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
         }).select("id").single();
 
         await adminClient.from("user_profiles").upsert({
