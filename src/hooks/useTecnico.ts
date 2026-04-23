@@ -119,7 +119,8 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
         .eq("funcionario_id", funcionarioId!)
         .in("status", ["pronto", "entregue"])
         .gte("data_conclusao", inicio)
-        .lt("data_conclusao", fim);
+        .lt("data_conclusao", fim)
+        .is("deleted_at", null);
 
       const { count: aberto } = await supabase
         .from("ordens_de_servico")

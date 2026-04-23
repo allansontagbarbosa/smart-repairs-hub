@@ -234,11 +234,12 @@ export function useFinanceiro() {
     // Lucro REAL: receita - custos peças - despesas pagas - comissões + recebimentos extras
     const lucroReal = receitaMes - custosPecasMes - despesasPagasMes - comissoesMes + recebimentosMes;
 
-    // Despesas por categoria
+    // Despesas por categoria — só contas pagas, por data_pagamento (consistente com despesasPagasMes)
     const despesasPorCategoria: Record<string, number> = {};
     allContas
       .filter(c => {
-        const d = new Date(c.data_vencimento + "T12:00:00");
+        if (c.status !== "paga" || !c.data_pagamento) return false;
+        const d = new Date(c.data_pagamento + "T12:00:00");
         return d >= monthStart && d <= monthEnd;
       })
       .forEach(c => {

@@ -33,7 +33,7 @@ async function fetchAparelhosAssistencia() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
     .select(`
-      id, numero, numero_formatado, status, data_entrada, tecnico, previsao_entrega, prazo_vencido,
+      id, numero, numero_formatado, status, data_entrada, tecnico, previsao_entrega,
       loja_id, funcionario_id, defeito_relatado, valor, valor_total, sinal_pago, aprovacao_orcamento,
       aparelhos!inner ( marca, modelo, cor, imei, capacidade, cliente_id, clientes!inner ( nome, telefone ) ),
       lojas ( nome ),
@@ -44,6 +44,12 @@ async function fetchAparelhosAssistencia() {
     .order("data_entrada", { ascending: false });
 
   if (error) throw error;
+
+  // NOTE: a coluna `prazo_vencido` no banco é stale (só atualiza em INSERT/UPDATE
+  // via trigger atualizar_prazo_vencido). Por isso calculamos no frontend usando
+  // previsao_entrega vs now, ignorando o valor persistido.
+  const now = new Date();
+  const statusFinalizados = new Set(["pronto", "entregue", "cancelado"]);
 
   return (data ?? []).map((os: any) => ({
     os_id: os.id,
@@ -63,7 +69,11 @@ async function fetchAparelhosAssistencia() {
     tecnico: os.tecnico,
     funcionario_nome: os.funcionarios?.nome ?? null,
     previsao_entrega: os.previsao_entrega,
-    prazo_vencido: os.prazo_vencido,
+    prazo_vencido: !!(
+      os.previsao_entrega &&
+      new Date(os.previsao_entrega) < now &&
+      !statusFinalizados.has(os.status)
+    ),
     loja_id: os.loja_id,
     funcionario_id: os.funcionario_id,
     valor: os.valor,
