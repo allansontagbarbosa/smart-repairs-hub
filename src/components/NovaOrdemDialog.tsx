@@ -86,8 +86,39 @@ interface PecaSelecionada {
 
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
   const queryClient = useQueryClient();
+  const { isAdmin } = usePermissoes();
 
   const [step, setStep] = useState<Step>("cliente");
+
+  // Data de entrada (admin pode editar; demais roles ficam em readonly = agora)
+  const nowLocalIso = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  };
+  const [dataEntrada, setDataEntrada] = useState<string>(nowLocalIso());
+  const [justificativaRetroativa, setJustificativaRetroativa] = useState("");
+
+  // True quando a data informada está mais de 1 hora no passado
+  const isRetroativa = useMemo(() => {
+    if (!dataEntrada) return false;
+    const informada = new Date(dataEntrada).getTime();
+    return informada < Date.now() - 60 * 60 * 1000;
+  }, [dataEntrada]);
+
+  const diasRetroativos = useMemo(() => {
+    if (!isRetroativa) return 0;
+    const ms = Date.now() - new Date(dataEntrada).getTime();
+    return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+  }, [isRetroativa, dataEntrada]);
+
+  // Re-sincroniza a data quando o diálogo é aberto
+  useEffect(() => {
+    if (open) {
+      setDataEntrada(nowLocalIso());
+      setJustificativaRetroativa("");
+    }
+  }, [open]);
 
   // Cliente
   const [showNewClient, setShowNewClient] = useState(false);
