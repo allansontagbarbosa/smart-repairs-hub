@@ -217,10 +217,11 @@ export default function Assistencia() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [showOlder, setShowOlder] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
-  const { can } = usePermissoes();
+  const { can, isAdmin } = usePermissoes();
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -305,7 +306,7 @@ export default function Assistencia() {
     const counts: Record<string, number> = { todos: 0 };
     for (const o of enriched) {
       counts[o.status] = (counts[o.status] ?? 0) + 1;
-      if (o.status !== "entregue") counts["todos"] = (counts["todos"] ?? 0) + 1;
+      if (o.status !== "entregue" && o.status !== "cancelado") counts["todos"] = (counts["todos"] ?? 0) + 1;
     }
     return counts;
   }, [enriched]);
@@ -323,7 +324,9 @@ export default function Assistencia() {
         device.toLowerCase().includes(q) ||
         String(o.numero).includes(q);
       const matchStatus =
-        filterStatus === "todos" ? o.status !== "entregue" : o.status === filterStatus;
+        filterStatus === "todos"
+          ? (o.status !== "entregue" && o.status !== "cancelado")
+          : o.status === filterStatus;
       const matchPrioridade =
         filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
       return matchSearch && matchStatus && matchPrioridade;
