@@ -103,7 +103,9 @@ async function fetchFuncionarios() {
 async function fetchOrdens() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select("id, numero, valor, custo_pecas, status, data_entrada, aparelhos ( marca, modelo, clientes ( nome ) )")
+    .select("id, numero, valor, custo_pecas, status, data_entrada, data_conclusao, aparelhos ( marca, modelo, clientes ( nome ) )")
+    .neq("status", "cancelado")
+    .is("deleted_at", null)
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -198,18 +200,23 @@ export function useFinanceiro() {
     const comissoesPendentes = allComissoes.filter(c => c.status === "pendente" || c.status === "liberada");
     const totalComissoesPendentes = comissoesPendentes.reduce((s, c) => s + Number(c.valor), 0);
 
+    // Comissões EFETIVAMENTE pagas no mês (regime de caixa, consistente com despesasPagasMes)
     const comissoesMes = allComissoes.filter(c => {
-      const d = new Date(c.created_at);
+      if (c.status !== "paga" || !c.data_pagamento) return false;
+      const d = new Date(c.data_pagamento + "T12:00:00");
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    // Receita do mês (ordens concluídas ou entregues)
-    const ordensMes = allOrdens.filter(o => {
-      const d = new Date(o.data_entrada);
+    // Receita REALIZADA no mês: apenas OSs concluídas (pronto/entregue) com data_conclusao no mês
+    const ordensConcluidasMes = (allOrdens as any[]).filter(o => {
+      if (o.status !== "pronto" && o.status !== "entregue") return false;
+      const ref = o.data_conclusao ?? null;
+      if (!ref) return false;
+      const d = new Date(ref);
       return d >= monthStart && d <= monthEnd;
     });
-    const receitaMes = ordensMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-    const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+    const receitaMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
+    const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     // Despesas pagas no mês
     const despesasPagasMes = allContas.filter(c => {
@@ -255,9 +262,12 @@ export function useFinanceiro() {
         })
         .reduce((s, c) => s + Number(c.valor), 0);
 
-      const rec = allOrdens
+      const rec = (allOrdens as any[])
         .filter(o => {
-          const dd = new Date(o.data_entrada);
+          if (o.status !== "pronto" && o.status !== "entregue") return false;
+          const ref = o.data_conclusao ?? null;
+          if (!ref) return false;
+          const dd = new Date(ref);
           return dd >= ms && dd <= me;
         })
         .reduce((s, o) => s + Number(o.valor ?? 0), 0);

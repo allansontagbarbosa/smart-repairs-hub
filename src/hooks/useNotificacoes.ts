@@ -34,36 +34,30 @@ export function useNotificacoes() {
   }, []);
 
   const fetchBadgeCounts = useCallback(async () => {
-    const [osRes, contasRes, pecasRes] = await Promise.all([
-      // Assistência: aguardando_aprovacao + prazo_vencido (exclui canceladas)
-      Promise.all([
-        supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
-          .eq("status", "aguardando_aprovacao").is("deleted_at", null),
-        supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
-          .eq("prazo_vencido", true).not("status", "in", '("pronto","entregue","cancelado")').is("deleted_at", null),
-      ]),
-      // Financeiro: contas vencidas + comissões pendentes
-      Promise.all([
-        supabase.from("contas_a_pagar").select("id", { count: "exact", head: true }).eq("status", "vencida"),
-        supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("status", "pendente"),
-      ]),
-      // Peças: estoque baixo
-      supabase.from("estoque_itens").select("id", { count: "exact", head: true })
+    // Usa .lt em previsao_entrega no lugar de prazo_vencido (mais robusto e independe de trigger)
+    const nowIso = new Date().toISOString();
+
+    const [osAprov, osPrazo, contasVenc, comissPend, lowStock] = await Promise.all([
+      supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
+        .eq("status", "aguardando_aprovacao").is("deleted_at", null),
+      supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
+        .lt("previsao_entrega", nowIso)
+        .not("status", "in", '("pronto","entregue","cancelado")')
+        .is("deleted_at", null),
+      supabase.from("contas_a_pagar").select("id", { count: "exact", head: true }).eq("status", "vencida"),
+      supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+      // Estoque baixo: PostgREST não suporta col×col, então buscamos no cliente
+      supabase.from("estoque_itens")
+        .select("id, quantidade, quantidade_minima")
         .is("deleted_at", null)
-        .filter("quantidade", "lte", "quantidade_minima" as any),
+        .gt("quantidade_minima", 0),
     ]);
 
-    // For pecas we need a different approach since we can't compare columns directly
-    const { data: lowStock } = await supabase
-      .from("estoque_itens")
-      .select("id, quantidade, quantidade_minima")
-      .is("deleted_at", null)
-      .gt("quantidade_minima", 0);
-    const pecasCount = (lowStock ?? []).filter(i => i.quantidade <= i.quantidade_minima).length;
+    const pecasCount = (lowStock.data ?? []).filter(i => i.quantidade <= i.quantidade_minima).length;
 
     setBadgeCounts({
-      assistencia: (osRes[0].count ?? 0) + (osRes[1].count ?? 0),
-      financeiro: (contasRes[0].count ?? 0) + (contasRes[1].count ?? 0),
+      assistencia: (osAprov.count ?? 0) + (osPrazo.count ?? 0),
+      financeiro: (contasVenc.count ?? 0) + (comissPend.count ?? 0),
       pecas: pecasCount,
     });
   }, []);
