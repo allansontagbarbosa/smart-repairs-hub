@@ -50,6 +50,19 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
   const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
+
+  // Estado controlado dos campos do form de edição (para Selects/radios shadcn)
+  const [editForm, setEditForm] = useState({
+    funcionario_id: "",
+    lojista_id: "",
+    contato_preferido: "whatsapp",
+    forma_pagamento_sinal: "nenhum",
+    liga: "sim",
+    aprovado_no_ato: false,
+    checklist_itens: {} as Record<string, ChecklistStatus>,
+    checklist_custom: [] as { key: string; label: string }[],
+  });
+
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const printRef = useRef<HTMLDivElement>(null);
