@@ -37,7 +37,20 @@ export function useAuditoria() {
           dados_novos: dados_novos || null,
         } as any);
       } catch (err) {
+        // NÃO re-throw: a ação principal não pode quebrar por falha de log.
+        // Em vez disso, registra em auditoria_falhas para visibilidade ao admin.
         console.error("Erro ao registrar auditoria:", err);
+        try {
+          await supabase.from("auditoria_falhas").insert({
+            user_id: user?.id || null,
+            acao,
+            modulo,
+            registro_id: registro_id || null,
+            erro: String((err as any)?.message || err),
+          } as any);
+        } catch (_) {
+          // Se até a tabela de falhas falhar, não há nada a fazer.
+        }
       }
     },
     [user]

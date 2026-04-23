@@ -12,6 +12,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 
 const statusHeaderColors: Record<Status, string> = {
   recebido: "bg-muted-foreground/20",
@@ -51,13 +52,24 @@ async function fetchOrders() {
 }
 
 async function fetchTecnicos() {
+  // Filtra só funcionários vinculados a user_profiles com perfil "Técnico"
   const { data } = await supabase
-    .from("funcionarios")
-    .select("id, nome")
-    .eq("ativo", true)
-    .is("deleted_at", null)
-    .order("nome");
-  return data ?? [];
+    .from("user_profiles")
+    .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id(id, nome, ativo, deleted_at), perfis_acesso:perfil_id(nome_perfil)")
+    .eq("ativo", true);
+
+  return (data ?? [])
+    .filter((up: any) =>
+      up.perfis_acesso?.nome_perfil === "Técnico"
+      && up.funcionarios?.ativo
+      && !up.funcionarios?.deleted_at
+      && up.funcionario_id
+    )
+    .map((up: any) => ({
+      id: up.funcionario_id as string,
+      nome: (up.funcionarios?.nome || up.nome_exibicao) as string,
+    }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 function daysAgo(dateStr: string) {
@@ -86,7 +98,7 @@ export default function FluxoAssistencia() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar status"),
@@ -98,7 +110,7 @@ export default function FluxoAssistencia() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       toast.success("Técnico reatribuído!");
     },
     onError: () => toast.error("Erro ao reatribuir técnico"),
@@ -185,7 +197,7 @@ export default function FluxoAssistencia() {
     const canGoBack = idx > 0;
     const canGoForward = idx < statusFlow.length - 1;
     const phone = order.aparelhos?.clientes?.telefone;
-    const lucro = Number(order.valor ?? 0) - Number(order.custo_pecas ?? 0);
+    // Lucro removido do card: cálculo real depende de comissão + despesas e fica enganoso em card compacto.
 
     return (
       <div
@@ -242,7 +254,7 @@ export default function FluxoAssistencia() {
           </div>
           <div className="flex items-center gap-1.5">
             {Number(order.valor ?? 0) > 0 && (
-              <span className={cn("text-[10px] font-medium", lucro >= 0 ? "text-success" : "text-destructive")}>
+              <span className="text-[10px] font-medium text-muted-foreground">
                 R$ {Number(order.valor).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
               </span>
             )}

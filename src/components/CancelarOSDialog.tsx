@@ -13,6 +13,7 @@ import { Loader2, AlertTriangle, Wrench, DollarSign, XCircle } from "lucide-reac
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { statusLabels, type Status } from "@/lib/status";
+import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 
 type Preview = {
   pode_cancelar: boolean;
@@ -91,7 +92,7 @@ export function CancelarOSDialog({ ordemId, onClose, onCancelled }: Props) {
           ? `OS ${label} cancelada com sucesso.`
           : `OS ${label} cancelada. ${partes.join(", ")}.`
       );
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       queryClient.invalidateQueries({ queryKey: ["ordens-older"] });
       queryClient.invalidateQueries({ queryKey: ["ordem", ordemId] });
       onCancelled?.();
