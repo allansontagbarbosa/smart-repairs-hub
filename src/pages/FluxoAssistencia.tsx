@@ -173,7 +173,7 @@ export default function FluxoAssistencia() {
     );
   }
 
-  const totalAtivas = orders.filter((o) => o.status !== "entregue").length;
+  const totalAtivas = orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado").length;
 
   // Build order card (shared between both views)
   const renderCard = (order: any, showStatusBadge = false) => {

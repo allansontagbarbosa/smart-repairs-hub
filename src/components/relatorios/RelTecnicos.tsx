@@ -104,7 +104,7 @@ export function RelTecnicos() {
 
   const cards = useMemo(() => {
     return (tecnicos ?? []).map(tec => {
-      const osT = (ordens ?? []).filter(o => o.funcionario_id === tec.id);
+      const osT = (ordens ?? []).filter(o => o.funcionario_id === tec.id && o.status !== "cancelado");
       const concluidas = osT.filter(o => ["pronto", "entregue"].includes(o.status));
       const emAndamento = osT.filter(o => !["pronto", "entregue"].includes(o.status));
       const receita = concluidas.reduce((s, o) => s + (o.valor ?? 0), 0);

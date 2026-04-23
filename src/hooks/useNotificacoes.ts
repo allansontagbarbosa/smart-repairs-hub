@@ -35,12 +35,12 @@ export function useNotificacoes() {
 
   const fetchBadgeCounts = useCallback(async () => {
     const [osRes, contasRes, pecasRes] = await Promise.all([
-      // Assistência: aguardando_aprovacao + prazo_vencido
+      // Assistência: aguardando_aprovacao + prazo_vencido (exclui canceladas)
       Promise.all([
         supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
           .eq("status", "aguardando_aprovacao").is("deleted_at", null),
         supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
-          .eq("prazo_vencido", true).not("status", "in", '("pronto","entregue")').is("deleted_at", null),
+          .eq("prazo_vencido", true).not("status", "in", '("pronto","entregue","cancelado")').is("deleted_at", null),
       ]),
       // Financeiro: contas vencidas + comissões pendentes
       Promise.all([

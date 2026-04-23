@@ -51,6 +51,7 @@ const STATUS_LABELS: Record<string, string> = {
   em_reparo: "Em Reparo",
   pronto: "Pronto",
   entregue: "Entregue",
+  cancelado: "Cancelada",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -60,8 +61,11 @@ const STATUS_COLORS: Record<string, string> = {
   em_reparo: "bg-blue-100 text-blue-700",
   pronto: "bg-green-100 text-green-700",
   entregue: "bg-gray-100 text-gray-600",
+  cancelado: "bg-red-100 text-red-700",
 };
 
+const isCancelada = (s: string) => s === "cancelado";
+const isAtiva = (s: string) => !isCancelada(s) && s !== "entregue";
 const isFaturado = (s: string) => s === "pronto" || s === "entregue";
 const isAguardando = (s: string) =>
   ["recebido", "em_analise", "em_reparo"].includes(s);
@@ -222,9 +226,10 @@ export default function Dashboard() {
 
   const allOrders = summary?.ordens ?? [];
 
-  // Filter orders by selected period
+  // Filter orders by selected period (excludes canceladas — defesa em profundidade)
   const orders = useMemo(() => {
     return allOrders.filter(o => {
+      if (isCancelada(o.status)) return false;
       const d = new Date(o.data_entrada);
       return d >= range.start && d <= range.end;
     });
@@ -276,7 +281,7 @@ export default function Dashboard() {
     const lucroSocio = lucroDistrib / Math.max(1, nSocios);
 
     // Operacional uses ALL orders (not filtered by period) for live status counts
-    const ativas = allOrders.filter(o => o.status !== "entregue");
+    const ativas = allOrders.filter(o => isAtiva(o.status));
     const emAtraso = ativas.filter(o => o.previsao_entrega && new Date(o.previsao_entrega) < now && o.status !== "pronto").length;
     const aguardandoEntrega = ativas.filter(o => o.status === "pronto").length;
     const aguardandoReparo = ativas.filter(o => isAguardando(o.status)).length;
@@ -763,10 +768,12 @@ export default function Dashboard() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-3">
-              {allOrders.filter(o => o.status !== "entregue").length} ativas
+              {allOrders.filter(o => isAtiva(o.status)).length} ativas
             </p>
             <div className="space-y-2">
-              {Object.entries(STATUS_LABELS).map(([key, label]) => {
+              {Object.entries(STATUS_LABELS)
+                .filter(([key]) => key !== "cancelado")
+                .map(([key, label]) => {
                 const count = allOrders.filter(o => o.status === key).length;
                 if (count === 0) return null;
                 return (
