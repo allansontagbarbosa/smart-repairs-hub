@@ -907,98 +907,269 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             <Separator className="mb-5" />
 
             {editing ? (
-              /* ── Edit mode (Admin) ── */
+              /* ── Edit mode (Admin) — Accordion 4 seções ── */
               <form onSubmit={handleSave} className="space-y-4">
-                <div>
-                  <Label className="text-xs">Defeito relatado</Label>
-                  <Textarea name="defeito_relatado" defaultValue={ordem.defeito_relatado} className="mt-1 resize-none" rows={2} required />
-                </div>
-                <div>
-                  <Label className="text-xs">Diagnóstico</Label>
-                  <Textarea name="diagnostico" defaultValue={ordem.diagnostico ?? ""} className="mt-1 resize-none" rows={2} />
-                </div>
-                <div>
-                  <Label className="text-xs">Serviço realizado</Label>
-                  <Textarea name="servico_realizado" defaultValue={ordem.servico_realizado ?? ""} className="mt-1 resize-none" rows={2} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Valor cobrado</Label>
-                    <Input name="valor" type="number" step="0.01" min="0" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs flex items-center gap-1">
-                      Custo de peças
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-xs">Calculado automaticamente das peças vinculadas. Para alterar, adicione/remova peças no scanner.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </Label>
-                    <div className="mt-1 px-3 h-8 flex items-center bg-muted rounded-md text-sm">
-                      {brl(ordem.custo_pecas)}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Técnico</Label>
-                    <Select
-                      defaultValue={(ordem as any).funcionario_id ?? "__none__"}
-                      onValueChange={(v) => {
-                        const el = document.getElementById(`func-hidden-${ordem.id}`) as HTMLInputElement | null;
-                        if (el) el.value = v === "__none__" ? "" : v;
-                      }}
-                    >
-                      <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">— Sem técnico —</SelectItem>
-                        {tecnicos.map((t: any) => (
-                          <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {/* Hidden input lido pelo FormData (Select shadcn não envia value nativo) */}
-                    <input type="hidden" name="funcionario_id" defaultValue={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Previsão entrega</Label>
-                    <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className="text-xs">Prioridade</Label>
-                    <select name="prioridade" defaultValue={(ordem as any).prioridade || "normal"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
-                      <option value="normal">Normal</option>
-                      <option value="urgente">Urgente</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Garantia (dias)</Label>
-                    <Input name="garantia_dias" type="number" min="0" defaultValue={(ordem as any).garantia_dias ?? 90} className="mt-1 h-8" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Aprovação</Label>
-                    <select name="aprovacao_orcamento" defaultValue={(ordem as any).aprovacao_orcamento || "pendente"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
-                      <option value="pendente">Pendente</option>
-                      <option value="aprovado">Aprovado</option>
-                      <option value="recusado">Recusado</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Observações internas</Label>
-                  <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
-                </div>
-                {comissoesOS.length > 0 && (
-                  <div className="text-[11px] text-muted-foreground p-2 bg-muted/50 rounded border">
-                    ⚠️ Esta OS já gerou comissão. Mudar o valor não recalcula automaticamente.
-                  </div>
-                )}
+                <Accordion type="multiple" defaultValue={["diagnostico-servico"]} className="w-full">
+
+                  {/* ─── A) Diagnóstico e Serviço ─── */}
+                  <AccordionItem value="diagnostico-servico">
+                    <AccordionTrigger className="text-sm font-semibold">Diagnóstico e Serviço</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div>
+                        <Label className="text-xs">Defeito relatado</Label>
+                        <Textarea name="defeito_relatado" defaultValue={ordem.defeito_relatado} className="mt-1 resize-none" rows={2} required />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Relato literal do cliente</Label>
+                        <Textarea name="relato_cliente" defaultValue={(ordem as any).relato_cliente ?? ""} className="mt-1 resize-none" rows={2} placeholder="O que ele disse quando trouxe" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Diagnóstico técnico</Label>
+                        <Textarea name="diagnostico" defaultValue={ordem.diagnostico ?? ""} className="mt-1 resize-none" rows={2} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Serviço realizado</Label>
+                        <Textarea name="servico_realizado" defaultValue={ordem.servico_realizado ?? ""} className="mt-1 resize-none" rows={2} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Observações visíveis ao cliente</Label>
+                        <Textarea name="obs_cliente" defaultValue={(ordem as any).obs_cliente ?? ""} className="mt-1 resize-none" rows={2} placeholder="Aparece no PDF e WhatsApp" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Observações internas (só equipe vê)</Label>
+                        <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground italic pt-1 border-t">
+                        Para adicionar/remover serviços ou peças vinculados, use as ações dedicadas fora deste formulário.
+                        {/* TODO: criar_fluxo_edicao_itens — tratar em rodada separada */}
+                      </p>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* ─── B) Operacional ─── */}
+                  <AccordionItem value="operacional">
+                    <AccordionTrigger className="text-sm font-semibold">Operacional</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Técnico</Label>
+                          <Select
+                            value={editForm.funcionario_id || "__none__"}
+                            onValueChange={(v) => setEditForm(p => ({ ...p, funcionario_id: v === "__none__" ? "" : v }))}
+                          >
+                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— Sem técnico —</SelectItem>
+                              {tecnicos.map((t: any) => (
+                                <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <input type="hidden" name="funcionario_id" value={editForm.funcionario_id} />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Previsão entrega</Label>
+                          <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Prioridade</Label>
+                          <select name="prioridade" defaultValue={(ordem as any).prioridade || "normal"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                            <option value="normal">Normal</option>
+                            <option value="urgente">Urgente</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Localização física</Label>
+                          <Input name="localizacao" defaultValue={(ordem as any).localizacao ?? ""} placeholder="Ex: gaveta 3, bancada azul" className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Lojista vinculado (opcional)</Label>
+                        <Select
+                          value={editForm.lojista_id || "__none__"}
+                          onValueChange={(v) => setEditForm(p => ({ ...p, lojista_id: v === "__none__" ? "" : v }))}
+                        >
+                          <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">— Sem lojista —</SelectItem>
+                            {lojistasAtivos.map((l: any) => (
+                              <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <input type="hidden" name="lojista_id" value={editForm.lojista_id} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Contato preferido</Label>
+                        <div className="mt-1 flex gap-3 flex-wrap">
+                          {(["whatsapp", "ligacao", "sms", "email"] as const).map((c) => (
+                            <label key={c} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                              <input
+                                type="radio"
+                                value={c}
+                                checked={editForm.contato_preferido === c}
+                                onChange={() => setEditForm(p => ({ ...p, contato_preferido: c }))}
+                                className="accent-primary"
+                              />
+                              <span className="capitalize">{c === "ligacao" ? "Ligação" : c}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <input type="hidden" name="contato_preferido" value={editForm.contato_preferido} />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* ─── C) Financeiro ─── */}
+                  <AccordionItem value="financeiro">
+                    <AccordionTrigger className="text-sm font-semibold">Financeiro</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Valor cobrado</Label>
+                          <Input name="valor" type="number" step="0.01" min="0" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs flex items-center gap-1">
+                            Custo de peças
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Calculado automaticamente das peças vinculadas. Para alterar, adicione/remova peças no scanner.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </Label>
+                          <div className="mt-1 px-3 h-8 flex items-center bg-muted rounded-md text-sm">
+                            {brl(ordem.custo_pecas)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs flex items-center gap-1">
+                            Mão de obra adicional
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs">Adicional manual sobre o valor dos serviços.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </Label>
+                          <Input name="mao_obra_adicional" type="number" step="0.01" min="0" defaultValue={(ordem as any).mao_obra_adicional ?? 0} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Desconto</Label>
+                          <Input name="desconto" type="number" step="0.01" min="0" defaultValue={(ordem as any).desconto ?? 0} className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Sinal pago</Label>
+                          <Input name="sinal_pago" type="number" step="0.01" min="0" defaultValue={(ordem as any).sinal_pago ?? 0} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Forma do sinal</Label>
+                          <Select
+                            value={editForm.forma_pagamento_sinal || "nenhum"}
+                            onValueChange={(v) => setEditForm(p => ({ ...p, forma_pagamento_sinal: v }))}
+                          >
+                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nenhum">Nenhum</SelectItem>
+                              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="pix">PIX</SelectItem>
+                              <SelectItem value="cartao_credito">Cartão Crédito</SelectItem>
+                              <SelectItem value="cartao_debito">Cartão Débito</SelectItem>
+                              <SelectItem value="boleto">Boleto</SelectItem>
+                              <SelectItem value="transferencia">Transferência</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <input type="hidden" name="forma_pagamento_sinal" value={editForm.forma_pagamento_sinal} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Garantia (dias)</Label>
+                          <Input name="garantia_dias" type="number" min="0" defaultValue={(ordem as any).garantia_dias ?? 90} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Aprovação</Label>
+                          <select name="aprovacao_orcamento" defaultValue={(ordem as any).aprovacao_orcamento || "pendente"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                            <option value="pendente">Pendente</option>
+                            <option value="aprovado">Aprovado</option>
+                            <option value="recusado">Recusado</option>
+                          </select>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={editForm.aprovado_no_ato}
+                          onChange={(e) => setEditForm(p => ({ ...p, aprovado_no_ato: e.target.checked }))}
+                          className="accent-primary"
+                        />
+                        Cliente aprovou orçamento na hora
+                      </label>
+                      {comissoesOS.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground p-2 bg-muted/50 rounded border">
+                          ⚠️ Esta OS já gerou comissão. Mudar o valor não recalcula automaticamente.
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* ─── D) Estado na Entrada ─── */}
+                  <AccordionItem value="estado-entrada">
+                    <AccordionTrigger className="text-sm font-semibold">Estado na Entrada</AccordionTrigger>
+                    <AccordionContent className="space-y-3 pt-2">
+                      <div>
+                        <Label className="text-xs">Aparelho liga?</Label>
+                        <div className="mt-1 flex gap-3">
+                          {(["sim", "nao", "parcial"] as const).map((v) => (
+                            <label key={v} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                              <input
+                                type="radio"
+                                value={v}
+                                checked={editForm.liga === v}
+                                onChange={() => setEditForm(p => ({ ...p, liga: v }))}
+                                className="accent-primary"
+                              />
+                              <span className="capitalize">{v === "nao" ? "Não" : v}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <input type="hidden" name="liga" value={editForm.liga} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Bateria entrada (%)</Label>
+                          <Input name="bateria_entrada" type="number" min="0" max="100" defaultValue={(ordem as any).bateria_entrada ?? ""} className="mt-1 h-8" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Estado geral</Label>
+                          <Input name="estado_geral" defaultValue={(ordem as any).estado_geral ?? ""} className="mt-1 h-8" />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs mb-2 block">Checklist de entrada</Label>
+                        <ChecklistEntrada
+                          value={editForm.checklist_itens}
+                          onChange={(v) => setEditForm(p => ({ ...p, checklist_itens: v }))}
+                          customItems={editForm.checklist_custom}
+                          onCustomItemsChange={(items) => setEditForm(p => ({ ...p, checklist_custom: items }))}
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                </Accordion>
+
                 <Button type="submit" className="w-full" disabled={editarOSAdmin.isPending || saveEdit.isPending}>
                   {(editarOSAdmin.isPending || saveEdit.isPending) ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Salvar Alterações
