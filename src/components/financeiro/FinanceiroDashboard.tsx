@@ -1,7 +1,8 @@
 import {
-  TrendingUp, AlertTriangle,
+  TrendingUp, AlertTriangle, Info,
   Calendar, CalendarDays, CalendarRange, CreditCard, Users, Wallet, Package, Receipt,
 } from "lucide-react";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const fmtCurrency = (v: number) =>
@@ -90,7 +91,19 @@ export function FinanceiroDashboard({ kpis }: Props) {
         <div className="stat-card border-success/20 bg-success-muted">
           <Wallet className="h-4 w-4 text-success mb-3" />
           <p className="stat-value text-success">{fmtCurrency(kpis.receitaMes)}</p>
-          <p className="stat-label">Receita OS do mês</p>
+          <div className="flex items-center gap-1">
+            <p className="stat-label">Receita realizada no mês</p>
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-xs">Soma do valor das OSs concluídas (pronto/entregue) com data de conclusão no mês atual. OSs ainda em andamento não entram aqui.</p>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
         </div>
         <div className="stat-card border-success/20 bg-success-muted">
           <Receipt className="h-4 w-4 text-success mb-3" />
