@@ -723,10 +723,32 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setEditing(!editing)}
+                  onClick={() => setHistoricoOpen(true)}
+                  title="Histórico de auditoria"
                 >
-                  {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                  <History className="h-3.5 w-3.5" />
                 </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditing(!editing)}
+                    title={editing ? "Fechar edição" : "Editar OS"}
+                  >
+                    {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+                {isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(ordem.status) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setCancelOpen(true)}
+                    title="Cancelar OS"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             )}
 
@@ -740,22 +762,37 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             )}
 
-            {/* Status change dropdown (any status) */}
-            {ordem.status !== "entregue" && (
+            {/* Status change dropdown (sem 'cancelado'; cancelamento é via botão dedicado) */}
+            {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
               <div className="mb-5">
                 <Label className="text-xs text-muted-foreground">Mudar para qualquer status</Label>
                 <Select
                   value={ordem.status}
-                  onValueChange={(v) => {
-                    if (v === "entregue") {
+                  onValueChange={async (v) => {
+                    const novo = v as Status;
+                    if (novo === ordem.status) return;
+                    if (novo === "entregue") {
+                      // entrega usa fluxo dedicado
+                      const motivos = isAdmin ? await detectarPulosFluxo(ordem.status, novo) : [];
+                      if (motivos.length > 0) {
+                        setPendingStatusChange({ novo, motivos });
+                        return;
+                      }
                       pedirConfirmacao({
                         orderId: ordem.id,
                         numero: ordem.numero,
                         clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
                       });
-                    } else {
-                      changeStatus.mutate(v as Status);
+                      return;
                     }
+                    if (isAdmin) {
+                      const motivos = await detectarPulosFluxo(ordem.status, novo);
+                      if (motivos.length > 0) {
+                        setPendingStatusChange({ novo, motivos });
+                        return;
+                      }
+                    }
+                    changeStatus.mutate(novo);
                   }}
                   disabled={changeStatus.isPending}
                 >
@@ -772,7 +809,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             <Separator className="mb-5" />
 
             {editing ? (
-              /* ── Edit mode ── */
+              /* ── Edit mode (Admin) ── */
               <form onSubmit={handleSave} className="space-y-4">
                 <div>
                   <Label className="text-xs">Defeito relatado</Label>
@@ -787,19 +824,79 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Textarea name="servico_realizado" defaultValue={ordem.servico_realizado ?? ""} className="mt-1 resize-none" rows={2} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Valor estimado</Label><Input name="valor" type="number" step="0.01" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" /></div>
-                  <div><Label className="text-xs">Custo peças</Label><Input name="custo_pecas" type="number" step="0.01" defaultValue={ordem.custo_pecas ?? ""} className="mt-1 h-8" /></div>
+                  <div>
+                    <Label className="text-xs">Valor cobrado</Label>
+                    <Input name="valor" type="number" step="0.01" min="0" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Custo de peças
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-xs">Calculado automaticamente das peças vinculadas. Para alterar, adicione/remova peças no scanner.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <div className="mt-1 px-3 h-8 flex items-center bg-muted rounded-md text-sm">
+                      {brl(ordem.custo_pecas)}
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Técnico</Label><Input name="tecnico" defaultValue={ordem.tecnico ?? ""} className="mt-1 h-8" /></div>
-                  <div><Label className="text-xs">Previsão entrega</Label><Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" /></div>
+                  <div>
+                    <Label className="text-xs">Técnico</Label>
+                    <Select defaultValue={(ordem as any).funcionario_id ?? "__none__"} name="funcionario_id">
+                      <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Sem técnico —</SelectItem>
+                        {tecnicos.map((t: any) => (
+                          <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Hidden input para FormData (Select shadcn não envia value nativo) */}
+                    <input type="hidden" name="funcionario_id" value={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Previsão entrega</Label>
+                    <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Prioridade</Label>
+                    <select name="prioridade" defaultValue={(ordem as any).prioridade || "normal"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                      <option value="normal">Normal</option>
+                      <option value="urgente">Urgente</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Garantia (dias)</Label>
+                    <Input name="garantia_dias" type="number" min="0" defaultValue={(ordem as any).garantia_dias ?? 90} className="mt-1 h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Aprovação</Label>
+                    <select name="aprovacao_orcamento" defaultValue={(ordem as any).aprovacao_orcamento || "pendente"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                      <option value="pendente">Pendente</option>
+                      <option value="aprovado">Aprovado</option>
+                      <option value="recusado">Recusado</option>
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs">Observações internas</Label>
                   <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
                 </div>
-                <Button type="submit" className="w-full" disabled={saveEdit.isPending}>
-                  {saveEdit.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                {comissoesOS.length > 0 && (
+                  <div className="text-[11px] text-muted-foreground p-2 bg-muted/50 rounded border">
+                    ⚠️ Esta OS já gerou comissão. Mudar o valor não recalcula automaticamente.
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={editarOSAdmin.isPending || saveEdit.isPending}>
+                  {(editarOSAdmin.isPending || saveEdit.isPending) ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Salvar Alterações
                 </Button>
               </form>
