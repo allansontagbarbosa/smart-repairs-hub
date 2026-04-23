@@ -387,6 +387,30 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             </SheetHeader>
 
+            {ordem.status === "cancelado" && (
+              <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs space-y-1">
+                <div className="flex items-center gap-2 font-semibold">
+                  <X className="h-4 w-4" /> OS Cancelada
+                </div>
+                {(ordem as any).cancelada_em && (
+                  <p>Em: {new Date((ordem as any).cancelada_em).toLocaleString("pt-BR")}</p>
+                )}
+                {(ordem as any).motivo_cancelamento && (
+                  <p>Motivo: {(ordem as any).motivo_cancelamento}</p>
+                )}
+                {(ordem as any).impacto_cancelamento && (
+                  <div className="text-[11px] opacity-90 pt-1">
+                    {(ordem as any).impacto_cancelamento.qtd_pecas > 0 && (
+                      <p>🔧 {(ordem as any).impacto_cancelamento.qtd_pecas} peça(s) — R$ {Number((ordem as any).impacto_cancelamento.total_pecas ?? 0).toFixed(2)}</p>
+                    )}
+                    {(ordem as any).impacto_cancelamento.qtd_comissoes > 0 && (
+                      <p>💰 {(ordem as any).impacto_cancelamento.qtd_comissoes} comissão(es) estornada(s) — R$ {Number((ordem as any).impacto_cancelamento.total_comissao ?? 0).toFixed(2)}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Badge orçamento */}
             {(ordem as any).aprovacao_orcamento === "aguardando" && (
               <div className="mb-4 p-2.5 rounded-lg border border-warning/30 bg-warning/10 text-warning flex items-center gap-2 text-xs font-medium">
@@ -402,7 +426,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             )}
 
             {/* Quick actions */}
-            {ordem.status !== "entregue" && (
+            {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
               <div className="flex gap-2 mb-5">
                 {nextStatus && (
                   <Button
