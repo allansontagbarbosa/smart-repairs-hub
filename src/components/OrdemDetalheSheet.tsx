@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,17 +9,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText, Info, History, Ban, AlertTriangle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
+import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { cn } from "@/lib/utils";
 import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
 import { ImpressaoOS, type ImpressaoOSData } from "@/components/ImpressaoOS";
 import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
+import { usePermissoes } from "@/hooks/usePermissoes";
 
 
 
@@ -38,9 +43,23 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [diagValue, setDiagValue] = useState("");
   const [editingServico, setEditingServico] = useState(false);
   const [servicoValue, setServicoValue] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
+  const [valorWarningOpen, setValorWarningOpen] = useState(false);
+  const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const printRef = useRef<HTMLDivElement>(null);
+  const { isAdmin } = usePermissoes();
+
+  // Bloqueia entrada não-admin no modo edição
+  useEffect(() => {
+    if (editing && !isAdmin) {
+      toast.error("Apenas administradores podem editar OS");
+      setEditing(false);
+    }
+  }, [editing, isAdmin]);
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["ordem", orderId],
@@ -141,9 +160,47 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { data: funcionariosAtivos = [] } = useQuery({
     queryKey: ["funcionarios_os"],
     queryFn: async () => {
-      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao, cargo, funcao").eq("ativo", true).order("nome");
       return data || [];
     },
+  });
+
+  // Lista filtrada para dropdown de técnico (todos ativos; UI prioriza técnicos se houver cargo)
+  const tecnicos = funcionariosAtivos;
+
+  // Criador da OS (para o header enriquecido)
+  const { data: criador } = useQuery({
+    queryKey: ["criador_os", (ordem as any)?.created_by, (ordem as any)?.criada_retroativamente_por],
+    queryFn: async () => {
+      const o = ordem as any;
+      const userId = o?.criada_retroativamente_por;
+      if (userId) {
+        const { data } = await supabase
+          .from("user_profiles")
+          .select("nome_exibicao")
+          .or(`user_id.eq.${userId},id.eq.${userId}`)
+          .maybeSingle();
+        if (data?.nome_exibicao) return data.nome_exibicao;
+      }
+      return o?.created_by || null;
+    },
+    enabled: !!ordem,
+  });
+
+  // Histórico de auditoria (drawer)
+  const { data: historicoAuditoria = [] } = useQuery({
+    queryKey: ["os_auditoria", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("os_auditoria" as any)
+        .select("*")
+        .eq("ordem_id", orderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!orderId && historicoOpen,
   });
 
   // Fetch per-service commission for commission preview
@@ -333,23 +390,92 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     onError: (e: any) => toast.error(e.message || "Erro ao atualizar"),
   });
 
-  const saveEdit = useMutation({
-    mutationFn: async (fd: FormData) => {
-      if (!ordem) return;
-      const valorStr = fd.get("valor") as string;
-      const custoStr = fd.get("custo_pecas") as string;
+  // ─── Detecção de pulo de fluxo ───
+  const detectarPulosFluxo = async (statusAtual: Status, novoStatus: Status): Promise<string[]> => {
+    if (!ordem) return [];
+    const motivos: string[] = [];
+    const idxAtual = statusFlow.indexOf(statusAtual);
+    const idxNovo = statusFlow.indexOf(novoStatus);
 
-      const { error } = await supabase.from("ordens_de_servico").update({
-        defeito_relatado: fd.get("defeito_relatado") as string,
-        diagnostico: (fd.get("diagnostico") as string) || null,
-        servico_realizado: (fd.get("servico_realizado") as string) || null,
-        valor: valorStr ? parseFloat(valorStr) : null,
-        custo_pecas: custoStr ? parseFloat(custoStr) : null,
-        tecnico: (fd.get("tecnico") as string) || null,
-        observacoes: (fd.get("observacoes") as string) || null,
-        previsao_entrega: (fd.get("previsao_entrega") as string) || null,
-      }).eq("id", ordem.id);
+    // Pulo de etapas (mais de uma posição à frente)
+    if (idxNovo > idxAtual + 1) {
+      const puladas = statusFlow.slice(idxAtual + 1, idxNovo).map(s => statusLabels[s]);
+      motivos.push(`Esta mudança pula ${puladas.length} etapa(s): ${puladas.join(", ")}`);
+    }
+
+    // Pronto sem checklist de saída
+    if (novoStatus === "pronto") {
+      const { count } = await supabase
+        .from("os_checklist_saida" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("ordem_id", ordem.id);
+      if (!count || count === 0) {
+        motivos.push("Esta OS não passou pelo checklist de saída do técnico");
+      }
+    }
+
+    // Entregue sem assinatura digital do cliente
+    if (novoStatus === "entregue") {
+      const { count } = await supabase
+        .from("assinaturas_digitais")
+        .select("id", { count: "exact", head: true })
+        .eq("ordem_id", ordem.id)
+        .eq("tipo", "cliente_entrega");
+      if (!count || count === 0) {
+        motivos.push("Esta OS não tem assinatura digital do cliente registrada");
+      }
+    }
+
+    return motivos;
+  };
+
+  // ─── Mutation: editar OS via RPC ───
+  const editarOSAdmin = useMutation({
+    mutationFn: async (args: { dados: Record<string, any>; pulou_fluxo?: boolean; motivo_pulo?: string | null }) => {
+      if (!ordem) return null;
+      const { data, error } = await supabase.rpc("editar_os_admin" as any, {
+        p_ordem_id: ordem.id,
+        p_dados: args.dados,
+        p_pulou_fluxo: args.pulou_fluxo ?? false,
+        p_motivo_pulo: args.motivo_pulo ?? null,
+      });
       if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["aparelhos_assistencia"] });
+      const n = data?.campos_alterados ?? 0;
+      const formatted = formatNumeroOS((ordem as any)?.numero, (ordem as any)?.numero_formatado);
+      if (n === 0) {
+        // No-op silencioso
+      } else if (data?.pulou_fluxo) {
+        toast.success(`OS ${formatted} atualizada com pulo de fluxo. Registrado em auditoria.`);
+      } else {
+        toast.success(`OS ${formatted} atualizada (${n} ${n === 1 ? "campo alterado" : "campos alterados"})`);
+      }
+      setEditing(false);
+      setPendingEditPayload(null);
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
+  });
+
+  // ─── saveEdit (compat com forma antiga via FormData) ───
+  const saveEdit = useMutation({
+    mutationFn: async (payload: Record<string, any>) => {
+      if (!ordem) return null;
+      const { data, error } = await supabase.rpc("editar_os_admin" as any, {
+        p_ordem_id: ordem.id,
+        p_dados: payload,
+        p_pulou_fluxo: false,
+        p_motivo_pulo: null,
+      });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
@@ -357,12 +483,72 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       setEditing(false);
       toast.success("Ordem atualizada!");
     },
-    onError: () => toast.error("Erro ao salvar"),
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
   });
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  // Calcular diff frontend (somente p/ saber se muda algo)
+  const calcularDiff = (original: any, atual: Record<string, any>): Record<string, [any, any]> => {
+    const diff: Record<string, [any, any]> = {};
+    for (const k of Object.keys(atual)) {
+      const a = original?.[k] ?? null;
+      const b = atual[k] === "" ? null : atual[k];
+      // Normaliza datas e números
+      const aN = a == null ? null : String(a);
+      const bN = b == null ? null : String(b);
+      if (aN !== bN) diff[k] = [a, b];
+    }
+    return diff;
+  };
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    saveEdit.mutate(new FormData(e.currentTarget));
+    if (!ordem || !isAdmin) {
+      toast.error("Apenas administradores podem editar OS");
+      return;
+    }
+    const fd = new FormData(e.currentTarget);
+    const valorStr = (fd.get("valor") as string) || "";
+    const previsaoStr = (fd.get("previsao_entrega") as string) || "";
+    const funcId = (fd.get("funcionario_id") as string) || "";
+
+    // Validações
+    if (valorStr && (isNaN(parseFloat(valorStr)) || parseFloat(valorStr) < 0)) {
+      toast.error("Valor inválido"); return;
+    }
+    if (funcId && !/^[0-9a-f-]{36}$/i.test(funcId)) {
+      toast.error("Técnico inválido"); return;
+    }
+
+    const payload: Record<string, any> = {
+      defeito_relatado: fd.get("defeito_relatado") as string,
+      diagnostico: (fd.get("diagnostico") as string) || "",
+      servico_realizado: (fd.get("servico_realizado") as string) || "",
+      valor: valorStr,
+      funcionario_id: funcId,
+      observacoes: (fd.get("observacoes") as string) || "",
+      previsao_entrega: previsaoStr ? new Date(previsaoStr).toISOString() : "",
+      prioridade: (fd.get("prioridade") as string) || "normal",
+      garantia_dias: (fd.get("garantia_dias") as string) || "",
+      aprovacao_orcamento: (fd.get("aprovacao_orcamento") as string) || "",
+    };
+
+    // Diff vazio? fecha sem chamar RPC
+    const diff = calcularDiff(ordem, payload);
+    if (Object.keys(diff).length === 0) {
+      setEditing(false);
+      return;
+    }
+
+    // Warning se valor mudou e já existe comissão
+    const valorNovo = valorStr ? parseFloat(valorStr) : null;
+    const valorAtual = (ordem as any).valor ?? null;
+    if (valorNovo !== valorAtual && comissoesOS.length > 0) {
+      setPendingEditPayload(payload);
+      setValorWarningOpen(true);
+      return;
+    }
+
+    editarOSAdmin.mutate({ dados: payload, pulou_fluxo: false });
   };
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
@@ -380,12 +566,41 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
           <>
-            <SheetHeader className="pb-4">
+            <SheetHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-lg">
                   {labelOS((ordem as any).numero, (ordem as any).numero_formatado)}
                 </SheetTitle>
-                <StatusBadge status={ordem.status} />
+              </div>
+              <div className="text-xs text-muted-foreground space-y-1 text-left">
+                <p className="truncate">
+                  <span className="font-medium text-foreground">{ordem.aparelhos?.clientes?.nome ?? "—"}</span>
+                  {" • "}
+                  {ordem.aparelhos?.marca} {ordem.aparelhos?.modelo}
+                  {ordem.aparelhos?.imei ? <> {" • "}IMEI {String(ordem.aparelhos.imei).slice(0, 8)}…</> : null}
+                </p>
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  <StatusBadge status={ordem.status} />
+                  {(ordem as any).eh_retroativa && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="bg-info/15 text-info border-info/30 gap-1 cursor-help">
+                            <Clock className="h-3 w-3" />Retroativa
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs font-medium mb-0.5">Cadastro retroativo</p>
+                          <p className="text-xs">{(ordem as any).justificativa_retroativa || "—"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                <p className="text-[11px] pt-0.5">
+                  Cadastrada por <span className="text-foreground">{criador || "—"}</span>
+                  {" em "}{new Date(ordem.created_at).toLocaleDateString("pt-BR")} às {new Date(ordem.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                </p>
               </div>
             </SheetHeader>
 
@@ -508,10 +723,32 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setEditing(!editing)}
+                  onClick={() => setHistoricoOpen(true)}
+                  title="Histórico de auditoria"
                 >
-                  {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                  <History className="h-3.5 w-3.5" />
                 </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditing(!editing)}
+                    title={editing ? "Fechar edição" : "Editar OS"}
+                  >
+                    {editing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+                {isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(ordem.status) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setCancelOpen(true)}
+                    title="Cancelar OS"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             )}
 
@@ -525,22 +762,37 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             )}
 
-            {/* Status change dropdown (any status) */}
-            {ordem.status !== "entregue" && (
+            {/* Status change dropdown (sem 'cancelado'; cancelamento é via botão dedicado) */}
+            {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
               <div className="mb-5">
                 <Label className="text-xs text-muted-foreground">Mudar para qualquer status</Label>
                 <Select
                   value={ordem.status}
-                  onValueChange={(v) => {
-                    if (v === "entregue") {
+                  onValueChange={async (v) => {
+                    const novo = v as Status;
+                    if (novo === ordem.status) return;
+                    if (novo === "entregue") {
+                      // entrega usa fluxo dedicado
+                      const motivos = isAdmin ? await detectarPulosFluxo(ordem.status, novo) : [];
+                      if (motivos.length > 0) {
+                        setPendingStatusChange({ novo, motivos });
+                        return;
+                      }
                       pedirConfirmacao({
                         orderId: ordem.id,
                         numero: ordem.numero,
                         clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
                       });
-                    } else {
-                      changeStatus.mutate(v as Status);
+                      return;
                     }
+                    if (isAdmin) {
+                      const motivos = await detectarPulosFluxo(ordem.status, novo);
+                      if (motivos.length > 0) {
+                        setPendingStatusChange({ novo, motivos });
+                        return;
+                      }
+                    }
+                    changeStatus.mutate(novo);
                   }}
                   disabled={changeStatus.isPending}
                 >
@@ -557,7 +809,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             <Separator className="mb-5" />
 
             {editing ? (
-              /* ── Edit mode ── */
+              /* ── Edit mode (Admin) ── */
               <form onSubmit={handleSave} className="space-y-4">
                 <div>
                   <Label className="text-xs">Defeito relatado</Label>
@@ -572,19 +824,79 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Textarea name="servico_realizado" defaultValue={ordem.servico_realizado ?? ""} className="mt-1 resize-none" rows={2} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Valor estimado</Label><Input name="valor" type="number" step="0.01" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" /></div>
-                  <div><Label className="text-xs">Custo peças</Label><Input name="custo_pecas" type="number" step="0.01" defaultValue={ordem.custo_pecas ?? ""} className="mt-1 h-8" /></div>
+                  <div>
+                    <Label className="text-xs">Valor cobrado</Label>
+                    <Input name="valor" type="number" step="0.01" min="0" defaultValue={ordem.valor ?? ""} className="mt-1 h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center gap-1">
+                      Custo de peças
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild><Info className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-xs">Calculado automaticamente das peças vinculadas. Para alterar, adicione/remova peças no scanner.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <div className="mt-1 px-3 h-8 flex items-center bg-muted rounded-md text-sm">
+                      {brl(ordem.custo_pecas)}
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs">Técnico</Label><Input name="tecnico" defaultValue={ordem.tecnico ?? ""} className="mt-1 h-8" /></div>
-                  <div><Label className="text-xs">Previsão entrega</Label><Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" /></div>
+                  <div>
+                    <Label className="text-xs">Técnico</Label>
+                    <Select defaultValue={(ordem as any).funcionario_id ?? "__none__"} name="funcionario_id">
+                      <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Sem técnico —</SelectItem>
+                        {tecnicos.map((t: any) => (
+                          <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Hidden input para FormData (Select shadcn não envia value nativo) */}
+                    <input type="hidden" name="funcionario_id" value={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Previsão entrega</Label>
+                    <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs">Prioridade</Label>
+                    <select name="prioridade" defaultValue={(ordem as any).prioridade || "normal"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                      <option value="normal">Normal</option>
+                      <option value="urgente">Urgente</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Garantia (dias)</Label>
+                    <Input name="garantia_dias" type="number" min="0" defaultValue={(ordem as any).garantia_dias ?? 90} className="mt-1 h-8" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Aprovação</Label>
+                    <select name="aprovacao_orcamento" defaultValue={(ordem as any).aprovacao_orcamento || "pendente"} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm">
+                      <option value="pendente">Pendente</option>
+                      <option value="aprovado">Aprovado</option>
+                      <option value="recusado">Recusado</option>
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs">Observações internas</Label>
                   <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
                 </div>
-                <Button type="submit" className="w-full" disabled={saveEdit.isPending}>
-                  {saveEdit.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                {comissoesOS.length > 0 && (
+                  <div className="text-[11px] text-muted-foreground p-2 bg-muted/50 rounded border">
+                    ⚠️ Esta OS já gerou comissão. Mudar o valor não recalcula automaticamente.
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={editarOSAdmin.isPending || saveEdit.isPending}>
+                  {(editarOSAdmin.isPending || saveEdit.isPending) ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Salvar Alterações
                 </Button>
               </form>
