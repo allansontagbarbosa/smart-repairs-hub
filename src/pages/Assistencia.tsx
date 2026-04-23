@@ -3,7 +3,7 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
-  CalendarClock, SortAsc, Filter, Printer, Brain, Shield,
+  CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,7 @@ import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -216,10 +217,11 @@ export default function Assistencia() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [showOlder, setShowOlder] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
-  const { can } = usePermissoes();
+  const { can, isAdmin } = usePermissoes();
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -304,7 +306,7 @@ export default function Assistencia() {
     const counts: Record<string, number> = { todos: 0 };
     for (const o of enriched) {
       counts[o.status] = (counts[o.status] ?? 0) + 1;
-      if (o.status !== "entregue") counts["todos"] = (counts["todos"] ?? 0) + 1;
+      if (o.status !== "entregue" && o.status !== "cancelado") counts["todos"] = (counts["todos"] ?? 0) + 1;
     }
     return counts;
   }, [enriched]);
@@ -322,7 +324,9 @@ export default function Assistencia() {
         device.toLowerCase().includes(q) ||
         String(o.numero).includes(q);
       const matchStatus =
-        filterStatus === "todos" ? o.status !== "entregue" : o.status === filterStatus;
+        filterStatus === "todos"
+          ? (o.status !== "entregue" && o.status !== "cancelado")
+          : o.status === filterStatus;
       const matchPrioridade =
         filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
       return matchSearch && matchStatus && matchPrioridade;
@@ -390,17 +394,24 @@ export default function Assistencia() {
     const nextStatus = getNextStatus(order.status as Status);
     const phone = order.aparelhos?.clientes?.telefone;
     const isCritica = order.prioridade.nivel === "critica";
+    const isCancelada = order.status === "cancelado";
     const valor = Number(order.valor ?? 0);
     const custo = Number(order.custo_pecas ?? 0);
     const lucro = valor - custo;
     const temGarantia = garantiaOrdemIds.has(order.id);
+    const podeCancelar = isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(order.status);
 
     return (
-      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""}`}>
+      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""}`}>
         <td className="px-3 py-2.5 font-mono text-xs text-primary cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
           #{String(order.numero).padStart(3, "0")}
+          {isCancelada && (
+            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-semibold">
+              <XCircle className="h-2.5 w-2.5" /> Cancelada
+            </span>
+          )}
         </td>
 
         <td className="px-3 py-2.5 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
@@ -559,6 +570,22 @@ export default function Assistencia() {
               </TooltipTrigger>
               <TooltipContent>Imprimir Etiqueta</TooltipContent>
             </Tooltip>
+
+            {podeCancelar && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setCancelOrderId(order.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cancelar OS</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </td>
       </tr>
@@ -755,6 +782,10 @@ export default function Assistencia() {
           cancelar();
         }}
         onCancel={cancelar}
+      />
+      <CancelarOSDialog
+        ordemId={cancelOrderId}
+        onClose={() => setCancelOrderId(null)}
       />
     </div>
   );

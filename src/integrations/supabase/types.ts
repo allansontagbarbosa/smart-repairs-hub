@@ -629,6 +629,8 @@ export type Database = {
           created_at: string
           data_pagamento: string | null
           empresa_id: string | null
+          estornada_em: string | null
+          estornada_por: string | null
           funcionario_id: string
           id: string
           observacoes: string | null
@@ -643,6 +645,8 @@ export type Database = {
           created_at?: string
           data_pagamento?: string | null
           empresa_id?: string | null
+          estornada_em?: string | null
+          estornada_por?: string | null
           funcionario_id: string
           id?: string
           observacoes?: string | null
@@ -657,6 +661,8 @@ export type Database = {
           created_at?: string
           data_pagamento?: string | null
           empresa_id?: string | null
+          estornada_em?: string | null
+          estornada_por?: string | null
           funcionario_id?: string
           id?: string
           observacoes?: string | null
@@ -2680,6 +2686,8 @@ export type Database = {
           aprovacao_orcamento: string | null
           aprovado_no_ato: boolean | null
           bateria_entrada: number | null
+          cancelada_em: string | null
+          cancelada_por: string | null
           checklist_entrada: Json | null
           contato_preferido: string | null
           created_at: string
@@ -2703,12 +2711,14 @@ export type Database = {
           garantia_dias: number
           id: string
           imei2: string | null
+          impacto_cancelamento: Json | null
           liga: string | null
           loja_id: string | null
           lojista_id: string | null
           lucro_bruto: number | null
           mao_obra_adicional: number
           margem_calculada: number
+          motivo_cancelamento: string | null
           motivo_reprovacao: string | null
           numero: number
           numero_formatado: string | null
@@ -2742,6 +2752,8 @@ export type Database = {
           aprovacao_orcamento?: string | null
           aprovado_no_ato?: boolean | null
           bateria_entrada?: number | null
+          cancelada_em?: string | null
+          cancelada_por?: string | null
           checklist_entrada?: Json | null
           contato_preferido?: string | null
           created_at?: string
@@ -2765,12 +2777,14 @@ export type Database = {
           garantia_dias?: number
           id?: string
           imei2?: string | null
+          impacto_cancelamento?: Json | null
           liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
           lucro_bruto?: number | null
           mao_obra_adicional?: number
           margem_calculada?: number
+          motivo_cancelamento?: string | null
           motivo_reprovacao?: string | null
           numero?: number
           numero_formatado?: string | null
@@ -2804,6 +2818,8 @@ export type Database = {
           aprovacao_orcamento?: string | null
           aprovado_no_ato?: boolean | null
           bateria_entrada?: number | null
+          cancelada_em?: string | null
+          cancelada_por?: string | null
           checklist_entrada?: Json | null
           contato_preferido?: string | null
           created_at?: string
@@ -2827,12 +2843,14 @@ export type Database = {
           garantia_dias?: number
           id?: string
           imei2?: string | null
+          impacto_cancelamento?: Json | null
           liga?: string | null
           loja_id?: string | null
           lojista_id?: string | null
           lucro_bruto?: number | null
           mao_obra_adicional?: number
           margem_calculada?: number
+          motivo_cancelamento?: string | null
           motivo_reprovacao?: string | null
           numero?: number
           numero_formatado?: string | null
@@ -2916,6 +2934,59 @@ export type Database = {
             columns: ["tipo_servico_id"]
             isOneToOne: false
             referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_auditoria: {
+        Row: {
+          acao: string
+          created_at: string
+          empresa_id: string
+          id: string
+          ip_address: string | null
+          motivo: string | null
+          ordem_id: string
+          payload: Json | null
+          realizada_por: string
+          realizada_por_nome: string
+          realizada_por_role: string
+          user_agent: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          ip_address?: string | null
+          motivo?: string | null
+          ordem_id: string
+          payload?: Json | null
+          realizada_por: string
+          realizada_por_nome: string
+          realizada_por_role: string
+          user_agent?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          ip_address?: string | null
+          motivo?: string | null
+          ordem_id?: string
+          payload?: Json | null
+          realizada_por?: string
+          realizada_por_nome?: string
+          realizada_por_role?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_auditoria_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
         ]
@@ -3851,6 +3922,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancelar_os: {
+        Args: { p_motivo: string; p_ordem_id: string }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -3904,6 +3979,7 @@ export type Database = {
         }
         Returns: number
       }
+      preview_cancelamento_os: { Args: { p_ordem_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -3932,7 +4008,7 @@ export type Database = {
       }
     }
     Enums: {
-      status_comissao: "pendente" | "liberada" | "paga"
+      status_comissao: "pendente" | "liberada" | "paga" | "estornada"
       status_conferencia: "em_andamento" | "finalizada"
       status_conta: "pendente" | "paga" | "vencida" | "cancelada"
       status_estoque_aparelho:
@@ -3949,6 +4025,7 @@ export type Database = {
         | "aguardando_peca"
         | "pronto"
         | "entregue"
+        | "cancelado"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
       tipo_movimentacao: "entrada" | "saida"
     }
@@ -4078,7 +4155,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      status_comissao: ["pendente", "liberada", "paga"],
+      status_comissao: ["pendente", "liberada", "paga", "estornada"],
       status_conferencia: ["em_andamento", "finalizada"],
       status_conta: ["pendente", "paga", "vencida", "cancelada"],
       status_estoque_aparelho: [
@@ -4096,6 +4173,7 @@ export const Constants = {
         "aguardando_peca",
         "pronto",
         "entregue",
+        "cancelado",
       ],
       tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
       tipo_movimentacao: ["entrada", "saida"],

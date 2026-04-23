@@ -17,6 +17,7 @@ export const statusLabels: Record<Status, string> = {
   aguardando_peca: "Aguard. Peça",
   pronto: "Pronto",
   entregue: "Entregue",
+  cancelado: "Cancelada",
 };
 
 /** Labels completos para exibição ao cliente (portal, consulta) */
@@ -29,4 +30,5 @@ export const statusLabelsCliente: Record<Status, string> = {
   aguardando_peca: "Aguardando Peça",
   pronto: "Pronto para Retirada",
   entregue: "Entregue",
+  cancelado: "Cancelada",
 };

@@ -20,6 +20,7 @@ const statusDescriptions: Record<Status, string> = {
   aguardando_peca: "Estamos aguardando a chegada de uma peça necessária para o reparo.",
   pronto: "O reparo foi concluído! Seu aparelho está pronto para retirada.",
   entregue: "Aparelho já foi entregue. Obrigado pela confiança!",
+  cancelado: "Esta ordem de serviço foi cancelada.",
 };
 
 const statusColors: Record<Status, { dot: string; bg: string; text: string }> = {
@@ -31,6 +32,7 @@ const statusColors: Record<Status, { dot: string; bg: string; text: string }> = 
   aguardando_peca: { dot: "bg-warning", bg: "bg-warning-muted", text: "text-warning" },
   pronto: { dot: "bg-success", bg: "bg-success-muted", text: "text-success" },
   entregue: { dot: "bg-foreground/30", bg: "bg-muted", text: "text-muted-foreground" },
+  cancelado: { dot: "bg-destructive", bg: "bg-destructive/10", text: "text-destructive" },
 };
 
 const steps: Status[] = ["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue"];

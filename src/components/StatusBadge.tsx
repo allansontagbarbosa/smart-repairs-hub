@@ -12,6 +12,7 @@ const statusConfig: Record<Status, { label: string; dot: string; text: string; b
   aguardando_peca: { label: "Aguard. Peça", dot: "bg-warning", text: "text-warning", bg: "bg-warning-muted" },
   pronto: { label: "Pronto", dot: "bg-success", text: "text-success", bg: "bg-success-muted" },
   entregue: { label: "Entregue", dot: "bg-foreground/30", text: "text-muted-foreground", bg: "bg-muted" },
+  cancelado: { label: "Cancelada", dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
 };
 
 export function StatusBadge({ status }: { status: Status }) {
@@ -34,4 +35,5 @@ export const allStatuses: { value: Status | "todos"; label: string }[] = [
   { value: "aguardando_peca", label: "Aguard. Peça" },
   { value: "pronto", label: "Pronto" },
   { value: "entregue", label: "Entregue" },
+  { value: "cancelado", label: "Canceladas" },
 ];
