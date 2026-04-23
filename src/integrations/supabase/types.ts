@@ -3932,7 +3932,7 @@ export type Database = {
       }
     }
     Enums: {
-      status_comissao: "pendente" | "liberada" | "paga"
+      status_comissao: "pendente" | "liberada" | "paga" | "estornada"
       status_conferencia: "em_andamento" | "finalizada"
       status_conta: "pendente" | "paga" | "vencida" | "cancelada"
       status_estoque_aparelho:
@@ -3949,6 +3949,7 @@ export type Database = {
         | "aguardando_peca"
         | "pronto"
         | "entregue"
+        | "cancelado"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
       tipo_movimentacao: "entrada" | "saida"
     }
@@ -4078,7 +4079,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      status_comissao: ["pendente", "liberada", "paga"],
+      status_comissao: ["pendente", "liberada", "paga", "estornada"],
       status_conferencia: ["em_andamento", "finalizada"],
       status_conta: ["pendente", "paga", "vencida", "cancelada"],
       status_estoque_aparelho: [
@@ -4096,6 +4097,7 @@ export const Constants = {
         "aguardando_peca",
         "pronto",
         "entregue",
+        "cancelado",
       ],
       tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
       tipo_movimentacao: ["entrada", "saida"],
