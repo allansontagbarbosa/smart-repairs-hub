@@ -921,7 +921,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   // ── Validação ──
   const canAdvanceCliente = !!selectedClientId;
   const canAdvanceAparelho = !!marca && !!modelo;
-  const canSubmit = canAdvanceCliente && canAdvanceAparelho && (defeitosSelecionados.length > 0 || !!relatoCliente.trim());
+  const justificativaOk = !isRetroativa || justificativaRetroativa.trim().length >= 10;
+  const podeRetroativa = !isRetroativa || isAdmin;
+  const canSubmit =
+    canAdvanceCliente &&
+    canAdvanceAparelho &&
+    (defeitosSelecionados.length > 0 || !!relatoCliente.trim()) &&
+    justificativaOk &&
+    podeRetroativa;
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
