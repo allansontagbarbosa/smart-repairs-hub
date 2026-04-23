@@ -2719,6 +2719,7 @@ export type Database = {
           impacto_cancelamento: Json | null
           justificativa_retroativa: string | null
           liga: string | null
+          localizacao: string | null
           loja_id: string | null
           lojista_id: string | null
           lucro_bruto: number | null
@@ -2788,6 +2789,7 @@ export type Database = {
           impacto_cancelamento?: Json | null
           justificativa_retroativa?: string | null
           liga?: string | null
+          localizacao?: string | null
           loja_id?: string | null
           lojista_id?: string | null
           lucro_bruto?: number | null
@@ -2857,6 +2859,7 @@ export type Database = {
           impacto_cancelamento?: Json | null
           justificativa_retroativa?: string | null
           liga?: string | null
+          localizacao?: string | null
           loja_id?: string | null
           lojista_id?: string | null
           lucro_bruto?: number | null
