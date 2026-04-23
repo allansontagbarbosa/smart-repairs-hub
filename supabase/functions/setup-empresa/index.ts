@@ -72,114 +72,145 @@ Deno.serve(async (req) => {
       .replace(/^-|-$/g, "")
       + "-" + Date.now().toString(36);
 
-    // STEP 1 — Create empresa
-    const { data: empresa, error: errEmpresa } = await admin
-      .from("empresas")
-      .insert({
+    // SE-03: rollback manual — rastreia recursos criados e desfaz tudo se algo falhar
+    let createdEmpresaId: string | null = null;
+    let createdPerfilId: string | null = null;
+    let createdFuncId: string | null = null;
+
+    try {
+      // STEP 1 — Create empresa
+      const { data: empresa, error: errEmpresa } = await admin
+        .from("empresas")
+        .insert({
+          nome: nomeEmpresa.trim(),
+          slug,
+          cnpj: cnpj?.trim() || null,
+          telefone: telefone?.trim() || null,
+          email: email?.trim() || user.email,
+          plano: plano || "basico",
+          owner_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (errEmpresa) throw errEmpresa;
+      createdEmpresaId = empresa.id;
+
+      // STEP 2 — Create Administrador profile
+      const { data: perfil, error: errPerfil } = await admin
+        .from("perfis_acesso")
+        .insert({
+          empresa_id: empresa.id,
+          nome_perfil: "Administrador",
+          descricao: "Acesso total ao sistema",
+          permissoes: {
+            dashboard: true,
+            assistencia: { ver: true, criar: true, editar: true, excluir: true },
+            financeiro: { ver: true, criar: true, editar: true, excluir: true },
+            pecas: { ver: true, criar: true, editar: true, excluir: true },
+            clientes: { ver: true, criar: true, editar: true, excluir: true },
+            relatorios: true,
+            configuracoes: true,
+            fila_ia: true,
+          },
+        })
+        .select()
+        .single();
+
+      if (errPerfil) throw errPerfil;
+      createdPerfilId = perfil.id;
+
+      // STEP 3 — Create funcionario
+      const { data: func, error: errFunc } = await admin
+        .from("funcionarios")
+        .insert({
+          empresa_id: empresa.id,
+          nome: user.user_metadata?.full_name || user.email || "Administrador",
+          email: user.email,
+          cargo: "Administrador",
+          funcao: "Administrador",
+          ativo: true,
+        })
+        .select("id")
+        .single();
+
+      if (errFunc) throw errFunc;
+      createdFuncId = func.id;
+
+      // STEP 4 — Link user_profile to empresa
+      const { error: errProfile } = await admin
+        .from("user_profiles")
+        .upsert({
+          user_id: user.id,
+          nome_exibicao: user.user_metadata?.full_name || user.email || "Administrador",
+          empresa_id: empresa.id,
+          perfil_id: perfil.id,
+          funcionario_id: func.id,
+          ativo: true,
+        }, { onConflict: "user_id" });
+
+      if (errProfile) throw errProfile;
+
+      // STEP 5 — Create empresa_config
+      const { error: errConfig } = await admin.from("empresa_config").insert({
+        empresa_id: empresa.id,
         nome: nomeEmpresa.trim(),
-        slug,
-        cnpj: cnpj?.trim() || null,
-        telefone: telefone?.trim() || null,
-        email: email?.trim() || user.email,
-        plano: plano || "basico",
-        owner_id: user.id,
-      })
-      .select()
-      .single();
+        gastos_fixos_mensais: 0,
+      });
+      if (errConfig) throw errConfig;
 
-    if (errEmpresa) throw errEmpresa;
-
-    // STEP 2 — Create Administrador profile
-    const { data: perfil, error: errPerfil } = await admin
-      .from("perfis_acesso")
-      .insert({
-        empresa_id: empresa.id,
-        nome_perfil: "Administrador",
-        descricao: "Acesso total ao sistema",
-        permissoes: {
-          dashboard: true,
-          assistencia: { ver: true, criar: true, editar: true, excluir: true },
-          financeiro: { ver: true, criar: true, editar: true, excluir: true },
-          pecas: { ver: true, criar: true, editar: true, excluir: true },
-          clientes: { ver: true, criar: true, editar: true, excluir: true },
-          relatorios: true,
-          configuracoes: true,
-          fila_ia: true,
+      // STEP 6 — Create default profiles
+      const { error: errPerfis } = await admin.from("perfis_acesso").insert([
+        {
+          empresa_id: empresa.id,
+          nome_perfil: "Técnico",
+          descricao: "Ordens de serviço e estoque",
+          permissoes: { dashboard: true, assistencia: { ver: true, criar: true, editar: true, excluir: false }, financeiro: { ver: false, criar: false, editar: false, excluir: false }, pecas: { ver: true, criar: false, editar: false, excluir: false }, clientes: { ver: true, criar: false, editar: false, excluir: false }, relatorios: false, configuracoes: false, fila_ia: true },
         },
-      })
-      .select()
-      .single();
+        {
+          empresa_id: empresa.id,
+          nome_perfil: "Financeiro",
+          descricao: "Módulo financeiro e relatórios",
+          permissoes: { dashboard: true, assistencia: { ver: true, criar: false, editar: false, excluir: false }, financeiro: { ver: true, criar: true, editar: true, excluir: false }, pecas: { ver: true, criar: true, editar: true, excluir: false }, clientes: { ver: true, criar: false, editar: false, excluir: false }, relatorios: true, configuracoes: false, fila_ia: false },
+        },
+        {
+          empresa_id: empresa.id,
+          nome_perfil: "Atendimento",
+          descricao: "Cadastro de OS e clientes",
+          permissoes: { dashboard: true, assistencia: { ver: true, criar: true, editar: true, excluir: false }, financeiro: { ver: false, criar: false, editar: false, excluir: false }, pecas: { ver: true, criar: false, editar: false, excluir: false }, clientes: { ver: true, criar: true, editar: true, excluir: false }, relatorios: false, configuracoes: false, fila_ia: false },
+        },
+        {
+          empresa_id: empresa.id,
+          nome_perfil: "Gerente",
+          descricao: "Visão gerencial e aprovações",
+          permissoes: { dashboard: true, assistencia: { ver: true, criar: false, editar: false, excluir: false }, financeiro: { ver: true, criar: false, editar: false, excluir: false }, pecas: { ver: true, criar: false, editar: false, excluir: false }, clientes: { ver: true, criar: false, editar: false, excluir: false }, relatorios: true, configuracoes: false, fila_ia: false },
+        },
+      ]);
+      if (errPerfis) throw errPerfis;
 
-    if (errPerfil) throw errPerfil;
-
-    // STEP 3 — Create funcionario
-    const { data: func, error: errFunc } = await admin
-      .from("funcionarios")
-      .insert({
-        empresa_id: empresa.id,
-        nome: user.user_metadata?.full_name || user.email || "Administrador",
-        email: user.email,
-        cargo: "Administrador",
-        funcao: "Administrador",
-        ativo: true,
-      })
-      .select("id")
-      .single();
-
-    if (errFunc) throw errFunc;
-
-    // STEP 4 — Link user_profile to empresa
-    const { error: errProfile } = await admin
-      .from("user_profiles")
-      .upsert({
-        user_id: user.id,
-        nome_exibicao: user.user_metadata?.full_name || user.email || "Administrador",
-        empresa_id: empresa.id,
-        perfil_id: perfil.id,
-        funcionario_id: func.id,
-        ativo: true,
-      }, { onConflict: "user_id" });
-
-    if (errProfile) throw errProfile;
-
-    // STEP 5 — Create empresa_config
-    await admin.from("empresa_config").insert({
-      empresa_id: empresa.id,
-      nome: nomeEmpresa.trim(),
-      gastos_fixos_mensais: 0,
-    });
-
-    // STEP 6 — Create default profiles
-    await admin.from("perfis_acesso").insert([
-      {
-        empresa_id: empresa.id,
-        nome_perfil: "Técnico",
-        descricao: "Ordens de serviço e estoque",
-        permissoes: { dashboard: true, assistencia: { ver: true, criar: true, editar: true, excluir: false }, financeiro: { ver: false, criar: false, editar: false, excluir: false }, pecas: { ver: true, criar: false, editar: false, excluir: false }, clientes: { ver: true, criar: false, editar: false, excluir: false }, relatorios: false, configuracoes: false, fila_ia: true },
-      },
-      {
-        empresa_id: empresa.id,
-        nome_perfil: "Financeiro",
-        descricao: "Módulo financeiro e relatórios",
-        permissoes: { dashboard: true, assistencia: { ver: true, criar: false, editar: false, excluir: false }, financeiro: { ver: true, criar: true, editar: true, excluir: false }, pecas: { ver: true, criar: true, editar: true, excluir: false }, clientes: { ver: true, criar: false, editar: false, excluir: false }, relatorios: true, configuracoes: false, fila_ia: false },
-      },
-      {
-        empresa_id: empresa.id,
-        nome_perfil: "Atendimento",
-        descricao: "Cadastro de OS e clientes",
-        permissoes: { dashboard: true, assistencia: { ver: true, criar: true, editar: true, excluir: false }, financeiro: { ver: false, criar: false, editar: false, excluir: false }, pecas: { ver: true, criar: false, editar: false, excluir: false }, clientes: { ver: true, criar: true, editar: true, excluir: false }, relatorios: false, configuracoes: false, fila_ia: false },
-      },
-      {
-        empresa_id: empresa.id,
-        nome_perfil: "Gerente",
-        descricao: "Visão gerencial e aprovações",
-        permissoes: { dashboard: true, assistencia: { ver: true, criar: false, editar: false, excluir: false }, financeiro: { ver: true, criar: false, editar: false, excluir: false }, pecas: { ver: true, criar: false, editar: false, excluir: false }, clientes: { ver: true, criar: false, editar: false, excluir: false }, relatorios: true, configuracoes: false, fila_ia: false },
-      },
-    ]);
-
-    return new Response(JSON.stringify({ success: true, empresa_id: empresa.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      return new Response(JSON.stringify({ success: true, empresa_id: empresa.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (stepErr: any) {
+      // ROLLBACK manual: limpa recursos criados na ordem inversa
+      console.error("Setup empresa falhou, executando rollback:", stepErr);
+      try {
+        if (createdEmpresaId) {
+          await admin.from("user_profiles")
+            .update({ empresa_id: null, perfil_id: null, funcionario_id: null })
+            .eq("user_id", user.id);
+        }
+        if (createdFuncId) await admin.from("funcionarios").delete().eq("id", createdFuncId);
+        if (createdEmpresaId) {
+          await admin.from("empresa_config").delete().eq("empresa_id", createdEmpresaId);
+          await admin.from("perfis_acesso").delete().eq("empresa_id", createdEmpresaId);
+          await admin.from("empresas").delete().eq("id", createdEmpresaId);
+        }
+      } catch (rbErr) {
+        console.error("Falha durante rollback:", rbErr);
+      }
+      throw stepErr;
+    }
   } catch (err: any) {
     console.error("Onboarding error:", err);
     return new Response(JSON.stringify({ error: err.message || "Erro interno" }), {
