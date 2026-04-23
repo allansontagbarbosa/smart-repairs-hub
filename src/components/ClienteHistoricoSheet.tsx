@@ -22,27 +22,6 @@ interface ClienteInfo {
   ultimo_atendimento: string | null;
 }
 
-interface AparelhoComOS {
-  id: string;
-  marca: string;
-  modelo: string;
-  cor: string | null;
-  capacidade: string | null;
-  imei: string | null;
-  ordens: OSResumida[];
-}
-
-interface OSResumida {
-  id: string;
-  numero: number;
-  data_entrada: string;
-  defeito_relatado: string;
-  status: Status;
-  valor: number | null;
-  aparelho_marca: string;
-  aparelho_modelo: string;
-}
-
 export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
@@ -59,50 +38,7 @@ export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
     },
   });
 
-  const { data: ordens = [], isLoading: loadingOrdens } = useQuery({
-    queryKey: ["cliente-ordens", cliente.id],
-    queryFn: async () => {
-      // Get all aparelho IDs for this client
-      const { data: aps } = await supabase
-        .from("aparelhos")
-        .select("id, marca, modelo")
-        .eq("cliente_id", cliente.id);
-      if (!aps?.length) return [];
-
-      const apIds = aps.map((a) => a.id);
-      const apMap = Object.fromEntries(aps.map((a) => [a.id, a]));
-
-      const { data, error } = await supabase
-        .from("ordens_de_servico")
-        .select("id, numero, data_entrada, defeito_relatado, status, valor, aparelho_id")
-        .in("aparelho_id", apIds)
-        .is("deleted_at", null)
-        .order("data_entrada", { ascending: false });
-      if (error) throw error;
-
-      return (data ?? []).map((o) => ({
-        id: o.id,
-        numero: o.numero,
-        data_entrada: o.data_entrada,
-        defeito_relatado: o.defeito_relatado,
-        status: o.status,
-        valor: o.valor,
-        aparelho_marca: apMap[o.aparelho_id]?.marca ?? "",
-        aparelho_modelo: apMap[o.aparelho_id]?.modelo ?? "",
-      })) as OSResumida[];
-    },
-  });
-
-  const aparelhosComOS: AparelhoComOS[] = aparelhos.map((ap) => ({
-    ...ap,
-    ordens: ordens.filter((o) => {
-      // match by marca+modelo since we have aparelho_id in ordens
-      return o.aparelho_marca === ap.marca && o.aparelho_modelo === ap.modelo;
-    }),
-  }));
-
-  // Actually let's match by aparelho_id properly
-  const { data: ordensComApId = [] } = useQuery({
+  const { data: ordensComApId = [], isLoading: loadingOrdens } = useQuery({
     queryKey: ["cliente-ordens-full", cliente.id],
     queryFn: async () => {
       const apIds = aparelhos.map((a) => a.id);
