@@ -118,11 +118,16 @@ export function usePermissoes() {
   }, [user]);
 
   const can = (modulo: keyof Permissoes, acao?: keyof PermissaoModulo): boolean => {
+    // SECURITY: enquanto carrega, nega tudo (fail-closed). Evita flicker de botões admin.
+    if (loading) return false;
     const val = permissoes[modulo];
     if (typeof val === "boolean") return val;
     if (!acao) return val.ver;
     return val[acao];
   };
 
-  return { permissoes, perfil, isAdmin, can, loading };
+  // SECURITY: isAdmin efetivo só após loading terminar.
+  const effectiveIsAdmin = loading ? false : isAdmin;
+
+  return { permissoes, perfil, isAdmin: effectiveIsAdmin, can, loading };
 }
