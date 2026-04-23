@@ -312,6 +312,7 @@ export default function Assistencia() {
     enabled: isAdmin,
   });
 
+  const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
     if (!phone) return toast.error("Cliente sem telefone cadastrado");
     abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}. Por favor, entre em contato conosco.`);
   };
