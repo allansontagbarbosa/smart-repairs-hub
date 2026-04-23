@@ -16,6 +16,7 @@ export function invalidateOrdensDependentes(queryClient: QueryClient) {
     queryClient.invalidateQueries({ queryKey: ["tecnico-minhas-os"] }),
     queryClient.invalidateQueries({ queryKey: ["tecnico-metricas"] }),
     queryClient.invalidateQueries({ queryKey: ["clientes-full"] }),
+    queryClient.invalidateQueries({ queryKey: ["clientes-com-stats"] }),
     queryClient.invalidateQueries({ queryKey: ["comissoes"] }),
     queryClient.invalidateQueries({ queryKey: ["os-aguardando-aprovacao-count"] }),
     queryClient.invalidateQueries({ queryKey: ["os-atrasadas-count"] }),
