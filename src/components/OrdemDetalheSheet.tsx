@@ -1494,14 +1494,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       {/* Cancelamento — fluxo dedicado (separado do dropdown de status) */}
       {ordem && (
         <CancelarOSDialog
-          open={cancelOpen}
-          onOpenChange={setCancelOpen}
-          ordemId={ordem.id}
-          numeroFormatado={formatNumeroOS((ordem as any).numero, (ordem as any).numero_formatado)}
-          onSuccess={() => {
+          ordemId={cancelOpen ? ordem.id : null}
+          onClose={() => setCancelOpen(false)}
+          onCancelled={() => {
             queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
             queryClient.invalidateQueries({ queryKey: ["ordens"] });
             queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
+            setCancelOpen(false);
           }}
         />
       )}
