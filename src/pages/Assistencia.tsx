@@ -394,17 +394,24 @@ export default function Assistencia() {
     const nextStatus = getNextStatus(order.status as Status);
     const phone = order.aparelhos?.clientes?.telefone;
     const isCritica = order.prioridade.nivel === "critica";
+    const isCancelada = order.status === "cancelado";
     const valor = Number(order.valor ?? 0);
     const custo = Number(order.custo_pecas ?? 0);
     const lucro = valor - custo;
     const temGarantia = garantiaOrdemIds.has(order.id);
+    const podeCancelar = isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(order.status);
 
     return (
-      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""}`}>
+      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""}`}>
         <td className="px-3 py-2.5 font-mono text-xs text-primary cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
           #{String(order.numero).padStart(3, "0")}
+          {isCancelada && (
+            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-semibold">
+              <XCircle className="h-2.5 w-2.5" /> Cancelada
+            </span>
+          )}
         </td>
 
         <td className="px-3 py-2.5 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
