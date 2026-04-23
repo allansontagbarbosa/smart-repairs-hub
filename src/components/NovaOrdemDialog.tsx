@@ -915,7 +915,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const labelNum = ordem?.numero_formatado || String(ordem?.numero || 0).padStart(3, "0");
       toast.success(`OS #${labelNum} criada!`);
       queryClient.invalidateQueries({ queryKey: ["estoque_pecas_para_os"] });
-      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      invalidateOrdensDependentes(queryClient);
       setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
       setStep("sucesso");
       onSuccess();
