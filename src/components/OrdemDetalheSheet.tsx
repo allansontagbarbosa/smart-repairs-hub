@@ -848,7 +848,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Técnico</Label>
-                    <Select defaultValue={(ordem as any).funcionario_id ?? "__none__"} name="funcionario_id">
+                    <Select
+                      defaultValue={(ordem as any).funcionario_id ?? "__none__"}
+                      onValueChange={(v) => {
+                        const el = document.getElementById(`func-hidden-${ordem.id}`) as HTMLInputElement | null;
+                        if (el) el.value = v === "__none__" ? "" : v;
+                      }}
+                    >
                       <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">— Sem técnico —</SelectItem>
@@ -857,8 +863,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
-                    {/* Hidden input para FormData (Select shadcn não envia value nativo) */}
-                    <input type="hidden" name="funcionario_id" value={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
+                    {/* Hidden input lido pelo FormData (Select shadcn não envia value nativo) */}
+                    <input type="hidden" name="funcionario_id" defaultValue={(ordem as any).funcionario_id ?? ""} id={`func-hidden-${ordem.id}`} />
                   </div>
                   <div>
                     <Label className="text-xs">Previsão entrega</Label>
@@ -1484,6 +1490,136 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         }}
         onCancel={cancelar}
       />
+
+      {/* Cancelamento — fluxo dedicado (separado do dropdown de status) */}
+      {ordem && (
+        <CancelarOSDialog
+          ordemId={cancelOpen ? ordem.id : null}
+          onClose={() => setCancelOpen(false)}
+          onCancelled={() => {
+            queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+            queryClient.invalidateQueries({ queryKey: ["ordens"] });
+            queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
+            setCancelOpen(false);
+          }}
+        />
+      )}
+
+      {/* Warning de pulo de fluxo */}
+      <AlertDialog open={!!pendingStatusChange} onOpenChange={(o) => { if (!o) setPendingStatusChange(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Pulo de fluxo detectado
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>Você está mudando para <strong>{pendingStatusChange ? statusLabels[pendingStatusChange.novo] : ""}</strong>, mas existem inconsistências:</p>
+                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                  {pendingStatusChange?.motivos.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+                <p className="text-xs text-muted-foreground pt-2">Como Administrador, você pode prosseguir mesmo assim. A ação ficará registrada na auditoria.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!pendingStatusChange) return;
+                const novo = pendingStatusChange.novo;
+                if (novo === "entregue" && ordem) {
+                  pedirConfirmacao({
+                    orderId: ordem.id,
+                    numero: ordem.numero,
+                    clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                  });
+                } else {
+                  changeStatus.mutate(novo);
+                }
+                setPendingStatusChange(null);
+              }}
+            >
+              Prosseguir mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Warning de mudança de valor com comissão já gerada */}
+      <AlertDialog open={valorWarningOpen} onOpenChange={setValorWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Esta OS já gerou comissão
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Mudar o valor cobrado <strong>não recalcula automaticamente</strong> as comissões já lançadas.
+              Para ajustar a comissão, você precisará editá-la manualmente no módulo Financeiro {`>`} Comissões.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setValorWarningOpen(false); setPendingEditPayload(null); }}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingEditPayload) {
+                  editarOSAdmin.mutate({ dados: pendingEditPayload, pulou_fluxo: false });
+                }
+                setValorWarningOpen(false);
+              }}
+            >
+              Salvar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Drawer Histórico de auditoria */}
+      <Sheet open={historicoOpen} onOpenChange={setHistoricoOpen}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="pb-3">
+            <SheetTitle className="flex items-center gap-2 text-base">
+              <History className="h-4 w-4" />
+              Histórico de auditoria
+            </SheetTitle>
+          </SheetHeader>
+          {historicoAuditoria.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Nenhum evento de auditoria registrado.</p>
+          ) : (
+            <div className="space-y-2 mt-3">
+              {(historicoAuditoria as any[]).map((h) => (
+                <div key={h.id} className="rounded-lg border p-3 text-xs space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge variant="outline" className="text-[10px]">{h.acao}</Badge>
+                    <span className="text-muted-foreground">{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                  </div>
+                  <p>
+                    <span className="text-muted-foreground">Por:</span>{" "}
+                    <span className="font-medium">{h.realizada_por_nome || "—"}</span>
+                    {h.realizada_por_role ? <span className="text-muted-foreground"> ({h.realizada_por_role})</span> : null}
+                  </p>
+                  {h.motivo && (
+                    <p><span className="text-muted-foreground">Motivo:</span> {h.motivo}</p>
+                  )}
+                  {h.payload?.campos_alterados && Array.isArray(h.payload.campos_alterados) && (
+                    <p>
+                      <span className="text-muted-foreground">Campos:</span>{" "}
+                      <span className="font-mono text-[10px]">{h.payload.campos_alterados.join(", ")}</span>
+                    </p>
+                  )}
+                  {h.payload?.pulou_fluxo && (
+                    <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/30 text-[10px] gap-1">
+                      <AlertTriangle className="h-3 w-3" />Pulo de fluxo
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </Sheet>
   );
 }
