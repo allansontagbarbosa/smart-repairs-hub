@@ -27,6 +27,7 @@ import { ImpressaoOS, type ImpressaoOSData } from "@/components/ImpressaoOS";
 import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
 
 
 
@@ -50,6 +51,11 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
   const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
+
+  // Edição de serviços vinculados (os_servicos)
+  const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
+  const [removeServicosWarnOpen, setRemoveServicosWarnOpen] = useState(false);
+  const [pendingRemovedServicos, setPendingRemovedServicos] = useState<Array<{ id: string; nome: string; comissao: number }>>([]);
 
   // Estado controlado dos campos do form de edição (para Selects/radios shadcn)
   const [editForm, setEditForm] = useState({
@@ -214,6 +220,89 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       });
     }
   }, [editing, ordem]);
+
+  // ─── Serviços vinculados (os_servicos) — atuais e estado em edição ───
+  const { data: servicosAtuais = [] } = useQuery({
+    queryKey: ["os-servicos", orderId],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const { data, error } = await supabase
+        .from("os_servicos")
+        .select("id, servico_id, nome, valor, comissao, categoria")
+        .eq("ordem_id", orderId);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!orderId,
+  });
+
+  // Hidrata servicosSelecionados ao entrar em edição (chave = servico_id, fallback id)
+  useEffect(() => {
+    if (editing) {
+      setServicosSelecionados(
+        (servicosAtuais as any[]).map((s) => ({
+          id: s.servico_id ?? s.id,
+          nome: s.nome,
+          categoria: s.categoria ?? undefined,
+          valor_mao_obra: Number(s.valor) || 0,
+          comissao_padrao: Number(s.comissao) || 0,
+        }))
+      );
+    }
+  }, [editing, servicosAtuais]);
+
+  // Mutation: editar_os_servicos
+  const editarServicos = useMutation({
+    mutationFn: async (args: { adicionar: string[]; remover: string[] }) => {
+      if (!ordem) return null;
+      const { data, error } = await supabase.rpc("editar_os_servicos" as any, {
+        p_ordem_id: ordem.id,
+        p_adicionar: args.adicionar,
+        p_remover: args.remover,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["os-servicos", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["os_auditoria", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["comissoes_os", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["historico", orderId] });
+      const add = data?.adicionados ?? 0;
+      const rem = data?.removidos ?? 0;
+      if (add > 0 || rem > 0) {
+        toast.success(
+          `Serviços atualizados (${add > 0 ? `+${add}` : ""}${add > 0 && rem > 0 ? " / " : ""}${rem > 0 ? `-${rem}` : ""})`
+        );
+      }
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao atualizar serviços"),
+  });
+
+  // Calcula diff serviços. ADD = servico_id (tipo_servico). REMOVE = os_servicos.id.
+  const calcDiffServicos = () => {
+    const atuaisMap = new Map<string, any>(); // servico_id -> row os_servicos
+    for (const s of servicosAtuais as any[]) {
+      if (s.servico_id) atuaisMap.set(s.servico_id, s);
+    }
+    const selecMap = new Map<string, ServicoSelecionado>();
+    for (const s of servicosSelecionados) selecMap.set(s.id, s);
+
+    const adicionar: string[] = [];
+    for (const id of selecMap.keys()) {
+      if (!atuaisMap.has(id)) adicionar.push(id);
+    }
+    const remover: string[] = [];
+    const removerInfo: Array<{ id: string; nome: string; comissao: number }> = [];
+    for (const [servicoId, row] of atuaisMap) {
+      if (!selecMap.has(servicoId)) {
+        remover.push(row.id);
+        removerInfo.push({ id: row.id, nome: row.nome, comissao: Number(row.comissao) || 0 });
+      }
+    }
+    return { adicionar, remover, removerInfo };
+  };
 
   // Criador da OS (para o header enriquecido)
   const { data: criador } = useQuery({
@@ -630,23 +719,54 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       checklist_entrada: checklistPayload,
     };
 
-    // Diff vazio? fecha sem chamar RPC
+    // Diff de campos da OS
     const diff = calcularDiff(ordem, payload);
-    if (Object.keys(diff).length === 0) {
+    const camposAlterados = Object.keys(diff).length > 0;
+
+    // Diff dos serviços vinculados
+    const { adicionar, remover, removerInfo } = calcDiffServicos();
+    const servicosAlterados = adicionar.length > 0 || remover.length > 0;
+
+    // Nada mudou? fecha
+    if (!camposAlterados && !servicosAlterados) {
       setEditing(false);
+      return;
+    }
+
+    // Função interna que dispara as duas mutations (campos + serviços) na ordem
+    const dispatchAll = (campos: Record<string, any> | null) => {
+      if (campos) {
+        editarOSAdmin.mutate({ dados: campos, pulou_fluxo: false });
+      } else {
+        // só serviços mudaram → fecha edição manualmente após sucesso
+        setEditing(false);
+      }
+      if (servicosAlterados) {
+        editarServicos.mutate({ adicionar, remover });
+      }
+    };
+
+    // Se vamos remover serviços com comissão > 0, confirmar primeiro
+    const removidosComComissao = removerInfo.filter((r) => r.comissao > 0);
+    if (removidosComComissao.length > 0) {
+      setPendingRemovedServicos(removidosComComissao);
+      setPendingEditPayload(camposAlterados ? payload : null);
+      setRemoveServicosWarnOpen(true);
       return;
     }
 
     // Warning se valor mudou e já existe comissão
     const valorNovo = valorStr ? parseFloat(valorStr) : null;
     const valorAtual = (ordem as any).valor ?? null;
-    if (valorNovo !== valorAtual && comissoesOS.length > 0) {
+    if (camposAlterados && valorNovo !== valorAtual && comissoesOS.length > 0) {
       setPendingEditPayload(payload);
       setValorWarningOpen(true);
+      // serviços (sem comissão) podem seguir junto
+      if (servicosAlterados) editarServicos.mutate({ adicionar, remover });
       return;
     }
 
-    editarOSAdmin.mutate({ dados: payload, pulou_fluxo: false });
+    dispatchAll(camposAlterados ? payload : null);
   };
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
@@ -939,9 +1059,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         <Label className="text-xs">Observações internas (só equipe vê)</Label>
                         <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
                       </div>
-                      <p className="text-[11px] text-muted-foreground italic pt-1 border-t">
-                        Para adicionar/remover serviços ou peças vinculados, use as ações dedicadas fora deste formulário.
-                        {/* TODO: criar_fluxo_edicao_itens — tratar em rodada separada */}
+                      <div className="pt-2 border-t">
+                        <ServicosSelector
+                          value={servicosSelecionados}
+                          onChange={setServicosSelecionados}
+                          label="Serviços vinculados"
+                          hint="Busque e adicione os serviços feitos nesta OS. Remover um serviço estorna a comissão vinculada."
+                        />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground italic">
+                        Para adicionar/remover peças, use as ações dedicadas fora deste formulário.
                       </p>
                     </AccordionContent>
                   </AccordionItem>
@@ -1811,6 +1938,64 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               }}
             >
               Prosseguir mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Warning ao remover serviços com comissão (estorno automático via trigger) */}
+      <AlertDialog open={removeServicosWarnOpen} onOpenChange={setRemoveServicosWarnOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Remover estes serviços vai estornar comissões
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <ul className="list-disc pl-5 space-y-0.5">
+                  {pendingRemovedServicos.map((s) => (
+                    <li key={s.id}>
+                      <span className="font-medium">{s.nome}</span>
+                      {" — Comissão: "}
+                      <span className="text-foreground">{brl(s.comissao)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="pt-1 border-t">
+                  <strong>Total a estornar:</strong>{" "}
+                  {brl(pendingRemovedServicos.reduce((s, r) => s + r.comissao, 0))}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setRemoveServicosWarnOpen(false);
+                setPendingRemovedServicos([]);
+                setPendingEditPayload(null);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const { adicionar, remover } = calcDiffServicos();
+                if (pendingEditPayload) {
+                  editarOSAdmin.mutate({ dados: pendingEditPayload, pulou_fluxo: false });
+                } else {
+                  setEditing(false);
+                }
+                if (adicionar.length > 0 || remover.length > 0) {
+                  editarServicos.mutate({ adicionar, remover });
+                }
+                setRemoveServicosWarnOpen(false);
+                setPendingRemovedServicos([]);
+                setPendingEditPayload(null);
+              }}
+            >
+              Remover e estornar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

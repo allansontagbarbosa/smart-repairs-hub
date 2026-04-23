@@ -32,6 +32,7 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
+import { ServicosSelector } from "@/components/ServicosSelector";
 import { Link } from "react-router-dom";
 import { suggestServicos } from "@/lib/sugestoesServico";
 
@@ -67,7 +68,7 @@ const STEPS: { key: Step; label: string; icon: typeof User }[] = [
 interface DefeitoSelecionado {
   id: string;
   nome: string;
-  categoria: string;
+  categoria?: string;
   valor_mao_obra: number;
   comissao_padrao: number;
 }
@@ -1414,93 +1415,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               )}
 
               {/* ── 3. SERVIÇOS SELECIONADOS ── */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Serviços selecionados
-                  </Label>
-                  <button
-                    type="button"
-                    onClick={() => setDefeitosFocused(true)}
-                    className="text-[11px] text-primary hover:underline font-medium"
-                  >
-                    + Adicionar serviço
-                  </button>
-                </div>
-
-                {/* Busca/dropdown */}
-                {defeitosFocused && (
-                  <div className="mb-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        autoFocus
-                        placeholder="Buscar serviço pelo nome..."
-                        value={defeitoSearch}
-                        onChange={(e) => setDefeitoSearch(e.target.value)}
-                        onBlur={() => setTimeout(() => setDefeitosFocused(false), 200)}
-                        className="pl-8 h-8 text-sm"
-                      />
-                    </div>
-                    {defeitosFiltrados.length > 0 && (
-                      <div className="mt-1 max-h-40 overflow-y-auto rounded-md border divide-y bg-popover shadow-md">
-                        {defeitosFiltrados.slice(0, 15).map((d) => (
-                          <button
-                            key={d.id}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setDefeitosSelecionados((prev) => [
-                                ...prev,
-                                { id: d.id, nome: d.nome, categoria: d.categoria, valor_mao_obra: Number(d.valor_mao_obra), comissao_padrao: Number(d.comissao_padrao) || 0 },
-                              ]);
-                              setDefeitoSearch("");
-                              setDefeitosFocused(false);
-                            }}
-                            className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-muted/50"
-                          >
-                            <div>
-                              <p className="text-sm">{d.nome}</p>
-                              <p className="text-[10px] text-muted-foreground capitalize">{d.categoria}</p>
-                            </div>
-                            <span className="text-xs font-medium text-success">R$ {Number(d.valor_mao_obra).toFixed(2)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {defeitosSelecionados.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-border px-3 py-4 text-center text-[11px] text-muted-foreground">
-                    Nenhum serviço selecionado. Use sugestões acima ou clique em "+ Adicionar serviço".
-                  </div>
-                ) : (
-                  <div className="rounded-md border divide-y">
-                    {defeitosSelecionados.map((d) => (
-                      <div key={d.id} className="px-3 py-2 flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{d.nome}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            <span className="capitalize">{d.categoria}</span>
-                            {d.comissao_padrao > 0 && <> · comissão técnico R$ {d.comissao_padrao.toFixed(2)}</>}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end ml-3">
-                          <span className="text-sm font-medium">R$ {d.valor_mao_obra.toFixed(2)}</span>
-                          <button
-                            type="button"
-                            onClick={() => setDefeitosSelecionados((prev) => prev.filter((x) => x.id !== d.id))}
-                            className="text-[11px] text-destructive hover:underline mt-0.5"
-                          >
-                            remover
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ServicosSelector
+                value={defeitosSelecionados}
+                onChange={setDefeitosSelecionados}
+              />
 
               {/* ── 4. PEÇAS UTILIZADAS ── */}
               <div>

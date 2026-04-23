@@ -3973,6 +3973,10 @@ export type Database = {
         }
         Returns: Json
       }
+      editar_os_servicos: {
+        Args: { p_adicionar: string[]; p_ordem_id: string; p_remover: string[] }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
