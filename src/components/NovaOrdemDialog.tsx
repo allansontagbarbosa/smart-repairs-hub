@@ -854,6 +854,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         status: "recebido",
         lojista_id: lojistaId || null,
         localizacao: localizacao?.trim() || null,
+        // Quando há 1 único serviço, popular tipo_servico_id habilita regras
+        // específicas de comissão (comissoes_servico). Múltiplos = null (fallback).
+        tipo_servico_id: defeitosSelecionados.length === 1 ? defeitosSelecionados[0].id : null,
       };
 
       const { data: rpcData, error: rpcErr } = await supabase.rpc("criar_os_com_data", {
