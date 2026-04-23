@@ -3934,6 +3934,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_atribuir_tecnico_os: {
+        Args: { p_funcionario_id: string; p_ordem_ids: string[] }
+        Returns: Json
+      }
+      bulk_atualizar_status_os: {
+        Args: {
+          p_novo_status: Database["public"]["Enums"]["status_ordem"]
+          p_ordem_ids: string[]
+        }
+        Returns: Json
+      }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
