@@ -719,23 +719,54 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       checklist_entrada: checklistPayload,
     };
 
-    // Diff vazio? fecha sem chamar RPC
+    // Diff de campos da OS
     const diff = calcularDiff(ordem, payload);
-    if (Object.keys(diff).length === 0) {
+    const camposAlterados = Object.keys(diff).length > 0;
+
+    // Diff dos serviços vinculados
+    const { adicionar, remover, removerInfo } = calcDiffServicos();
+    const servicosAlterados = adicionar.length > 0 || remover.length > 0;
+
+    // Nada mudou? fecha
+    if (!camposAlterados && !servicosAlterados) {
       setEditing(false);
+      return;
+    }
+
+    // Função interna que dispara as duas mutations (campos + serviços) na ordem
+    const dispatchAll = (campos: Record<string, any> | null) => {
+      if (campos) {
+        editarOSAdmin.mutate({ dados: campos, pulou_fluxo: false });
+      } else {
+        // só serviços mudaram → fecha edição manualmente após sucesso
+        setEditing(false);
+      }
+      if (servicosAlterados) {
+        editarServicos.mutate({ adicionar, remover });
+      }
+    };
+
+    // Se vamos remover serviços com comissão > 0, confirmar primeiro
+    const removidosComComissao = removerInfo.filter((r) => r.comissao > 0);
+    if (removidosComComissao.length > 0) {
+      setPendingRemovedServicos(removidosComComissao);
+      setPendingEditPayload(camposAlterados ? payload : null);
+      setRemoveServicosWarnOpen(true);
       return;
     }
 
     // Warning se valor mudou e já existe comissão
     const valorNovo = valorStr ? parseFloat(valorStr) : null;
     const valorAtual = (ordem as any).valor ?? null;
-    if (valorNovo !== valorAtual && comissoesOS.length > 0) {
+    if (camposAlterados && valorNovo !== valorAtual && comissoesOS.length > 0) {
       setPendingEditPayload(payload);
       setValorWarningOpen(true);
+      // serviços (sem comissão) podem seguir junto
+      if (servicosAlterados) editarServicos.mutate({ adicionar, remover });
       return;
     }
 
-    editarOSAdmin.mutate({ dados: payload, pulou_fluxo: false });
+    dispatchAll(camposAlterados ? payload : null);
   };
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
