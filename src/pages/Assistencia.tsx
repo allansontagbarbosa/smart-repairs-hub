@@ -503,6 +503,7 @@ export default function Assistencia() {
     }
   }
 
+  const grupos = useMemo(() => {
     if (!agrupar) return null;
     const map = new Map<string, typeof sorted>();
     for (const o of sorted) {
