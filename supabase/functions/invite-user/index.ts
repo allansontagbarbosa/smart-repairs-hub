@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         } else {
           // Create funcionario + profile for existing auth user
           const { data: func } = await adminClient.from("funcionarios").insert({
-            nome, email, empresa_id, cargo: "Colaborador", ativo: true,
+            nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
           }).select("id").single();
 
           await adminClient.from("user_profiles").insert({
