@@ -382,7 +382,127 @@ export default function Assistencia() {
     });
   }, [filtered, sortKey, sortDir]);
 
-  const grupos = useMemo(() => {
+  // ── BULK SELECTION ────────────────────────────────────────────────────────
+  // Itens selecionáveis = a página atual visível (sorted)
+  const bulk = useBulkSelection(isAdmin ? sorted : undefined);
+
+  // Limpa seleção quando filtro/busca/página muda
+  useEffect(() => {
+    bulk.clear();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterStatus, filterPrioridade, search, page, showOlder]);
+
+  const affectedItems: BulkAffectedItem[] = useMemo(
+    () =>
+      bulk.selectedItems.map((o: any) => ({
+        id: o.id,
+        numero: o.numero,
+        cliente: o.aparelhos?.clientes?.nome ?? "—",
+        aparelho: [o.aparelhos?.marca, o.aparelhos?.modelo].filter(Boolean).join(" "),
+      })),
+    [bulk.selectedItems],
+  );
+
+  // Helper: exibe toast com motivos de itens ignorados
+  const showBulkResultToast = (atualizadas: number, ignoradas: number, motivos: any[]) => {
+    if (ignoradas === 0) {
+      toast.success(`✅ ${atualizadas} OS atualizada${atualizadas === 1 ? "" : "s"} com sucesso`);
+      return;
+    }
+    toast.message(`✅ ${atualizadas} atualizada${atualizadas === 1 ? "" : "s"}, ⚠️ ${ignoradas} ignorada${ignoradas === 1 ? "" : "s"}`, {
+      description:
+        motivos && motivos.length > 0
+          ? motivos
+              .slice(0, 5)
+              .map((m: any) => `#${String(m.numero).padStart(3, "0")} — ${m.motivo}`)
+              .join("\n") + (motivos.length > 5 ? `\n+ ${motivos.length - 5} outras` : "")
+          : undefined,
+      duration: 8000,
+    });
+  };
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: async (status: Status) => {
+      const ids = Array.from(bulk.selectedIds);
+      const { data, error } = await supabase.rpc("bulk_atualizar_status_os" as any, {
+        p_ordem_ids: ids,
+        p_novo_status: status,
+      });
+      if (error) throw error;
+      return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };
+    },
+    onSuccess: (res) => {
+      showBulkResultToast(res.atualizadas, res.ignoradas, res.motivos_ignoradas);
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
+  const bulkTecnicoMutation = useMutation({
+    mutationFn: async ({ funcionarioId }: { funcionarioId: string }) => {
+      const ids = Array.from(bulk.selectedIds);
+      const { data, error } = await supabase.rpc("bulk_atribuir_tecnico_os" as any, {
+        p_ordem_ids: ids,
+        p_funcionario_id: funcionarioId,
+      });
+      if (error) throw error;
+      return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[]; tecnico_nome: string };
+    },
+    onSuccess: (res) => {
+      showBulkResultToast(res.atualizadas, res.ignoradas, res.motivos_ignoradas);
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
+  const handleConfirmBulk = async () => {
+    if (!pendingBulk) return;
+    if (pendingBulk.kind === "status") {
+      await bulkStatusMutation.mutateAsync(pendingBulk.status);
+    } else if (pendingBulk.kind === "tecnico") {
+      await bulkTecnicoMutation.mutateAsync({ funcionarioId: pendingBulk.funcionarioId });
+    }
+  };
+
+  const handleExportCSV = () => {
+    exportOSToCSV(bulk.selectedItems as any[]);
+  };
+
+  // Texto e flags para o modal de confirmação
+  const tecnicosComAtual = useMemo(
+    () => bulk.selectedItems.filter((o: any) => !!o.funcionario_id).length,
+    [bulk.selectedItems],
+  );
+
+  let confirmTitle = "";
+  let confirmDescription = "";
+  let confirmLabel = "";
+  let confirmWarning: string | undefined;
+  if (pendingBulk?.kind === "status") {
+    confirmTitle = `Marcar ${affectedItems.length} OS como ${statusLabels[pendingBulk.status]}`;
+    confirmDescription =
+      "Esta ação atualizará o status das ordens selecionadas. As mudanças serão registradas no histórico de cada OS.";
+    confirmLabel = `Marcar como ${statusLabels[pendingBulk.status]}`;
+  } else if (pendingBulk?.kind === "tecnico") {
+    confirmTitle = `Atribuir ${pendingBulk.nome} a ${affectedItems.length} OS`;
+    confirmDescription =
+      "Esta ação substituirá o técnico atual das ordens selecionadas. O histórico de transferências NÃO será criado para mudanças em massa (use a transferência individual no portal do técnico para isso).";
+    confirmLabel = "Atribuir técnico";
+    if (tecnicosComAtual > 0) {
+      confirmWarning = `${tecnicosComAtual} OS já possuem técnico atribuído e serão substituídas.`;
+    }
+  }
+
     if (!agrupar) return null;
     const map = new Map<string, typeof sorted>();
     for (const o of sorted) {
