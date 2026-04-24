@@ -325,27 +325,33 @@ export default function Dashboard() {
     return meses;
   }, [allOrders]);
 
-  // Alertas automáticos
+  // Alertas automáticos — financeiros filtrados por permissão
+  const canFinanceiro = can("financeiro", "ver");
   const alertas = useMemo(() => {
     const list: { type: "warn" | "ok" | "error"; message: string }[] = [];
-    if (kpis.ll < 0)
-      list.push({ type: "error", message: `Prejuízo de ${brl(Math.abs(kpis.ll))} este mês — revise os custos com urgência.` });
-    if (kpis.llMargem >= 0 && kpis.llMargem < 10)
-      list.push({ type: "warn", message: `Margem líquida baixa (${pct(kpis.llMargem)}) — atenção aos custos.` });
-    if (kpis.faturamento > 0 && kpis.custosPecasMes / kpis.faturamento > 0.4)
-      list.push({ type: "warn", message: `Custo de peças acima de 40% do faturamento — avalie a margem por serviço.` });
+
+    if (canFinanceiro) {
+      if (kpis.ll < 0)
+        list.push({ type: "error", message: `Prejuízo de ${brl(Math.abs(kpis.ll))} este mês — revise os custos com urgência.` });
+      if (kpis.llMargem >= 0 && kpis.llMargem < 10)
+        list.push({ type: "warn", message: `Margem líquida baixa (${pct(kpis.llMargem)}) — atenção aos custos.` });
+      if (kpis.faturamento > 0 && kpis.custosPecasMes / kpis.faturamento > 0.4)
+        list.push({ type: "warn", message: `Custo de peças acima de 40% do faturamento — avalie a margem por serviço.` });
+      if (kpis.metaGastos > 0 && kpis.totalGastos > kpis.metaGastos)
+        list.push({ type: "warn", message: `Gastos ultrapassaram a meta mensal de ${brl(kpis.metaGastos)}.` });
+      if (kpis.ll > 0 && kpis.llMargem >= 20)
+        list.push({ type: "ok", message: `Ótima performance! Margem líquida de ${pct(kpis.llMargem)} este mês.` });
+      if (kpis.ticket > 250)
+        list.push({ type: "ok", message: `Ticket médio saudável de ${brl(kpis.ticket)} por OS.` });
+    }
+
     if (kpis.aguardandoReparo > 20)
       list.push({ type: "warn", message: `${kpis.aguardandoReparo} aparelhos aguardando reparo — risco de insatisfação.` });
     if (kpis.emAtraso > 0)
       list.push({ type: "warn", message: `${kpis.emAtraso} OS com prazo vencido.` });
-    if (kpis.metaGastos > 0 && kpis.totalGastos > kpis.metaGastos)
-      list.push({ type: "warn", message: `Gastos ultrapassaram a meta mensal de ${brl(kpis.metaGastos)}.` });
-    if (kpis.ll > 0 && kpis.llMargem >= 20)
-      list.push({ type: "ok", message: `Ótima performance! Margem líquida de ${pct(kpis.llMargem)} este mês.` });
-    if (kpis.ticket > 250)
-      list.push({ type: "ok", message: `Ticket médio saudável de ${brl(kpis.ticket)} por OS.` });
+
     return list;
-  }, [kpis]);
+  }, [kpis, canFinanceiro]);
 
   const socios = sociosList ?? [];
 
@@ -621,28 +627,31 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Lucro por assistência + Custo médio */}
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <MetricCard
-            icon={DollarSign}
-            label="Lucro líq. / assistência"
-            value={brl(kpis.llPorAssist)}
-            color={kpis.llPorAssist >= 0 ? "text-green-600" : "text-red-600"}
-            iconColor={kpis.llPorAssist >= 0 ? "text-green-400" : "text-red-400"}
-          />
-          <MetricCard
-            icon={Package}
-            label="Custo médio / OS"
-            value={brl(kpis.totalOrdensMes > 0 ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalOrdensMes : 0)}
-            sub="peças + fixos"
-            iconColor="text-gray-400"
-          />
-        </div>
+        {/* Lucro por assistência + Custo médio — financeiro */}
+        {can("financeiro", "ver") && (
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <MetricCard
+              icon={DollarSign}
+              label="Lucro líq. / assistência"
+              value={brl(kpis.llPorAssist)}
+              color={kpis.llPorAssist >= 0 ? "text-green-600" : "text-red-600"}
+              iconColor={kpis.llPorAssist >= 0 ? "text-green-400" : "text-red-400"}
+            />
+            <MetricCard
+              icon={Package}
+              label="Custo médio / OS"
+              value={brl(kpis.totalOrdensMes > 0 ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalOrdensMes : 0)}
+              sub="peças + fixos"
+              iconColor="text-gray-400"
+            />
+          </div>
+        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 4 — DISTRIBUIÇÃO DO LUCRO
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Distribuição do lucro</SectionTitle>
 
@@ -706,6 +715,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 5 — ALERTAS AUTOMÁTICOS
@@ -724,6 +734,7 @@ export default function Dashboard() {
       {/* ══════════════════════════════════════════════════════════════════════
           GRÁFICO — FATURAMENTO x LUCRO (6 meses)
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Faturamento x Lucro</SectionTitle>
         <Card>
@@ -759,6 +770,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           ORDENS POR STATUS
