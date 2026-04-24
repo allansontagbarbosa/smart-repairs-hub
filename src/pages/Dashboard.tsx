@@ -651,6 +651,7 @@ export default function Dashboard() {
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 4 — DISTRIBUIÇÃO DO LUCRO
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Distribuição do lucro</SectionTitle>
 
@@ -714,6 +715,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 5 — ALERTAS AUTOMÁTICOS
