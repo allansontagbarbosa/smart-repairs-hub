@@ -734,6 +734,7 @@ export default function Dashboard() {
       {/* ══════════════════════════════════════════════════════════════════════
           GRÁFICO — FATURAMENTO x LUCRO (6 meses)
       ══════════════════════════════════════════════════════════════════════ */}
+      {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Faturamento x Lucro</SectionTitle>
         <Card>
@@ -769,6 +770,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
           ORDENS POR STATUS
