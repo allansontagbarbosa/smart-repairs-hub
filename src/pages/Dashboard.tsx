@@ -627,23 +627,25 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Lucro por assistência + Custo médio */}
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <MetricCard
-            icon={DollarSign}
-            label="Lucro líq. / assistência"
-            value={brl(kpis.llPorAssist)}
-            color={kpis.llPorAssist >= 0 ? "text-green-600" : "text-red-600"}
-            iconColor={kpis.llPorAssist >= 0 ? "text-green-400" : "text-red-400"}
-          />
-          <MetricCard
-            icon={Package}
-            label="Custo médio / OS"
-            value={brl(kpis.totalOrdensMes > 0 ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalOrdensMes : 0)}
-            sub="peças + fixos"
-            iconColor="text-gray-400"
-          />
-        </div>
+        {/* Lucro por assistência + Custo médio — financeiro */}
+        {can("financeiro", "ver") && (
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <MetricCard
+              icon={DollarSign}
+              label="Lucro líq. / assistência"
+              value={brl(kpis.llPorAssist)}
+              color={kpis.llPorAssist >= 0 ? "text-green-600" : "text-red-600"}
+              iconColor={kpis.llPorAssist >= 0 ? "text-green-400" : "text-red-400"}
+            />
+            <MetricCard
+              icon={Package}
+              label="Custo médio / OS"
+              value={brl(kpis.totalOrdensMes > 0 ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalOrdensMes : 0)}
+              sub="peças + fixos"
+              iconColor="text-gray-400"
+            />
+          </div>
+        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
