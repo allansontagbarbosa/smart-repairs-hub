@@ -1407,80 +1407,89 @@ export default function Assistencia() {
         </TabsList>
 
         <TabsContent value="ordens" className="space-y-4">
-          <div className="space-y-2">
-            <FiltroPeriodo
-              period={period}
-              onPresetChange={handlePeriodPresetChange}
-              onCustomChange={handleCustomPeriodChange}
-            />
-
-            <div className="relative">
+          <div className="flex items-center gap-2 rounded-md border-[0.5px] border-border/70 bg-card p-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por cliente, telefone, aparelho ou nº OS..."
-                className="pl-9"
+                placeholder="Buscar por cliente, telefone, IMEI ou nº OS"
+                className="h-9 border-0 bg-transparent pl-9 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            <StatusChips counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
+            <FiltrosAvancados
+              filters={filters}
+              clienteSearch={clienteSearch}
+              setClienteSearch={setClienteSearch}
+              clientes={clientesFiltro}
+              funcionarios={funcionariosFiltro}
+              marcas={marcasFiltro}
+              modelos={modelosFiltro}
+              onSetFilter={setAdvancedFilter}
+              onClearAll={clearAdvancedFilters}
+            />
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <FiltrosAvancados
-                filters={filters}
-                clienteSearch={clienteSearch}
-                setClienteSearch={setClienteSearch}
-                clientes={clientesFiltro}
-                funcionarios={funcionariosFiltro}
-                marcas={marcasFiltro}
-                modelos={modelosFiltro}
-                onSetFilter={setAdvancedFilter}
-                onClearAll={clearAdvancedFilters}
-              />
-              {activeFilterPills.map((pill) => (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-[13px] font-normal">
+                  {getPeriodLabel(period)}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <FiltroPeriodo
+                  period={period}
+                  onPresetChange={handlePeriodPresetChange}
+                  onCustomChange={handleCustomPeriodChange}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-[30px] w-[30px]">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setAgrupar((v) => !v)}>
+                  {agrupar ? "Desagrupar" : "Agrupar por data"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => refetch()} disabled={isFetching}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/assistencia/fluxo"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {activeFilterPills.length > 0 && (
+            <div className="flex items-center gap-2 rounded-md bg-secondary px-5 py-2">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Filtros ativos</span>
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                {activeFilterPills.map((pill) => (
                 <button
                   key={pill.key}
                   onClick={() => setAdvancedFilter(pill.key, undefined)}
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/80"
+                  className="inline-flex items-center gap-1 rounded-full border-[0.5px] border-border bg-background px-2.5 py-1 text-[12px] text-muted-foreground hover:bg-muted/80"
                 >
                   {pill.label}
                   <X className="h-3 w-3" />
                 </button>
-              ))}
-              {activeFilterPills.length > 0 && (
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAdvancedFilters}>
-                  Limpar todos os filtros
-                </Button>
-              )}
+                ))}
+              </div>
+              <button className="text-[12px] text-muted-foreground hover:text-foreground" onClick={clearAdvancedFilters}>Limpar tudo</button>
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <SortAsc className="h-3.5 w-3.5" /> Ordenar:
-              </span>
-              <SortBtn label="Prioridade" k="prioridade" />
-              <SortBtn label="Data entrada" k="data_entrada" />
-              <SortBtn label="Previsão" k="previsao_entrega" />
-              <SortBtn label="Valor" k="valor" />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setAgrupar((v) => !v)}
-                className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${
-                  agrupar
-                    ? "bg-primary/10 text-primary border-primary/30 font-medium"
-                    : "text-muted-foreground border-border hover:bg-muted"
-                }`}
-              >
-                <Filter className="h-3 w-3" />
-                Agrupar por data
-              </button>
-            </div>
-          </div>
+          <StatusTabs counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
 
           {isLoading ? (
             <div className="flex justify-center py-20">
