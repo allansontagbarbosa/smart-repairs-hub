@@ -906,7 +906,23 @@ export default function Assistencia() {
               ))}
             </div>
           ) : (
-            <Tabela items={sorted} />
+            <Tabela items={paginatedSorted} />
+          )}
+
+          {!isLoading && sorted.length > LIST_PAGE_SIZE && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                Página {page + 1} de {totalPages} — exibindo {paginatedSorted.length} de {sorted.length} ordens filtradas
+              </p>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
+                  Próxima
+                </Button>
+              </div>
+            </div>
           )}
         </TabsContent>
 
