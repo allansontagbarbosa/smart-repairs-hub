@@ -50,6 +50,7 @@ const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: an
 };
 
 const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
+const LIST_PAGE_SIZE = 30;
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
@@ -202,6 +203,7 @@ export default function Assistencia() {
   const [agrupar, setAgrupar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
   // Bulk action: confirmação pendente
@@ -352,15 +354,29 @@ export default function Assistencia() {
     });
   }, [filtered, sortKey, sortDir]);
 
+  const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
+  const paginatedSorted = useMemo(() => {
+    const start = page * LIST_PAGE_SIZE;
+    return sorted.slice(start, start + LIST_PAGE_SIZE);
+  }, [sorted, page]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filterStatus, filterPrioridade, search, sortKey, sortDir]);
+
+  useEffect(() => {
+    if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
+
   // ── BULK SELECTION ────────────────────────────────────────────────────────
   // Itens selecionáveis = a página atual visível (sorted)
-  const bulk = useBulkSelection(isAdmin ? sorted : undefined);
+  const bulk = useBulkSelection(isAdmin ? paginatedSorted : undefined);
 
   // Limpa seleção quando filtro/busca muda
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search]);
+  }, [filterStatus, filterPrioridade, search, page]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
@@ -475,14 +491,14 @@ export default function Assistencia() {
 
   const grupos = useMemo(() => {
     if (!agrupar) return null;
-    const map = new Map<string, typeof sorted>();
-    for (const o of sorted) {
+    const map = new Map<string, typeof paginatedSorted>();
+    for (const o of paginatedSorted) {
       const g = grupoData(o.data_entrada);
       if (!map.has(g)) map.set(g, []);
       map.get(g)!.push(o);
     }
     return map;
-  }, [sorted, agrupar]);
+  }, [paginatedSorted, agrupar]);
 
   const activeOrders = enriched.filter((o) => o.status !== "entregue");
   const countCritica = activeOrders.filter((o) => o.prioridade.nivel === "critica").length;
@@ -890,7 +906,23 @@ export default function Assistencia() {
               ))}
             </div>
           ) : (
-            <Tabela items={sorted} />
+            <Tabela items={paginatedSorted} />
+          )}
+
+          {!isLoading && sorted.length > LIST_PAGE_SIZE && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                Página {page + 1} de {totalPages} — exibindo {paginatedSorted.length} de {sorted.length} ordens filtradas
+              </p>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
+                  Próxima
+                </Button>
+              </div>
+            </div>
           )}
         </TabsContent>
 
