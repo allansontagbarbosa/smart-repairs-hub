@@ -4,8 +4,9 @@ import {
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
-  X, SlidersHorizontal,
+  X, SlidersHorizontal, Download,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -216,6 +217,37 @@ async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) 
   return counts;
 }
 
+async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+  const batchSize = 1000;
+  let start = 0;
+  const rows: any[] = [];
+
+  while (true) {
+    let query = supabase
+      .from("ordens_de_servico")
+      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), funcionarios ( nome ), formas_pagamento ( nome )`)
+      .order("data_entrada", { ascending: false })
+      .range(start, start + batchSize - 1);
+
+    query = applyDateRange(query, dateRange);
+    query = applyOrderFilters(query, filters);
+
+    if (filterStatus !== "todos") {
+      query = query.eq("status", filterStatus);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < batchSize) break;
+    start += batchSize;
+  }
+
+  return rows;
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function formatCurrency(v: number | null) {
@@ -226,6 +258,50 @@ function formatCurrency(v: number | null) {
 function formatDate(d: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("pt-BR");
+}
+
+function formatDateExport(d: string | null) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("pt-BR");
+}
+
+function formatMoneyExport(v: number | null) {
+  if (v == null) return "";
+  return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatExportFilename(ext: "csv" | "xlsx") {
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "-");
+  return `ordens_de_servico_${stamp}.${ext}`;
+}
+
+function garantiaStatus(row: any) {
+  const dias = Number(row.garantia_dias ?? 0);
+  if (!dias || !row.data_entrega) return "Sem garantia";
+  const fim = new Date(row.data_entrega);
+  fim.setDate(fim.getDate() + dias);
+  return fim >= new Date() ? "Em garantia" : "Expirada";
+}
+
+function escapeCsv(value: unknown) {
+  const text = String(value ?? "");
+  if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.map(escapeCsv).join(","), ...rows.map((row) => headers.map((header) => escapeCsv(row[header])).join(","))].join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 function grupoData(dataEntrada: string): string {
