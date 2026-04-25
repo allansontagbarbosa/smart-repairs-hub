@@ -42,6 +42,7 @@ import { exportOSToCSV } from "@/lib/exportOSCsv";
 
 type SortKey = "prioridade" | "data_entrada" | "previsao_entrega" | "valor";
 type SortDir = "asc" | "desc";
+type StatusFilter = Status | "todos";
 
 const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: any }> = {
   critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
@@ -54,17 +55,44 @@ const LIST_PAGE_SIZE = 30;
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders() {
+async function fetchOrders({ page, filterStatus }: { page: number; filterStatus: StatusFilter }) {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const start = page * LIST_PAGE_SIZE;
+  const end = start + LIST_PAGE_SIZE - 1;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
     .gte("data_entrada", ninetyDaysAgo.toISOString())
-    .order("data_entrada", { ascending: false });
+    .order("data_entrada", { ascending: false })
+    .range(start, end);
+
+  if (filterStatus !== "todos") {
+    query = query.eq("status", filterStatus);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+async function fetchOrdersCount({ filterStatus }: { filterStatus: StatusFilter }) {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  let query = supabase
+    .from("ordens_de_servico")
+    .select("*", { count: "exact", head: true })
+    .gte("data_entrada", ninetyDaysAgo.toISOString());
+
+  if (filterStatus !== "todos") {
+    query = query.eq("status", filterStatus);
+  }
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
 }
 
 async function fetchStatusCounts() {
@@ -214,7 +242,7 @@ function StatusChips({
 export default function Assistencia() {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("todos");
   const [filterPrioridade, setFilterPrioridade] = useState<"todas" | Prioridade>("todas");
   const [sortKey, setSortKey] = useState<SortKey>("prioridade");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -237,12 +265,18 @@ export default function Assistencia() {
 
   useEffect(() => {
     const status = searchParams.get("status");
-    setFilterStatus(status || "todos");
+    setFilterStatus((status || "todos") as StatusFilter);
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "ultimos-90"],
-    queryFn: fetchOrders,
+    queryKey: ["ordens", "lista", { page, filterStatus }],
+    queryFn: () => fetchOrders({ page, filterStatus }),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const { data: totalOrders = 0 } = useQuery({
+    queryKey: ["ordens", "lista-count", { filterStatus }],
+    queryFn: () => fetchOrdersCount({ filterStatus }),
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
@@ -368,11 +402,10 @@ export default function Assistencia() {
     });
   }, [filtered, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
-  const paginatedSorted = useMemo(() => {
-    const start = page * LIST_PAGE_SIZE;
-    return sorted.slice(start, start + LIST_PAGE_SIZE);
-  }, [sorted, page]);
+  const totalPages = Math.max(1, Math.ceil(totalOrders / LIST_PAGE_SIZE));
+  const paginatedSorted = sorted;
+  const firstVisible = totalOrders === 0 ? 0 : page * LIST_PAGE_SIZE + 1;
+  const lastVisible = Math.min((page * LIST_PAGE_SIZE) + paginatedSorted.length, totalOrders);
 
   useEffect(() => {
     setPage(0);
@@ -823,7 +856,7 @@ export default function Assistencia() {
         <div>
           <h1 className="text-xl font-bold">Serviços</h1>
           <p className="text-sm text-muted-foreground">
-            {sorted.length} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
+            {totalOrders} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
           </p>
         </div>
 
@@ -875,7 +908,7 @@ export default function Assistencia() {
               />
             </div>
 
-            <StatusChips counts={statusCounts} active={filterStatus} onChange={setFilterStatus} />
+            <StatusChips counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
           </div>
 
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -923,10 +956,11 @@ export default function Assistencia() {
             <Tabela items={paginatedSorted} />
           )}
 
-          {!isLoading && sorted.length > LIST_PAGE_SIZE && (
+          {!isLoading && totalOrders > LIST_PAGE_SIZE && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-xs text-muted-foreground">
-                Página {page + 1} de {totalPages} — exibindo {paginatedSorted.length} de {sorted.length} ordens filtradas
+                Página {page + 1} de {totalPages} — exibindo {firstVisible}-{lastVisible} de {totalOrders} ordens
+                {isFetching && <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> atualizando</span>}
               </p>
               <div className="flex gap-1.5">
                 <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
