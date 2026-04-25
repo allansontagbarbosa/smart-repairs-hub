@@ -676,6 +676,7 @@ export default function Assistencia() {
   type PendingBulk =
     | { kind: "status"; status: Status }
     | { kind: "tecnico"; funcionarioId: string; nome: string }
+    | { kind: "cancelar" }
     | null;
   const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
 
@@ -976,12 +977,49 @@ export default function Assistencia() {
     },
   });
 
+  const bulkCancelMutation = useMutation({
+    mutationFn: async () => {
+      const ids = Array.from(bulk.selectedIds);
+      const results = await Promise.allSettled(
+        ids.map((id) => (supabase as any).rpc("cancelar_os", {
+          p_ordem_id: id,
+          p_motivo: "Cancelamento em lote via seleção múltipla",
+        })),
+      );
+
+      const falhas = results.filter((result) => result.status === "rejected" || (result.status === "fulfilled" && result.value.error));
+      const canceladas = ids.length - falhas.length;
+      if (falhas.length > 0 && canceladas === 0) {
+        const first = falhas[0] as PromiseSettledResult<any>;
+        throw new Error(first.status === "rejected" ? first.reason?.message : first.value.error?.message);
+      }
+      return { canceladas, ignoradas: falhas.length };
+    },
+    onSuccess: (res) => {
+      if (res.ignoradas > 0) {
+        toast.message(`${res.canceladas} OS cancelada${res.canceladas === 1 ? "" : "s"}, ${res.ignoradas} ignorada${res.ignoradas === 1 ? "" : "s"}`);
+      } else {
+        toast.success(`${res.canceladas} OS cancelada${res.canceladas === 1 ? "" : "s"} com sucesso`);
+      }
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      queryClient.invalidateQueries({ queryKey: ["ordens-count"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
   const handleConfirmBulk = async () => {
     if (!pendingBulk) return;
     if (pendingBulk.kind === "status") {
       await bulkStatusMutation.mutateAsync(pendingBulk.status);
     } else if (pendingBulk.kind === "tecnico") {
       await bulkTecnicoMutation.mutateAsync({ funcionarioId: pendingBulk.funcionarioId });
+    } else if (pendingBulk.kind === "cancelar") {
+      await bulkCancelMutation.mutateAsync();
     }
   };
 
@@ -1081,6 +1119,12 @@ export default function Assistencia() {
     if (tecnicosComAtual > 0) {
       confirmWarning = `${tecnicosComAtual} OS já possuem técnico atribuído e serão substituídas.`;
     }
+  } else if (pendingBulk?.kind === "cancelar") {
+    confirmTitle = `Cancelar ${affectedItems.length} OS selecionada${affectedItems.length === 1 ? "" : "s"}`;
+    confirmDescription =
+      "Esta ação cancelará todas as ordens selecionadas, registrando auditoria e preservando o histórico de impacto financeiro.";
+    confirmLabel = "Cancelar OSs selecionadas";
+    confirmWarning = "As OSs já canceladas serão ignoradas pelo sistema.";
   }
 
   const grupos = useMemo(() => {
@@ -1569,6 +1613,7 @@ export default function Assistencia() {
             onAtribuirTecnico={(funcionarioId, nome) =>
               setPendingBulk({ kind: "tecnico", funcionarioId, nome })
             }
+            onCancelar={() => setPendingBulk({ kind: "cancelar" })}
             onExportCSV={() => handleExport("csv")}
             onClear={bulk.clear}
           />
@@ -1581,6 +1626,7 @@ export default function Assistencia() {
             affected={affectedItems}
             warningMessage={confirmWarning}
             confirmLabel={confirmLabel}
+            variant={pendingBulk?.kind === "cancelar" ? "destructive" : "default"}
           />
         </>
       )}

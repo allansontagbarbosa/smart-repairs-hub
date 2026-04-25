@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ListChecks, UserCog, Download, ChevronDown } from "lucide-react";
+import { X, ListChecks, UserCog, Download, ChevronDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -37,6 +37,7 @@ interface Props {
   tecnicos: TecnicoOption[];
   onChangeStatus: (status: Status) => void;
   onAtribuirTecnico: (funcionarioId: string, nome: string) => void;
+  onCancelar: () => void;
   onExportCSV: () => void;
   onClear: () => void;
 }
@@ -46,6 +47,7 @@ export function BulkActionBar({
   tecnicos,
   onChangeStatus,
   onAtribuirTecnico,
+  onCancelar,
   onExportCSV,
   onClear,
 }: Props) {
@@ -139,6 +141,11 @@ export function BulkActionBar({
           <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onExportCSV}>
             <Download className="h-3.5 w-3.5" />
             Exportar CSV
+          </Button>
+
+          <Button variant="destructive" size="sm" className="h-8 gap-1.5" onClick={onCancelar}>
+            <Trash2 className="h-3.5 w-3.5" />
+            Cancelar OSs
           </Button>
         </div>
 
