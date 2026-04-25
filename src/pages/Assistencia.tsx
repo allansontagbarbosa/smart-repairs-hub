@@ -417,6 +417,135 @@ function FiltroPeriodo({
   );
 }
 
+function FiltrosAvancados({
+  filters,
+  clienteSearch,
+  setClienteSearch,
+  clientes,
+  funcionarios,
+  marcas,
+  modelos,
+  onSetFilter,
+  onClearAll,
+}: {
+  filters: OrderFilters;
+  clienteSearch: string;
+  setClienteSearch: (value: string) => void;
+  clientes: { id: string; nome: string; telefone: string | null }[];
+  funcionarios: { id: string; nome: string }[];
+  marcas: string[];
+  modelos: string[];
+  onSetFilter: (key: keyof OrderFilters, value?: string) => void;
+  onClearAll: () => void;
+}) {
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[min(92vw,720px)] p-4" align="start">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">Filtros avançados</h3>
+            {activeCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={onClearAll} className="h-8 text-xs">
+                Limpar todos os filtros
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Cliente</label>
+              <Input
+                value={clienteSearch}
+                onChange={(e) => setClienteSearch(e.target.value)}
+                placeholder="Buscar cliente"
+                className="h-9 text-sm"
+              />
+              {clientes.length > 0 && (
+                <div className="max-h-36 overflow-auto rounded-md border border-border bg-background">
+                  {clientes.map((cliente) => (
+                    <button
+                      key={cliente.id}
+                      className="block w-full px-3 py-2 text-left text-xs hover:bg-muted"
+                      onClick={() => {
+                        onSetFilter("cliente_id", cliente.id);
+                        setClienteSearch(cliente.nome);
+                      }}
+                    >
+                      <span className="font-medium text-foreground">{cliente.nome}</span>
+                      <span className="block text-muted-foreground">{cliente.telefone ?? "Sem telefone"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <FilterSelect label="Técnico/Funcionário" value={filters.funcionario_id} onChange={(v) => onSetFilter("funcionario_id", v)}>
+              {funcionarios.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Marca" value={filters.marca} onChange={(v) => onSetFilter("marca", v)}>
+              {marcas.map((marca) => <option key={marca} value={marca}>{marca}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Modelo" value={filters.modelo} onChange={(v) => onSetFilter("modelo", v)} disabled={!filters.marca}>
+              {modelos.map((modelo) => <option key={modelo} value={modelo}>{modelo}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Prioridade" value={filters.prioridade} onChange={(v) => onSetFilter("prioridade", v)}>
+              {PRIORIDADE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Garantia" value={filters.garantia} onChange={(v) => onSetFilter("garantia", v)}>
+              {GARANTIA_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Aprovação" value={filters.aprovacao} onChange={(v) => onSetFilter("aprovacao", v)}>
+              {APROVACAO_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </FilterSelect>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  disabled,
+  children,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value?: string) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <select
+        value={value ?? ""}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <option value="">Todos</option>
+        {children}
+      </select>
+    </div>
+  );
+}
+
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 export default function Assistencia() {
