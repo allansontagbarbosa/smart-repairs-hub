@@ -283,10 +283,87 @@ function StatusChips({
   );
 }
 
+function FiltroPeriodo({
+  period,
+  onPresetChange,
+  onCustomChange,
+}: {
+  period: PeriodFilterState;
+  onPresetChange: (preset: PeriodPreset) => void;
+  onCustomChange: (range: { de?: string; ate?: string }) => void;
+}) {
+  const selectedRange = {
+    from: period.de ? new Date(`${period.de}T00:00:00`) : undefined,
+    to: period.ate ? new Date(`${period.ate}T00:00:00`) : undefined,
+  };
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+        {PERIOD_PRESETS.map((preset) => {
+          const isActive = period.preset === preset.value;
+          return (
+            <button
+              key={preset.value}
+              onClick={() => onPresetChange(preset.value)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Input
+          type="date"
+          aria-label="De"
+          value={period.de ?? ""}
+          onChange={(e) => onCustomChange({ de: e.target.value || undefined, ate: period.ate })}
+          className="h-8 w-[135px] text-xs"
+        />
+        <span className="text-xs text-muted-foreground">até</span>
+        <Input
+          type="date"
+          aria-label="Até"
+          value={period.ate ?? ""}
+          onChange={(e) => onCustomChange({ de: period.de, ate: e.target.value || undefined })}
+          className="h-8 w-[135px] text-xs"
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <CalendarClock className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              selected={selectedRange}
+              onSelect={(range) =>
+                onCustomChange({
+                  de: range?.from ? dateOnly(range.from) : undefined,
+                  ate: range?.to ? dateOnly(range.to) : undefined,
+                })
+              }
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+}
+
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 export default function Assistencia() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("todos");
   const [filterPrioridade, setFilterPrioridade] = useState<"todas" | Prioridade>("todas");
