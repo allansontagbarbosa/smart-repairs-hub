@@ -1631,6 +1631,8 @@ export default function Assistencia() {
               setPendingBulk({ kind: "tecnico", funcionarioId, nome })
             }
             onCancelar={() => setPendingBulk({ kind: "cancelar" })}
+            cancelDisabled={hasCancelBlockedItems}
+            cancelBlockedItems={cancelBlockedItems}
             onExportCSV={() => handleExport("csv")}
             onClear={bulk.clear}
           />
