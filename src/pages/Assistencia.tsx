@@ -80,7 +80,7 @@ async function fetchStatusCounts() {
   const counts: Record<string, number> = { todos: 0 };
   for (const row of data ?? []) {
     counts[row.status] = (counts[row.status] ?? 0) + 1;
-    if (row.status !== "entregue" && row.status !== "cancelado") counts.todos += 1;
+    counts.todos += 1;
   }
   return counts;
 }
@@ -343,7 +343,7 @@ export default function Assistencia() {
         String(o.numero).includes(q);
       const matchStatus =
         filterStatus === "todos"
-          ? (o.status !== "entregue" && o.status !== "cancelado")
+          ? true
           : o.status === filterStatus;
       const matchPrioridade =
         filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
@@ -823,7 +823,7 @@ export default function Assistencia() {
         <div>
           <h1 className="text-xl font-bold">Serviços</h1>
           <p className="text-sm text-muted-foreground">
-            {sorted.length} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : " ativas"}
+            {sorted.length} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
           </p>
         </div>
 
