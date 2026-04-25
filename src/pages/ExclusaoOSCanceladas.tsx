@@ -86,10 +86,10 @@ export default function ExclusaoOSCanceladas() {
 
   const { data: orders = [], isFetching } = useQuery({
     queryKey: ["os-canceladas-exclusao", trimmedSearch],
-    enabled: isAdmin && trimmedSearch.length >= 2,
+    enabled: isAdmin,
     queryFn: async () => {
       let aparelhoIds: string[] = [];
-      if (!/^[0-9]+$/.test(trimmedSearch) && !/^[0-9a-f-]{32,36}$/i.test(trimmedSearch)) {
+      if (trimmedSearch.length >= 2 && !/^[0-9]+$/.test(trimmedSearch) && !/^[0-9a-f-]{32,36}$/i.test(trimmedSearch)) {
         const { data: aparelhosData, error: aparelhosError } = await supabase
           .from("aparelhos")
           .select("id")
@@ -104,7 +104,11 @@ export default function ExclusaoOSCanceladas() {
         .select("id, numero, numero_formatado, status, data_entrada, cancelada_em, valor, aparelhos(marca, modelo, imei, clientes(nome, telefone))")
         .eq("status", "cancelado")
         .order("data_entrada", { ascending: false })
-        .limit(12);
+        .limit(100);
+
+      if (trimmedSearch.length < 2) {
+        return ((await query).data ?? []) as OrdemCancelada[];
+      }
 
       if (/^[0-9]+$/.test(trimmedSearch)) {
         query = query.eq("numero", Number(trimmedSearch));
@@ -129,7 +133,9 @@ export default function ExclusaoOSCanceladas() {
   const selectedOrders = useMemo(() => orders.filter((order) => selectedIds.has(order.id)), [orders, selectedIds]);
   const allVisibleSelected = orders.length > 0 && orders.every((order) => selectedIds.has(order.id));
   const someVisibleSelected = orders.some((order) => selectedIds.has(order.id));
-  const allSelectedValidated = selectedIds.size > 0 && Array.from(selectedIds).every((id) => validatedPreviews[id]?.can_delete);
+  const selectedValidatedCount = Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length;
+  const selectedPendingValidation = Math.max(0, selectedIds.size - selectedValidatedCount);
+  const allSelectedValidated = selectedIds.size > 0 && selectedPendingValidation === 0;
 
   const previewMutation = useMutation({
     mutationFn: async (ordemId: string) => {
