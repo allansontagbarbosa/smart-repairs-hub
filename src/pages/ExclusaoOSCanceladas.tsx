@@ -84,6 +84,17 @@ export default function ExclusaoOSCanceladas() {
     queryKey: ["os-canceladas-exclusao", trimmedSearch],
     enabled: isAdmin && trimmedSearch.length >= 2,
     queryFn: async () => {
+      let aparelhoIds: string[] = [];
+      if (!/^[0-9]+$/.test(trimmedSearch) && !/^[0-9a-f-]{32,36}$/i.test(trimmedSearch)) {
+        const { data: aparelhosData, error: aparelhosError } = await supabase
+          .from("aparelhos")
+          .select("id")
+          .ilike("imei", `%${trimmedSearch}%`)
+          .limit(50);
+        if (aparelhosError) throw aparelhosError;
+        aparelhoIds = (aparelhosData ?? []).map((aparelho) => aparelho.id);
+      }
+
       let query = supabase
         .from("ordens_de_servico")
         .select("id, numero, numero_formatado, status, data_entrada, cancelada_em, valor, aparelhos(marca, modelo, imei, clientes(nome, telefone))")
@@ -95,8 +106,10 @@ export default function ExclusaoOSCanceladas() {
         query = query.eq("numero", Number(trimmedSearch));
       } else if (/^[0-9a-f-]{32,36}$/i.test(trimmedSearch)) {
         query = query.eq("id", trimmedSearch);
+      } else if (aparelhoIds.length > 0) {
+        query = query.or(`numero_formatado.ilike.%${trimmedSearch}%,aparelho_id.in.(${aparelhoIds.join(",")})`);
       } else {
-        query = query.or(`numero_formatado.ilike.%${trimmedSearch}%,aparelhos.imei.ilike.%${trimmedSearch}%`);
+        query = query.ilike("numero_formatado", `%${trimmedSearch}%`);
       }
 
       const { data, error } = await query;
