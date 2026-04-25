@@ -42,7 +42,7 @@ import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/Bul
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
-type SortKey = "prioridade" | "data_entrada" | "previsao_entrega" | "valor";
+type SortKey = "numero" | "prioridade" | "data_entrada" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
 type PeriodPreset = "30" | "60" | "90" | "all";
@@ -659,8 +659,8 @@ export default function Assistencia() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("todos");
   const [filterPrioridade, setFilterPrioridade] = useState<"todas" | Prioridade>("todas");
-  const [sortKey, setSortKey] = useState<SortKey>("prioridade");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("data_entrada");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [agrupar, setAgrupar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -867,14 +867,11 @@ export default function Assistencia() {
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "prioridade") cmp = prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel];
+      if (sortKey === "numero") cmp = Number(a.numero ?? 0) - Number(b.numero ?? 0);
+      else if (sortKey === "prioridade") cmp = prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel];
       else if (sortKey === "data_entrada")
         cmp = new Date(a.data_entrada).getTime() - new Date(b.data_entrada).getTime();
-      else if (sortKey === "previsao_entrega") {
-        const ap = a.previsao_entrega ? new Date(a.previsao_entrega).getTime() : Infinity;
-        const bp = b.previsao_entrega ? new Date(b.previsao_entrega).getTime() : Infinity;
-        cmp = ap - bp;
-      } else if (sortKey === "valor") {
+      else if (sortKey === "valor") {
         cmp = (Number(a.valor) || 0) - (Number(b.valor) || 0);
       }
       return sortDir === "asc" ? cmp : -cmp;
