@@ -1363,30 +1363,13 @@ export default function Assistencia() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold">Serviços</h1>
-          <p className="text-sm text-muted-foreground">
-            {totalOrders} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
-          </p>
+          <h1 className="text-[18px] font-medium leading-6">Serviços</h1>
+          <p className="text-[13px] text-muted-foreground">{totalOrders} ordens</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => refetch()} disabled={isFetching}>
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Atualizar</TooltipContent>
-          </Tooltip>
-
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/assistencia/fila-ia"><Brain className="h-4 w-4 mr-1" /> Fila IA</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={isExporting}>
@@ -1404,7 +1387,7 @@ export default function Assistencia() {
             </DropdownMenuContent>
           </DropdownMenu>
           {can("assistencia", "criar") && (
-            <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova Ordem
             </Button>
           )}
