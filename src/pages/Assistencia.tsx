@@ -1098,24 +1098,43 @@ export default function Assistencia() {
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
+    else { setSortKey(key); setSortDir(key === "data_entrada" ? "desc" : "asc"); }
   }
 
-  function SortBtn({ label, k }: { label: string; k: SortKey }) {
+  function SortHeader({ label, k, className = "" }: { label: string; k: SortKey; className?: string }) {
     const isActive = sortKey === k;
     return (
       <button
         onClick={() => toggleSort(k)}
-        className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border transition-colors ${
-          isActive
-            ? "bg-primary/10 text-primary border-primary/30 font-medium"
-            : "text-muted-foreground border-border hover:bg-muted"
-        }`}
+        className={`inline-flex w-full items-center gap-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground ${className}`}
       >
         {label}
-        <ArrowUpDown className="h-3 w-3" />
-        {isActive && <span className="text-[10px]">{sortDir === "asc" ? "↑" : "↓"}</span>}
+        {isActive ? (
+          sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
+        )}
       </button>
+    );
+  }
+
+  function StatusDot({ status }: { status: Status }) {
+    const colorMap: Partial<Record<Status, string>> = {
+      recebido: "bg-info",
+      em_analise: "bg-info",
+      aguardando_aprovacao: "bg-warning",
+      aprovado: "bg-success",
+      em_reparo: "bg-warning",
+      aguardando_peca: "bg-warning",
+      pronto: "bg-success",
+      entregue: "bg-secondary-foreground/50",
+      cancelado: "bg-muted-foreground",
+    };
+    return (
+      <span className="inline-flex items-center gap-2 text-[13px] text-foreground">
+        <span className={`h-1.5 w-1.5 rounded-full ${colorMap[status] ?? "bg-muted-foreground"}`} />
+        {statusLabels[status] ?? status}
+      </span>
     );
   }
 
