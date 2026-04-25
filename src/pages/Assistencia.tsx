@@ -1512,17 +1512,17 @@ export default function Assistencia() {
             <Tabela items={paginatedSorted} />
           )}
 
-          {!isLoading && totalOrders > LIST_PAGE_SIZE && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-muted-foreground">
-                Página {page + 1} de {totalPages} — exibindo {firstVisible}-{lastVisible} de {totalOrders} ordens
+          {!isLoading && (
+            <div className="flex items-center justify-between border-t-[0.5px] border-border/70 px-5 py-2.5">
+              <p className="text-[12px] text-muted-foreground">
+                Mostrando {firstVisible}-{lastVisible} de {totalOrders} ordens
               </p>
               <div className="flex gap-1.5">
                 <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                  Anterior
+                  ← Anterior
                 </Button>
                 <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
-                  Próxima
+                  Próxima →
                 </Button>
               </div>
             </div>
