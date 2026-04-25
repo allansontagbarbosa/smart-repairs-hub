@@ -304,6 +304,29 @@ function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
   URL.revokeObjectURL(url);
 }
 
+function toExportRows(rows: any[]) {
+  return rows.map((row) => ({
+    "Número": row.numero_formatado || `#${String(row.numero).padStart(3, "0")}`,
+    "Data Entrada": formatDateExport(row.data_entrada),
+    "Status": statusLabels[row.status as Status] ?? row.status ?? "",
+    "Prioridade": row.prioridade ?? "",
+    "Cliente": row.aparelhos?.clientes?.nome ?? "",
+    "Telefone": row.aparelhos?.clientes?.telefone ?? "",
+    "Aparelho": [row.aparelhos?.marca, row.aparelhos?.modelo].filter(Boolean).join(" "),
+    "IMEI": row.aparelhos?.imei ?? "",
+    "Defeito Relatado": row.defeito_relatado ?? "",
+    "Diagnóstico": row.diagnostico ?? "",
+    "Serviço Realizado": row.servico_realizado ?? "",
+    "Técnico": row.tecnico || row.funcionarios?.nome || "",
+    "Valor Total": formatMoneyExport(row.valor_total ?? row.valor),
+    "Forma de Pagamento": row.formas_pagamento?.nome || row.forma_pagamento_id || "",
+    "Aprovação Orçamento": row.aprovacao_orcamento ?? "",
+    "Data Conclusão": formatDateExport(row.data_conclusao),
+    "Data Entrega": formatDateExport(row.data_entrega),
+    "Garantia": garantiaStatus(row),
+  }));
+}
+
 function grupoData(dataEntrada: string): string {
   const d = new Date(dataEntrada);
   if (isToday(d)) return "Hoje";
