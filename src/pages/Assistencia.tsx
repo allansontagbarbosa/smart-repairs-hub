@@ -67,6 +67,24 @@ async function fetchOrders() {
   return data ?? [];
 }
 
+async function fetchStatusCounts() {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const { data, error } = await supabase
+    .from("ordens_de_servico")
+    .select("status")
+    .gte("data_entrada", ninetyDaysAgo.toISOString());
+  if (error) throw error;
+
+  const counts: Record<string, number> = { todos: 0 };
+  for (const row of data ?? []) {
+    counts[row.status] = (counts[row.status] ?? 0) + 1;
+    if (row.status !== "entregue" && row.status !== "cancelado") counts.todos += 1;
+  }
+  return counts;
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function formatCurrency(v: number | null) {
