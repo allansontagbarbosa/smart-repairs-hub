@@ -402,11 +402,10 @@ export default function Assistencia() {
     });
   }, [filtered, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
-  const paginatedSorted = useMemo(() => {
-    const start = page * LIST_PAGE_SIZE;
-    return sorted.slice(start, start + LIST_PAGE_SIZE);
-  }, [sorted, page]);
+  const totalPages = Math.max(1, Math.ceil(totalOrders / LIST_PAGE_SIZE));
+  const paginatedSorted = sorted;
+  const firstVisible = totalOrders === 0 ? 0 : page * LIST_PAGE_SIZE + 1;
+  const lastVisible = Math.min((page * LIST_PAGE_SIZE) + paginatedSorted.length, totalOrders);
 
   useEffect(() => {
     setPage(0);
@@ -857,7 +856,7 @@ export default function Assistencia() {
         <div>
           <h1 className="text-xl font-bold">Serviços</h1>
           <p className="text-sm text-muted-foreground">
-            {sorted.length} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
+            {totalOrders} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
           </p>
         </div>
 
@@ -957,10 +956,11 @@ export default function Assistencia() {
             <Tabela items={paginatedSorted} />
           )}
 
-          {!isLoading && sorted.length > LIST_PAGE_SIZE && (
+          {!isLoading && totalOrders > LIST_PAGE_SIZE && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-xs text-muted-foreground">
-                Página {page + 1} de {totalPages} — exibindo {paginatedSorted.length} de {sorted.length} ordens filtradas
+                Página {page + 1} de {totalPages} — exibindo {firstVisible}-{lastVisible} de {totalOrders} ordens
+                {isFetching && <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> atualizando</span>}
               </p>
               <div className="flex gap-1.5">
                 <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
