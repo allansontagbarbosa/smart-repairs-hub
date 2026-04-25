@@ -269,13 +269,13 @@ export default function Assistencia() {
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "lista", { page, filterStatus }],
+    queryKey: ["ordens", "page", page, "status", filterStatus],
     queryFn: () => fetchOrders({ page, filterStatus }),
     placeholderData: (previousData) => previousData,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens", "lista-count", { filterStatus }],
+    queryKey: ["ordens-count", "status", filterStatus],
     queryFn: () => fetchOrdersCount({ filterStatus }),
   });
 
@@ -960,7 +960,6 @@ export default function Assistencia() {
             <div className="flex items-center justify-between pt-2">
               <p className="text-xs text-muted-foreground">
                 Página {page + 1} de {totalPages} — exibindo {firstVisible}-{lastVisible} de {totalOrders} ordens
-                {isFetching && <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> atualizando</span>}
               </p>
               <div className="flex gap-1.5">
                 <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
