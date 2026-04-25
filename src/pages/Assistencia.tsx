@@ -533,7 +533,7 @@ export default function Assistencia() {
 
   useEffect(() => {
     setPage(0);
-  }, [filterStatus, filterPrioridade, search, sortKey, sortDir]);
+  }, [filterStatus, filterPrioridade, search, sortKey, sortDir, period.key]);
 
   useEffect(() => {
     if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
@@ -547,7 +547,7 @@ export default function Assistencia() {
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search, page]);
+  }, [filterStatus, filterPrioridade, search, page, period.key]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
@@ -633,6 +633,24 @@ export default function Assistencia() {
 
   const handleExportCSV = () => {
     exportOSToCSV(bulk.selectedItems as any[]);
+  };
+
+  const handlePeriodPresetChange = (preset: PeriodPreset) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("de");
+    next.delete("ate");
+    next.set("periodo", preset);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleCustomPeriodChange = ({ de, ate }: { de?: string; ate?: string }) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("periodo");
+    if (de) next.set("de", de);
+    else next.delete("de");
+    if (ate) next.set("ate", ate);
+    else next.delete("ate");
+    setSearchParams(next, { replace: true });
   };
 
   // Texto e flags para o modal de confirmação
