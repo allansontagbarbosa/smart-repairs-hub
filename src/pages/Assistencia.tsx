@@ -393,8 +393,27 @@ function PecasPendentesTag({ temPeca }: { temPeca: boolean }) {
   );
 }
 
-// Chips de status com contador
-function StatusChips({
+const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "recebido", label: "Recebido" },
+  { value: "em_analise", label: "Em análise" },
+  { value: "aguardando_aprovacao", label: "Aprovação" },
+  { value: "em_reparo", label: "Em reparo" },
+  { value: "aguardando_peca", label: "Aguard. peça" },
+  { value: "pronto", label: "Pronto" },
+  { value: "entregue", label: "Entregue" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
+function getPeriodLabel(period: PeriodFilterState) {
+  if (period.preset) return PERIOD_PRESETS.find((preset) => preset.value === period.preset)?.label ?? "Período";
+  if (period.de && period.ate) return `${formatDate(period.de)} – ${formatDate(period.ate)}`;
+  if (period.de) return `Desde ${formatDate(period.de)}`;
+  if (period.ate) return `Até ${formatDate(period.ate)}`;
+  return "Período";
+}
+
+function StatusTabs({
   counts,
   active,
   onChange,
@@ -403,33 +422,23 @@ function StatusChips({
   active: string;
   onChange: (v: string) => void;
 }) {
-  const chips = [
-    { value: "todos", label: "Todos" },
-    ...allStatuses.filter((s) => s.value !== "todos" && s.value !== "entregue"),
-    { value: "entregue", label: "Entregues" },
-  ];
-
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-      {chips.map((chip) => {
+    <div className="flex overflow-x-auto border-b-[0.5px] border-border/70 scrollbar-hide">
+      {STATUS_TABS.map((chip) => {
         const count = counts[chip.value] ?? 0;
         const isActive = active === chip.value;
         return (
           <button
             key={chip.value}
             onClick={() => onChange(chip.value)}
-            className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+            className={`shrink-0 inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors ${
               isActive
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:bg-muted"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {chip.label}
-            {count > 0 && (
-              <span className={`text-[10px] ${isActive ? "opacity-80" : "opacity-60"}`}>
-                {count}
-              </span>
-            )}
+            <span className="text-[12px] font-normal text-muted-foreground">{count}</span>
           </button>
         );
       })}
