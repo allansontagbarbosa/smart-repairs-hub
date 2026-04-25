@@ -8,7 +8,7 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
 
   useEffect(() => {
     items?.forEach((item) => itemCacheRef.current.set(item.id, item));
-  }, [items]);
+  }, [items, preserveAcrossItems]);
 
   // Limpa seleção de IDs que sumiram da lista (filtro mudou, item removido, etc.)
   useEffect(() => {
