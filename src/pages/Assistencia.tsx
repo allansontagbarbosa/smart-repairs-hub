@@ -1119,6 +1119,12 @@ export default function Assistencia() {
     if (tecnicosComAtual > 0) {
       confirmWarning = `${tecnicosComAtual} OS já possuem técnico atribuído e serão substituídas.`;
     }
+  } else if (pendingBulk?.kind === "cancelar") {
+    confirmTitle = `Cancelar ${affectedItems.length} OS selecionada${affectedItems.length === 1 ? "" : "s"}`;
+    confirmDescription =
+      "Esta ação cancelará todas as ordens selecionadas, registrando auditoria e preservando o histórico de impacto financeiro.";
+    confirmLabel = "Cancelar OSs selecionadas";
+    confirmWarning = "As OSs já canceladas serão ignoradas pelo sistema.";
   }
 
   const grupos = useMemo(() => {
@@ -1607,6 +1613,7 @@ export default function Assistencia() {
             onAtribuirTecnico={(funcionarioId, nome) =>
               setPendingBulk({ kind: "tecnico", funcionarioId, nome })
             }
+            onCancelar={() => setPendingBulk({ kind: "cancelar" })}
             onExportCSV={() => handleExport("csv")}
             onClear={bulk.clear}
           />
@@ -1619,6 +1626,7 @@ export default function Assistencia() {
             affected={affectedItems}
             warningMessage={confirmWarning}
             confirmLabel={confirmLabel}
+            variant={pendingBulk?.kind === "cancelar" ? "destructive" : "default"}
           />
         </>
       )}
