@@ -1242,104 +1242,58 @@ export default function Assistencia() {
           )}
         </td>
 
-        <td className="px-3 py-2.5">
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7"
-                  onClick={() => handleWhatsApp(phone, order.numero)}
-                >
-                  <MessageCircle className="h-3.5 w-3.5 text-green-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Enviar WhatsApp</TooltipContent>
-            </Tooltip>
-
-            {!["pronto", "entregue"].includes(order.status) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Marcar como Pronto</TooltipContent>
-              </Tooltip>
-            )}
-
-            {order.status === "pronto" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() =>
-                      pedirConfirmacao({
-                        orderId: order.id,
-                        numero: order.numero,
-                        clienteNome: order.aparelhos?.clientes?.nome ?? "—",
-                      })
-                    }
-                  >
-                    <Truck className="h-3.5 w-3.5 text-emerald-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Marcar como Entregue</TooltipContent>
-              </Tooltip>
-            )}
-
-            {nextStatus && order.status !== "pronto" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => updateStatusMutation.mutate({ id: order.id, status: nextStatus })}
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Avançar para {statusLabels[nextStatus]}</TooltipContent>
-              </Tooltip>
-            )}
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7"
-                  onClick={() => printEtiquetaOS({
-                    numero: order.numero,
-                    clienteNome: order.aparelhos?.clientes?.nome ?? "—",
-                    clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
-                    marca: order.aparelhos?.marca ?? "",
-                    modelo: order.aparelhos?.modelo ?? "",
-                    capacidade: (order.aparelhos as any)?.capacidade ?? null,
-                    defeitos: order.defeito_relatado ?? "",
-                    dataEntrada: order.data_entrada,
-                    previsaoEntrega: order.previsao_entrega,
-                    valor: order.valor,
-                    imei: (order.aparelhos as any)?.imei ?? null,
-                    tecnicoAtribuido: order.tecnico ?? null,
-                  })}
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Imprimir Etiqueta</TooltipContent>
-            </Tooltip>
-
-            {podeCancelar && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setCancelOrderId(order.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Cancelar OS</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+        <td className="w-[42px] px-3 py-3 text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-[30px] w-[30px]">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleWhatsApp(phone, order.numero)}>
+                <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+              </DropdownMenuItem>
+              {!["pronto", "entregue"].includes(order.status) && (
+                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}>
+                  <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Pronto
+                </DropdownMenuItem>
+              )}
+              {order.status === "pronto" && (
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
+                  <Truck className="mr-2 h-4 w-4" /> Marcar como Entregue
+                </DropdownMenuItem>
+              )}
+              {nextStatus && order.status !== "pronto" && (
+                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: nextStatus })}>
+                  <ChevronRight className="mr-2 h-4 w-4" /> Avançar para {statusLabels[nextStatus]}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => printEtiquetaOS({
+                  numero: order.numero,
+                  clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                  clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
+                  marca: order.aparelhos?.marca ?? "",
+                  modelo: order.aparelhos?.modelo ?? "",
+                  capacidade: (order.aparelhos as any)?.capacidade ?? null,
+                  defeitos: order.defeito_relatado ?? "",
+                  dataEntrada: order.data_entrada,
+                  previsaoEntrega: order.previsao_entrega,
+                  valor: order.valor,
+                  imei: (order.aparelhos as any)?.imei ?? null,
+                  tecnicoAtribuido: order.tecnico ?? null,
+                })}
+              >
+                <Printer className="mr-2 h-4 w-4" /> Imprimir etiqueta
+              </DropdownMenuItem>
+              {podeCancelar && (
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setCancelOrderId(order.id)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Cancelar OS
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </td>
       </tr>
     );
