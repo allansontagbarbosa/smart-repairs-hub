@@ -409,7 +409,11 @@ export default function ExclusaoOSCanceladas() {
             </div>
 
             <div className="flex justify-end">
-              <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+              <Button variant="destructive" onClick={() => {
+                setDeleteMode("single");
+                setConfirmText("");
+                setConfirmOpen(true);
+              }}>
                 <Trash2 className="mr-2 h-4 w-4" /> Excluir definitivamente
               </Button>
             </div>
@@ -422,10 +426,22 @@ export default function ExclusaoOSCanceladas() {
           <DialogHeader>
             <DialogTitle>Confirmar exclusão definitiva</DialogTitle>
             <DialogDescription>
-              Esta ação removerá permanentemente a OS cancelada e suas dependências mapeadas.
+              {deleteMode === "bulk"
+                ? `Esta ação removerá permanentemente ${selectedIds.size} OSs canceladas e suas dependências mapeadas.`
+                : "Esta ação removerá permanentemente a OS cancelada e suas dependências mapeadas."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {deleteMode === "bulk" && (
+              <div className="max-h-40 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
+                {selectedOrders.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between gap-3 py-1">
+                    <span className="font-mono">#{order.numero_formatado ?? order.numero}</span>
+                    <span className="truncate text-muted-foreground">{order.aparelhos?.clientes?.nome ?? "—"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
               <AlertTitle>Não será possível desfazer</AlertTitle>
