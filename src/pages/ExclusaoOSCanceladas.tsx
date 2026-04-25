@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import {
   Dialog,
   DialogContent,
@@ -72,8 +73,11 @@ export default function ExclusaoOSCanceladas() {
   const [search, setSearch] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<PreviewExclusao | null>(null);
+  const [validatedPreviews, setValidatedPreviews] = useState<Record<string, PreviewExclusao>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<"single" | "bulk">("single");
   const [confirmText, setConfirmText] = useState("");
   const { isAdmin, loading } = usePermissoes();
   const queryClient = useQueryClient();
@@ -122,6 +126,10 @@ export default function ExclusaoOSCanceladas() {
     () => orders.find((order) => order.id === selectedOrderId) ?? null,
     [orders, selectedOrderId],
   );
+  const selectedOrders = useMemo(() => orders.filter((order) => selectedIds.has(order.id)), [orders, selectedIds]);
+  const allVisibleSelected = orders.length > 0 && orders.every((order) => selectedIds.has(order.id));
+  const someVisibleSelected = orders.some((order) => selectedIds.has(order.id));
+  const allSelectedValidated = selectedIds.size > 0 && Array.from(selectedIds).every((id) => validatedPreviews[id]?.can_delete);
 
   const previewMutation = useMutation({
     mutationFn: async (ordemId: string) => {
@@ -131,6 +139,7 @@ export default function ExclusaoOSCanceladas() {
     },
     onSuccess: (data) => {
       setPreview(data);
+      setValidatedPreviews((current) => ({ ...current, [data.ordem.id]: data }));
       toast.success("Dependências validadas");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -138,31 +147,78 @@ export default function ExclusaoOSCanceladas() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!preview?.ordem.id) throw new Error("Valide uma OS antes de excluir");
-      const { data, error } = await (supabase as any).rpc("excluir_definitivamente_os_cancelada", {
-        p_ordem_id: preview.ordem.id,
-        p_confirmacao: confirmText,
-      });
+      const { data, error } = deleteMode === "bulk"
+        ? await (supabase as any).rpc("excluir_definitivamente_os_canceladas_lote", {
+            p_ordem_ids: Array.from(selectedIds),
+            p_confirmacao: confirmText,
+          })
+        : await (supabase as any).rpc("excluir_definitivamente_os_cancelada", {
+            p_ordem_id: preview?.ordem.id,
+            p_confirmacao: confirmText,
+          });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      toast.success("OS excluída definitivamente");
+      toast.success(deleteMode === "bulk" ? "OSs excluídas definitivamente" : "OS excluída definitivamente");
       setConfirmOpen(false);
       setConfirmText("");
       setPreview(null);
       setSelectedOrderId(null);
+      setSelectedIds(new Set());
+      setValidatedPreviews({});
       queryClient.invalidateQueries({ queryKey: ["os-canceladas-exclusao"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const canDelete = !!preview?.can_delete && confirmText === CONFIRMACAO && !deleteMutation.isPending;
+  const canDelete = confirmText === CONFIRMACAO && !deleteMutation.isPending && (deleteMode === "bulk" ? allSelectedValidated : !!preview?.can_delete);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) orders.forEach((order) => next.delete(order.id));
+      else orders.forEach((order) => next.add(order.id));
+      return next;
+    });
+  };
+
+  const validateSelected = async () => {
+    if (selectedIds.size === 0) return toast.error("Selecione ao menos uma OS cancelada");
+    try {
+      const results = await Promise.all(Array.from(selectedIds).map(async (id) => {
+        const { data, error } = await (supabase as any).rpc("preview_exclusao_os_cancelada", { p_ordem_id: id });
+        if (error) throw error;
+        return data as PreviewExclusao;
+      }));
+      setValidatedPreviews((current) => {
+        const next = { ...current };
+        results.forEach((item) => { next[item.ordem.id] = item; });
+        return next;
+      });
+      setPreview(results[0] ?? null);
+      setSelectedOrderId(results[0]?.ordem.id ?? null);
+      toast.success(`${results.length} OS validada${results.length === 1 ? "" : "s"}`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Falha ao validar OSs selecionadas");
+    }
+  };
 
   const handleSearch = () => {
     setPreview(null);
     setSelectedOrderId(null);
+    setSelectedIds(new Set());
+    setValidatedPreviews({});
     setSubmittedSearch(search);
   };
 
