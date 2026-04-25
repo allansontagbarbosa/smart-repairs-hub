@@ -10,6 +10,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
@@ -43,6 +45,9 @@ import { exportOSToCSV } from "@/lib/exportOSCsv";
 type SortKey = "prioridade" | "data_entrada" | "previsao_entrega" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
+type PeriodPreset = "30" | "60" | "90" | "all";
+type DateRangeFilter = { de?: string; ate?: string } | null;
+type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
 
 const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: any }> = {
   critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
@@ -52,21 +57,64 @@ const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: an
 
 const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
 const LIST_PAGE_SIZE = 30;
+const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
+  { value: "30", label: "30 dias" },
+  { value: "60", label: "60 dias" },
+  { value: "90", label: "90 dias" },
+  { value: "all", label: "Todo o período" },
+];
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders({ page, filterStatus }: { page: number; filterStatus: StatusFilter }) {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+function dateOnly(date: Date) {
+  return format(date, "yyyy-MM-dd");
+}
+
+function dateStartIso(date: string) {
+  return new Date(`${date}T00:00:00`).toISOString();
+}
+
+function dateEndIso(date: string) {
+  return new Date(`${date}T23:59:59.999`).toISOString();
+}
+
+function applyDateRange<T extends ReturnType<typeof supabase.from>>(query: any, dateRange: DateRangeFilter): T {
+  if (!dateRange) return query;
+  if (dateRange.de) query = query.gte("data_entrada", dateStartIso(dateRange.de));
+  if (dateRange.ate) query = query.lte("data_entrada", dateEndIso(dateRange.ate));
+  return query;
+}
+
+function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
+  const de = params.get("de") || undefined;
+  const ate = params.get("ate") || undefined;
+  if (de || ate) {
+    return { preset: null, de, ate, key: `custom:${de ?? ""}:${ate ?? ""}`, dateRange: { de, ate } };
+  }
+
+  const periodo = params.get("periodo") as PeriodPreset | null;
+  const preset: PeriodPreset = periodo && ["30", "60", "90", "all"].includes(periodo) ? periodo : "90";
+  if (preset === "all") {
+    return { preset, key: "all", dateRange: null };
+  }
+
+  const from = new Date();
+  from.setDate(from.getDate() - Number(preset));
+  const dePreset = dateOnly(from);
+  return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
+}
+
+async function fetchOrders({ page, filterStatus, dateRange }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
   const start = page * LIST_PAGE_SIZE;
   const end = start + LIST_PAGE_SIZE - 1;
 
   let query = supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
-    .gte("data_entrada", ninetyDaysAgo.toISOString())
     .order("data_entrada", { ascending: false })
     .range(start, end);
+
+  query = applyDateRange(query, dateRange);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -77,14 +125,12 @@ async function fetchOrders({ page, filterStatus }: { page: number; filterStatus:
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus }: { filterStatus: StatusFilter }) {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
+async function fetchOrdersCount({ filterStatus, dateRange }: { filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
   let query = supabase
     .from("ordens_de_servico")
-    .select("*", { count: "exact", head: true })
-    .gte("data_entrada", ninetyDaysAgo.toISOString());
+    .select("*", { count: "exact", head: true });
+
+  query = applyDateRange(query, dateRange);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -95,14 +141,14 @@ async function fetchOrdersCount({ filterStatus }: { filterStatus: StatusFilter }
   return count ?? 0;
 }
 
-async function fetchStatusCounts() {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-  const { data, error } = await supabase
+async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
+  let query = supabase
     .from("ordens_de_servico")
-    .select("status")
-    .gte("data_entrada", ninetyDaysAgo.toISOString());
+    .select("status");
+
+  query = applyDateRange(query, dateRange);
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const counts: Record<string, number> = { todos: 0 };
