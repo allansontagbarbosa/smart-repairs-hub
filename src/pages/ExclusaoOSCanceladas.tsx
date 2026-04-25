@@ -214,7 +214,7 @@ export default function ExclusaoOSCanceladas() {
       });
       setPreview(results[0] ?? null);
       setSelectedOrderId(results[0]?.ordem.id ?? null);
-      toast.success(`${results.length} OS validada${results.length === 1 ? "" : "s"}`);
+      toast.success(`${results.length} OS validada${results.length === 1 ? "" : "s"}. Exclusão em lote liberada.`);
     } catch (error: any) {
       toast.error(error?.message ?? "Falha ao validar OSs selecionadas");
     }
@@ -270,8 +270,8 @@ export default function ExclusaoOSCanceladas() {
 
       <Card className="rounded-md shadow-none">
         <CardHeader>
-          <CardTitle className="text-base">Localizar OS cancelada</CardTitle>
-          <CardDescription>Busque pelo número da OS, UUID, número formatado ou IMEI.</CardDescription>
+          <CardTitle className="text-base">OS canceladas para exclusão em massa</CardTitle>
+          <CardDescription>Selecione várias OS, valide as dependências e exclua o lote definitivamente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -281,19 +281,19 @@ export default function ExclusaoOSCanceladas() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && handleSearch()}
-                placeholder="Ex: 40, 2026-00040, UUID ou IMEI"
+                placeholder="Filtrar por número, UUID, número formatado ou IMEI"
                 className="pl-9"
               />
             </div>
-            <Button onClick={handleSearch} disabled={search.trim().length < 2 || isFetching}>
+            <Button onClick={handleSearch} disabled={isFetching || (search.trim().length > 0 && search.trim().length < 2)}>
               {isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               Buscar
             </Button>
           </div>
 
-          {trimmedSearch.length >= 2 && !isFetching && orders.length === 0 && (
+          {!isFetching && orders.length === 0 && (
             <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-              Nenhuma OS cancelada encontrada para a busca informada.
+              Nenhuma OS cancelada encontrada.
             </div>
           )}
 
@@ -301,7 +301,8 @@ export default function ExclusaoOSCanceladas() {
             <div className="space-y-3">
               <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
-                  {selectedIds.size} selecionada{selectedIds.size === 1 ? "" : "s"} · {Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length} validada{Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length === 1 ? "" : "s"}
+                  {selectedIds.size} selecionada{selectedIds.size === 1 ? "" : "s"} · {selectedValidatedCount} validada{selectedValidatedCount === 1 ? "" : "s"}
+                  {selectedPendingValidation > 0 ? ` · ${selectedPendingValidation} pendente${selectedPendingValidation === 1 ? "" : "s"}` : ""}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={validateSelected} disabled={selectedIds.size === 0}>
