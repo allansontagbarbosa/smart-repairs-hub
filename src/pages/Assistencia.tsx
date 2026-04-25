@@ -42,6 +42,7 @@ import { exportOSToCSV } from "@/lib/exportOSCsv";
 
 type SortKey = "prioridade" | "data_entrada" | "previsao_entrega" | "valor";
 type SortDir = "asc" | "desc";
+type StatusFilter = Status | "todos";
 
 const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: any }> = {
   critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
@@ -54,7 +55,7 @@ const LIST_PAGE_SIZE = 30;
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders({ page, filterStatus }: { page: number; filterStatus: string }) {
+async function fetchOrders({ page, filterStatus }: { page: number; filterStatus: StatusFilter }) {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   const start = page * LIST_PAGE_SIZE;
@@ -76,7 +77,7 @@ async function fetchOrders({ page, filterStatus }: { page: number; filterStatus:
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus }: { filterStatus: string }) {
+async function fetchOrdersCount({ filterStatus }: { filterStatus: StatusFilter }) {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
