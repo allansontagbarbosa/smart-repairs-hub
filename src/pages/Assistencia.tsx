@@ -1303,10 +1303,10 @@ export default function Assistencia() {
 
   function Tabela({ items }: { items: typeof sorted }) {
     return (
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="rounded-md border-[0.5px] border-border/70 bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-muted/50 border-b border-border">
+          <table className="w-full text-left text-[13px]">
+            <thead className="border-b-[0.5px] border-border/70 bg-background">
               <tr>
                 {isAdmin && (
                   <th className="px-3 py-2 w-8">
@@ -1324,14 +1324,13 @@ export default function Assistencia() {
                     </Tooltip>
                   </th>
                 )}
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">OS</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Cliente / Aparelho</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Prioridade</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Defeito</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Status</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Entrada</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground text-right">Lucro</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Ações</th>
+                <th className="w-[70px] px-3 py-2.5"><SortHeader label="OS" k="numero" /></th>
+                <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Cliente / aparelho</th>
+                <th className="w-[110px] px-3 py-2.5"><SortHeader label="Prioridade" k="prioridade" /></th>
+                <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Status</th>
+                <th className="w-[95px] px-3 py-2.5"><SortHeader label="Entrada" k="data_entrada" /></th>
+                <th className="w-[80px] px-3 py-2.5"><SortHeader label="Valor" k="valor" className="justify-end" /></th>
+                <th className="w-[42px] px-3 py-2.5" aria-label="Ações" />
               </tr>
             </thead>
             <tbody>
@@ -1340,7 +1339,7 @@ export default function Assistencia() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 8} className="text-center py-16">
+                  <td colSpan={isAdmin ? 8 : 7} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <Wrench className="h-10 w-10 text-muted-foreground/30" />
                       <p className="text-sm text-muted-foreground">Nenhuma ordem de serviço encontrada</p>
