@@ -4018,6 +4018,10 @@ export type Database = {
         Args: { p_email: string; p_user_id: string }
         Returns: undefined
       }
+      excluir_definitivamente_os_cancelada: {
+        Args: { p_confirmacao: string; p_ordem_id: string }
+        Returns: Json
+      }
       get_clientes_com_stats: {
         Args: never
         Returns: {
@@ -4060,6 +4064,10 @@ export type Database = {
         Returns: number
       }
       preview_cancelamento_os: { Args: { p_ordem_id: string }; Returns: Json }
+      preview_exclusao_os_cancelada: {
+        Args: { p_ordem_id: string }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
