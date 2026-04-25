@@ -3,8 +3,8 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
-  CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
-  X, SlidersHorizontal, Download,
+  CalendarClock, Printer, Brain, Shield, Trash2, XCircle,
+  X, SlidersHorizontal, Download, ChevronDown, MoreVertical, ArrowUp, ArrowDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
@@ -25,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
@@ -43,7 +42,7 @@ import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/Bul
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
-type SortKey = "prioridade" | "data_entrada" | "previsao_entrega" | "valor";
+type SortKey = "numero" | "prioridade" | "data_entrada" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
 type PeriodPreset = "30" | "60" | "90" | "all";
@@ -339,12 +338,13 @@ function grupoData(dataEntrada: string): string {
 function PrioridadeBadge({ nivel, motivo }: { nivel: Prioridade; motivo: string }) {
   const cfg = prioridadeConfig[nivel];
   const Icon = cfg.icon;
+  const label = nivel === "critica" ? "Crítica" : nivel === "atencao" ? "Atenção" : "Normal";
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cfg.bg} ${cfg.color}`}>
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${cfg.bg} ${cfg.color}`}>
           <Icon className="h-3 w-3" />
-          {nivel === "critica" ? "Urgente" : nivel === "atencao" ? "Atenção" : "OK"}
+          {label}
         </span>
       </TooltipTrigger>
       <TooltipContent>{motivo}</TooltipContent>
@@ -394,8 +394,27 @@ function PecasPendentesTag({ temPeca }: { temPeca: boolean }) {
   );
 }
 
-// Chips de status com contador
-function StatusChips({
+const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "recebido", label: "Recebido" },
+  { value: "em_analise", label: "Em análise" },
+  { value: "aguardando_aprovacao", label: "Aprovação" },
+  { value: "em_reparo", label: "Em reparo" },
+  { value: "aguardando_peca", label: "Aguard. peça" },
+  { value: "pronto", label: "Pronto" },
+  { value: "entregue", label: "Entregue" },
+  { value: "cancelado", label: "Cancelado" },
+];
+
+function getPeriodLabel(period: PeriodFilterState) {
+  if (period.preset) return PERIOD_PRESETS.find((preset) => preset.value === period.preset)?.label ?? "Período";
+  if (period.de && period.ate) return `${formatDate(period.de)} – ${formatDate(period.ate)}`;
+  if (period.de) return `Desde ${formatDate(period.de)}`;
+  if (period.ate) return `Até ${formatDate(period.ate)}`;
+  return "Período";
+}
+
+function StatusTabs({
   counts,
   active,
   onChange,
@@ -404,33 +423,23 @@ function StatusChips({
   active: string;
   onChange: (v: string) => void;
 }) {
-  const chips = [
-    { value: "todos", label: "Todos" },
-    ...allStatuses.filter((s) => s.value !== "todos" && s.value !== "entregue"),
-    { value: "entregue", label: "Entregues" },
-  ];
-
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-      {chips.map((chip) => {
+    <div className="flex overflow-x-auto border-b-[0.5px] border-border/70 scrollbar-hide">
+      {STATUS_TABS.map((chip) => {
         const count = counts[chip.value] ?? 0;
         const isActive = active === chip.value;
         return (
           <button
             key={chip.value}
             onClick={() => onChange(chip.value)}
-            className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+            className={`shrink-0 inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors ${
               isActive
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:bg-muted"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             {chip.label}
-            {count > 0 && (
-              <span className={`text-[10px] ${isActive ? "opacity-80" : "opacity-60"}`}>
-                {count}
-              </span>
-            )}
+            <span className="text-[12px] font-normal text-muted-foreground">{count}</span>
           </button>
         );
       })}
@@ -543,7 +552,8 @@ function FiltrosAvancados({
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <SlidersHorizontal className="h-4 w-4" />
-          Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+          Filtros
+          {activeCount > 0 && <span className="rounded-full bg-info px-1.5 py-0.5 text-[11px] leading-none text-info-foreground">{activeCount}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[min(92vw,720px)] p-4" align="start">
@@ -651,8 +661,8 @@ export default function Assistencia() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("todos");
   const [filterPrioridade, setFilterPrioridade] = useState<"todas" | Prioridade>("todas");
-  const [sortKey, setSortKey] = useState<SortKey>("prioridade");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("data_entrada");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [agrupar, setAgrupar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -859,14 +869,11 @@ export default function Assistencia() {
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "prioridade") cmp = prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel];
+      if (sortKey === "numero") cmp = Number(a.numero ?? 0) - Number(b.numero ?? 0);
+      else if (sortKey === "prioridade") cmp = prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel];
       else if (sortKey === "data_entrada")
         cmp = new Date(a.data_entrada).getTime() - new Date(b.data_entrada).getTime();
-      else if (sortKey === "previsao_entrega") {
-        const ap = a.previsao_entrega ? new Date(a.previsao_entrega).getTime() : Infinity;
-        const bp = b.previsao_entrega ? new Date(b.previsao_entrega).getTime() : Infinity;
-        cmp = ap - bp;
-      } else if (sortKey === "valor") {
+      else if (sortKey === "valor") {
         cmp = (Number(a.valor) || 0) - (Number(b.valor) || 0);
       }
       return sortDir === "asc" ? cmp : -cmp;
@@ -1093,24 +1100,43 @@ export default function Assistencia() {
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(key); setSortDir("asc"); }
+    else { setSortKey(key); setSortDir(key === "data_entrada" ? "desc" : "asc"); }
   }
 
-  function SortBtn({ label, k }: { label: string; k: SortKey }) {
+  function SortHeader({ label, k, className = "" }: { label: string; k: SortKey; className?: string }) {
     const isActive = sortKey === k;
     return (
       <button
         onClick={() => toggleSort(k)}
-        className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border transition-colors ${
-          isActive
-            ? "bg-primary/10 text-primary border-primary/30 font-medium"
-            : "text-muted-foreground border-border hover:bg-muted"
-        }`}
+        className={`inline-flex w-full items-center gap-1 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground ${className}`}
       >
         {label}
-        <ArrowUpDown className="h-3 w-3" />
-        {isActive && <span className="text-[10px]">{sortDir === "asc" ? "↑" : "↓"}</span>}
+        {isActive ? (
+          sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-primary" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
+        )}
       </button>
+    );
+  }
+
+  function StatusDot({ status }: { status: Status }) {
+    const colorMap: Partial<Record<Status, string>> = {
+      recebido: "bg-info",
+      em_analise: "bg-info",
+      aguardando_aprovacao: "bg-warning",
+      aprovado: "bg-success",
+      em_reparo: "bg-warning",
+      aguardando_peca: "bg-warning",
+      pronto: "bg-success",
+      entregue: "bg-secondary-foreground/50",
+      cancelado: "bg-muted-foreground",
+    };
+    return (
+      <span className="inline-flex items-center gap-2 text-[13px] text-foreground">
+        <span className={`h-1.5 w-1.5 rounded-full ${colorMap[status] ?? "bg-muted-foreground"}`} />
+        {statusLabels[status] ?? status}
+      </span>
     );
   }
 
@@ -1129,7 +1155,7 @@ export default function Assistencia() {
 
     const isSelected = isAdmin && bulk.isSelected(order.id);
     return (
-      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
+      <tr className={`border-b-[0.5px] border-border/70 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
         {isAdmin && (
           <td className="px-3 py-2.5 w-8" onClick={(e) => e.stopPropagation()}>
             <RowCheckbox
@@ -1138,20 +1164,20 @@ export default function Assistencia() {
             />
           </td>
         )}
-        <td className="px-3 py-2.5 font-mono text-xs text-primary cursor-pointer hover:underline"
+        <td className="w-[70px] px-3 py-3 font-mono text-[13px] font-medium text-info cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
           #{String(order.numero).padStart(3, "0")}
           {isCancelada && (
-            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-semibold">
+            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-medium">
               <XCircle className="h-2.5 w-2.5" /> Cancelada
             </span>
           )}
         </td>
 
-        <td className="px-3 py-2.5 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
-          <p className="text-sm font-medium truncate max-w-[180px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
-          <p className="text-xs text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
+        <td className="px-3 py-3 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
+          <p className="text-[13px] font-medium truncate max-w-[260px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
+          <p className="text-[12px] text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
           <div className="flex gap-2 mt-0.5 flex-wrap">
             <PrazoTag previsao={order.previsao_entrega} status={order.status} />
             <PecasPendentesTag temPeca={order.temPecaPendente} />
@@ -1168,21 +1194,15 @@ export default function Assistencia() {
           </div>
         </td>
 
-        <td className="px-3 py-2.5">
+        <td className="w-[110px] px-3 py-3">
           <PrioridadeBadge nivel={order.prioridade.nivel} motivo={order.prioridade.motivo} />
         </td>
 
-        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate cursor-pointer"
-          onClick={() => setSelectedOrderId(order.id)}
-        >
-          {order.defeito_relatado}
-        </td>
-
-        <td className="px-3 py-2.5">
+        <td className="px-3 py-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="focus:outline-none">
-                <StatusBadge status={order.status} />
+                <StatusDot status={order.status as Status} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -1210,118 +1230,72 @@ export default function Assistencia() {
           </DropdownMenu>
         </td>
 
-        <td className="px-3 py-2.5 text-xs text-muted-foreground">
+        <td className="w-[95px] px-3 py-3 text-[13px] text-muted-foreground">
           {formatDate(order.data_entrada)}
         </td>
 
-        <td className="px-3 py-2.5 text-xs text-right">
+        <td className="w-[80px] px-3 py-3 text-right text-[13px] tabular-nums">
           {valor ? (
-            <span className={lucro >= 0 ? "text-success font-medium" : "text-destructive font-medium"}>
-              {formatCurrency(lucro)}
+            <span className="text-foreground font-normal">
+              {formatCurrency(valor)}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
           )}
         </td>
 
-        <td className="px-3 py-2.5">
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7"
-                  onClick={() => handleWhatsApp(phone, order.numero)}
-                >
-                  <MessageCircle className="h-3.5 w-3.5 text-green-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Enviar WhatsApp</TooltipContent>
-            </Tooltip>
-
-            {!["pronto", "entregue"].includes(order.status) && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Marcar como Pronto</TooltipContent>
-              </Tooltip>
-            )}
-
-            {order.status === "pronto" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() =>
-                      pedirConfirmacao({
-                        orderId: order.id,
-                        numero: order.numero,
-                        clienteNome: order.aparelhos?.clientes?.nome ?? "—",
-                      })
-                    }
-                  >
-                    <Truck className="h-3.5 w-3.5 text-emerald-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Marcar como Entregue</TooltipContent>
-              </Tooltip>
-            )}
-
-            {nextStatus && order.status !== "pronto" && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7"
-                    onClick={() => updateStatusMutation.mutate({ id: order.id, status: nextStatus })}
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Avançar para {statusLabels[nextStatus]}</TooltipContent>
-              </Tooltip>
-            )}
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7"
-                  onClick={() => printEtiquetaOS({
-                    numero: order.numero,
-                    clienteNome: order.aparelhos?.clientes?.nome ?? "—",
-                    clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
-                    marca: order.aparelhos?.marca ?? "",
-                    modelo: order.aparelhos?.modelo ?? "",
-                    capacidade: (order.aparelhos as any)?.capacidade ?? null,
-                    defeitos: order.defeito_relatado ?? "",
-                    dataEntrada: order.data_entrada,
-                    previsaoEntrega: order.previsao_entrega,
-                    valor: order.valor,
-                    imei: (order.aparelhos as any)?.imei ?? null,
-                    tecnicoAtribuido: order.tecnico ?? null,
-                  })}
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Imprimir Etiqueta</TooltipContent>
-            </Tooltip>
-
-            {podeCancelar && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setCancelOrderId(order.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Cancelar OS</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+        <td className="w-[42px] px-3 py-3 text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-[30px] w-[30px]">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleWhatsApp(phone, order.numero)}>
+                <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+              </DropdownMenuItem>
+              {!["pronto", "entregue"].includes(order.status) && (
+                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}>
+                  <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Pronto
+                </DropdownMenuItem>
+              )}
+              {order.status === "pronto" && (
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
+                  <Truck className="mr-2 h-4 w-4" /> Marcar como Entregue
+                </DropdownMenuItem>
+              )}
+              {nextStatus && order.status !== "pronto" && (
+                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: nextStatus })}>
+                  <ChevronRight className="mr-2 h-4 w-4" /> Avançar para {statusLabels[nextStatus]}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => printEtiquetaOS({
+                  numero: order.numero,
+                  clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                  clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
+                  marca: order.aparelhos?.marca ?? "",
+                  modelo: order.aparelhos?.modelo ?? "",
+                  capacidade: (order.aparelhos as any)?.capacidade ?? null,
+                  defeitos: order.defeito_relatado ?? "",
+                  dataEntrada: order.data_entrada,
+                  previsaoEntrega: order.previsao_entrega,
+                  valor: order.valor,
+                  imei: (order.aparelhos as any)?.imei ?? null,
+                  tecnicoAtribuido: order.tecnico ?? null,
+                })}
+              >
+                <Printer className="mr-2 h-4 w-4" /> Imprimir etiqueta
+              </DropdownMenuItem>
+              {podeCancelar && (
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setCancelOrderId(order.id)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Cancelar OS
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </td>
       </tr>
     );
@@ -1331,10 +1305,10 @@ export default function Assistencia() {
 
   function Tabela({ items }: { items: typeof sorted }) {
     return (
-      <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="rounded-md border-[0.5px] border-border/70 bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-muted/50 border-b border-border">
+          <table className="w-full text-left text-[13px]">
+            <thead className="border-b-[0.5px] border-border/70 bg-background">
               <tr>
                 {isAdmin && (
                   <th className="px-3 py-2 w-8">
@@ -1352,14 +1326,13 @@ export default function Assistencia() {
                     </Tooltip>
                   </th>
                 )}
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">OS</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Cliente / Aparelho</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Prioridade</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Defeito</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Status</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Entrada</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground text-right">Lucro</th>
-                <th className="px-3 py-2 text-xs font-semibold text-muted-foreground">Ações</th>
+                <th className="w-[70px] px-3 py-2.5"><SortHeader label="OS" k="numero" /></th>
+                <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Cliente / aparelho</th>
+                <th className="w-[110px] px-3 py-2.5"><SortHeader label="Prioridade" k="prioridade" /></th>
+                <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Status</th>
+                <th className="w-[95px] px-3 py-2.5"><SortHeader label="Entrada" k="data_entrada" /></th>
+                <th className="w-[80px] px-3 py-2.5"><SortHeader label="Valor" k="valor" className="justify-end" /></th>
+                <th className="w-[42px] px-3 py-2.5" aria-label="Ações" />
               </tr>
             </thead>
             <tbody>
@@ -1368,7 +1341,7 @@ export default function Assistencia() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 8} className="text-center py-16">
+                  <td colSpan={isAdmin ? 8 : 7} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
                       <Wrench className="h-10 w-10 text-muted-foreground/30" />
                       <p className="text-sm text-muted-foreground">Nenhuma ordem de serviço encontrada</p>
@@ -1392,30 +1365,13 @@ export default function Assistencia() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold">Serviços</h1>
-          <p className="text-sm text-muted-foreground">
-            {totalOrders} ordens{filterStatus !== "todos" ? ` — ${allStatuses.find(s => s.value === filterStatus)?.label}` : ""}
-          </p>
+          <h1 className="text-[18px] font-medium leading-6">Serviços</h1>
+          <p className="text-[13px] text-muted-foreground">{totalOrders} ordens</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => refetch()} disabled={isFetching}>
-                <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Atualizar</TooltipContent>
-          </Tooltip>
-
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/assistencia/fila-ia"><Brain className="h-4 w-4 mr-1" /> Fila IA</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={isExporting}>
@@ -1433,7 +1389,7 @@ export default function Assistencia() {
             </DropdownMenuContent>
           </DropdownMenu>
           {can("assistencia", "criar") && (
-            <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova Ordem
             </Button>
           )}
@@ -1453,80 +1409,89 @@ export default function Assistencia() {
         </TabsList>
 
         <TabsContent value="ordens" className="space-y-4">
-          <div className="space-y-2">
-            <FiltroPeriodo
-              period={period}
-              onPresetChange={handlePeriodPresetChange}
-              onCustomChange={handleCustomPeriodChange}
-            />
-
-            <div className="relative">
+          <div className="flex items-center gap-2 rounded-md border-[0.5px] border-border/70 bg-card p-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por cliente, telefone, aparelho ou nº OS..."
-                className="pl-9"
+                placeholder="Buscar por cliente, telefone, IMEI ou nº OS"
+                className="h-9 border-0 bg-transparent pl-9 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
-            <StatusChips counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
+            <FiltrosAvancados
+              filters={filters}
+              clienteSearch={clienteSearch}
+              setClienteSearch={setClienteSearch}
+              clientes={clientesFiltro}
+              funcionarios={funcionariosFiltro}
+              marcas={marcasFiltro}
+              modelos={modelosFiltro}
+              onSetFilter={setAdvancedFilter}
+              onClearAll={clearAdvancedFilters}
+            />
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <FiltrosAvancados
-                filters={filters}
-                clienteSearch={clienteSearch}
-                setClienteSearch={setClienteSearch}
-                clientes={clientesFiltro}
-                funcionarios={funcionariosFiltro}
-                marcas={marcasFiltro}
-                modelos={modelosFiltro}
-                onSetFilter={setAdvancedFilter}
-                onClearAll={clearAdvancedFilters}
-              />
-              {activeFilterPills.map((pill) => (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-[13px] font-normal">
+                  {getPeriodLabel(period)}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <FiltroPeriodo
+                  period={period}
+                  onPresetChange={handlePeriodPresetChange}
+                  onCustomChange={handleCustomPeriodChange}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-[30px] w-[30px]">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setAgrupar((v) => !v)}>
+                  {agrupar ? "Desagrupar" : "Agrupar por data"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => refetch()} disabled={isFetching}>
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/assistencia/fluxo"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {activeFilterPills.length > 0 && (
+            <div className="flex items-center gap-2 rounded-md bg-secondary px-5 py-2">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Filtros ativos</span>
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                {activeFilterPills.map((pill) => (
                 <button
                   key={pill.key}
                   onClick={() => setAdvancedFilter(pill.key, undefined)}
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/80"
+                  className="inline-flex items-center gap-1 rounded-full border-[0.5px] border-border bg-background px-2.5 py-1 text-[12px] text-muted-foreground hover:bg-muted/80"
                 >
                   {pill.label}
                   <X className="h-3 w-3" />
                 </button>
-              ))}
-              {activeFilterPills.length > 0 && (
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAdvancedFilters}>
-                  Limpar todos os filtros
-                </Button>
-              )}
+                ))}
+              </div>
+              <button className="text-[12px] text-muted-foreground hover:text-foreground" onClick={clearAdvancedFilters}>Limpar tudo</button>
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <SortAsc className="h-3.5 w-3.5" /> Ordenar:
-              </span>
-              <SortBtn label="Prioridade" k="prioridade" />
-              <SortBtn label="Data entrada" k="data_entrada" />
-              <SortBtn label="Previsão" k="previsao_entrega" />
-              <SortBtn label="Valor" k="valor" />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setAgrupar((v) => !v)}
-                className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border transition-colors ${
-                  agrupar
-                    ? "bg-primary/10 text-primary border-primary/30 font-medium"
-                    : "text-muted-foreground border-border hover:bg-muted"
-                }`}
-              >
-                <Filter className="h-3 w-3" />
-                Agrupar por data
-              </button>
-            </div>
-          </div>
+          <StatusTabs counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
 
           {isLoading ? (
             <div className="flex justify-center py-20">
@@ -1547,17 +1512,17 @@ export default function Assistencia() {
             <Tabela items={paginatedSorted} />
           )}
 
-          {!isLoading && totalOrders > LIST_PAGE_SIZE && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-muted-foreground">
-                Página {page + 1} de {totalPages} — exibindo {firstVisible}-{lastVisible} de {totalOrders} ordens
+          {!isLoading && (
+            <div className="flex items-center justify-between border-t-[0.5px] border-border/70 px-5 py-2.5">
+              <p className="text-[12px] text-muted-foreground">
+                Mostrando {firstVisible}-{lastVisible} de {totalOrders} ordens
               </p>
               <div className="flex gap-1.5">
                 <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                  Anterior
+                  ← Anterior
                 </Button>
                 <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
-                  Próxima
+                  Próxima →
                 </Button>
               </div>
             </div>
