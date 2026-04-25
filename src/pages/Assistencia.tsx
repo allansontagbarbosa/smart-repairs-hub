@@ -50,6 +50,7 @@ const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: an
 };
 
 const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
+const LIST_PAGE_SIZE = 30;
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
@@ -202,6 +203,7 @@ export default function Assistencia() {
   const [agrupar, setAgrupar] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
   // Bulk action: confirmação pendente
@@ -352,15 +354,29 @@ export default function Assistencia() {
     });
   }, [filtered, sortKey, sortDir]);
 
+  const totalPages = Math.max(1, Math.ceil(sorted.length / LIST_PAGE_SIZE));
+  const paginatedSorted = useMemo(() => {
+    const start = page * LIST_PAGE_SIZE;
+    return sorted.slice(start, start + LIST_PAGE_SIZE);
+  }, [sorted, page]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filterStatus, filterPrioridade, search, sortKey, sortDir]);
+
+  useEffect(() => {
+    if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
+
   // ── BULK SELECTION ────────────────────────────────────────────────────────
   // Itens selecionáveis = a página atual visível (sorted)
-  const bulk = useBulkSelection(isAdmin ? sorted : undefined);
+  const bulk = useBulkSelection(isAdmin ? paginatedSorted : undefined);
 
   // Limpa seleção quando filtro/busca muda
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search]);
+  }, [filterStatus, filterPrioridade, search, page]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
