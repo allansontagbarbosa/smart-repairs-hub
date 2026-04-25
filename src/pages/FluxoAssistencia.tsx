@@ -86,7 +86,7 @@ export default function FluxoAssistencia() {
   const dragItemRef = useRef<{ id: string; aparelhoId: string } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("status");
 
-  const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens"], queryFn: fetchOrders });
+  const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens", "ultimos-90"], queryFn: fetchOrders });
   const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos_kanban"], queryFn: fetchTecnicos });
 
   const updateStatus = useMutation({

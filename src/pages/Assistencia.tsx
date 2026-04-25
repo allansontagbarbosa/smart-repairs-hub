@@ -221,7 +221,7 @@ export default function Assistencia() {
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens"],
+    queryKey: ["ordens", "ultimos-90"],
     queryFn: fetchOrders,
   });
 
