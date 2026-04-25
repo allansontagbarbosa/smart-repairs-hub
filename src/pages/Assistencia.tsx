@@ -491,14 +491,14 @@ export default function Assistencia() {
 
   const grupos = useMemo(() => {
     if (!agrupar) return null;
-    const map = new Map<string, typeof sorted>();
-    for (const o of sorted) {
+    const map = new Map<string, typeof paginatedSorted>();
+    for (const o of paginatedSorted) {
       const g = grupoData(o.data_entrada);
       if (!map.has(g)) map.set(g, []);
       map.get(g)!.push(o);
     }
     return map;
-  }, [sorted, agrupar]);
+  }, [paginatedSorted, agrupar]);
 
   const activeOrders = enriched.filter((o) => o.status !== "entregue");
   const countCritica = activeOrders.filter((o) => o.prioridade.nivel === "critica").length;
