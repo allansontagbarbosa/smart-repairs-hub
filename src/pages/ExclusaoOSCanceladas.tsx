@@ -318,10 +318,20 @@ export default function ExclusaoOSCanceladas() {
                       setConfirmOpen(true);
                     }}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Excluir lote
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir {selectedIds.size || ""} em lote
                   </Button>
                 </div>
               </div>
+
+              {selectedIds.size > 0 && !allSelectedValidated && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Validação obrigatória</AlertTitle>
+                  <AlertDescription>
+                    Valide todas as OS selecionadas antes de liberar a exclusão em massa. Ainda há {selectedPendingValidation} OS pendente{selectedPendingValidation === 1 ? "" : "s"} de validação.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="overflow-hidden rounded-md border border-border">
               <table className="w-full text-sm">
