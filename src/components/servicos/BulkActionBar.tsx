@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ListChecks, UserCog, Download, ChevronDown, Trash2 } from "lucide-react";
+import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -38,6 +38,8 @@ interface Props {
   onChangeStatus: (status: Status) => void;
   onAtribuirTecnico: (funcionarioId: string, nome: string) => void;
   onCancelar: () => void;
+  cancelDisabled?: boolean;
+  cancelBlockedItems?: { id: string; numero: string | number; motivo: string }[];
   onExportCSV: () => void;
   onClear: () => void;
 }
@@ -48,6 +50,8 @@ export function BulkActionBar({
   onChangeStatus,
   onAtribuirTecnico,
   onCancelar,
+  cancelDisabled = false,
+  cancelBlockedItems = [],
   onExportCSV,
   onClear,
 }: Props) {
@@ -66,7 +70,21 @@ export function BulkActionBar({
       role="region"
       aria-label="Ações em massa"
     >
-      <div className="rounded-xl border border-border bg-card/95 backdrop-blur shadow-lg shadow-black/10 px-3 py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <div className="rounded-xl border border-border bg-card/95 backdrop-blur shadow-lg shadow-black/10 px-3 py-2.5 flex flex-col gap-2">
+        {cancelBlockedItems.length > 0 && (
+          <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <span>
+              {cancelBlockedItems.length} OS selecionada{cancelBlockedItems.length === 1 ? "" : "s"} não pode{cancelBlockedItems.length === 1 ? "" : "m"} ser cancelada{cancelBlockedItems.length === 1 ? "" : "s"}: {cancelBlockedItems
+                .slice(0, 4)
+                .map((item) => `#${String(item.numero).padStart(3, "0")} — ${item.motivo}`)
+                .join("; ")}
+              {cancelBlockedItems.length > 4 ? `; + ${cancelBlockedItems.length - 4} outra${cancelBlockedItems.length - 4 === 1 ? "" : "s"}` : ""}. Remova da seleção para liberar o cancelamento.
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="flex items-center gap-2 sm:min-w-[160px]">
           <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
             ✓
@@ -143,7 +161,7 @@ export function BulkActionBar({
             Exportar CSV
           </Button>
 
-          <Button variant="destructive" size="sm" className="h-8 gap-1.5" onClick={onCancelar}>
+          <Button variant="destructive" size="sm" className="h-8 gap-1.5" onClick={onCancelar} disabled={cancelDisabled}>
             <Trash2 className="h-3.5 w-3.5" />
             Cancelar OSs
           </Button>
@@ -158,6 +176,7 @@ export function BulkActionBar({
         >
           <X className="h-4 w-4" />
         </Button>
+        </div>
       </div>
     </div>
   );

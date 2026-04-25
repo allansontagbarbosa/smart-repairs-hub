@@ -915,6 +915,19 @@ export default function Assistencia() {
     [bulk.selectedItems],
   );
 
+  const cancelBlockedItems = useMemo(
+    () =>
+      bulk.selectedItems
+        .map((o: any) => {
+          const motivo = o.status === "cancelado" ? "já está cancelada" : null;
+          return motivo ? { id: o.id, numero: o.numero, motivo } : null;
+        })
+        .filter(Boolean) as { id: string; numero: string | number; motivo: string }[],
+    [bulk.selectedItems],
+  );
+
+  const hasCancelBlockedItems = cancelBlockedItems.length > 0;
+
   // Helper: exibe toast com motivos de itens ignorados
   const showBulkResultToast = (atualizadas: number, ignoradas: number, motivos: any[]) => {
     if (ignoradas === 0) {
@@ -1019,6 +1032,10 @@ export default function Assistencia() {
     } else if (pendingBulk.kind === "tecnico") {
       await bulkTecnicoMutation.mutateAsync({ funcionarioId: pendingBulk.funcionarioId });
     } else if (pendingBulk.kind === "cancelar") {
+      if (hasCancelBlockedItems) {
+        toast.error("Remova da seleção as OS que não podem ser canceladas antes de continuar.");
+        return;
+      }
       await bulkCancelMutation.mutateAsync();
     }
   };
@@ -1124,7 +1141,7 @@ export default function Assistencia() {
     confirmDescription =
       "Esta ação cancelará todas as ordens selecionadas, registrando auditoria e preservando o histórico de impacto financeiro.";
     confirmLabel = "Cancelar OSs selecionadas";
-    confirmWarning = "As OSs já canceladas serão ignoradas pelo sistema.";
+    confirmWarning = "A ação só é liberada quando todas as OS selecionadas podem ser canceladas.";
   }
 
   const grupos = useMemo(() => {
@@ -1614,6 +1631,8 @@ export default function Assistencia() {
               setPendingBulk({ kind: "tecnico", funcionarioId, nome })
             }
             onCancelar={() => setPendingBulk({ kind: "cancelar" })}
+            cancelDisabled={hasCancelBlockedItems}
+            cancelBlockedItems={cancelBlockedItems}
             onExportCSV={() => handleExport("csv")}
             onClear={bulk.clear}
           />
