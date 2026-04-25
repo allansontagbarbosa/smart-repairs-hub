@@ -10,6 +10,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
@@ -43,6 +45,9 @@ import { exportOSToCSV } from "@/lib/exportOSCsv";
 type SortKey = "prioridade" | "data_entrada" | "previsao_entrega" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
+type PeriodPreset = "30" | "60" | "90" | "all";
+type DateRangeFilter = { de?: string; ate?: string } | null;
+type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
 
 const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: any }> = {
   critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
@@ -52,21 +57,64 @@ const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: an
 
 const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
 const LIST_PAGE_SIZE = 30;
+const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
+  { value: "30", label: "30 dias" },
+  { value: "60", label: "60 dias" },
+  { value: "90", label: "90 dias" },
+  { value: "all", label: "Todo o período" },
+];
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders({ page, filterStatus }: { page: number; filterStatus: StatusFilter }) {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+function dateOnly(date: Date) {
+  return format(date, "yyyy-MM-dd");
+}
+
+function dateStartIso(date: string) {
+  return new Date(`${date}T00:00:00`).toISOString();
+}
+
+function dateEndIso(date: string) {
+  return new Date(`${date}T23:59:59.999`).toISOString();
+}
+
+function applyDateRange<T extends ReturnType<typeof supabase.from>>(query: any, dateRange: DateRangeFilter): T {
+  if (!dateRange) return query;
+  if (dateRange.de) query = query.gte("data_entrada", dateStartIso(dateRange.de));
+  if (dateRange.ate) query = query.lte("data_entrada", dateEndIso(dateRange.ate));
+  return query;
+}
+
+function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
+  const de = params.get("de") || undefined;
+  const ate = params.get("ate") || undefined;
+  if (de || ate) {
+    return { preset: null, de, ate, key: `custom:${de ?? ""}:${ate ?? ""}`, dateRange: { de, ate } };
+  }
+
+  const periodo = params.get("periodo") as PeriodPreset | null;
+  const preset: PeriodPreset = periodo && ["30", "60", "90", "all"].includes(periodo) ? periodo : "90";
+  if (preset === "all") {
+    return { preset, key: "all", dateRange: null };
+  }
+
+  const from = new Date();
+  from.setDate(from.getDate() - Number(preset));
+  const dePreset = dateOnly(from);
+  return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
+}
+
+async function fetchOrders({ page, filterStatus, dateRange }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
   const start = page * LIST_PAGE_SIZE;
   const end = start + LIST_PAGE_SIZE - 1;
 
   let query = supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
-    .gte("data_entrada", ninetyDaysAgo.toISOString())
     .order("data_entrada", { ascending: false })
     .range(start, end);
+
+  query = applyDateRange(query, dateRange);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -77,14 +125,12 @@ async function fetchOrders({ page, filterStatus }: { page: number; filterStatus:
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus }: { filterStatus: StatusFilter }) {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
+async function fetchOrdersCount({ filterStatus, dateRange }: { filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
   let query = supabase
     .from("ordens_de_servico")
-    .select("*", { count: "exact", head: true })
-    .gte("data_entrada", ninetyDaysAgo.toISOString());
+    .select("*", { count: "exact", head: true });
+
+  query = applyDateRange(query, dateRange);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -95,14 +141,14 @@ async function fetchOrdersCount({ filterStatus }: { filterStatus: StatusFilter }
   return count ?? 0;
 }
 
-async function fetchStatusCounts() {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-
-  const { data, error } = await supabase
+async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
+  let query = supabase
     .from("ordens_de_servico")
-    .select("status")
-    .gte("data_entrada", ninetyDaysAgo.toISOString());
+    .select("status");
+
+  query = applyDateRange(query, dateRange);
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const counts: Record<string, number> = { todos: 0 };
@@ -237,10 +283,87 @@ function StatusChips({
   );
 }
 
+function FiltroPeriodo({
+  period,
+  onPresetChange,
+  onCustomChange,
+}: {
+  period: PeriodFilterState;
+  onPresetChange: (preset: PeriodPreset) => void;
+  onCustomChange: (range: { de?: string; ate?: string }) => void;
+}) {
+  const selectedRange = {
+    from: period.de ? new Date(`${period.de}T00:00:00`) : undefined,
+    to: period.ate ? new Date(`${period.ate}T00:00:00`) : undefined,
+  };
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+        {PERIOD_PRESETS.map((preset) => {
+          const isActive = period.preset === preset.value;
+          return (
+            <button
+              key={preset.value}
+              onClick={() => onPresetChange(preset.value)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Input
+          type="date"
+          aria-label="De"
+          value={period.de ?? ""}
+          onChange={(e) => onCustomChange({ de: e.target.value || undefined, ate: period.ate })}
+          className="h-8 w-[135px] text-xs"
+        />
+        <span className="text-xs text-muted-foreground">até</span>
+        <Input
+          type="date"
+          aria-label="Até"
+          value={period.ate ?? ""}
+          onChange={(e) => onCustomChange({ de: period.de, ate: e.target.value || undefined })}
+          className="h-8 w-[135px] text-xs"
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <CalendarClock className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              selected={selectedRange}
+              onSelect={(range) =>
+                onCustomChange({
+                  de: range?.from ? dateOnly(range.from) : undefined,
+                  ate: range?.to ? dateOnly(range.to) : undefined,
+                })
+              }
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+}
+
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 export default function Assistencia() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("todos");
   const [filterPrioridade, setFilterPrioridade] = useState<"todas" | Prioridade>("todas");
@@ -262,6 +385,7 @@ export default function Assistencia() {
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
+  const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -269,19 +393,19 @@ export default function Assistencia() {
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "page", page, "status", filterStatus],
-    queryFn: () => fetchOrders({ page, filterStatus }),
+    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key],
+    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange }),
     placeholderData: (previousData) => previousData,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens-count", "status", filterStatus],
-    queryFn: () => fetchOrdersCount({ filterStatus }),
+    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key],
+    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange }),
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
-    queryKey: ["ordens", "ultimos-90", "status-counts"],
-    queryFn: fetchStatusCounts,
+    queryKey: ["ordens", "status-counts", "periodo", period.key],
+    queryFn: () => fetchStatusCounts({ dateRange: period.dateRange }),
   });
 
   // Fetch active guarantees for "Em garantia" badge
@@ -409,7 +533,7 @@ export default function Assistencia() {
 
   useEffect(() => {
     setPage(0);
-  }, [filterStatus, filterPrioridade, search, sortKey, sortDir]);
+  }, [filterStatus, filterPrioridade, search, sortKey, sortDir, period.key]);
 
   useEffect(() => {
     if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
@@ -423,7 +547,7 @@ export default function Assistencia() {
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search, page]);
+  }, [filterStatus, filterPrioridade, search, page, period.key]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
@@ -509,6 +633,24 @@ export default function Assistencia() {
 
   const handleExportCSV = () => {
     exportOSToCSV(bulk.selectedItems as any[]);
+  };
+
+  const handlePeriodPresetChange = (preset: PeriodPreset) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("de");
+    next.delete("ate");
+    next.set("periodo", preset);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleCustomPeriodChange = ({ de, ate }: { de?: string; ate?: string }) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("periodo");
+    if (de) next.set("de", de);
+    else next.delete("de");
+    if (ate) next.set("ate", ate);
+    else next.delete("ate");
+    setSearchParams(next, { replace: true });
   };
 
   // Texto e flags para o modal de confirmação
@@ -898,6 +1040,12 @@ export default function Assistencia() {
 
         <TabsContent value="ordens" className="space-y-4">
           <div className="space-y-2">
+            <FiltroPeriodo
+              period={period}
+              onPresetChange={handlePeriodPresetChange}
+              onCustomChange={handleCustomPeriodChange}
+            />
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
