@@ -3,8 +3,8 @@ import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
-  CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
-  X, SlidersHorizontal, Download,
+  CalendarClock, Printer, Brain, Shield, Trash2, XCircle,
+  X, SlidersHorizontal, Download, ChevronDown, MoreVertical, ArrowUp, ArrowDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { StatusBadge, allStatuses } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
@@ -25,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
