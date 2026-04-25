@@ -67,6 +67,24 @@ async function fetchOrders() {
   return data ?? [];
 }
 
+async function fetchStatusCounts() {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const { data, error } = await supabase
+    .from("ordens_de_servico")
+    .select("status")
+    .gte("data_entrada", ninetyDaysAgo.toISOString());
+  if (error) throw error;
+
+  const counts: Record<string, number> = { todos: 0 };
+  for (const row of data ?? []) {
+    counts[row.status] = (counts[row.status] ?? 0) + 1;
+    if (row.status !== "entregue" && row.status !== "cancelado") counts.todos += 1;
+  }
+  return counts;
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function formatCurrency(v: number | null) {
@@ -227,6 +245,11 @@ export default function Assistencia() {
     queryFn: fetchOrders,
   });
 
+  const { data: statusCounts = { todos: 0 } } = useQuery({
+    queryKey: ["ordens", "ultimos-90", "status-counts"],
+    queryFn: fetchStatusCounts,
+  });
+
   // Fetch active guarantees for "Em garantia" badge
   const { data: garantiasAtivas = [] } = useQuery({
     queryKey: ["garantias-ativas"],
@@ -305,15 +328,6 @@ export default function Assistencia() {
     })),
     [orders]
   );
-
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { todos: 0 };
-    for (const o of enriched) {
-      counts[o.status] = (counts[o.status] ?? 0) + 1;
-      if (o.status !== "entregue" && o.status !== "cancelado") counts["todos"] = (counts["todos"] ?? 0) + 1;
-    }
-    return counts;
-  }, [enriched]);
 
   const filtered = useMemo(() => {
     return enriched.filter((o) => {
