@@ -338,12 +338,13 @@ function grupoData(dataEntrada: string): string {
 function PrioridadeBadge({ nivel, motivo }: { nivel: Prioridade; motivo: string }) {
   const cfg = prioridadeConfig[nivel];
   const Icon = cfg.icon;
+  const label = nivel === "critica" ? "Crítica" : nivel === "atencao" ? "Atenção" : "Normal";
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cfg.bg} ${cfg.color}`}>
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${cfg.bg} ${cfg.color}`}>
           <Icon className="h-3 w-3" />
-          {nivel === "critica" ? "Urgente" : nivel === "atencao" ? "Atenção" : "OK"}
+          {label}
         </span>
       </TooltipTrigger>
       <TooltipContent>{motivo}</TooltipContent>
@@ -551,7 +552,8 @@ function FiltrosAvancados({
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <SlidersHorizontal className="h-4 w-4" />
-          Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+          Filtros
+          {activeCount > 0 && <span className="rounded-full bg-info px-1.5 py-0.5 text-[11px] leading-none text-info-foreground">{activeCount}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[min(92vw,720px)] p-4" align="start">
