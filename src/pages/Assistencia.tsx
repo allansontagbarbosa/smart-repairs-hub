@@ -443,6 +443,8 @@ export default function Assistencia() {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
+  const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
+  const filtersKey = useMemo(() => filterHash(filters), [filters]);
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -450,14 +452,14 @@ export default function Assistencia() {
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key],
-    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange }),
+    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
+    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters }),
     placeholderData: (previousData) => previousData,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key],
-    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange }),
+    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
+    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange, filters }),
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
