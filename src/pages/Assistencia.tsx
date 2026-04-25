@@ -560,6 +560,8 @@ export default function Assistencia() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [debouncedClienteSearch, setDebouncedClienteSearch] = useState("");
 
   // Bulk action: confirmação pendente
   type PendingBulk =
@@ -580,6 +582,11 @@ export default function Assistencia() {
     setFilterStatus((status || "todos") as StatusFilter);
   }, [searchParams]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedClienteSearch(clienteSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [clienteSearch]);
+
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
     queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters }),
@@ -594,6 +601,59 @@ export default function Assistencia() {
   const { data: statusCounts = { todos: 0 } } = useQuery({
     queryKey: ["ordens", "status-counts", "periodo", period.key],
     queryFn: () => fetchStatusCounts({ dateRange: period.dateRange }),
+  });
+
+  const { data: clientesFiltro = [] } = useQuery({
+    queryKey: ["clientes-filtro-os", debouncedClienteSearch],
+    queryFn: async () => {
+      if (debouncedClienteSearch.length < 2) return [];
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .ilike("nome", `%${debouncedClienteSearch}%`)
+        .is("deleted_at", null)
+        .order("nome")
+        .limit(8);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: funcionariosFiltro = [] } = useQuery({
+    queryKey: ["funcionarios-filtro-os"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: marcasFiltro = [] } = useQuery({
+    queryKey: ["aparelhos-marcas-filtro-os"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("aparelhos").select("marca").order("marca");
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((item) => item.marca).filter(Boolean))).sort();
+    },
+  });
+
+  const { data: modelosFiltro = [] } = useQuery({
+    queryKey: ["aparelhos-modelos-filtro-os", filters.marca],
+    queryFn: async () => {
+      if (!filters.marca) return [];
+      const { data, error } = await supabase
+        .from("aparelhos")
+        .select("modelo")
+        .eq("marca", filters.marca)
+        .order("modelo");
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((item) => item.modelo).filter(Boolean))).sort();
+    },
   });
 
   // Fetch active guarantees for "Em garantia" badge
