@@ -4,6 +4,7 @@ import {
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
+  X, SlidersHorizontal,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,16 @@ type StatusFilter = Status | "todos";
 type PeriodPreset = "30" | "60" | "90" | "all";
 type DateRangeFilter = { de?: string; ate?: string } | null;
 type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
+type GarantiaFilter = "em_garantia" | "expirada" | "sem_garantia";
+type OrderFilters = {
+  cliente_id?: string;
+  funcionario_id?: string;
+  marca?: string;
+  modelo?: string;
+  prioridade?: string;
+  garantia?: GarantiaFilter;
+  aprovacao?: string;
+};
 
 const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: any }> = {
   critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
@@ -62,6 +73,13 @@ const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
   { value: "60", label: "60 dias" },
   { value: "90", label: "90 dias" },
   { value: "all", label: "Todo o período" },
+];
+const PRIORIDADE_OPTIONS = ["normal"];
+const APROVACAO_OPTIONS = ["aprovado", "pendente", "aguardando"];
+const GARANTIA_OPTIONS: { value: GarantiaFilter; label: string }[] = [
+  { value: "em_garantia", label: "Em garantia" },
+  { value: "expirada", label: "Expirada" },
+  { value: "sem_garantia", label: "Sem garantia" },
 ];
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
