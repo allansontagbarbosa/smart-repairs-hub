@@ -916,6 +916,20 @@ export default function Assistencia() {
     setSearchParams(next, { replace: true });
   };
 
+  const activeFilterPills = useMemo(() => {
+    const pills: { key: keyof OrderFilters; label: string }[] = [];
+    const tecnico = funcionariosFiltro.find((f) => f.id === filters.funcionario_id)?.nome;
+    const garantia = GARANTIA_OPTIONS.find((g) => g.value === filters.garantia)?.label;
+    if (filters.cliente_id) pills.push({ key: "cliente_id", label: `Cliente: ${clienteSearch || filters.cliente_id.slice(0, 8)}` });
+    if (filters.funcionario_id) pills.push({ key: "funcionario_id", label: `Técnico: ${tecnico ?? filters.funcionario_id.slice(0, 8)}` });
+    if (filters.marca) pills.push({ key: "marca", label: `Marca: ${filters.marca}` });
+    if (filters.modelo) pills.push({ key: "modelo", label: `Modelo: ${filters.modelo}` });
+    if (filters.prioridade) pills.push({ key: "prioridade", label: `Prioridade: ${filters.prioridade}` });
+    if (filters.garantia) pills.push({ key: "garantia", label: `Garantia: ${garantia ?? filters.garantia}` });
+    if (filters.aprovacao) pills.push({ key: "aprovacao", label: `Aprovação: ${filters.aprovacao}` });
+    return pills;
+  }, [filters, funcionariosFiltro, clienteSearch]);
+
   // Texto e flags para o modal de confirmação
   const tecnicosComAtual = useMemo(
     () => bulk.selectedItems.filter((o: any) => !!o.funcionario_id).length,
