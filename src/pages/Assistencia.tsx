@@ -1372,6 +1372,13 @@ export default function Assistencia() {
         </div>
 
         <div className="flex items-center gap-2">
+          {can("assistencia", "excluir") && (
+            <Button asChild variant="outline" size="sm" className="text-destructive hover:text-destructive">
+              <Link to="/assistencia/exclusao-canceladas">
+                <Trash2 className="h-4 w-4 mr-1" /> Excluir canceladas
+              </Link>
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={isExporting}>
