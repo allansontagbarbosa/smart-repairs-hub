@@ -4,8 +4,9 @@ import {
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
-  X, SlidersHorizontal,
+  X, SlidersHorizontal, Download,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +40,6 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
-import { exportOSToCSV } from "@/lib/exportOSCsv";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -216,6 +216,37 @@ async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) 
   return counts;
 }
 
+async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+  const batchSize = 1000;
+  let start = 0;
+  const rows: any[] = [];
+
+  while (true) {
+    let query = supabase
+      .from("ordens_de_servico")
+      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), funcionarios ( nome ), formas_pagamento ( nome )`)
+      .order("data_entrada", { ascending: false })
+      .range(start, start + batchSize - 1);
+
+    query = applyDateRange(query, dateRange);
+    query = applyOrderFilters(query, filters);
+
+    if (filterStatus !== "todos") {
+      query = query.eq("status", filterStatus);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < batchSize) break;
+    start += batchSize;
+  }
+
+  return rows;
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function formatCurrency(v: number | null) {
@@ -226,6 +257,73 @@ function formatCurrency(v: number | null) {
 function formatDate(d: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("pt-BR");
+}
+
+function formatDateExport(d: string | null) {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("pt-BR");
+}
+
+function formatMoneyExport(v: number | null) {
+  if (v == null) return "";
+  return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatExportFilename(ext: "csv" | "xlsx") {
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(":", "-");
+  return `ordens_de_servico_${stamp}.${ext}`;
+}
+
+function garantiaStatus(row: any) {
+  const dias = Number(row.garantia_dias ?? 0);
+  if (!dias || !row.data_entrega) return "Sem garantia";
+  const fim = new Date(row.data_entrega);
+  fim.setDate(fim.getDate() + dias);
+  return fim >= new Date() ? "Em garantia" : "Expirada";
+}
+
+function escapeCsv(value: unknown) {
+  const text = String(value ?? "");
+  if (/[",\r\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
+  return text;
+}
+
+function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.map(escapeCsv).join(","), ...rows.map((row) => headers.map((header) => escapeCsv(row[header])).join(","))].join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function toExportRows(rows: any[]) {
+  return rows.map((row) => ({
+    "Número": row.numero_formatado || `#${String(row.numero).padStart(3, "0")}`,
+    "Data Entrada": formatDateExport(row.data_entrada),
+    "Status": statusLabels[row.status as Status] ?? row.status ?? "",
+    "Prioridade": row.prioridade ?? "",
+    "Cliente": row.aparelhos?.clientes?.nome ?? "",
+    "Telefone": row.aparelhos?.clientes?.telefone ?? "",
+    "Aparelho": [row.aparelhos?.marca, row.aparelhos?.modelo].filter(Boolean).join(" "),
+    "IMEI": row.aparelhos?.imei ?? "",
+    "Defeito Relatado": row.defeito_relatado ?? "",
+    "Diagnóstico": row.diagnostico ?? "",
+    "Serviço Realizado": row.servico_realizado ?? "",
+    "Técnico": row.tecnico || row.funcionarios?.nome || "",
+    "Valor Total": formatMoneyExport(row.valor_total ?? row.valor),
+    "Forma de Pagamento": row.formas_pagamento?.nome || row.forma_pagamento_id || "",
+    "Aprovação Orçamento": row.aprovacao_orcamento ?? "",
+    "Data Conclusão": formatDateExport(row.data_conclusao),
+    "Data Entrega": formatDateExport(row.data_entrega),
+    "Garantia": garantiaStatus(row),
+  }));
 }
 
 function grupoData(dataEntrada: string): string {
@@ -562,6 +660,7 @@ export default function Assistencia() {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [clienteSearch, setClienteSearch] = useState("");
   const [debouncedClienteSearch, setDebouncedClienteSearch] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Bulk action: confirmação pendente
   type PendingBulk =
@@ -879,8 +978,30 @@ export default function Assistencia() {
     }
   };
 
-  const handleExportCSV = () => {
-    exportOSToCSV(bulk.selectedItems as any[]);
+  const handleExport = async (format: "csv" | "xlsx") => {
+    setIsExporting(true);
+    try {
+      const exportData = await fetchOrdersForExport({ filterStatus, dateRange: period.dateRange, filters });
+      if (exportData.length === 0) {
+        toast.error("Nenhuma OS encontrada para exportar");
+        return;
+      }
+
+      const rows = toExportRows(exportData);
+      if (format === "csv") {
+        downloadCsv(formatExportFilename("csv"), rows);
+      } else {
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Ordens");
+        XLSX.writeFile(wb, formatExportFilename("xlsx"));
+      }
+      toast.success(`${exportData.length} OS exportada${exportData.length > 1 ? "s" : ""}`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Falha ao exportar ordens");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handlePeriodPresetChange = (preset: PeriodPreset) => {
@@ -1295,6 +1416,22 @@ export default function Assistencia() {
           <Button variant="outline" size="sm" asChild>
             <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={isExporting}>
+                {isExporting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                {isExporting ? "Exportando..." : "Exportar"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport("csv")} disabled={isExporting}>
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("xlsx")} disabled={isExporting}>
+                Exportar Excel (.xlsx)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {can("assistencia", "criar") && (
             <Button size="sm" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova Ordem
@@ -1455,7 +1592,7 @@ export default function Assistencia() {
             onAtribuirTecnico={(funcionarioId, nome) =>
               setPendingBulk({ kind: "tecnico", funcionarioId, nome })
             }
-            onExportCSV={handleExportCSV}
+            onExportCSV={() => handleExport("csv")}
             onClear={bulk.clear}
           />
           <BulkActionConfirmDialog
