@@ -1334,6 +1334,35 @@ export default function Assistencia() {
             </div>
 
             <StatusChips counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <FiltrosAvancados
+                filters={filters}
+                clienteSearch={clienteSearch}
+                setClienteSearch={setClienteSearch}
+                clientes={clientesFiltro}
+                funcionarios={funcionariosFiltro}
+                marcas={marcasFiltro}
+                modelos={modelosFiltro}
+                onSetFilter={setAdvancedFilter}
+                onClearAll={clearAdvancedFilters}
+              />
+              {activeFilterPills.map((pill) => (
+                <button
+                  key={pill.key}
+                  onClick={() => setAdvancedFilter(pill.key, undefined)}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/80"
+                >
+                  {pill.label}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+              {activeFilterPills.length > 0 && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAdvancedFilters}>
+                  Limpar todos os filtros
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-2 flex-wrap">
