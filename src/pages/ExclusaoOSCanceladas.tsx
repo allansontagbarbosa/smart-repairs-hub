@@ -86,10 +86,10 @@ export default function ExclusaoOSCanceladas() {
 
   const { data: orders = [], isFetching } = useQuery({
     queryKey: ["os-canceladas-exclusao", trimmedSearch],
-    enabled: isAdmin && trimmedSearch.length >= 2,
+    enabled: isAdmin,
     queryFn: async () => {
       let aparelhoIds: string[] = [];
-      if (!/^[0-9]+$/.test(trimmedSearch) && !/^[0-9a-f-]{32,36}$/i.test(trimmedSearch)) {
+      if (trimmedSearch.length >= 2 && !/^[0-9]+$/.test(trimmedSearch) && !/^[0-9a-f-]{32,36}$/i.test(trimmedSearch)) {
         const { data: aparelhosData, error: aparelhosError } = await supabase
           .from("aparelhos")
           .select("id")
@@ -104,7 +104,11 @@ export default function ExclusaoOSCanceladas() {
         .select("id, numero, numero_formatado, status, data_entrada, cancelada_em, valor, aparelhos(marca, modelo, imei, clientes(nome, telefone))")
         .eq("status", "cancelado")
         .order("data_entrada", { ascending: false })
-        .limit(12);
+        .limit(100);
+
+      if (trimmedSearch.length < 2) {
+        return ((await query).data ?? []) as OrdemCancelada[];
+      }
 
       if (/^[0-9]+$/.test(trimmedSearch)) {
         query = query.eq("numero", Number(trimmedSearch));
@@ -129,7 +133,9 @@ export default function ExclusaoOSCanceladas() {
   const selectedOrders = useMemo(() => orders.filter((order) => selectedIds.has(order.id)), [orders, selectedIds]);
   const allVisibleSelected = orders.length > 0 && orders.every((order) => selectedIds.has(order.id));
   const someVisibleSelected = orders.some((order) => selectedIds.has(order.id));
-  const allSelectedValidated = selectedIds.size > 0 && Array.from(selectedIds).every((id) => validatedPreviews[id]?.can_delete);
+  const selectedValidatedCount = Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length;
+  const selectedPendingValidation = Math.max(0, selectedIds.size - selectedValidatedCount);
+  const allSelectedValidated = selectedIds.size > 0 && selectedPendingValidation === 0;
 
   const previewMutation = useMutation({
     mutationFn: async (ordemId: string) => {
@@ -208,7 +214,7 @@ export default function ExclusaoOSCanceladas() {
       });
       setPreview(results[0] ?? null);
       setSelectedOrderId(results[0]?.ordem.id ?? null);
-      toast.success(`${results.length} OS validada${results.length === 1 ? "" : "s"}`);
+      toast.success(`${results.length} OS validada${results.length === 1 ? "" : "s"}. Exclusão em lote liberada.`);
     } catch (error: any) {
       toast.error(error?.message ?? "Falha ao validar OSs selecionadas");
     }
@@ -264,8 +270,8 @@ export default function ExclusaoOSCanceladas() {
 
       <Card className="rounded-md shadow-none">
         <CardHeader>
-          <CardTitle className="text-base">Localizar OS cancelada</CardTitle>
-          <CardDescription>Busque pelo número da OS, UUID, número formatado ou IMEI.</CardDescription>
+          <CardTitle className="text-base">OS canceladas para exclusão em massa</CardTitle>
+          <CardDescription>Selecione várias OS, valide as dependências e exclua o lote definitivamente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -275,19 +281,19 @@ export default function ExclusaoOSCanceladas() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && handleSearch()}
-                placeholder="Ex: 40, 2026-00040, UUID ou IMEI"
+                placeholder="Filtrar por número, UUID, número formatado ou IMEI"
                 className="pl-9"
               />
             </div>
-            <Button onClick={handleSearch} disabled={search.trim().length < 2 || isFetching}>
+            <Button onClick={handleSearch} disabled={isFetching || (search.trim().length > 0 && search.trim().length < 2)}>
               {isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
               Buscar
             </Button>
           </div>
 
-          {trimmedSearch.length >= 2 && !isFetching && orders.length === 0 && (
+          {!isFetching && orders.length === 0 && (
             <div className="rounded-md border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-              Nenhuma OS cancelada encontrada para a busca informada.
+              Nenhuma OS cancelada encontrada.
             </div>
           )}
 
@@ -295,7 +301,8 @@ export default function ExclusaoOSCanceladas() {
             <div className="space-y-3">
               <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-muted-foreground">
-                  {selectedIds.size} selecionada{selectedIds.size === 1 ? "" : "s"} · {Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length} validada{Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length === 1 ? "" : "s"}
+                  {selectedIds.size} selecionada{selectedIds.size === 1 ? "" : "s"} · {selectedValidatedCount} validada{selectedValidatedCount === 1 ? "" : "s"}
+                  {selectedPendingValidation > 0 ? ` · ${selectedPendingValidation} pendente${selectedPendingValidation === 1 ? "" : "s"}` : ""}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={validateSelected} disabled={selectedIds.size === 0}>
@@ -311,10 +318,20 @@ export default function ExclusaoOSCanceladas() {
                       setConfirmOpen(true);
                     }}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Excluir lote
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir {selectedIds.size || ""} em lote
                   </Button>
                 </div>
               </div>
+
+              {selectedIds.size > 0 && !allSelectedValidated && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Validação obrigatória</AlertTitle>
+                  <AlertDescription>
+                    Valide todas as OS selecionadas antes de liberar a exclusão em massa. Ainda há {selectedPendingValidation} OS pendente{selectedPendingValidation === 1 ? "" : "s"} de validação.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div className="overflow-hidden rounded-md border border-border">
               <table className="w-full text-sm">
