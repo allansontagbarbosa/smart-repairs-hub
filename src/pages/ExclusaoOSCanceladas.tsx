@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import {
   Dialog,
   DialogContent,
@@ -72,8 +73,11 @@ export default function ExclusaoOSCanceladas() {
   const [search, setSearch] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [preview, setPreview] = useState<PreviewExclusao | null>(null);
+  const [validatedPreviews, setValidatedPreviews] = useState<Record<string, PreviewExclusao>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<"single" | "bulk">("single");
   const [confirmText, setConfirmText] = useState("");
   const { isAdmin, loading } = usePermissoes();
   const queryClient = useQueryClient();
@@ -122,6 +126,10 @@ export default function ExclusaoOSCanceladas() {
     () => orders.find((order) => order.id === selectedOrderId) ?? null,
     [orders, selectedOrderId],
   );
+  const selectedOrders = useMemo(() => orders.filter((order) => selectedIds.has(order.id)), [orders, selectedIds]);
+  const allVisibleSelected = orders.length > 0 && orders.every((order) => selectedIds.has(order.id));
+  const someVisibleSelected = orders.some((order) => selectedIds.has(order.id));
+  const allSelectedValidated = selectedIds.size > 0 && Array.from(selectedIds).every((id) => validatedPreviews[id]?.can_delete);
 
   const previewMutation = useMutation({
     mutationFn: async (ordemId: string) => {
@@ -131,6 +139,7 @@ export default function ExclusaoOSCanceladas() {
     },
     onSuccess: (data) => {
       setPreview(data);
+      setValidatedPreviews((current) => ({ ...current, [data.ordem.id]: data }));
       toast.success("Dependências validadas");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -138,31 +147,78 @@ export default function ExclusaoOSCanceladas() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!preview?.ordem.id) throw new Error("Valide uma OS antes de excluir");
-      const { data, error } = await (supabase as any).rpc("excluir_definitivamente_os_cancelada", {
-        p_ordem_id: preview.ordem.id,
-        p_confirmacao: confirmText,
-      });
+      const { data, error } = deleteMode === "bulk"
+        ? await (supabase as any).rpc("excluir_definitivamente_os_canceladas_lote", {
+            p_ordem_ids: Array.from(selectedIds),
+            p_confirmacao: confirmText,
+          })
+        : await (supabase as any).rpc("excluir_definitivamente_os_cancelada", {
+            p_ordem_id: preview?.ordem.id,
+            p_confirmacao: confirmText,
+          });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      toast.success("OS excluída definitivamente");
+      toast.success(deleteMode === "bulk" ? "OSs excluídas definitivamente" : "OS excluída definitivamente");
       setConfirmOpen(false);
       setConfirmText("");
       setPreview(null);
       setSelectedOrderId(null);
+      setSelectedIds(new Set());
+      setValidatedPreviews({});
       queryClient.invalidateQueries({ queryKey: ["os-canceladas-exclusao"] });
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const canDelete = !!preview?.can_delete && confirmText === CONFIRMACAO && !deleteMutation.isPending;
+  const canDelete = confirmText === CONFIRMACAO && !deleteMutation.isPending && (deleteMode === "bulk" ? allSelectedValidated : !!preview?.can_delete);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) orders.forEach((order) => next.delete(order.id));
+      else orders.forEach((order) => next.add(order.id));
+      return next;
+    });
+  };
+
+  const validateSelected = async () => {
+    if (selectedIds.size === 0) return toast.error("Selecione ao menos uma OS cancelada");
+    try {
+      const results = await Promise.all(Array.from(selectedIds).map(async (id) => {
+        const { data, error } = await (supabase as any).rpc("preview_exclusao_os_cancelada", { p_ordem_id: id });
+        if (error) throw error;
+        return data as PreviewExclusao;
+      }));
+      setValidatedPreviews((current) => {
+        const next = { ...current };
+        results.forEach((item) => { next[item.ordem.id] = item; });
+        return next;
+      });
+      setPreview(results[0] ?? null);
+      setSelectedOrderId(results[0]?.ordem.id ?? null);
+      toast.success(`${results.length} OS validada${results.length === 1 ? "" : "s"}`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Falha ao validar OSs selecionadas");
+    }
+  };
 
   const handleSearch = () => {
     setPreview(null);
     setSelectedOrderId(null);
+    setSelectedIds(new Set());
+    setValidatedPreviews({});
     setSubmittedSearch(search);
   };
 
@@ -236,20 +292,51 @@ export default function ExclusaoOSCanceladas() {
           )}
 
           {orders.length > 0 && (
-            <div className="overflow-hidden rounded-md border border-border">
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {selectedIds.size} selecionada{selectedIds.size === 1 ? "" : "s"} · {Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length} validada{Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length === 1 ? "" : "s"}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={validateSelected} disabled={selectedIds.size === 0}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Validar selecionadas
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={!allSelectedValidated}
+                    onClick={() => {
+                      setDeleteMode("bulk");
+                      setConfirmText("");
+                      setConfirmOpen(true);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir lote
+                  </Button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-md border border-border">
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
                   <tr>
+                    <th className="w-10 px-3 py-2 font-medium">
+                      <HeaderCheckbox allSelected={allVisibleSelected} someSelected={someVisibleSelected && !allVisibleSelected} onToggle={toggleAllVisible} />
+                    </th>
                     <th className="px-3 py-2 font-medium">OS</th>
                     <th className="px-3 py-2 font-medium">Cliente / aparelho</th>
                     <th className="px-3 py-2 font-medium">Entrada</th>
                     <th className="px-3 py-2 font-medium">Cancelada em</th>
+                    <th className="px-3 py-2 font-medium">Validação</th>
                     <th className="px-3 py-2 text-right font-medium">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id} className="border-b last:border-b-0">
+                      <td className="px-3 py-3">
+                        <RowCheckbox checked={selectedIds.has(order.id)} onToggle={() => toggleSelected(order.id)} />
+                      </td>
                       <td className="px-3 py-3 font-mono text-sm">
                         #{order.numero_formatado ?? String(order.numero ?? "—").padStart(3, "0")}
                         <Badge variant="secondary" className="ml-2">Cancelada</Badge>
@@ -262,6 +349,13 @@ export default function ExclusaoOSCanceladas() {
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(order.data_entrada)}</td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(order.cancelada_em)}</td>
+                      <td className="px-3 py-3">
+                        {validatedPreviews[order.id]?.can_delete ? (
+                          <Badge variant="secondary" className="gap-1 text-success"><CheckCircle2 className="h-3 w-3" /> Validada</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Pendente</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3 text-right">
                         <Button
                           variant={selectedOrderId === order.id ? "default" : "outline"}
@@ -281,6 +375,7 @@ export default function ExclusaoOSCanceladas() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -314,7 +409,11 @@ export default function ExclusaoOSCanceladas() {
             </div>
 
             <div className="flex justify-end">
-              <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+              <Button variant="destructive" onClick={() => {
+                setDeleteMode("single");
+                setConfirmText("");
+                setConfirmOpen(true);
+              }}>
                 <Trash2 className="mr-2 h-4 w-4" /> Excluir definitivamente
               </Button>
             </div>
@@ -327,10 +426,22 @@ export default function ExclusaoOSCanceladas() {
           <DialogHeader>
             <DialogTitle>Confirmar exclusão definitiva</DialogTitle>
             <DialogDescription>
-              Esta ação removerá permanentemente a OS cancelada e suas dependências mapeadas.
+              {deleteMode === "bulk"
+                ? `Esta ação removerá permanentemente ${selectedIds.size} OSs canceladas e suas dependências mapeadas.`
+                : "Esta ação removerá permanentemente a OS cancelada e suas dependências mapeadas."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {deleteMode === "bulk" && (
+              <div className="max-h-40 overflow-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
+                {selectedOrders.map((order) => (
+                  <div key={order.id} className="flex items-center justify-between gap-3 py-1">
+                    <span className="font-mono">#{order.numero_formatado ?? order.numero}</span>
+                    <span className="truncate text-muted-foreground">{order.aparelhos?.clientes?.nome ?? "—"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <Alert variant="destructive">
               <XCircle className="h-4 w-4" />
               <AlertTitle>Não será possível desfazer</AlertTitle>
