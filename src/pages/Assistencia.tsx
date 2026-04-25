@@ -1153,7 +1153,7 @@ export default function Assistencia() {
 
     const isSelected = isAdmin && bulk.isSelected(order.id);
     return (
-      <tr className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
+      <tr className={`border-b-[0.5px] border-border/70 hover:bg-muted/30 transition-colors ${isCritica ? "bg-destructive/5" : ""} ${isCancelada ? "opacity-60" : ""} ${isSelected ? "bg-primary/5" : ""}`}>
         {isAdmin && (
           <td className="px-3 py-2.5 w-8" onClick={(e) => e.stopPropagation()}>
             <RowCheckbox
@@ -1162,20 +1162,20 @@ export default function Assistencia() {
             />
           </td>
         )}
-        <td className="px-3 py-2.5 font-mono text-xs text-primary cursor-pointer hover:underline"
+        <td className="w-[70px] px-3 py-3 font-mono text-[13px] font-medium text-info cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
           #{String(order.numero).padStart(3, "0")}
           {isCancelada && (
-            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-semibold">
+            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-medium">
               <XCircle className="h-2.5 w-2.5" /> Cancelada
             </span>
           )}
         </td>
 
-        <td className="px-3 py-2.5 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
-          <p className="text-sm font-medium truncate max-w-[180px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
-          <p className="text-xs text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
+        <td className="px-3 py-3 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
+          <p className="text-[13px] font-medium truncate max-w-[260px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
+          <p className="text-[12px] text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
           <div className="flex gap-2 mt-0.5 flex-wrap">
             <PrazoTag previsao={order.previsao_entrega} status={order.status} />
             <PecasPendentesTag temPeca={order.temPecaPendente} />
@@ -1192,21 +1192,15 @@ export default function Assistencia() {
           </div>
         </td>
 
-        <td className="px-3 py-2.5">
+        <td className="w-[110px] px-3 py-3">
           <PrioridadeBadge nivel={order.prioridade.nivel} motivo={order.prioridade.motivo} />
         </td>
 
-        <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate cursor-pointer"
-          onClick={() => setSelectedOrderId(order.id)}
-        >
-          {order.defeito_relatado}
-        </td>
-
-        <td className="px-3 py-2.5">
+        <td className="px-3 py-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="focus:outline-none">
-                <StatusBadge status={order.status} />
+                <StatusDot status={order.status as Status} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -1234,14 +1228,14 @@ export default function Assistencia() {
           </DropdownMenu>
         </td>
 
-        <td className="px-3 py-2.5 text-xs text-muted-foreground">
+        <td className="w-[95px] px-3 py-3 text-[13px] text-muted-foreground">
           {formatDate(order.data_entrada)}
         </td>
 
-        <td className="px-3 py-2.5 text-xs text-right">
+        <td className="w-[80px] px-3 py-3 text-right text-[13px] tabular-nums">
           {valor ? (
-            <span className={lucro >= 0 ? "text-success font-medium" : "text-destructive font-medium"}>
-              {formatCurrency(lucro)}
+            <span className="text-foreground font-normal">
+              {formatCurrency(valor)}
             </span>
           ) : (
             <span className="text-muted-foreground">—</span>
