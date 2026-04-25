@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
@@ -528,7 +528,7 @@ function FilterSelect({
   value?: string;
   onChange: (value?: string) => void;
   disabled?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
