@@ -242,7 +242,7 @@ function StatusChips({
 export default function Assistencia() {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("todos");
   const [filterPrioridade, setFilterPrioridade] = useState<"todas" | Prioridade>("todas");
   const [sortKey, setSortKey] = useState<SortKey>("prioridade");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -265,12 +265,18 @@ export default function Assistencia() {
 
   useEffect(() => {
     const status = searchParams.get("status");
-    setFilterStatus(status || "todos");
+    setFilterStatus((status || "todos") as StatusFilter);
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "ultimos-90"],
-    queryFn: fetchOrders,
+    queryKey: ["ordens", "lista", { page, filterStatus }],
+    queryFn: () => fetchOrders({ page, filterStatus }),
+    placeholderData: (previousData) => previousData,
+  });
+
+  const { data: totalOrders = 0 } = useQuery({
+    queryKey: ["ordens", "lista-count", { filterStatus }],
+    queryFn: () => fetchOrdersCount({ filterStatus }),
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
@@ -903,7 +909,7 @@ export default function Assistencia() {
               />
             </div>
 
-            <StatusChips counts={statusCounts} active={filterStatus} onChange={setFilterStatus} />
+            <StatusChips counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
           </div>
 
           <div className="flex items-center justify-between gap-2 flex-wrap">
