@@ -1416,6 +1416,22 @@ export default function Assistencia() {
           <Button variant="outline" size="sm" asChild>
             <Link to="/assistencia/fluxo"><LayoutGrid className="h-4 w-4 mr-1" /> Kanban</Link>
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={isExporting}>
+                {isExporting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                {isExporting ? "Exportando..." : "Exportar"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport("csv")} disabled={isExporting}>
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("xlsx")} disabled={isExporting}>
+                Exportar Excel (.xlsx)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {can("assistencia", "criar") && (
             <Button size="sm" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova Ordem
@@ -1576,7 +1592,7 @@ export default function Assistencia() {
             onAtribuirTecnico={(funcionarioId, nome) =>
               setPendingBulk({ kind: "tecnico", funcionarioId, nome })
             }
-            onExportCSV={handleExportCSV}
+            onExportCSV={() => handleExport("csv")}
             onClear={bulk.clear}
           />
           <BulkActionConfirmDialog
