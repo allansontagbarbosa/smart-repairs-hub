@@ -781,7 +781,7 @@ export default function Assistencia() {
 
   useEffect(() => {
     setPage(0);
-  }, [filterStatus, filterPrioridade, search, sortKey, sortDir, period.key]);
+  }, [filterStatus, filterPrioridade, search, sortKey, sortDir, period.key, filtersKey]);
 
   useEffect(() => {
     if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
@@ -795,7 +795,7 @@ export default function Assistencia() {
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search, page, period.key]);
+  }, [filterStatus, filterPrioridade, search, page, period.key, filtersKey]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
@@ -898,6 +898,21 @@ export default function Assistencia() {
     else next.delete("de");
     if (ate) next.set("ate", ate);
     else next.delete("ate");
+    setSearchParams(next, { replace: true });
+  };
+
+  const setAdvancedFilter = (key: keyof OrderFilters, value?: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key === "marca") next.delete("modelo");
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearAdvancedFilters = () => {
+    const next = new URLSearchParams(searchParams);
+    ["cliente_id", "funcionario_id", "marca", "modelo", "prioridade", "garantia", "aprovacao"].forEach((key) => next.delete(key));
+    setClienteSearch("");
     setSearchParams(next, { replace: true });
   };
 
