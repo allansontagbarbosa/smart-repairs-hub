@@ -356,11 +356,11 @@ export default function Assistencia() {
   // Itens selecionáveis = a página atual visível (sorted)
   const bulk = useBulkSelection(isAdmin ? sorted : undefined);
 
-  // Limpa seleção quando filtro/busca/página muda
+  // Limpa seleção quando filtro/busca muda
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search, page, showOlder]);
+  }, [filterStatus, filterPrioridade, search]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
