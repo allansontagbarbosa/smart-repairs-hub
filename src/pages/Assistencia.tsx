@@ -40,7 +40,6 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
-import { exportOSToCSV } from "@/lib/exportOSCsv";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -661,6 +660,7 @@ export default function Assistencia() {
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const [clienteSearch, setClienteSearch] = useState("");
   const [debouncedClienteSearch, setDebouncedClienteSearch] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Bulk action: confirmação pendente
   type PendingBulk =
@@ -978,8 +978,30 @@ export default function Assistencia() {
     }
   };
 
-  const handleExportCSV = () => {
-    exportOSToCSV(bulk.selectedItems as any[]);
+  const handleExport = async (format: "csv" | "xlsx") => {
+    setIsExporting(true);
+    try {
+      const exportData = await fetchOrdersForExport({ filterStatus, dateRange: period.dateRange, filters });
+      if (exportData.length === 0) {
+        toast.error("Nenhuma OS encontrada para exportar");
+        return;
+      }
+
+      const rows = toExportRows(exportData);
+      if (format === "csv") {
+        downloadCsv(formatExportFilename("csv"), rows);
+      } else {
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Ordens");
+        XLSX.writeFile(wb, formatExportFilename("xlsx"));
+      }
+      toast.success(`${exportData.length} OS exportada${exportData.length > 1 ? "s" : ""}`);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Falha ao exportar ordens");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handlePeriodPresetChange = (preset: PeriodPreset) => {
