@@ -1,12 +1,18 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
-export function useBulkSelection<T extends { id: string }>(items: T[] | undefined) {
+export function useBulkSelection<T extends { id: string }>(items: T[] | undefined, options?: { preserveAcrossItems?: boolean }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const lastToggledRef = useRef<string | null>(null);
+  const itemCacheRef = useRef<Map<string, T>>(new Map());
+  const preserveAcrossItems = options?.preserveAcrossItems ?? false;
+
+  useEffect(() => {
+    items?.forEach((item) => itemCacheRef.current.set(item.id, item));
+  }, [items, preserveAcrossItems]);
 
   // Limpa seleção de IDs que sumiram da lista (filtro mudou, item removido, etc.)
   useEffect(() => {
-    if (!items || selectedIds.size === 0) return;
+    if (preserveAcrossItems || !items || selectedIds.size === 0) return;
     const visible = new Set(items.map(i => i.id));
     let changed = false;
     const next = new Set<string>();
@@ -15,7 +21,7 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
       else changed = true;
     });
     if (changed) setSelectedIds(next);
-  }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [items, preserveAcrossItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggle = useCallback((id: string, opts?: { shiftKey?: boolean }) => {
     setSelectedIds(prev => {
@@ -46,18 +52,26 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
 
   const toggleAll = useCallback(() => {
     if (!items) return;
-    setSelectedIds(prev =>
-      prev.size === items.length ? new Set() : new Set(items.map(i => i.id))
-    );
+    setSelectedIds(prev => {
+      const next = preserveAcrossItems ? new Set(prev) : new Set<string>();
+      const allVisibleSelected = items.length > 0 && items.every((item) => prev.has(item.id));
+      items.forEach((item) => {
+        if (allVisibleSelected) next.delete(item.id);
+        else next.add(item.id);
+      });
+      return next;
+    });
   }, [items]);
 
   const clear = useCallback(() => setSelectedIds(new Set()), []);
 
-  const allSelected = !!items && items.length > 0 && selectedIds.size === items.length;
-  const someSelected = selectedIds.size > 0 && !allSelected;
+  const allSelected = !!items && items.length > 0 && items.every((item) => selectedIds.has(item.id));
+  const someSelected = !!items && items.some((item) => selectedIds.has(item.id)) && !allSelected;
 
   const selectedItems = useMemo(
-    () => items?.filter(i => selectedIds.has(i.id)) ?? [],
+    () => Array.from(selectedIds)
+      .map((id) => itemCacheRef.current.get(id))
+      .filter(Boolean) as T[],
     [items, selectedIds],
   );
 

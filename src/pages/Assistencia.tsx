@@ -895,13 +895,13 @@ export default function Assistencia() {
 
   // ── BULK SELECTION ────────────────────────────────────────────────────────
   // Itens selecionáveis = a página atual visível (sorted)
-  const bulk = useBulkSelection(isAdmin ? paginatedSorted : undefined);
+  const bulk = useBulkSelection(isAdmin ? paginatedSorted : undefined, { preserveAcrossItems: true });
 
-  // Limpa seleção quando filtro/busca muda
+  // Limpa seleção quando filtro/busca muda; preserva ao trocar de página
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search, page, period.key, filtersKey]);
+  }, [filterStatus, filterPrioridade, search, period.key, filtersKey]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
