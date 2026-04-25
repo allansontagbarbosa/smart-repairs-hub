@@ -1461,6 +1461,11 @@ export default function Assistencia() {
                 <DropdownMenuItem onClick={() => refetch()} disabled={isFetching}>
                   <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/assistencia/exclusao-canceladas"><Trash2 className="mr-2 h-4 w-4" /> Excluir canceladas</Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
