@@ -6,9 +6,13 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
   const itemCacheRef = useRef<Map<string, T>>(new Map());
   const preserveAcrossItems = options?.preserveAcrossItems ?? false;
 
+  if (items) {
+    items.forEach((item) => itemCacheRef.current.set(item.id, item));
+  }
+
   useEffect(() => {
     items?.forEach((item) => itemCacheRef.current.set(item.id, item));
-  }, [items, preserveAcrossItems]);
+  }, [items]);
 
   // Limpa seleção de IDs que sumiram da lista (filtro mudou, item removido, etc.)
   useEffect(() => {
@@ -48,7 +52,7 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
       lastToggledRef.current = id;
       return next;
     });
-  }, [items]);
+  }, [items, preserveAcrossItems]);
 
   const toggleAll = useCallback(() => {
     if (!items) return;
@@ -68,12 +72,12 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
   const allSelected = !!items && items.length > 0 && items.every((item) => selectedIds.has(item.id));
   const someSelected = !!items && items.some((item) => selectedIds.has(item.id)) && !allSelected;
 
-  const selectedItems = useMemo(
-    () => Array.from(selectedIds)
-      .map((id) => itemCacheRef.current.get(id))
-      .filter(Boolean) as T[],
-    [items, selectedIds],
-  );
+  const selectedItems = useMemo(() => {
+    const currentItems = new Map(items?.map((item) => [item.id, item]) ?? []);
+    return Array.from(selectedIds)
+      .map((id) => currentItems.get(id) ?? itemCacheRef.current.get(id))
+      .filter(Boolean) as T[];
+  }, [items, selectedIds]);
 
   return {
     selectedIds,
