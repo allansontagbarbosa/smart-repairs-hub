@@ -292,20 +292,51 @@ export default function ExclusaoOSCanceladas() {
           )}
 
           {orders.length > 0 && (
-            <div className="overflow-hidden rounded-md border border-border">
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {selectedIds.size} selecionada{selectedIds.size === 1 ? "" : "s"} · {Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length} validada{Array.from(selectedIds).filter((id) => validatedPreviews[id]?.can_delete).length === 1 ? "" : "s"}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={validateSelected} disabled={selectedIds.size === 0}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Validar selecionadas
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={!allSelectedValidated}
+                    onClick={() => {
+                      setDeleteMode("bulk");
+                      setConfirmText("");
+                      setConfirmOpen(true);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir lote
+                  </Button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-md border border-border">
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
                   <tr>
+                    <th className="w-10 px-3 py-2 font-medium">
+                      <HeaderCheckbox allSelected={allVisibleSelected} someSelected={someVisibleSelected && !allVisibleSelected} onToggle={toggleAllVisible} />
+                    </th>
                     <th className="px-3 py-2 font-medium">OS</th>
                     <th className="px-3 py-2 font-medium">Cliente / aparelho</th>
                     <th className="px-3 py-2 font-medium">Entrada</th>
                     <th className="px-3 py-2 font-medium">Cancelada em</th>
+                    <th className="px-3 py-2 font-medium">Validação</th>
                     <th className="px-3 py-2 text-right font-medium">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id} className="border-b last:border-b-0">
+                      <td className="px-3 py-3">
+                        <RowCheckbox checked={selectedIds.has(order.id)} onToggle={() => toggleSelected(order.id)} />
+                      </td>
                       <td className="px-3 py-3 font-mono text-sm">
                         #{order.numero_formatado ?? String(order.numero ?? "—").padStart(3, "0")}
                         <Badge variant="secondary" className="ml-2">Cancelada</Badge>
@@ -318,6 +349,13 @@ export default function ExclusaoOSCanceladas() {
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(order.data_entrada)}</td>
                       <td className="px-3 py-3 text-muted-foreground">{formatDate(order.cancelada_em)}</td>
+                      <td className="px-3 py-3">
+                        {validatedPreviews[order.id]?.can_delete ? (
+                          <Badge variant="secondary" className="gap-1 text-success"><CheckCircle2 className="h-3 w-3" /> Validada</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Pendente</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3 text-right">
                         <Button
                           variant={selectedOrderId === order.id ? "default" : "outline"}
@@ -337,6 +375,7 @@ export default function ExclusaoOSCanceladas() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </CardContent>
