@@ -4022,6 +4022,10 @@ export type Database = {
         Args: { p_confirmacao: string; p_ordem_id: string }
         Returns: Json
       }
+      excluir_definitivamente_os_canceladas_lote: {
+        Args: { p_confirmacao: string; p_ordem_ids: string[] }
+        Returns: Json
+      }
       get_clientes_com_stats: {
         Args: never
         Returns: {
