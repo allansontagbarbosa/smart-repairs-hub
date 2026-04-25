@@ -165,7 +165,7 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
 
   let query = supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) )`)
     .order("data_entrada", { ascending: false })
     .range(start, end);
 
@@ -184,7 +184,7 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
 async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   let query = supabase
     .from("ordens_de_servico")
-    .select("*", { count: "exact", head: true });
+    .select("*, aparelhos!inner(cliente_id, marca, modelo)", { count: "exact", head: true });
 
   query = applyDateRange(query, dateRange);
   query = applyOrderFilters(query, filters);
