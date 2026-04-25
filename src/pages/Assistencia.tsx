@@ -385,6 +385,7 @@ export default function Assistencia() {
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
+  const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
 
   useEffect(() => {
     const status = searchParams.get("status");
@@ -392,19 +393,19 @@ export default function Assistencia() {
   }, [searchParams]);
 
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "page", page, "status", filterStatus],
-    queryFn: () => fetchOrders({ page, filterStatus }),
+    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key],
+    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange }),
     placeholderData: (previousData) => previousData,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens-count", "status", filterStatus],
-    queryFn: () => fetchOrdersCount({ filterStatus }),
+    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key],
+    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange }),
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
-    queryKey: ["ordens", "ultimos-90", "status-counts"],
-    queryFn: fetchStatusCounts,
+    queryKey: ["ordens", "status-counts", "periodo", period.key],
+    queryFn: () => fetchStatusCounts({ dateRange: period.dateRange }),
   });
 
   // Fetch active guarantees for "Em garantia" badge
