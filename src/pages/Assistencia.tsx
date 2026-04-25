@@ -54,17 +54,44 @@ const LIST_PAGE_SIZE = 30;
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
 
-async function fetchOrders() {
+async function fetchOrders({ page, filterStatus }: { page: number; filterStatus: string }) {
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const start = page * LIST_PAGE_SIZE;
+  const end = start + LIST_PAGE_SIZE - 1;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
     .gte("data_entrada", ninetyDaysAgo.toISOString())
-    .order("data_entrada", { ascending: false });
+    .order("data_entrada", { ascending: false })
+    .range(start, end);
+
+  if (filterStatus !== "todos") {
+    query = query.eq("status", filterStatus);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+async function fetchOrdersCount({ filterStatus }: { filterStatus: string }) {
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  let query = supabase
+    .from("ordens_de_servico")
+    .select("*", { count: "exact", head: true })
+    .gte("data_entrada", ninetyDaysAgo.toISOString());
+
+  if (filterStatus !== "todos") {
+    query = query.eq("status", filterStatus);
+  }
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return count ?? 0;
 }
 
 async function fetchStatusCounts() {
