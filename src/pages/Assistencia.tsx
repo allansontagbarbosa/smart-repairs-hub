@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, SortAsc, Filter, Printer, Brain, Shield, Trash2, XCircle,
+  X, SlidersHorizontal,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -48,6 +49,16 @@ type StatusFilter = Status | "todos";
 type PeriodPreset = "30" | "60" | "90" | "all";
 type DateRangeFilter = { de?: string; ate?: string } | null;
 type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
+type GarantiaFilter = "em_garantia" | "expirada" | "sem_garantia";
+type OrderFilters = {
+  cliente_id?: string;
+  funcionario_id?: string;
+  marca?: string;
+  modelo?: string;
+  prioridade?: string;
+  garantia?: GarantiaFilter;
+  aprovacao?: string;
+};
 
 const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: any }> = {
   critica: { color: "text-destructive", bg: "bg-destructive/10 border-destructive/30", icon: AlertTriangle },
@@ -62,6 +73,13 @@ const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
   { value: "60", label: "60 dias" },
   { value: "90", label: "90 dias" },
   { value: "all", label: "Todo o período" },
+];
+const PRIORIDADE_OPTIONS = ["normal"];
+const APROVACAO_OPTIONS = ["aprovado", "pendente", "aguardando"];
+const GARANTIA_OPTIONS: { value: GarantiaFilter; label: string }[] = [
+  { value: "em_garantia", label: "Em garantia" },
+  { value: "expirada", label: "Expirada" },
+  { value: "sem_garantia", label: "Sem garantia" },
 ];
 
 // ─── DATA FETCH ───────────────────────────────────────────────────────────────
@@ -85,6 +103,43 @@ function applyDateRange<T extends ReturnType<typeof supabase.from>>(query: any, 
   return query;
 }
 
+function filterHash(filters: OrderFilters) {
+  return JSON.stringify(Object.keys(filters).sort().reduce((acc, key) => {
+    const value = filters[key as keyof OrderFilters];
+    if (value) acc[key] = value;
+    return acc;
+  }, {} as Record<string, string>));
+}
+
+function getFiltersFromParams(params: URLSearchParams): OrderFilters {
+  return {
+    cliente_id: params.get("cliente_id") || undefined,
+    funcionario_id: params.get("funcionario_id") || undefined,
+    marca: params.get("marca") || undefined,
+    modelo: params.get("modelo") || undefined,
+    prioridade: params.get("prioridade") || undefined,
+    garantia: (params.get("garantia") as GarantiaFilter | null) || undefined,
+    aprovacao: params.get("aprovacao") || undefined,
+  };
+}
+
+function applyOrderFilters<T extends ReturnType<typeof supabase.from>>(query: any, filters: OrderFilters): T {
+  if (filters.cliente_id) query = query.eq("aparelhos.cliente_id", filters.cliente_id);
+  if (filters.funcionario_id) query = query.eq("funcionario_id", filters.funcionario_id);
+  if (filters.marca) query = query.eq("aparelhos.marca", filters.marca);
+  if (filters.modelo) query = query.eq("aparelhos.modelo", filters.modelo);
+  if (filters.prioridade) query = query.eq("prioridade", filters.prioridade);
+  if (filters.aprovacao) query = query.eq("aprovacao_orcamento", filters.aprovacao);
+  if (filters.garantia === "em_garantia") {
+    query = query.gt("garantia_dias", 0).not("data_entrega", "is", null).gte("data_entrega", dateOnly(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)));
+  } else if (filters.garantia === "expirada") {
+    query = query.gt("garantia_dias", 0).not("data_entrega", "is", null).lt("data_entrega", dateOnly(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)));
+  } else if (filters.garantia === "sem_garantia") {
+    query = query.or("garantia_dias.eq.0,data_entrega.is.null");
+  }
+  return query;
+}
+
 function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   const de = params.get("de") || undefined;
   const ate = params.get("ate") || undefined;
@@ -104,17 +159,18 @@ function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
 }
 
-async function fetchOrders({ page, filterStatus, dateRange }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
+async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   const start = page * LIST_PAGE_SIZE;
   const end = start + LIST_PAGE_SIZE - 1;
 
   let query = supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, imei, capacidade, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) )`)
     .order("data_entrada", { ascending: false })
     .range(start, end);
 
   query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -125,12 +181,13 @@ async function fetchOrders({ page, filterStatus, dateRange }: { page: number; fi
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus, dateRange }: { filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
+async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   let query = supabase
     .from("ordens_de_servico")
-    .select("*", { count: "exact", head: true });
+    .select("*, aparelhos!inner(cliente_id, marca, modelo)", { count: "exact", head: true });
 
   query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -360,6 +417,135 @@ function FiltroPeriodo({
   );
 }
 
+function FiltrosAvancados({
+  filters,
+  clienteSearch,
+  setClienteSearch,
+  clientes,
+  funcionarios,
+  marcas,
+  modelos,
+  onSetFilter,
+  onClearAll,
+}: {
+  filters: OrderFilters;
+  clienteSearch: string;
+  setClienteSearch: (value: string) => void;
+  clientes: { id: string; nome: string; telefone: string | null }[];
+  funcionarios: { id: string; nome: string }[];
+  marcas: string[];
+  modelos: string[];
+  onSetFilter: (key: keyof OrderFilters, value?: string) => void;
+  onClearAll: () => void;
+}) {
+  const activeCount = Object.values(filters).filter(Boolean).length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <SlidersHorizontal className="h-4 w-4" />
+          Filtros{activeCount > 0 ? ` (${activeCount})` : ""}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[min(92vw,720px)] p-4" align="start">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold">Filtros avançados</h3>
+            {activeCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={onClearAll} className="h-8 text-xs">
+                Limpar todos os filtros
+              </Button>
+            )}
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Cliente</label>
+              <Input
+                value={clienteSearch}
+                onChange={(e) => setClienteSearch(e.target.value)}
+                placeholder="Buscar cliente"
+                className="h-9 text-sm"
+              />
+              {clientes.length > 0 && (
+                <div className="max-h-36 overflow-auto rounded-md border border-border bg-background">
+                  {clientes.map((cliente) => (
+                    <button
+                      key={cliente.id}
+                      className="block w-full px-3 py-2 text-left text-xs hover:bg-muted"
+                      onClick={() => {
+                        onSetFilter("cliente_id", cliente.id);
+                        setClienteSearch(cliente.nome);
+                      }}
+                    >
+                      <span className="font-medium text-foreground">{cliente.nome}</span>
+                      <span className="block text-muted-foreground">{cliente.telefone ?? "Sem telefone"}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <FilterSelect label="Técnico/Funcionário" value={filters.funcionario_id} onChange={(v) => onSetFilter("funcionario_id", v)}>
+              {funcionarios.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Marca" value={filters.marca} onChange={(v) => onSetFilter("marca", v)}>
+              {marcas.map((marca) => <option key={marca} value={marca}>{marca}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Modelo" value={filters.modelo} onChange={(v) => onSetFilter("modelo", v)} disabled={!filters.marca}>
+              {modelos.map((modelo) => <option key={modelo} value={modelo}>{modelo}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Prioridade" value={filters.prioridade} onChange={(v) => onSetFilter("prioridade", v)}>
+              {PRIORIDADE_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Garantia" value={filters.garantia} onChange={(v) => onSetFilter("garantia", v)}>
+              {GARANTIA_OPTIONS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+            </FilterSelect>
+
+            <FilterSelect label="Aprovação" value={filters.aprovacao} onChange={(v) => onSetFilter("aprovacao", v)}>
+              {APROVACAO_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+            </FilterSelect>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  disabled,
+  children,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value?: string) => void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <select
+        value={value ?? ""}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <option value="">Todos</option>
+        {children}
+      </select>
+    </div>
+  );
+}
+
 // ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 export default function Assistencia() {
@@ -374,6 +560,8 @@ export default function Assistencia() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [debouncedClienteSearch, setDebouncedClienteSearch] = useState("");
 
   // Bulk action: confirmação pendente
   type PendingBulk =
@@ -386,26 +574,86 @@ export default function Assistencia() {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
+  const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
+  const filtersKey = useMemo(() => filterHash(filters), [filters]);
 
   useEffect(() => {
     const status = searchParams.get("status");
     setFilterStatus((status || "todos") as StatusFilter);
   }, [searchParams]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedClienteSearch(clienteSearch.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [clienteSearch]);
+
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key],
-    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange }),
+    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
+    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters }),
     placeholderData: (previousData) => previousData,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key],
-    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange }),
+    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
+    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange, filters }),
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
     queryKey: ["ordens", "status-counts", "periodo", period.key],
     queryFn: () => fetchStatusCounts({ dateRange: period.dateRange }),
+  });
+
+  const { data: clientesFiltro = [] } = useQuery({
+    queryKey: ["clientes-filtro-os", debouncedClienteSearch],
+    queryFn: async () => {
+      if (debouncedClienteSearch.length < 2) return [];
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .ilike("nome", `%${debouncedClienteSearch}%`)
+        .is("deleted_at", null)
+        .order("nome")
+        .limit(8);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: funcionariosFiltro = [] } = useQuery({
+    queryKey: ["funcionarios-filtro-os"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: marcasFiltro = [] } = useQuery({
+    queryKey: ["aparelhos-marcas-filtro-os"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("aparelhos").select("marca").order("marca");
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((item) => item.marca).filter(Boolean))).sort();
+    },
+  });
+
+  const { data: modelosFiltro = [] } = useQuery({
+    queryKey: ["aparelhos-modelos-filtro-os", filters.marca],
+    queryFn: async () => {
+      if (!filters.marca) return [];
+      const { data, error } = await supabase
+        .from("aparelhos")
+        .select("modelo")
+        .eq("marca", filters.marca)
+        .order("modelo");
+      if (error) throw error;
+      return Array.from(new Set((data ?? []).map((item) => item.modelo).filter(Boolean))).sort();
+    },
   });
 
   // Fetch active guarantees for "Em garantia" badge
@@ -533,7 +781,7 @@ export default function Assistencia() {
 
   useEffect(() => {
     setPage(0);
-  }, [filterStatus, filterPrioridade, search, sortKey, sortDir, period.key]);
+  }, [filterStatus, filterPrioridade, search, sortKey, sortDir, period.key, filtersKey]);
 
   useEffect(() => {
     if (page >= totalPages) setPage(Math.max(0, totalPages - 1));
@@ -547,7 +795,7 @@ export default function Assistencia() {
   useEffect(() => {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterPrioridade, search, page, period.key]);
+  }, [filterStatus, filterPrioridade, search, page, period.key, filtersKey]);
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
@@ -652,6 +900,35 @@ export default function Assistencia() {
     else next.delete("ate");
     setSearchParams(next, { replace: true });
   };
+
+  const setAdvancedFilter = (key: keyof OrderFilters, value?: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    if (key === "marca") next.delete("modelo");
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearAdvancedFilters = () => {
+    const next = new URLSearchParams(searchParams);
+    ["cliente_id", "funcionario_id", "marca", "modelo", "prioridade", "garantia", "aprovacao"].forEach((key) => next.delete(key));
+    setClienteSearch("");
+    setSearchParams(next, { replace: true });
+  };
+
+  const activeFilterPills = useMemo(() => {
+    const pills: { key: keyof OrderFilters; label: string }[] = [];
+    const tecnico = funcionariosFiltro.find((f) => f.id === filters.funcionario_id)?.nome;
+    const garantia = GARANTIA_OPTIONS.find((g) => g.value === filters.garantia)?.label;
+    if (filters.cliente_id) pills.push({ key: "cliente_id", label: `Cliente: ${clienteSearch || filters.cliente_id.slice(0, 8)}` });
+    if (filters.funcionario_id) pills.push({ key: "funcionario_id", label: `Técnico: ${tecnico ?? filters.funcionario_id.slice(0, 8)}` });
+    if (filters.marca) pills.push({ key: "marca", label: `Marca: ${filters.marca}` });
+    if (filters.modelo) pills.push({ key: "modelo", label: `Modelo: ${filters.modelo}` });
+    if (filters.prioridade) pills.push({ key: "prioridade", label: `Prioridade: ${filters.prioridade}` });
+    if (filters.garantia) pills.push({ key: "garantia", label: `Garantia: ${garantia ?? filters.garantia}` });
+    if (filters.aprovacao) pills.push({ key: "aprovacao", label: `Aprovação: ${filters.aprovacao}` });
+    return pills;
+  }, [filters, funcionariosFiltro, clienteSearch]);
 
   // Texto e flags para o modal de confirmação
   const tecnicosComAtual = useMemo(
@@ -1057,6 +1334,35 @@ export default function Assistencia() {
             </div>
 
             <StatusChips counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <FiltrosAvancados
+                filters={filters}
+                clienteSearch={clienteSearch}
+                setClienteSearch={setClienteSearch}
+                clientes={clientesFiltro}
+                funcionarios={funcionariosFiltro}
+                marcas={marcasFiltro}
+                modelos={modelosFiltro}
+                onSetFilter={setAdvancedFilter}
+                onClearAll={clearAdvancedFilters}
+              />
+              {activeFilterPills.map((pill) => (
+                <button
+                  key={pill.key}
+                  onClick={() => setAdvancedFilter(pill.key, undefined)}
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/80"
+                >
+                  {pill.label}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+              {activeFilterPills.length > 0 && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={clearAdvancedFilters}>
+                  Limpar todos os filtros
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-2 flex-wrap">
