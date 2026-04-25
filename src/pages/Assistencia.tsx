@@ -103,6 +103,43 @@ function applyDateRange<T extends ReturnType<typeof supabase.from>>(query: any, 
   return query;
 }
 
+function filterHash(filters: OrderFilters) {
+  return JSON.stringify(Object.keys(filters).sort().reduce((acc, key) => {
+    const value = filters[key as keyof OrderFilters];
+    if (value) acc[key] = value;
+    return acc;
+  }, {} as Record<string, string>));
+}
+
+function getFiltersFromParams(params: URLSearchParams): OrderFilters {
+  return {
+    cliente_id: params.get("cliente_id") || undefined,
+    funcionario_id: params.get("funcionario_id") || undefined,
+    marca: params.get("marca") || undefined,
+    modelo: params.get("modelo") || undefined,
+    prioridade: params.get("prioridade") || undefined,
+    garantia: (params.get("garantia") as GarantiaFilter | null) || undefined,
+    aprovacao: params.get("aprovacao") || undefined,
+  };
+}
+
+function applyOrderFilters<T extends ReturnType<typeof supabase.from>>(query: any, filters: OrderFilters): T {
+  if (filters.cliente_id) query = query.eq("aparelhos.cliente_id", filters.cliente_id);
+  if (filters.funcionario_id) query = query.eq("funcionario_id", filters.funcionario_id);
+  if (filters.marca) query = query.eq("aparelhos.marca", filters.marca);
+  if (filters.modelo) query = query.eq("aparelhos.modelo", filters.modelo);
+  if (filters.prioridade) query = query.eq("prioridade", filters.prioridade);
+  if (filters.aprovacao) query = query.eq("aprovacao_orcamento", filters.aprovacao);
+  if (filters.garantia === "em_garantia") {
+    query = query.gt("garantia_dias", 0).not("data_entrega", "is", null).gte("data_entrega", dateOnly(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)));
+  } else if (filters.garantia === "expirada") {
+    query = query.gt("garantia_dias", 0).not("data_entrega", "is", null).lt("data_entrega", dateOnly(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)));
+  } else if (filters.garantia === "sem_garantia") {
+    query = query.or("garantia_dias.eq.0,data_entrega.is.null");
+  }
+  return query;
+}
+
 function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   const de = params.get("de") || undefined;
   const ate = params.get("ate") || undefined;
@@ -122,7 +159,7 @@ function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
 }
 
-async function fetchOrders({ page, filterStatus, dateRange }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
+async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   const start = page * LIST_PAGE_SIZE;
   const end = start + LIST_PAGE_SIZE - 1;
 
@@ -133,6 +170,7 @@ async function fetchOrders({ page, filterStatus, dateRange }: { page: number; fi
     .range(start, end);
 
   query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
@@ -143,12 +181,13 @@ async function fetchOrders({ page, filterStatus, dateRange }: { page: number; fi
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus, dateRange }: { filterStatus: StatusFilter; dateRange: DateRangeFilter }) {
+async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   let query = supabase
     .from("ordens_de_servico")
     .select("*", { count: "exact", head: true });
 
   query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
 
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
