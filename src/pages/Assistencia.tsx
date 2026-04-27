@@ -790,9 +790,16 @@ export default function Assistencia() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Status }) => {
+      const ordemAtual = orders.find((order) => order.id === id);
+      const now = new Date().toISOString();
       const updates: any = { status };
-      if (status === "entregue") updates.data_entrega = new Date().toISOString();
-      if (status === "pronto") updates.data_conclusao = new Date().toISOString();
+      if (status === "pronto" && !ordemAtual?.data_conclusao) {
+        updates.data_conclusao = now;
+      }
+      if (status === "entregue") {
+        if (!ordemAtual?.data_entrega) updates.data_entrega = now;
+        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || now;
+      }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
     },
@@ -949,11 +956,41 @@ export default function Assistencia() {
   const bulkStatusMutation = useMutation({
     mutationFn: async (status: Status) => {
       const ids = Array.from(bulk.selectedIds);
+      const now = new Date().toISOString();
       const { data, error } = await supabase.rpc("bulk_atualizar_status_os" as any, {
         p_ordem_ids: ids,
         p_novo_status: status,
       });
       if (error) throw error;
+      if (status === "pronto") {
+        await Promise.all(ids.map(async (id) => {
+          const ordemAtual = orders.find((order) => order.id === id);
+          if (ordemAtual?.data_conclusao) return;
+          const { error: dateError } = await supabase
+            .from("ordens_de_servico")
+            .update({ data_conclusao: now })
+            .eq("id", id)
+            .eq("status", "pronto")
+            .is("data_conclusao", null);
+          if (dateError) throw dateError;
+        }));
+      }
+      if (status === "entregue") {
+        await Promise.all(ids.map(async (id) => {
+          const ordemAtual = orders.find((order) => order.id === id);
+          const dateUpdates: { data_conclusao?: string; data_entrega?: string } = {};
+          if (!ordemAtual?.data_entrega) dateUpdates.data_entrega = now;
+          if (!ordemAtual?.data_conclusao) dateUpdates.data_conclusao = ordemAtual?.data_entrega || now;
+          if (Object.keys(dateUpdates).length === 0) return;
+
+          const { error: dateError } = await supabase
+            .from("ordens_de_servico")
+            .update(dateUpdates)
+            .eq("id", id)
+            .eq("status", "entregue");
+          if (dateError) throw dateError;
+        }));
+      }
       return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };
     },
     onSuccess: (res) => {
