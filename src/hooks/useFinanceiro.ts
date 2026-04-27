@@ -175,6 +175,11 @@ export function useFinanceiro() {
     const vencidas = contasPendentes.filter(c => new Date(c.data_vencimento + "T12:00:00") < todayStart);
     const vencidasTotal = vencidas.reduce((s, c) => s + Number(c.valor), 0);
 
+    const venceHoje = contasPendentes.filter(c => {
+      const d = new Date(c.data_vencimento + "T12:00:00");
+      return d >= todayStart && d < addDays(todayStart, 1);
+    }).reduce((s, c) => s + Number(c.valor), 0);
+
     const venceEm7Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
       return d >= todayStart && d <= next7DaysEnd;
@@ -275,6 +280,7 @@ export function useFinanceiro() {
 
     return {
       vencidasTotal,
+      venceHoje,
       venceEm7Dias,
       venceEm30Dias,
       totalPendente,

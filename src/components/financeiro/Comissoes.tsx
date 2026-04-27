@@ -197,7 +197,13 @@ export function Comissoes({ comissoes, funcionarios, tiposServico = [], onViewOr
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center text-muted-foreground py-10 text-sm">Nenhuma comissão encontrada</td></tr>
+                <tr>
+                  <td colSpan={6} className="text-center text-muted-foreground py-10 text-sm">
+                    {comissoes.length === 0
+                      ? "Nenhuma comissão gerada ainda — ao concluir uma OS com técnico comissionado, ela aparecerá aqui."
+                      : "Nenhuma comissão encontrada com os filtros atuais."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
