@@ -50,7 +50,9 @@ export function ResultadoFinanceiroOS({
   const valorPecas = Number(ordem.valor_total_pecas ?? 0);
   const maoObraAdic = Number(ordem.mao_obra_adicional ?? 0);
   const desconto = Number(ordem.desconto ?? 0);
-  const valorTotal = Number(ordem.valor_total ?? ordem.valor ?? 0);
+  const valorServicoCobrado = Number(
+    ordem.valor_total_servicos ?? ordem.valor_total ?? ordem.valor ?? 0
+  );
   const custoPecas = Number(ordem.custo_pecas ?? 0);
   // Prioriza soma real de comissões já lançadas. Se ainda não há comissões
   // lançadas (OS antes de "Pronto"), mostra a comissão prevista calculada
@@ -64,9 +66,9 @@ export function ResultadoFinanceiroOS({
   const comissaoPrevista = !temComissoesReais && snapshotComissao > 0;
   const despesas = Number(totalDespesasVinculadas ?? 0);
 
-  const valorCobradoBruto = valorServicos + valorPecas + maoObraAdic;
-  const lucro = valorTotal - custoPecas - comissao - despesas;
-  const margem = valorTotal > 0 ? (lucro / valorTotal) * 100 : null;
+  const valorCobradoBruto = valorServicos + maoObraAdic;
+  const lucro = valorServicoCobrado - custoPecas - comissao - despesas;
+  const margem = valorServicoCobrado > 0 ? (lucro / valorServicoCobrado) * 100 : null;
   const lucroPositivo = lucro >= 0;
 
   // Alerta de auditoria: tem comissão mas zero peças e zero custo de peças
