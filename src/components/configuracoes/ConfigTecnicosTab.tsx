@@ -1,11 +1,11 @@
 import { useState, useCallback } from "react";
-import { Plus, Pencil, Search, Trash2, User, MapPin, Briefcase, DollarSign } from "lucide-react";
+import { Pencil, Search, Trash2, User, MapPin, Briefcase, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,11 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MaskedInput } from "@/components/smart-inputs/MaskedInput";
 import { CepLookup, type CepData } from "@/components/smart-inputs/CepLookup";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
+import { InviteUserDialog } from "./InviteUserDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-interface Props { funcionarios: any[] }
+interface Props { funcionarios: any[]; userProfiles: any[]; perfisAcesso: any[] }
 
 const emptyForm = {
   nome: "", cpf: "", telefone: "", email: "", cargo: "", funcao: "", especialidade: "",
@@ -27,19 +28,14 @@ const emptyForm = {
   tipo_comissao: "fixa" as string, valor_comissao: 0, ativo: true, observacoes: "",
 };
 
-export function ConfigTecnicosTab({ funcionarios }: Props) {
+export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const [funcaoFiltro, setFuncaoFiltro] = useState<string>("tecnico");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ ...emptyForm });
   const [tab, setTab] = useState("dados");
-
-  const matchTecnico = (f: any) => {
-    const blob = `${f.funcao || ""} ${f.cargo || ""} ${f.especialidade || ""}`.toLowerCase();
-    return blob.includes("técnic") || blob.includes("tecnic");
-  };
+  const tecnicoPerfil = perfisAcesso.find((p) => p.nome_perfil === "Técnico");
 
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico"],
@@ -52,18 +48,18 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
   const [comissoesPorServico, setComissoesPorServico] = useState<Record<string, { tipo: string; valor: number }>>({});
   const [loadingComissoes, setLoadingComissoes] = useState(false);
 
-  const filtered = funcionarios.filter((f) => {
+  const tecnicosComLogin = userProfiles
+    .filter((u) => u.perfil_id === tecnicoPerfil?.id && u.funcionario_id)
+    .map((u) => funcionarios.find((f) => f.id === u.funcionario_id))
+    .filter(Boolean);
+
+  const filtered = tecnicosComLogin.filter((f) => {
     const matchSearch =
       f.nome?.toLowerCase().includes(search.toLowerCase()) ||
       f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
       f.especialidade?.toLowerCase().includes(search.toLowerCase());
-    if (!matchSearch) return false;
-    if (funcaoFiltro === "tecnico") return matchTecnico(f);
-    if (funcaoFiltro === "outros") return !matchTecnico(f);
-    return true; // "todos"
+    return matchSearch;
   });
-
-  const totalTecnicos = funcionarios.filter(matchTecnico).length;
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
@@ -183,21 +179,23 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <Select value={funcaoFiltro} onValueChange={setFuncaoFiltro}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tecnico">Técnicos ({totalTecnicos})</SelectItem>
-              <SelectItem value="outros">Outras funções</SelectItem>
-              <SelectItem value="todos">Todos ({funcionarios.length})</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
+        {tecnicoPerfil && (
+          <InviteUserDialog
+            perfisAcesso={perfisAcesso}
+            fixedPerfilId={tecnicoPerfil.id}
+            triggerLabel="Convidar Técnico"
+            title="Convidar novo técnico"
+          />
+        )}
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        Técnicos são exibidos a partir de usuários com login e perfil Técnico. Para adicionar alguém à equipe, envie um convite.
+      </div>
+
+      <div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados"); } }}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Técnico</Button>
-          </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editId ? "Editar" : "Novo"} Técnico / Funcionário</DialogTitle>
@@ -475,11 +473,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                       <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
                     </td>
                     <td className="p-3">
-                      {matchTecnico(f) ? (
-                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
-                      ) : (
-                        <Badge variant="outline">{f.funcao || f.cargo || "Outro"}</Badge>
-                      )}
+                      <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
                     <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
@@ -505,11 +499,7 @@ export function ConfigTecnicosTab({ funcionarios }: Props) {
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                      {funcionarios.length === 0
-                        ? "Nenhum funcionário cadastrado. Clique em 'Novo Técnico' para começar."
-                        : funcaoFiltro === "tecnico"
-                        ? "Nenhum técnico encontrado. Cadastre um funcionário com função/cargo contendo 'Técnico' ou troque o filtro para 'Todos'."
-                        : "Nenhum resultado para os filtros atuais."}
+                      {search ? "Nenhum técnico encontrado para a busca." : "Nenhum técnico com login encontrado. Use 'Convidar Técnico' para adicionar."}
                     </td>
                   </tr>
                 )}
