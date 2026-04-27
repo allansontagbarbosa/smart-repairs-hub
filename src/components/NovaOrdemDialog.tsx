@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
@@ -89,6 +90,7 @@ interface PecaSelecionada {
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
   const queryClient = useQueryClient();
   const { isAdmin } = usePermissoes();
+  const { empresaId } = useEmpresa();
 
   const [step, setStep] = useState<Step>("cliente");
 
@@ -321,17 +323,22 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   });
 
   const { data: tecnicosList = [] } = useQuery({
-    queryKey: ["tecnicos-os"],
+    queryKey: ["tecnicos-os", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id(id, nome, ativo, deleted_at), perfis_acesso:perfil_id(nome_perfil)")
-        .eq("ativo", true);
+        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
+        .eq("empresa_id", empresaId!)
+        .eq("ativo", true)
+        .eq("perfis_acesso.nome_perfil", "Técnico")
+        .not("funcionario_id", "is", null);
+
+      if (error) throw error;
 
       return (data ?? [])
         .filter((up: any) =>
-          up.perfis_acesso?.nome_perfil === "Técnico"
-          && up.funcionario_id
+          up.funcionario_id
           && up.funcionarios?.ativo
           && !up.funcionarios?.deleted_at
         )

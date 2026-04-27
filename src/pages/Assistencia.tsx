@@ -40,6 +40,7 @@ import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
 import { useGerarComissao } from "@/hooks/useGerarComissao";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -684,6 +685,7 @@ export default function Assistencia() {
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
+  const { empresaId } = useEmpresa();
   const { gerarOuAtualizarComissao } = useGerarComissao();
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
   const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
@@ -732,16 +734,21 @@ export default function Assistencia() {
   });
 
   const { data: funcionariosFiltro = [] } = useQuery({
-    queryKey: ["funcionarios-filtro-os"],
+    queryKey: ["funcionarios-filtro-os", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("funcionarios")
-        .select("id, nome")
+        .from("user_profiles")
+        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
+        .eq("empresa_id", empresaId!)
         .eq("ativo", true)
-        .is("deleted_at", null)
-        .order("nome");
+        .eq("perfis_acesso.nome_perfil", "Técnico")
+        .not("funcionario_id", "is", null);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? [])
+        .filter((up: any) => up.funcionario_id && up.funcionarios?.ativo && !up.funcionarios?.deleted_at)
+        .map((up: any) => ({ id: up.funcionario_id as string, nome: (up.funcionarios?.nome || up.nome_exibicao) as string }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
     },
   });
 
@@ -817,22 +824,22 @@ export default function Assistencia() {
 
   // ── BULK ACTIONS — só carrega técnicos se admin ───────────────────────────
   const { data: tecnicos = [] } = useQuery<TecnicoOption[]>({
-    queryKey: ["funcionarios-tecnicos-ativos"],
+    queryKey: ["funcionarios-tecnicos-ativos", empresaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("funcionarios")
-        .select("id, nome, funcao, cargo")
+        .from("user_profiles")
+        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
+        .eq("empresa_id", empresaId!)
         .eq("ativo", true)
-        .is("deleted_at", null)
-        .order("nome");
+        .eq("perfis_acesso.nome_perfil", "Técnico")
+        .not("funcionario_id", "is", null);
       if (error) throw error;
-      const isTecnico = (s?: string | null) =>
-        !!s && /tecn/i.test(s);
       return (data ?? [])
-        .filter((f: any) => isTecnico(f.funcao) || isTecnico(f.cargo))
-        .map((f: any) => ({ id: f.id, nome: f.nome }));
+        .filter((up: any) => up.funcionario_id && up.funcionarios?.ativo && !up.funcionarios?.deleted_at)
+        .map((up: any) => ({ id: up.funcionario_id as string, nome: (up.funcionarios?.nome || up.nome_exibicao) as string }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
     },
-    enabled: isAdmin,
+    enabled: isAdmin && !!empresaId,
   });
 
   const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
