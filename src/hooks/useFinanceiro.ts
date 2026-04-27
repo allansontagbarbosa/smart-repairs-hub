@@ -242,7 +242,7 @@ export function useFinanceiro() {
     // Recebimentos extras do mês: entradas avulsas, sem duplicar receita de OS já contabilizada em receitaMes
     const recebimentosMes = allRecebimentos.filter(r => {
       if (r.ordem_servico_id) return false;
-      const d = new Date(r.data_recebimento + "T12:00:00");
+      const d = new Date(r.data_recebimento.includes("T") ? r.data_recebimento : r.data_recebimento + "T12:00:00");
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, r) => s + Number(r.valor), 0);
 
