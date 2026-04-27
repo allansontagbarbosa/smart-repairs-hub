@@ -113,7 +113,17 @@ export default function TecnicoOrdemDetalhe() {
 
   const updateOS = useMutation({
     mutationFn: async (patch: any) => {
-      const { error } = await supabase.from("ordens_de_servico").update(patch).eq("id", id!);
+      const nextStatus = patch.status;
+      const now = new Date().toISOString();
+      const updates = { ...patch };
+      if (nextStatus === "pronto" && !ordem?.data_conclusao) {
+        updates.data_conclusao = now;
+      }
+      if (nextStatus === "entregue") {
+        if (!ordem?.data_entrega) updates.data_entrega = now;
+        if (!ordem?.data_conclusao) updates.data_conclusao = ordem?.data_entrega || now;
+      }
+      const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id!);
       if (error) throw error;
     },
     onSuccess: () => {
