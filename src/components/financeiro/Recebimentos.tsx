@@ -152,7 +152,11 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
       {/* Lista */}
       <div className="section-card divide-y">
         {filtered.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhum recebimento encontrado</p>
+          <p className="text-sm text-muted-foreground text-center py-8">
+            {recebimentos.length === 0
+              ? "Nenhum recebimento extra registrado ainda — ao lançar uma entrada manual, ela aparecerá aqui."
+              : "Nenhum recebimento encontrado com os filtros atuais."}
+          </p>
         ) : (
           filtered.map(r => (
             <div key={r.id} className="flex items-center justify-between px-4 py-3 gap-3">
