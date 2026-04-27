@@ -5,7 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
+const parseDate = (d: string) => new Date(d.includes("T") ? d : `${d}T12:00:00`);
+const fmtDate = (d: string) => format(parseDate(d), "dd/MM/yyyy");
 
 const FORMAS_PAGAMENTO = [
   { value: "os", label: "OS" },
@@ -45,7 +46,7 @@ interface Props {
   ordens: { id: string; numero: number }[];
 }
 
-export function Recebimentos({ recebimentos, ordens }: Props) {
+export function Recebimentos({ recebimentos }: Props) {
   const [search, setSearch] = useState("");
   const [filterForma, setFilterForma] = useState("todas");
 
@@ -56,7 +57,7 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
   const totalMes = useMemo(() =>
     recebimentos
       .filter(r => {
-        const d = new Date(r.data_recebimento + "T12:00:00");
+        const d = parseDate(r.data_recebimento);
         return d >= monthStart && d <= monthEnd;
       })
       .reduce((s, r) => s + Number(r.valor), 0),
@@ -74,46 +75,6 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
     }
     return list;
   }, [recebimentos, search, filterForma]);
-
-  // Dialog state
-  const [form, setForm] = useState({
-    descricao: "",
-    valor: "",
-    data_recebimento: format(now, "yyyy-MM-dd"),
-    forma_pagamento: "dinheiro",
-    ordem_servico_id: "",
-    observacoes: "",
-  });
-
-  const resetForm = () => setForm({
-    descricao: "",
-    valor: "",
-    data_recebimento: format(now, "yyyy-MM-dd"),
-    forma_pagamento: "dinheiro",
-    ordem_servico_id: "",
-    observacoes: "",
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("recebimentos").insert({
-        descricao: form.descricao,
-        valor: parseFloat(form.valor),
-        data_recebimento: form.data_recebimento,
-        forma_pagamento: form.forma_pagamento,
-        ordem_servico_id: form.ordem_servico_id || null,
-        observacoes: form.observacoes || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recebimentos"] });
-      toast.success("Recebimento registrado!");
-      setDialogOpen(false);
-      resetForm();
-    },
-    onError: () => toast.error("Erro ao registrar recebimento"),
-  });
 
   const formaLabel = (v: string) => FORMAS_PAGAMENTO.find(f => f.value === v)?.label ?? v;
 
