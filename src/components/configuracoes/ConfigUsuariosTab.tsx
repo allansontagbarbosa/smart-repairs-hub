@@ -356,40 +356,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
             </div>
           </div>
-          {isAdmin && (
-            <Dialog open={openInvite} onOpenChange={setOpenInvite}>
-              <DialogTrigger asChild>
-                <Button size="sm"><Mail className="h-3.5 w-3.5 mr-1" />Convidar usuário</Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader><DialogTitle>Convidar novo usuário</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div><Label>Nome completo *</Label><Input value={inviteNome} onChange={(e) => setInviteNome(e.target.value)} placeholder="Nome do colaborador" /></div>
-                  <div><Label>Email *</Label><Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
-                  <div>
-                    <Label>Perfil de acesso</Label>
-                    <Select value={invitePerfilId} onValueChange={setInvitePerfilId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sem perfil</SelectItem>
-                        {perfisAcesso.filter((p) => p.ativo).map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">O usuário receberá um email com link para definir sua senha e acessar o sistema.</p>
-                  <Button onClick={handleInviteUser} className="w-full" disabled={inviteLoading}>
-                    {inviteLoading ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
-                    ) : (
-                      <><UserPlus className="h-4 w-4 mr-2" /> Enviar convite</>
-                    )}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+          {isAdmin && <InviteUserDialog perfisAcesso={perfisAcesso} />}
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
