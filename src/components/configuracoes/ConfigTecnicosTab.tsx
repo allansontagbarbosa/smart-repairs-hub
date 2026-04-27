@@ -194,7 +194,7 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
         Técnicos são exibidos a partir de usuários com login e perfil Técnico. Para adicionar alguém à equipe, envie um convite.
       </div>
 
-      <div className="hidden">
+      <div>
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados"); } }}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -473,11 +473,7 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
                       <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
                     </td>
                     <td className="p-3">
-                      {matchTecnico(f) ? (
-                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
-                      ) : (
-                        <Badge variant="outline">{f.funcao || f.cargo || "Outro"}</Badge>
-                      )}
+                      <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
                     <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
@@ -503,11 +499,7 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                      {funcionarios.length === 0
-                        ? "Nenhum funcionário cadastrado. Clique em 'Novo Técnico' para começar."
-                        : funcaoFiltro === "tecnico"
-                        ? "Nenhum técnico encontrado. Cadastre um funcionário com função/cargo contendo 'Técnico' ou troque o filtro para 'Todos'."
-                        : "Nenhum resultado para os filtros atuais."}
+                      {search ? "Nenhum técnico encontrado para a busca." : "Nenhum técnico com login encontrado. Use 'Convidar Técnico' para adicionar."}
                     </td>
                   </tr>
                 )}
