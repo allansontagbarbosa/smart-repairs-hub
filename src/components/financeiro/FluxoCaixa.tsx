@@ -102,16 +102,12 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens }: Props) {
     let totalSai = 0;
 
     const data = finalWeeks.map(w => {
-      // Entradas: recebimentos + OS entregues
+      // Entradas: movimentações financeiras de entrada, incluindo receitas de OS e entradas avulsas
       const recebimentosSemana = recebimentos
         .filter(r => inRange(r.data_recebimento, w.start, w.end))
         .reduce((s, r) => s + Number(r.valor), 0);
 
-      const osEntregues = ordens
-        .filter(o => o.status === "entregue" && inRange(o.data_entrada, w.start, w.end))
-        .reduce((s, o) => s + Number(o.valor ?? 0), 0);
-
-      const entradas = recebimentosSemana + osEntregues;
+      const entradas = recebimentosSemana;
 
       // Saídas: contas pagas + comissões pagas
       const contasPagas = contas
