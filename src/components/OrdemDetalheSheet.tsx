@@ -559,9 +559,15 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         throw new Error("Orçamento foi recusado pelo cliente. Reabra a aprovação para avançar.");
       }
 
+      const now = new Date().toISOString();
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
-      if (newStatus === "pronto") updates.data_conclusao = new Date().toISOString();
-      if (newStatus === "entregue") updates.data_entrega = new Date().toISOString();
+      if (newStatus === "pronto" && !(ordem as any).data_conclusao) {
+        updates.data_conclusao = now;
+      }
+      if (newStatus === "entregue") {
+        if (!(ordem as any).data_entrega) updates.data_entrega = now;
+        if (!(ordem as any).data_conclusao) updates.data_conclusao = (ordem as any).data_entrega || now;
+      }
 
       const { error: e1 } = await supabase.from("ordens_de_servico").update(updates).eq("id", ordem.id);
       if (e1) throw e1;
