@@ -203,11 +203,10 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
             onClick: () => setConfirmToggleStatus("inativar"),
           },
           {
-            id: "delete",
-            label: "Excluir",
-            icon: <Trash2 className="h-3.5 w-3.5" />,
-            variant: "destructive",
-            onClick: () => setConfirmDelete(true),
+            id: "desativar",
+            label: "Desativar",
+            icon: <EyeOff className="h-3.5 w-3.5" />,
+            onClick: () => toggleAtivoMutation.mutate({ ids: Array.from(bulk.selectedIds), ativo: false }),
           },
         ]}
       />
@@ -233,6 +232,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 <th className="hidden md:table-cell text-right">Venda</th>
                 <th className="hidden lg:table-cell text-center">Margem</th>
                 <th className="hidden xl:table-cell">Local</th>
+                <th className="text-center">Status</th>
                 <th className="text-right">Ações</th>
               </tr>
             </thead>
@@ -264,6 +264,11 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                         {isBaixo && (
                           <span className="inline-flex items-center rounded-full bg-destructive/10 text-destructive text-[10px] font-semibold px-2 py-0.5 whitespace-nowrap">
                             {item.quantidade === 0 ? "Esgotado" : "Estoque baixo"}
+                          </span>
+                        )}
+                        {item.ativo === false && (
+                          <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 whitespace-nowrap">
+                            Inativa
                           </span>
                         )}
                       </div>
@@ -323,13 +328,27 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                         <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{item.local_estoque}</span>
                       ) : "—"}
                     </td>
+                    <td className="text-center">
+                      <span className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                        item.ativo === false ? "text-muted-foreground bg-muted" : "text-success bg-success/10 border-success/30"
+                      )}>
+                        {item.ativo === false ? "Inativa" : "Ativa"}
+                      </span>
+                    </td>
                     <td>
                       <div className="flex items-center justify-end gap-0.5">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setDialogOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => softDeleteMutation.mutate(item.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title={item.ativo === false ? "Reativar peça" : "Desativar peça"}
+                          onClick={() => toggleAtivoMutation.mutate({ ids: [item.id], ativo: item.ativo === false })}
+                        >
+                          {item.ativo === false ? <Power className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
                     </td>
@@ -337,7 +356,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={11} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
+                <tr><td colSpan={12} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>
