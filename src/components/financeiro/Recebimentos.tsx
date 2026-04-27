@@ -100,9 +100,6 @@ export function Recebimentos({ recebimentos }: Props) {
             {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Novo recebimento
-        </Button>
       </div>
 
       {/* Lista */}
@@ -129,60 +126,6 @@ export function Recebimentos({ recebimentos }: Props) {
         )}
       </div>
 
-      {/* Dialog novo recebimento */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Novo Recebimento</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Descrição *</Label>
-              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Valor *</Label>
-                <Input type="number" step="0.01" min="0" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Data *</Label>
-                <Input type="date" value={form.data_recebimento} onChange={e => setForm(f => ({ ...f, data_recebimento: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <Label>Forma de pagamento</Label>
-              <Select value={form.forma_pagamento} onValueChange={v => setForm(f => ({ ...f, forma_pagamento: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>OS vinculada (opcional)</Label>
-              <Select value={form.ordem_servico_id} onValueChange={v => setForm(f => ({ ...f, ordem_servico_id: v === "__none__" ? "" : v }))}>
-                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma</SelectItem>
-                  {ordens.map(o => <SelectItem key={o.id} value={o.id}>OS #{o.numero}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Observações</Label>
-              <Textarea value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} rows={2} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!form.descricao || !form.valor || !form.data_recebimento || createMutation.isPending}
-            >
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
