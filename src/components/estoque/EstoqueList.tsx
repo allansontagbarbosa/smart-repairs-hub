@@ -56,7 +56,7 @@ interface Props {
 export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
   const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("todas");
-  const [mostrarInativas, setMostrarInativas] = useState(false);
+  const [mostrarInativas, setMostrarInativas] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EstoqueItem | null>(null);
   const [confirmToggleStatus, setConfirmToggleStatus] = useState<null | "ativar" | "inativar">(null);
