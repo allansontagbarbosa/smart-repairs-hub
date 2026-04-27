@@ -1,20 +1,15 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Receipt } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Search, Receipt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
 
 const FORMAS_PAGAMENTO = [
+  { value: "os", label: "OS" },
+  { value: "avulso", label: "Avulsa" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "pix", label: "PIX" },
   { value: "cartao_debito", label: "Cartão Débito" },
@@ -23,6 +18,8 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const BADGE_COLORS: Record<string, string> = {
+  os: "bg-success-muted text-success",
+  avulso: "bg-muted text-muted-foreground",
   pix: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   cartao_debito: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
   cartao_credito: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300",
@@ -51,8 +48,6 @@ interface Props {
 export function Recebimentos({ recebimentos, ordens }: Props) {
   const [search, setSearch] = useState("");
   const [filterForma, setFilterForma] = useState("todas");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
