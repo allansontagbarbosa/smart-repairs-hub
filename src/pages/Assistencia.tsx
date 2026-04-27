@@ -790,9 +790,16 @@ export default function Assistencia() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Status }) => {
+      const ordemAtual = orders.find((order) => order.id === id);
+      const now = new Date().toISOString();
       const updates: any = { status };
-      if (status === "entregue") updates.data_entrega = new Date().toISOString();
-      if (status === "pronto") updates.data_conclusao = new Date().toISOString();
+      if (status === "pronto" && !ordemAtual?.data_conclusao) {
+        updates.data_conclusao = now;
+      }
+      if (status === "entregue") {
+        if (!ordemAtual?.data_entrega) updates.data_entrega = now;
+        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || now;
+      }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
     },
@@ -949,11 +956,38 @@ export default function Assistencia() {
   const bulkStatusMutation = useMutation({
     mutationFn: async (status: Status) => {
       const ids = Array.from(bulk.selectedIds);
+      const now = new Date().toISOString();
       const { data, error } = await supabase.rpc("bulk_atualizar_status_os" as any, {
         p_ordem_ids: ids,
         p_novo_status: status,
       });
       if (error) throw error;
+      if (status === "pronto") {
+        const { error: dateError } = await supabase
+          .from("ordens_de_servico")
+          .update({ data_conclusao: now })
+          .in("id", ids)
+          .eq("status", "pronto")
+          .is("data_conclusao", null);
+        if (dateError) throw dateError;
+      }
+      if (status === "entregue") {
+        const { error: entregaError } = await supabase
+          .from("ordens_de_servico")
+          .update({ data_entrega: now })
+          .in("id", ids)
+          .eq("status", "entregue")
+          .is("data_entrega", null);
+        if (entregaError) throw entregaError;
+
+        const { error: conclusaoError } = await supabase
+          .from("ordens_de_servico")
+          .update({ data_conclusao: now })
+          .in("id", ids)
+          .eq("status", "entregue")
+          .is("data_conclusao", null);
+        if (conclusaoError) throw conclusaoError;
+      }
       return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };
     },
     onSuccess: (res) => {
