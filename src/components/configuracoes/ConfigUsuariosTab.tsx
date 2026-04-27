@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, UserPlus, ChevronDown, ChevronRight, Filter, Trash2 } from "lucide-react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, ChevronDown, ChevronRight, Filter, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import { useAuditoria } from "@/hooks/useAuditoria";
 import { format } from "date-fns";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { InviteUserDialog } from "./InviteUserDialog";
 
 interface Props {
   userProfiles: any[];
@@ -77,62 +78,6 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
-
-  // Invite state
-  const [openInvite, setOpenInvite] = useState(false);
-  const [inviteNome, setInviteNome] = useState("");
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [invitePerfilId, setInvitePerfilId] = useState<string>("none");
-  const [inviteLoading, setInviteLoading] = useState(false);
-
-  const handleInviteUser = async () => {
-    if (!inviteEmail || !inviteNome) {
-      toast.error("Nome e email são obrigatórios");
-      return;
-    }
-
-    if (!empresaId) {
-      toast.error("Empresa não identificada para enviar o convite");
-      return;
-    }
-
-    setInviteLoading(true);
-    try {
-      const res = await supabase.functions.invoke("invite-user", {
-        body: {
-          email: inviteEmail,
-          nome: inviteNome,
-          perfil_id: invitePerfilId === "none" ? null : invitePerfilId,
-          empresa_id: empresaId,
-        },
-      });
-
-      const errorMsg = res.error?.message || res.data?.error;
-      if (errorMsg) {
-        // "already been registered" is now handled server-side (reactivation)
-        // but if it still comes through, treat as success
-        if (errorMsg.includes("already been registered")) {
-          toast.success("Usuário reativado com sucesso!");
-        } else {
-          toast.error(errorMsg);
-        }
-      }
-      if (!errorMsg || errorMsg.includes("already been registered")) {
-        if (!errorMsg) toast.success(`Convite enviado para ${inviteEmail}`);
-        const perfilNome = perfisAcesso.find((p) => p.id === invitePerfilId)?.nome_perfil || "Sem perfil";
-        registrar("Usuário convidado", "configuracoes", null, null, { email: inviteEmail, perfil: perfilNome });
-        setOpenInvite(false);
-        setInviteNome("");
-        setInviteEmail("");
-        setInvitePerfilId("none");
-        qc.invalidateQueries({ queryKey: ["user_profiles"] });
-        await qc.refetchQueries({ queryKey: ["user_profiles"] });
-      }
-    } catch {
-      toast.error("Erro ao enviar convite");
-    }
-    setInviteLoading(false);
-  };
 
   const filteredProfiles = userProfiles.filter((u) =>
     u.nome_exibicao?.toLowerCase().includes(search.toLowerCase())
