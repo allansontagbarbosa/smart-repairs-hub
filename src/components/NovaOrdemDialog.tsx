@@ -265,11 +265,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const { data: pecasEstoque = [] } = useQuery({
     queryKey: ["estoque_pecas_para_os"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque_itens")
+      const { data, error } = await (supabase.from("estoque_itens") as any)
         .select("*, estoque_categorias:categoria_id ( nome ), marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
         .eq("tipo_item", "peca")
-        .eq("ativo" as any, true)
+        .eq("ativo", true)
         .is("deleted_at", null)
         .order("nome_personalizado");
       if (error) throw error;
@@ -1844,7 +1843,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {/* Bloco 4: Totais */}
                 <div className="space-y-1 text-xs text-foreground">
                   <div className="flex justify-between"><span>Subtotal serviços</span><span>R$ {totalMaoObraDefeitos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                  <div className="flex justify-between"><span>Subtotal peças</span><span>R$ {totalPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>Custo das peças</span><span>R$ {custoPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   <div className="flex justify-between"><span>Mão de obra adicional</span><span>R$ {adicional.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   {descontoNum > 0 && (<div className="flex justify-between"><span>Desconto</span><span>− R$ {descontoNum.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>)}
                 </div>
