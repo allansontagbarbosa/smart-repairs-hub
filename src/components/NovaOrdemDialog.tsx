@@ -323,27 +323,15 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   });
 
   const { data: tecnicosList = [] } = useQuery({
-    queryKey: ["tecnicos-os-perfil-tecnico-v2", empresaId],
+    queryKey: ["tecnicos-os-user-profiles-tecnico-v3", empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      const { data: perfilTecnico, error: perfilError } = await supabase
-        .from("perfis_acesso")
-        .select("id")
-        .eq("empresa_id", empresaId!)
-        .eq("ativo", true)
-        .eq("nome_perfil", "Técnico")
-        .maybeSingle();
-
-      if (perfilError) throw perfilError;
-      if (!perfilTecnico?.id) return [];
-
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at)")
+        .select("funcionario_id, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
         .eq("empresa_id", empresaId!)
         .eq("ativo", true)
-        .eq("perfil_id", perfilTecnico.id)
-        .not("funcionario_id", "is", null)
+        .eq("perfis_acesso.nome_perfil", "Técnico")
         .eq("funcionarios.ativo", true)
         .is("funcionarios.deleted_at", null);
 
@@ -354,7 +342,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         if (!up.funcionario_id || !up.funcionarios?.nome) return;
         tecnicos.set(up.funcionario_id, {
           id: up.funcionario_id as string,
-          nome: (up.funcionarios.nome || up.nome_exibicao) as string,
+          nome: up.funcionarios.nome as string,
         });
       });
 
