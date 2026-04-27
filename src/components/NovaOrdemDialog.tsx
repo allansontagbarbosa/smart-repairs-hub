@@ -324,12 +324,22 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     queryKey: ["tecnicos-os"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("funcionarios")
-        .select("id, nome")
-        .eq("ativo", true)
-        .is("deleted_at", null)
-        .order("nome");
-      return data ?? [];
+        .from("user_profiles")
+        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id(id, nome, ativo, deleted_at), perfis_acesso:perfil_id(nome_perfil)")
+        .eq("ativo", true);
+
+      return (data ?? [])
+        .filter((up: any) =>
+          up.perfis_acesso?.nome_perfil === "Técnico"
+          && up.funcionario_id
+          && up.funcionarios?.ativo
+          && !up.funcionarios?.deleted_at
+        )
+        .map((up: any) => ({
+          id: up.funcionario_id as string,
+          nome: (up.funcionarios?.nome || up.nome_exibicao) as string,
+        }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
     },
   });
 
