@@ -118,7 +118,7 @@ export function ResultadoFinanceiroOS({
                 </span>
               </span>
             }
-            valor={valorTotal}
+            valor={valorServicoCobrado}
             className="font-medium"
           />
 
