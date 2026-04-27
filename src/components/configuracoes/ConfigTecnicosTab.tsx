@@ -179,21 +179,23 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <Select value={funcaoFiltro} onValueChange={setFuncaoFiltro}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tecnico">Técnicos ({totalTecnicos})</SelectItem>
-              <SelectItem value="outros">Outras funções</SelectItem>
-              <SelectItem value="todos">Todos ({funcionarios.length})</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
+        {tecnicoPerfil && (
+          <InviteUserDialog
+            perfisAcesso={perfisAcesso}
+            fixedPerfilId={tecnicoPerfil.id}
+            triggerLabel="Convidar Técnico"
+            title="Convidar novo técnico"
+          />
+        )}
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        Técnicos são exibidos a partir de usuários com login e perfil Técnico. Para adicionar alguém à equipe, envie um convite.
+      </div>
+
+      <div className="hidden">
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados"); } }}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" />Novo Técnico</Button>
-          </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editId ? "Editar" : "Novo"} Técnico / Funcionário</DialogTitle>
