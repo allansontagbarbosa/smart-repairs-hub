@@ -1595,9 +1595,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
                           <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione a peça" /></SelectTrigger>
                           <SelectContent>
-                            {pecasDisponiveis.map((p) => (
+                            {pecasDisponiveis.map((p: any) => (
                               <SelectItem key={p.id} value={p.id}>
-                                {p.nome} — {p.quantidade} em estoque — R$ {Number(p.preco_custo ?? 0).toFixed(2)}
+                                {p.nome_personalizado || p.sku || "Peça"} — {p.quantidade} em estoque — R$ {Number(p.custo_medio ?? p.custo_unitario ?? 0).toFixed(2)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1628,10 +1628,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <p className="text-xs text-muted-foreground">Nenhuma peça registrada</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {pecasUtilizadas.map((pu) => (
+                      {pecasUtilizadas.map((pu) => {
+                        const pecaHistorica = (pu as any).estoque_itens;
+                        const pecaInativa = pecaHistorica?.ativo === false || !!pecaHistorica?.deleted_at;
+                        return (
                         <div key={pu.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                           <div>
-                            <p className="text-sm font-medium">{(pu as any).estoque?.nome ?? "Peça"}</p>
+                            <p className="text-sm font-medium">
+                              {pecaHistorica?.nome_personalizado || pecaHistorica?.sku || "Peça"}
+                              {pecaInativa && <Badge variant="outline" className="ml-2 text-[10px]">inativa</Badge>}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {pu.quantidade}x — R$ {Number(pu.custo_unitario).toFixed(2)} cada
                             </p>
@@ -1658,7 +1664,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       <div className="flex justify-between text-sm pt-1 border-t">
                         <span className="text-muted-foreground">Total peças</span>
                         <span className="font-semibold">
