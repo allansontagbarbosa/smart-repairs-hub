@@ -113,14 +113,26 @@ async function fetchOrdens() {
 
 async function fetchRecebimentos() {
   const { data, error } = await supabase
-    .from("recebimentos")
+    .from("movimentacoes_financeiras")
     .select("*")
-    .order("data_recebimento", { ascending: false });
+    .eq("tipo", "entrada")
+    .order("data", { ascending: false });
   if (error) {
     console.error("ERRO fetchRecebimentos:", error.code, error.message, error.details);
     throw error;
   }
-  return data ?? [];
+  return (data ?? []).map((m: any) => ({
+    id: m.id,
+    descricao: m.descricao,
+    valor: Number(m.valor ?? 0),
+    data_recebimento: m.data,
+    forma_pagamento: m.ordem_id ? "os" : "avulso",
+    ordem_servico_id: m.ordem_id,
+    cliente_id: null,
+    loja_id: null,
+    observacoes: m.estoque_id ? "Entrada vinculada ao estoque" : null,
+    created_at: m.created_at,
+  }));
 }
 
 async function fetchFornecedores() {
@@ -227,9 +239,10 @@ export function useFinanceiro() {
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    // Recebimentos extras do mês
+    // Recebimentos extras do mês: entradas avulsas, sem duplicar receita de OS já contabilizada em receitaMes
     const recebimentosMes = allRecebimentos.filter(r => {
-      const d = new Date(r.data_recebimento + "T12:00:00");
+      if (r.ordem_servico_id) return false;
+      const d = new Date(r.data_recebimento.includes("T") ? r.data_recebimento : r.data_recebimento + "T12:00:00");
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, r) => s + Number(r.valor), 0);
 

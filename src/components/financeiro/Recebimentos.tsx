@@ -1,20 +1,16 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Receipt } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Search, Receipt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
+const parseDate = (d: string) => new Date(d.includes("T") ? d : `${d}T12:00:00`);
+const fmtDate = (d: string) => format(parseDate(d), "dd/MM/yyyy");
 
 const FORMAS_PAGAMENTO = [
+  { value: "os", label: "OS" },
+  { value: "avulso", label: "Avulsa" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "pix", label: "PIX" },
   { value: "cartao_debito", label: "Cartão Débito" },
@@ -23,6 +19,8 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const BADGE_COLORS: Record<string, string> = {
+  os: "bg-success-muted text-success",
+  avulso: "bg-muted text-muted-foreground",
   pix: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   cartao_debito: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
   cartao_credito: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300",
@@ -48,11 +46,9 @@ interface Props {
   ordens: { id: string; numero: number }[];
 }
 
-export function Recebimentos({ recebimentos, ordens }: Props) {
+export function Recebimentos({ recebimentos }: Props) {
   const [search, setSearch] = useState("");
   const [filterForma, setFilterForma] = useState("todas");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -61,7 +57,7 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
   const totalMes = useMemo(() =>
     recebimentos
       .filter(r => {
-        const d = new Date(r.data_recebimento + "T12:00:00");
+        const d = parseDate(r.data_recebimento);
         return d >= monthStart && d <= monthEnd;
       })
       .reduce((s, r) => s + Number(r.valor), 0),
@@ -79,46 +75,6 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
     }
     return list;
   }, [recebimentos, search, filterForma]);
-
-  // Dialog state
-  const [form, setForm] = useState({
-    descricao: "",
-    valor: "",
-    data_recebimento: format(now, "yyyy-MM-dd"),
-    forma_pagamento: "dinheiro",
-    ordem_servico_id: "",
-    observacoes: "",
-  });
-
-  const resetForm = () => setForm({
-    descricao: "",
-    valor: "",
-    data_recebimento: format(now, "yyyy-MM-dd"),
-    forma_pagamento: "dinheiro",
-    ordem_servico_id: "",
-    observacoes: "",
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("recebimentos").insert({
-        descricao: form.descricao,
-        valor: parseFloat(form.valor),
-        data_recebimento: form.data_recebimento,
-        forma_pagamento: form.forma_pagamento,
-        ordem_servico_id: form.ordem_servico_id || null,
-        observacoes: form.observacoes || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["recebimentos"] });
-      toast.success("Recebimento registrado!");
-      setDialogOpen(false);
-      resetForm();
-    },
-    onError: () => toast.error("Erro ao registrar recebimento"),
-  });
 
   const formaLabel = (v: string) => FORMAS_PAGAMENTO.find(f => f.value === v)?.label ?? v;
 
@@ -144,9 +100,6 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
             {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Novo recebimento
-        </Button>
       </div>
 
       {/* Lista */}
@@ -173,60 +126,6 @@ export function Recebimentos({ recebimentos, ordens }: Props) {
         )}
       </div>
 
-      {/* Dialog novo recebimento */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Novo Recebimento</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Descrição *</Label>
-              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Valor *</Label>
-                <Input type="number" step="0.01" min="0" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Data *</Label>
-                <Input type="date" value={form.data_recebimento} onChange={e => setForm(f => ({ ...f, data_recebimento: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <Label>Forma de pagamento</Label>
-              <Select value={form.forma_pagamento} onValueChange={v => setForm(f => ({ ...f, forma_pagamento: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>OS vinculada (opcional)</Label>
-              <Select value={form.ordem_servico_id} onValueChange={v => setForm(f => ({ ...f, ordem_servico_id: v === "__none__" ? "" : v }))}>
-                <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma</SelectItem>
-                  {ordens.map(o => <SelectItem key={o.id} value={o.id}>OS #{o.numero}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Observações</Label>
-              <Textarea value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} rows={2} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!form.descricao || !form.valor || !form.data_recebimento || createMutation.isPending}
-            >
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
