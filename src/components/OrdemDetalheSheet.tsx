@@ -173,7 +173,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId,
   });
 
-  // Fetch tipos_servico and funcionarios for commission preview
+  // Fetch tipos_servico and técnicos para atribuição de OS
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico_os"],
     queryFn: async () => {
@@ -181,16 +181,30 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       return data || [];
     },
   });
-  const { data: funcionariosAtivos = [] } = useQuery({
-    queryKey: ["funcionarios_os"],
+  const { data: funcionariosAtivos = [] } = useQuery<any[]>({
+    queryKey: ["tecnicos_os"],
     queryFn: async () => {
-      const { data } = await supabase.from("funcionarios").select("id, nome, tipo_comissao, valor_comissao, cargo, funcao").eq("ativo", true).order("nome");
-      return data || [];
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id(id, nome, tipo_comissao, valor_comissao, cargo, funcao, ativo, deleted_at), perfis_acesso:perfil_id(nome_perfil)")
+        .eq("ativo", true);
+
+      return (data ?? [])
+        .filter((up: any) =>
+          up.perfis_acesso?.nome_perfil === "Técnico"
+          && up.funcionario_id
+          && up.funcionarios?.ativo
+          && !up.funcionarios?.deleted_at
+        )
+        .map((up: any) => ({ ...up.funcionarios, id: up.funcionario_id, nome: up.funcionarios?.nome || up.nome_exibicao }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
     },
   });
 
-  // Lista filtrada para dropdown de técnico (todos ativos; UI prioriza técnicos se houver cargo)
-  const tecnicos = funcionariosAtivos;
+  const tecnicoAtualForaDaLista = ordem?.funcionario_id && !funcionariosAtivos.some((f) => f.id === ordem.funcionario_id)
+    ? { id: ordem.funcionario_id, nome: ordem.tecnico || "Atribuição atual", atual: true }
+    : null;
+  const tecnicos = tecnicoAtualForaDaLista ? [tecnicoAtualForaDaLista, ...funcionariosAtivos] : funcionariosAtivos;
 
   // Lista de lojistas ativos da empresa
   const { data: lojistasAtivos = [] } = useQuery({
