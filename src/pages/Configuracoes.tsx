@@ -256,7 +256,7 @@ export default function Configuracoes() {
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
-            {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} />}
+            {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} />}
             {active === "financeiro" && <ConfigFinanceiroTab categoriasFinanceiras={data.categoriasFinanceiras} centrosCusto={data.centrosCusto} formasPagamento={data.formasPagamento} />}
             {active === "estoque" && <ConfigEstoqueTab marcas={data.marcas} modelos={data.modelos} cores={data.cores} capacidades={data.capacidades} />}
             {active === "lojistas" && <ConfigLojistasTab />}
