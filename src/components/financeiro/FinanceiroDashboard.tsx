@@ -1,6 +1,6 @@
 import {
   TrendingUp, AlertTriangle, Info,
-  Calendar, CalendarDays, CalendarRange, CreditCard, Users, Wallet, Package, Receipt,
+  Calendar, CalendarDays, CalendarRange, CreditCard, Users, Wallet, Package, Receipt, CircleDollarSign,
 } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -24,9 +24,10 @@ const COLORS = [
 
 interface Props {
   kpis: {
-    pagarHoje: number;
-    pagarSemana: number;
-    pagarMes: number;
+    vencidasTotal: number;
+    venceEm7Dias: number;
+    venceEm30Dias: number;
+    totalPendente: number;
     pagoMes: number;
     totalComissoesPendentes: number;
     lucroReal: number;
@@ -46,6 +47,11 @@ export function FinanceiroDashboard({ kpis }: Props) {
   const categoriasData = Object.entries(kpis.despesasPorCategoria)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
+  const emptyMessage = kpis.receitaMes === 0
+    ? kpis.totalPendente === 0
+      ? "Nenhuma movimentação financeira no mês. Conclua OSs ou cadastre contas a pagar."
+      : "Nenhuma OS concluída no mês ainda."
+    : null;
 
   return (
     <div className="space-y-5">
@@ -68,23 +74,34 @@ export function FinanceiroDashboard({ kpis }: Props) {
       )}
 
       {/* KPI Cards - Row 1: Urgency */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className={`stat-card ${kpis.pagarHoje > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
-          <Calendar className={`h-4 w-4 mb-3 ${kpis.pagarHoje > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-          <p className={`stat-value ${kpis.pagarHoje > 0 ? "text-destructive" : ""}`}>{fmtCurrency(kpis.pagarHoje)}</p>
-          <p className="stat-label">A pagar hoje</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`stat-card ${kpis.vencidasTotal > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
+          <Calendar className={`h-4 w-4 mb-3 ${kpis.vencidasTotal > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+          <p className={`stat-value ${kpis.vencidasTotal > 0 ? "text-destructive" : ""}`}>{fmtCurrency(kpis.vencidasTotal)}</p>
+          <p className="stat-label">Vencidas</p>
         </div>
         <div className="stat-card">
           <CalendarDays className="h-4 w-4 text-warning mb-3" />
-          <p className="stat-value">{fmtCurrency(kpis.pagarSemana)}</p>
-          <p className="stat-label">A pagar na semana</p>
+          <p className="stat-value">{fmtCurrency(kpis.venceEm7Dias)}</p>
+          <p className="stat-label">Vence em 7 dias</p>
         </div>
         <div className="stat-card">
           <CalendarRange className="h-4 w-4 text-info mb-3" />
-          <p className="stat-value">{fmtCurrency(kpis.pagarMes)}</p>
-          <p className="stat-label">A pagar no mês</p>
+          <p className="stat-value">{fmtCurrency(kpis.venceEm30Dias)}</p>
+          <p className="stat-label">Vence em 30 dias</p>
+        </div>
+        <div className="stat-card">
+          <CircleDollarSign className="h-4 w-4 text-muted-foreground mb-3" />
+          <p className="stat-value">{fmtCurrency(kpis.totalPendente)}</p>
+          <p className="stat-label">Total pendente</p>
         </div>
       </div>
+
+      {emptyMessage && (
+        <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          {emptyMessage}
+        </div>
+      )}
 
       {/* KPI Cards - Row 2: Profit breakdown */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
