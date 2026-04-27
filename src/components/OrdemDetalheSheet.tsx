@@ -123,7 +123,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (!orderId) return [];
       const { data, error } = await supabase
         .from("pecas_utilizadas")
-        .select("*, estoque ( nome, categoria )")
+        .select("*, estoque_itens:peca_id ( nome_personalizado, sku, ativo, deleted_at )")
         .eq("ordem_id", orderId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -467,11 +467,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { data: pecasDisponiveis = [] } = useQuery({
     queryKey: ["pecas_disponiveis"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque")
-        .select("id, nome, categoria, quantidade, preco_custo")
-        .gt("quantidade", 0)
-        .order("nome");
+      const { data, error } = await (supabase.from("estoque_itens") as any)
+        .select("id, nome_personalizado, sku, quantidade, custo_unitario, custo_medio")
+        .eq("tipo_item", "peca")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome_personalizado");
       if (error) throw error;
       return data;
     },
@@ -504,18 +505,18 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         ordem_id: ordem.id,
         peca_id: pecaId,
         quantidade: qtd,
-        custo_unitario: peca.preco_custo ?? 0,
+        custo_unitario: peca.custo_medio ?? peca.custo_unitario ?? 0,
       });
       if (e1) throw e1;
 
       // Deduct from stock (permite estoque negativo)
-      const { error: e2 } = await supabase.from("estoque").update({
+      const { error: e2 } = await supabase.from("estoque_itens").update({
         quantidade: peca.quantidade - qtd,
       }).eq("id", pecaId);
       if (e2) throw e2;
 
       // Update OS custo_pecas
-      const custoAdicional = (peca.preco_custo ?? 0) * qtd;
+      const custoAdicional = (peca.custo_medio ?? peca.custo_unitario ?? 0) * qtd;
       const { error: e3 } = await supabase.from("ordens_de_servico").update({
         custo_pecas: (ordem.custo_pecas ?? 0) + custoAdicional,
       }).eq("id", ordem.id);
@@ -543,9 +544,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (e1) throw e1;
 
       // Return to stock
-      const { data: peca } = await supabase.from("estoque").select("quantidade").eq("id", usage.peca_id).single();
+      const { data: peca } = await supabase.from("estoque_itens").select("quantidade").eq("id", usage.peca_id).single();
       if (peca) {
-        await supabase.from("estoque").update({
+        await supabase.from("estoque_itens").update({
           quantidade: peca.quantidade + usage.quantidade,
         }).eq("id", usage.peca_id);
       }
@@ -1594,9 +1595,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
                           <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione a peça" /></SelectTrigger>
                           <SelectContent>
-                            {pecasDisponiveis.map((p) => (
+                            {pecasDisponiveis.map((p: any) => (
                               <SelectItem key={p.id} value={p.id}>
-                                {p.nome} — {p.quantidade} em estoque — R$ {Number(p.preco_custo ?? 0).toFixed(2)}
+                                {p.nome_personalizado || p.sku || "Peça"} — {p.quantidade} em estoque — R$ {Number(p.custo_medio ?? p.custo_unitario ?? 0).toFixed(2)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1627,10 +1628,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <p className="text-xs text-muted-foreground">Nenhuma peça registrada</p>
                   ) : (
                     <div className="space-y-1.5">
-                      {pecasUtilizadas.map((pu) => (
+                      {pecasUtilizadas.map((pu) => {
+                        const pecaHistorica = (pu as any).estoque_itens;
+                        const pecaInativa = pecaHistorica?.ativo === false || !!pecaHistorica?.deleted_at;
+                        return (
                         <div key={pu.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
                           <div>
-                            <p className="text-sm font-medium">{(pu as any).estoque?.nome ?? "Peça"}</p>
+                            <p className="text-sm font-medium">
+                              {pecaHistorica?.nome_personalizado || pecaHistorica?.sku || "Peça"}
+                              {pecaInativa && <Badge variant="outline" className="ml-2 text-[10px]">inativa</Badge>}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {pu.quantidade}x — R$ {Number(pu.custo_unitario).toFixed(2)} cada
                             </p>
@@ -1657,7 +1664,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       <div className="flex justify-between text-sm pt-1 border-t">
                         <span className="text-muted-foreground">Total peças</span>
                         <span className="font-semibold">

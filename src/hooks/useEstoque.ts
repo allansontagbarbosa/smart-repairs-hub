@@ -22,6 +22,7 @@ export type EstoqueItem = {
   local_estoque: string | null;
   fornecedor: string | null;
   status: string;
+  ativo: boolean;
   observacoes: string | null;
   created_at: string;
   updated_at: string;

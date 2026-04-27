@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Pencil, Trash2, Minus, MapPin, Download, Power } from "lucide-react";
+import { Search, Plus, Pencil, EyeOff, Minus, MapPin, Download, Power } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -56,9 +56,9 @@ interface Props {
 export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
   const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("todas");
+  const [mostrarInativas, setMostrarInativas] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EstoqueItem | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmToggleStatus, setConfirmToggleStatus] = useState<null | "ativar" | "inativar">(null);
   const queryClient = useQueryClient();
 
@@ -79,20 +79,24 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
       (i.fornecedor?.toLowerCase().includes(q)) ||
       (i.estoque_categorias?.nome?.toLowerCase().includes(q));
     const matchCat = filterCategoria === "todas" || i.categoria_id === filterCategoria;
-    return matchSearch && matchCat;
+    const matchAtivo = mostrarInativas || i.ativo !== false;
+    return matchSearch && matchCat && matchAtivo;
   });
 
   const bulk = useBulkSelection(filtered);
 
-  const softDeleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("estoque_itens").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  const toggleAtivoMutation = useMutation({
+    mutationFn: async ({ ids, ativo }: { ids: string[]; ativo: boolean }) => {
+      const { error } = await supabase.from("estoque_itens" as any).update({ ativo }).in("id", ids);
       if (error) throw error;
+      return { count: ids.length, ativo };
     },
-    onSuccess: () => {
+    onSuccess: ({ count, ativo }) => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success("Peça removida do estoque!");
+      toast.success(`${count} ${count === 1 ? "peça" : "peças"} ${ativo ? "reativada(s)" : "desativada(s)"}`);
+      bulk.clear();
     },
+    onError: (err: any) => toast.error("Erro ao alterar peça", { description: err?.message }),
   });
 
   const ajustarMutation = useMutation({
@@ -106,23 +110,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
     },
-  });
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
-        .from("estoque_itens")
-        .update({ deleted_at: new Date().toISOString() })
-        .in("id", ids);
-      if (error) throw error;
-      return ids.length;
-    },
-    onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success(`${count} ${count === 1 ? "peça removida" : "peças removidas"} do estoque`);
-      bulk.clear();
-    },
-    onError: (err: any) => toast.error("Erro ao excluir", { description: err?.message }),
   });
 
   const bulkToggleStatusMutation = useMutation({
@@ -187,6 +174,15 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
             {categorias.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant={mostrarInativas ? "secondary" : "outline"}
+          size="sm"
+          className="h-9"
+          onClick={() => setMostrarInativas(v => !v)}
+        >
+          {mostrarInativas ? "Ocultar inativas" : "Mostrar inativas"}
+        </Button>
         <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingItem(null); setDialogOpen(true); }}>
           <Plus className="h-3.5 w-3.5" /> Nova Peça
         </Button>
@@ -216,11 +212,10 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
             onClick: () => setConfirmToggleStatus("inativar"),
           },
           {
-            id: "delete",
-            label: "Excluir",
-            icon: <Trash2 className="h-3.5 w-3.5" />,
-            variant: "destructive",
-            onClick: () => setConfirmDelete(true),
+            id: "desativar",
+            label: "Desativar",
+            icon: <EyeOff className="h-3.5 w-3.5" />,
+            onClick: () => toggleAtivoMutation.mutate({ ids: Array.from(bulk.selectedIds), ativo: false }),
           },
         ]}
       />
@@ -246,6 +241,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 <th className="hidden md:table-cell text-right">Venda</th>
                 <th className="hidden lg:table-cell text-center">Margem</th>
                 <th className="hidden xl:table-cell">Local</th>
+                <th className="text-center">Status</th>
                 <th className="text-right">Ações</th>
               </tr>
             </thead>
@@ -277,6 +273,11 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                         {isBaixo && (
                           <span className="inline-flex items-center rounded-full bg-destructive/10 text-destructive text-[10px] font-semibold px-2 py-0.5 whitespace-nowrap">
                             {item.quantidade === 0 ? "Esgotado" : "Estoque baixo"}
+                          </span>
+                        )}
+                        {item.ativo === false && (
+                          <span className="inline-flex items-center rounded-full bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 whitespace-nowrap">
+                            Inativa
                           </span>
                         )}
                       </div>
@@ -336,13 +337,27 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                         <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{item.local_estoque}</span>
                       ) : "—"}
                     </td>
+                    <td className="text-center">
+                      <span className={cn(
+                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                        item.ativo === false ? "text-muted-foreground bg-muted" : "text-success bg-success/10 border-success/30"
+                      )}>
+                        {item.ativo === false ? "Inativa" : "Ativa"}
+                      </span>
+                    </td>
                     <td>
                       <div className="flex items-center justify-end gap-0.5">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setDialogOpen(true); }}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => softDeleteMutation.mutate(item.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title={item.ativo === false ? "Reativar peça" : "Desativar peça"}
+                          onClick={() => toggleAtivoMutation.mutate({ ids: [item.id], ativo: item.ativo === false })}
+                        >
+                          {item.ativo === false ? <Power className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
                     </td>
@@ -350,7 +365,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={11} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
+                <tr><td colSpan={12} className="text-center text-muted-foreground py-10 text-sm">Nenhuma peça encontrada</td></tr>
               )}
             </tbody>
           </table>
@@ -365,33 +380,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
         marcas={marcas}
         modelos={modelos}
       />
-
-      {/* Confirmação - Excluir em lote */}
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {bulk.count} {bulk.count === 1 ? "peça" : "peças"}?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2">
-                <p>Esta ação removerá as peças selecionadas do estoque. Você pode reverter restaurando os registros.</p>
-                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
-                  {previewNames.map((n, i) => <li key={i}>{n}</li>)}
-                  {restCount > 0 && <li>...e mais {restCount}</li>}
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => bulkDeleteMutation.mutate(Array.from(bulk.selectedIds))}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Confirmação - Ativar/Inativar em lote */}
       <AlertDialog open={confirmToggleStatus !== null} onOpenChange={(o) => !o && setConfirmToggleStatus(null)}>

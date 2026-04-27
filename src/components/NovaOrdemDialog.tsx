@@ -265,10 +265,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const { data: pecasEstoque = [] } = useQuery({
     queryKey: ["estoque_pecas_para_os"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque_itens")
+      const { data, error } = await (supabase.from("estoque_itens") as any)
         .select("*, estoque_categorias:categoria_id ( nome ), marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
         .eq("tipo_item", "peca")
+        .eq("ativo", true)
         .is("deleted_at", null)
         .order("nome_personalizado");
       if (error) throw error;
@@ -530,13 +530,12 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   // ── Valores calculados ──
   const totalMaoObraDefeitos = defeitosSelecionados.reduce((s, d) => s + d.valor_mao_obra, 0);
-  const totalPecas = pecasSelecionadas.reduce((s, p) => s + p.preco_venda * p.quantidade, 0);
   const custoPecas = pecasSelecionadas.reduce((s, p) => s + p.custo_unitario * p.quantidade, 0);
   const adicional = parseFloat(maoObraAdicional) || 0;
   const descontoNum = Math.max(0, parseFloat(desconto) || 0);
   const sinalPagoNum = Math.max(0, parseFloat(sinalPago) || 0);
   const garantiaDiasNum = Math.max(0, parseInt(garantiaDias, 10) || 0);
-  const subtotal = totalMaoObraDefeitos + totalPecas + adicional;
+  const subtotal = totalMaoObraDefeitos + adicional;
   const valorTotal = Math.max(0, subtotal - descontoNum);
   const aReceber = Math.max(0, valorTotal - sinalPagoNum);
 
@@ -842,6 +841,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         observacoes: observacoes || null,
         valor: valorTotal || null,
         valor_total: valorTotal || null,
+        valor_total_servicos: totalMaoObraDefeitos + adicional,
+        valor_total_pecas: 0,
         custo_pecas: custoPecas || 0,
         mao_obra_adicional: adicional || 0,
         desconto: descontoNum || 0,
@@ -1537,7 +1538,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                                 <Plus className="h-3 w-3" />
                               </button>
                             </div>
-                            <span className="text-sm font-medium w-[80px] text-right">R$ {(p.preco_venda * p.quantidade).toFixed(2)}</span>
+                            <span className="text-sm font-medium w-[80px] text-right">custo R$ {(p.custo_unitario * p.quantidade).toFixed(2)}</span>
                             <button
                               type="button"
                               onClick={() => removePeca(p.id)}
@@ -1842,7 +1843,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {/* Bloco 4: Totais */}
                 <div className="space-y-1 text-xs text-foreground">
                   <div className="flex justify-between"><span>Subtotal serviços</span><span>R$ {totalMaoObraDefeitos.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-                  <div className="flex justify-between"><span>Subtotal peças</span><span>R$ {totalPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div className="flex justify-between"><span>Custo das peças</span><span>R$ {custoPecas.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   <div className="flex justify-between"><span>Mão de obra adicional</span><span>R$ {adicional.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
                   {descontoNum > 0 && (<div className="flex justify-between"><span>Desconto</span><span>− R$ {descontoNum.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>)}
                 </div>

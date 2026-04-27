@@ -1624,6 +1624,7 @@ export type Database = {
       }
       estoque_itens: {
         Row: {
+          ativo: boolean
           capacidade: string | null
           categoria_id: string | null
           codigo_barras: string | null
@@ -1650,6 +1651,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ativo?: boolean
           capacidade?: string | null
           categoria_id?: string | null
           codigo_barras?: string | null
@@ -1676,6 +1678,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ativo?: boolean
           capacidade?: string | null
           categoria_id?: string | null
           codigo_barras?: string | null
