@@ -1163,7 +1163,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                             <SelectContent>
                               <SelectItem value="__none__">— Sem técnico —</SelectItem>
                               {tecnicos.map((t: any) => (
-                                <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                                <SelectItem key={t.id} value={t.id}>{t.nome}{t.atual ? " (atribuição atual)" : ""}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
