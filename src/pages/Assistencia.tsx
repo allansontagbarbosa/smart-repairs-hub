@@ -39,6 +39,7 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
+import { useGerarComissao } from "@/hooks/useGerarComissao";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -683,6 +684,7 @@ export default function Assistencia() {
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
+  const { gerarOuAtualizarComissao } = useGerarComissao();
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
   const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
   const filtersKey = useMemo(() => filterHash(filters), [filters]);
@@ -802,6 +804,9 @@ export default function Assistencia() {
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
+      if ((status === "pronto" || status === "entregue") && ordemAtual?.status !== "pronto" && ordemAtual?.status !== "entregue") {
+        await gerarOuAtualizarComissao({ ...ordemAtual, ...updates, id });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
@@ -989,6 +994,13 @@ export default function Assistencia() {
             .eq("id", id)
             .eq("status", "entregue");
           if (dateError) throw dateError;
+        }));
+      }
+      if (status === "pronto" || status === "entregue") {
+        await Promise.all(ids.map(async (id) => {
+          const ordemAtual = orders.find((order) => order.id === id);
+          if (!ordemAtual || ordemAtual.status === "pronto" || ordemAtual.status === "entregue") return;
+          await gerarOuAtualizarComissao({ ...ordemAtual, status });
         }));
       }
       return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };
