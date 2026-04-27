@@ -13,6 +13,7 @@ import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
+import { useGerarComissao } from "@/hooks/useGerarComissao";
 
 const statusHeaderColors: Record<Status, string> = {
   recebido: "bg-muted-foreground/20",
@@ -88,6 +89,7 @@ export default function FluxoAssistencia() {
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens", "ultimos-90"], queryFn: fetchOrders });
   const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos_kanban"], queryFn: fetchTecnicos });
+  const { gerarOuAtualizarComissao } = useGerarComissao();
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
@@ -103,6 +105,9 @@ export default function FluxoAssistencia() {
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
+      if ((newStatus === "pronto" || newStatus === "entregue") && ordemAtual?.status !== "pronto" && ordemAtual?.status !== "entregue") {
+        await gerarOuAtualizarComissao({ ...ordemAtual, ...updates, id });
+      }
     },
     onSuccess: () => {
       invalidateOrdensDependentes(queryClient);
