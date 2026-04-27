@@ -963,30 +963,33 @@ export default function Assistencia() {
       });
       if (error) throw error;
       if (status === "pronto") {
-        const { error: dateError } = await supabase
-          .from("ordens_de_servico")
-          .update({ data_conclusao: now })
-          .in("id", ids)
-          .eq("status", "pronto")
-          .is("data_conclusao", null);
-        if (dateError) throw dateError;
+        await Promise.all(ids.map(async (id) => {
+          const ordemAtual = orders.find((order) => order.id === id);
+          if (ordemAtual?.data_conclusao) return;
+          const { error: dateError } = await supabase
+            .from("ordens_de_servico")
+            .update({ data_conclusao: now })
+            .eq("id", id)
+            .eq("status", "pronto")
+            .is("data_conclusao", null);
+          if (dateError) throw dateError;
+        }));
       }
       if (status === "entregue") {
-        const { error: entregaError } = await supabase
-          .from("ordens_de_servico")
-          .update({ data_entrega: now })
-          .in("id", ids)
-          .eq("status", "entregue")
-          .is("data_entrega", null);
-        if (entregaError) throw entregaError;
+        await Promise.all(ids.map(async (id) => {
+          const ordemAtual = orders.find((order) => order.id === id);
+          const dateUpdates: { data_conclusao?: string; data_entrega?: string } = {};
+          if (!ordemAtual?.data_entrega) dateUpdates.data_entrega = now;
+          if (!ordemAtual?.data_conclusao) dateUpdates.data_conclusao = ordemAtual?.data_entrega || now;
+          if (Object.keys(dateUpdates).length === 0) return;
 
-        const { error: conclusaoError } = await supabase
-          .from("ordens_de_servico")
-          .update({ data_conclusao: now })
-          .in("id", ids)
-          .eq("status", "entregue")
-          .is("data_conclusao", null);
-        if (conclusaoError) throw conclusaoError;
+          const { error: dateError } = await supabase
+            .from("ordens_de_servico")
+            .update(dateUpdates)
+            .eq("id", id)
+            .eq("status", "entregue");
+          if (dateError) throw dateError;
+        }));
       }
       return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };
     },
