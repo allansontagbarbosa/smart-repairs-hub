@@ -99,7 +99,7 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     mutationFn: async ({ id, delta }: { id: string; delta: number }) => {
       const item = itens.find(i => i.id === id);
       if (!item) return;
-      const novaQtd = Math.max(0, item.quantidade + delta);
+      const novaQtd = item.quantidade + delta;
       const { error } = await supabase.from("estoque_itens").update({ quantidade: novaQtd }).eq("id", id);
       if (error) throw error;
     },
