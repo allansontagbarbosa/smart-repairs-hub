@@ -323,30 +323,42 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   });
 
   const { data: tecnicosList = [] } = useQuery({
-    queryKey: ["tecnicos-os", empresaId],
+    queryKey: ["tecnicos-os-perfil-tecnico-v2", empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
+      const { data: perfilTecnico, error: perfilError } = await supabase
+        .from("perfis_acesso")
+        .select("id")
         .eq("empresa_id", empresaId!)
         .eq("ativo", true)
-        .eq("perfis_acesso.nome_perfil", "Técnico")
-        .not("funcionario_id", "is", null);
+        .eq("nome_perfil", "Técnico")
+        .maybeSingle();
+
+      if (perfilError) throw perfilError;
+      if (!perfilTecnico?.id) return [];
+
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at)")
+        .eq("empresa_id", empresaId!)
+        .eq("ativo", true)
+        .eq("perfil_id", perfilTecnico.id)
+        .not("funcionario_id", "is", null)
+        .eq("funcionarios.ativo", true)
+        .is("funcionarios.deleted_at", null);
 
       if (error) throw error;
 
-      return (data ?? [])
-        .filter((up: any) =>
-          up.funcionario_id
-          && up.funcionarios?.ativo
-          && !up.funcionarios?.deleted_at
-        )
-        .map((up: any) => ({
+      const tecnicos = new Map<string, { id: string; nome: string }>();
+      (data ?? []).forEach((up: any) => {
+        if (!up.funcionario_id || !up.funcionarios?.nome) return;
+        tecnicos.set(up.funcionario_id, {
           id: up.funcionario_id as string,
-          nome: (up.funcionarios?.nome || up.nome_exibicao) as string,
-        }))
-        .sort((a, b) => a.nome.localeCompare(b.nome));
+          nome: (up.funcionarios.nome || up.nome_exibicao) as string,
+        });
+      });
+
+      return Array.from(tecnicos.values()).sort((a, b) => a.nome.localeCompare(b.nome));
     },
   });
 
