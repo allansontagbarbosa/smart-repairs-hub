@@ -498,7 +498,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (!ordem) return;
       const peca = pecasDisponiveis.find(p => p.id === pecaId);
       if (!peca) throw new Error("Peça não encontrada");
-      if (peca.quantidade < qtd) throw new Error(`Estoque insuficiente (disponível: ${peca.quantidade})`);
 
       // Insert usage record
       const { error: e1 } = await supabase.from("pecas_utilizadas").insert({
@@ -509,7 +508,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       });
       if (e1) throw e1;
 
-      // Deduct from stock
+      // Deduct from stock (permite estoque negativo)
       const { error: e2 } = await supabase.from("estoque").update({
         quantidade: peca.quantidade - qtd,
       }).eq("id", pecaId);
