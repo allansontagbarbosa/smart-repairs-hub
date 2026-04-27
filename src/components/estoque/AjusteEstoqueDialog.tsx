@@ -76,9 +76,8 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
         });
         if (rpcErr) throw rpcErr;
       } else {
-        // Saída: só decrementa quantidade, não mexe no custo médio
+        // Saída: só decrementa quantidade, não mexe no custo médio; saldo negativo é permitido
         const novaQtd = item.quantidade - qtd;
-        if (novaQtd < 0) throw new Error("Estoque ficaria negativo");
         const { error: e1 } = await supabase
           .from("estoque_itens")
           .update({ quantidade: novaQtd })
