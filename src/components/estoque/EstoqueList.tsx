@@ -174,6 +174,15 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
             {categorias.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant={mostrarInativas ? "secondary" : "outline"}
+          size="sm"
+          className="h-9"
+          onClick={() => setMostrarInativas(v => !v)}
+        >
+          {mostrarInativas ? "Ocultar inativas" : "Mostrar inativas"}
+        </Button>
         <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingItem(null); setDialogOpen(true); }}>
           <Plus className="h-3.5 w-3.5" /> Nova Peça
         </Button>
@@ -371,33 +380,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
         marcas={marcas}
         modelos={modelos}
       />
-
-      {/* Confirmação - Excluir em lote */}
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {bulk.count} {bulk.count === 1 ? "peça" : "peças"}?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2">
-                <p>Esta ação removerá as peças selecionadas do estoque. Você pode reverter restaurando os registros.</p>
-                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
-                  {previewNames.map((n, i) => <li key={i}>{n}</li>)}
-                  {restCount > 0 && <li>...e mais {restCount}</li>}
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => bulkDeleteMutation.mutate(Array.from(bulk.selectedIds))}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Confirmação - Ativar/Inativar em lote */}
       <AlertDialog open={confirmToggleStatus !== null} onOpenChange={(o) => !o && setConfirmToggleStatus(null)}>
