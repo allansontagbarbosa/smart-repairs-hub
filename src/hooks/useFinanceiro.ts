@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, format } from "date-fns";
+import { addDays, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export type ContaPagar = {
@@ -160,9 +160,8 @@ export function useFinanceiro() {
   const kpis = useMemo(() => {
     const now = new Date();
     const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now, { locale: ptBR });
-    const weekEnd = endOfWeek(now, { locale: ptBR });
+    const next7DaysEnd = addDays(todayStart, 7);
+    const next30DaysEnd = addDays(todayStart, 30);
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
 
@@ -173,28 +172,26 @@ export function useFinanceiro() {
 
     // Contas a pagar
     const contasPendentes = allContas.filter(c => c.status === "pendente" || c.status === "vencida");
-    const pagarHoje = contasPendentes.filter(c => {
+    const vencidas = contasPendentes.filter(c => new Date(c.data_vencimento + "T12:00:00") < todayStart);
+    const vencidasTotal = vencidas.reduce((s, c) => s + Number(c.valor), 0);
+
+    const venceEm7Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= todayStart && d <= todayEnd;
+      return d >= todayStart && d <= next7DaysEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    const pagarSemana = contasPendentes.filter(c => {
+    const venceEm30Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= weekStart && d <= weekEnd;
+      return d >= todayStart && d <= next30DaysEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    const pagarMes = contasPendentes.filter(c => {
-      const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= monthStart && d <= monthEnd;
-    }).reduce((s, c) => s + Number(c.valor), 0);
+    const totalPendente = contasPendentes.reduce((s, c) => s + Number(c.valor), 0);
 
     const pagoMes = allContas.filter(c => {
       if (c.status !== "paga" || !c.data_pagamento) return false;
       const d = new Date(c.data_pagamento + "T12:00:00");
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
-
-    const contasVencidas = contasPendentes.filter(c => new Date(c.data_vencimento + "T23:59:59") < todayStart);
 
     // Comissões
     const comissoesPendentes = allComissoes.filter(c => c.status === "pendente" || c.status === "liberada");
@@ -277,9 +274,10 @@ export function useFinanceiro() {
     }
 
     return {
-      pagarHoje,
-      pagarSemana,
-      pagarMes,
+      vencidasTotal,
+      venceEm7Dias,
+      venceEm30Dias,
+      totalPendente,
       pagoMes,
       totalComissoesPendentes,
       comissoesMes,
@@ -290,7 +288,7 @@ export function useFinanceiro() {
       recebimentosMes,
       despesasPorCategoria,
       evolucaoMensal,
-      contasVencidas: contasVencidas.length,
+      contasVencidas: vencidas.length,
       comissoesPendentesCount: comissoesPendentes.length,
     };
   }, [contas.data, comissoes.data, ordens.data, recebimentos.data]);
