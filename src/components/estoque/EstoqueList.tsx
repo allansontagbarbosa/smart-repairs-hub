@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Pencil, Trash2, Minus, MapPin, Download, Power } from "lucide-react";
+import { Search, Plus, Pencil, EyeOff, Minus, MapPin, Download, Power } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -56,9 +56,9 @@ interface Props {
 export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
   const [search, setSearch] = useState("");
   const [filterCategoria, setFilterCategoria] = useState("todas");
+  const [mostrarInativas, setMostrarInativas] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EstoqueItem | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmToggleStatus, setConfirmToggleStatus] = useState<null | "ativar" | "inativar">(null);
   const queryClient = useQueryClient();
 
@@ -79,20 +79,24 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
       (i.fornecedor?.toLowerCase().includes(q)) ||
       (i.estoque_categorias?.nome?.toLowerCase().includes(q));
     const matchCat = filterCategoria === "todas" || i.categoria_id === filterCategoria;
-    return matchSearch && matchCat;
+    const matchAtivo = mostrarInativas || i.ativo !== false;
+    return matchSearch && matchCat && matchAtivo;
   });
 
   const bulk = useBulkSelection(filtered);
 
-  const softDeleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("estoque_itens").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  const toggleAtivoMutation = useMutation({
+    mutationFn: async ({ ids, ativo }: { ids: string[]; ativo: boolean }) => {
+      const { error } = await supabase.from("estoque_itens" as any).update({ ativo }).in("id", ids);
       if (error) throw error;
+      return { count: ids.length, ativo };
     },
-    onSuccess: () => {
+    onSuccess: ({ count, ativo }) => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success("Peça removida do estoque!");
+      toast.success(`${count} ${count === 1 ? "peça" : "peças"} ${ativo ? "reativada(s)" : "desativada(s)"}`);
+      bulk.clear();
     },
+    onError: (err: any) => toast.error("Erro ao alterar peça", { description: err?.message }),
   });
 
   const ajustarMutation = useMutation({
@@ -106,23 +110,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
     },
-  });
-
-  const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const { error } = await supabase
-        .from("estoque_itens")
-        .update({ deleted_at: new Date().toISOString() })
-        .in("id", ids);
-      if (error) throw error;
-      return ids.length;
-    },
-    onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-      toast.success(`${count} ${count === 1 ? "peça removida" : "peças removidas"} do estoque`);
-      bulk.clear();
-    },
-    onError: (err: any) => toast.error("Erro ao excluir", { description: err?.message }),
   });
 
   const bulkToggleStatusMutation = useMutation({
