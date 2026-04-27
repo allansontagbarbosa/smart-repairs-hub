@@ -123,7 +123,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (!orderId) return [];
       const { data, error } = await supabase
         .from("pecas_utilizadas")
-        .select("*, estoque ( nome, categoria )")
+        .select("*, estoque_itens:peca_id ( nome_personalizado, sku, ativo, deleted_at )")
         .eq("ordem_id", orderId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -467,11 +467,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { data: pecasDisponiveis = [] } = useQuery({
     queryKey: ["pecas_disponiveis"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("estoque")
-        .select("id, nome, categoria, quantidade, preco_custo")
-        .gt("quantidade", 0)
-        .order("nome");
+      const { data, error } = await (supabase.from("estoque_itens") as any)
+        .select("id, nome_personalizado, sku, quantidade, custo_unitario, custo_medio")
+        .eq("tipo_item", "peca")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome_personalizado");
       if (error) throw error;
       return data;
     },
@@ -504,18 +505,18 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         ordem_id: ordem.id,
         peca_id: pecaId,
         quantidade: qtd,
-        custo_unitario: peca.preco_custo ?? 0,
+        custo_unitario: peca.custo_medio ?? peca.custo_unitario ?? 0,
       });
       if (e1) throw e1;
 
       // Deduct from stock (permite estoque negativo)
-      const { error: e2 } = await supabase.from("estoque").update({
+      const { error: e2 } = await supabase.from("estoque_itens").update({
         quantidade: peca.quantidade - qtd,
       }).eq("id", pecaId);
       if (e2) throw e2;
 
       // Update OS custo_pecas
-      const custoAdicional = (peca.preco_custo ?? 0) * qtd;
+      const custoAdicional = (peca.custo_medio ?? peca.custo_unitario ?? 0) * qtd;
       const { error: e3 } = await supabase.from("ordens_de_servico").update({
         custo_pecas: (ordem.custo_pecas ?? 0) + custoAdicional,
       }).eq("id", ordem.id);
@@ -543,9 +544,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (e1) throw e1;
 
       // Return to stock
-      const { data: peca } = await supabase.from("estoque").select("quantidade").eq("id", usage.peca_id).single();
+      const { data: peca } = await supabase.from("estoque_itens").select("quantidade").eq("id", usage.peca_id).single();
       if (peca) {
-        await supabase.from("estoque").update({
+        await supabase.from("estoque_itens").update({
           quantidade: peca.quantidade + usage.quantidade,
         }).eq("id", usage.peca_id);
       }
