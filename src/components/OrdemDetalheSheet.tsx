@@ -30,6 +30,7 @@ import { usePermissoes } from "@/hooks/usePermissoes";
 import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { useGerarComissao } from "@/hooks/useGerarComissao";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 
 
@@ -40,6 +41,7 @@ interface Props {
 }
 
 export function OrdemDetalheSheet({ orderId, onClose }: Props) {
+  const { empresaId } = useEmpresa();
   const [editing, setEditing] = useState(false);
   const [addingPart, setAddingPart] = useState(false);
   const [selectedPecaId, setSelectedPecaId] = useState("");
@@ -182,17 +184,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     },
   });
   const { data: funcionariosAtivos = [] } = useQuery<any[]>({
-    queryKey: ["tecnicos_os"],
+    queryKey: ["tecnicos_os", empresaId],
+    enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id(id, nome, tipo_comissao, valor_comissao, cargo, funcao, ativo, deleted_at), perfis_acesso:perfil_id(nome_perfil)")
-        .eq("ativo", true);
+        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id!inner(id, nome, tipo_comissao, valor_comissao, cargo, funcao, ativo, deleted_at), perfis_acesso:perfil_id!inner(nome_perfil)")
+        .eq("empresa_id", empresaId!)
+        .eq("ativo", true)
+        .eq("perfis_acesso.nome_perfil", "Técnico")
+        .not("funcionario_id", "is", null);
+
+      if (error) throw error;
 
       return (data ?? [])
         .filter((up: any) =>
-          up.perfis_acesso?.nome_perfil === "Técnico"
-          && up.funcionario_id
+          up.funcionario_id
           && up.funcionarios?.ativo
           && !up.funcionarios?.deleted_at
         )
