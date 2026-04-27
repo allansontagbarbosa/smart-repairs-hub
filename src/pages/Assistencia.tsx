@@ -739,7 +739,7 @@ export default function Assistencia() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id!inner(id, nome, ativo, deleted_at), perfis_acesso:perfil_id!inner(nome_perfil)")
+        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
         .eq("empresa_id", empresaId!)
         .eq("ativo", true)
         .eq("perfis_acesso.nome_perfil", "Técnico")
@@ -828,7 +828,7 @@ export default function Assistencia() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios:funcionario_id!inner(id, nome, ativo, deleted_at), perfis_acesso:perfil_id!inner(nome_perfil)")
+        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
         .eq("empresa_id", empresaId!)
         .eq("ativo", true)
         .eq("perfis_acesso.nome_perfil", "Técnico")
