@@ -25,6 +25,7 @@ const COLORS = [
 interface Props {
   kpis: {
     vencidasTotal: number;
+    venceHoje: number;
     venceEm7Dias: number;
     venceEm30Dias: number;
     totalPendente: number;
@@ -74,11 +75,16 @@ export function FinanceiroDashboard({ kpis }: Props) {
       )}
 
       {/* KPI Cards - Row 1: Urgency */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <div className={`stat-card ${kpis.vencidasTotal > 0 ? "border-destructive/20 bg-destructive/5" : ""}`}>
           <Calendar className={`h-4 w-4 mb-3 ${kpis.vencidasTotal > 0 ? "text-destructive" : "text-muted-foreground"}`} />
           <p className={`stat-value ${kpis.vencidasTotal > 0 ? "text-destructive" : ""}`}>{fmtCurrency(kpis.vencidasTotal)}</p>
           <p className="stat-label">Vencidas</p>
+        </div>
+        <div className="stat-card">
+          <Calendar className="h-4 w-4 text-muted-foreground mb-3" />
+          <p className="stat-value">{fmtCurrency(kpis.venceHoje)}</p>
+          <p className="stat-label">Vence hoje</p>
         </div>
         <div className="stat-card">
           <CalendarDays className="h-4 w-4 text-warning mb-3" />
