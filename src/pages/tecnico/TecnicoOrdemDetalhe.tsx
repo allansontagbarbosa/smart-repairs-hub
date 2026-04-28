@@ -268,6 +268,25 @@ export default function TecnicoOrdemDetalhe() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Serviços da OS</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {servicos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
+          ) : servicos.map((servico: any) => (
+            <ServicoCard
+              key={servico.id}
+              servico={servico}
+              meuFuncionarioId={identidade?.funcionario_id ?? null}
+              onPegar={() => iniciarServico.mutate(servico.id)}
+              onConcluir={() => concluirServico.mutate(servico.id)}
+              onSoltar={() => soltarServico.mutate(servico.id)}
+              pending={iniciarServico.isPending || concluirServico.isPending || soltarServico.isPending}
+            />
+          ))}
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="checklist">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
