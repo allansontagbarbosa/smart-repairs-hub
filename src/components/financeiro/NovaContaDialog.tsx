@@ -177,6 +177,12 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
   };
 
   const recorrente = watch("recorrente");
+  const dataVencimento = watch("data_vencimento");
+
+  useEffect(() => {
+    if (!open || isEditing || !dataVencimento) return;
+    setValue("mes_competencia", getDefaultCompetencia(dataVencimento, recorrente));
+  }, [open, isEditing, dataVencimento, recorrente, setValue]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,6 +232,14 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
               <Label>Vencimento *</Label>
               <Input type="date" {...register("data_vencimento", { required: true })} />
             </div>
+          </div>
+
+          <div>
+            <Label>Mês de competência *</Label>
+            <Input type="month" {...register("mes_competencia", { required: true })} />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Mês em que a despesa é considerada para o cálculo do lucro. Para contas pagas com 1 mês de atraso (ex: salário pago no dia 5 do mês seguinte), use o mês trabalhado.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
