@@ -235,9 +235,7 @@ export default function Dashboard() {
   const orders = useMemo(() => {
     return allOrders.filter(o => {
       if (isCancelada(o.status)) return false;
-      const ref = isFaturado(o.status) ? o.data_conclusao : o.data_entrada;
-      if (!ref) return false;
-      const d = new Date(ref);
+      const d = new Date(o.data_entrada);
       return d >= range.start && d <= range.end;
     });
   }, [allOrders, range]);
@@ -248,7 +246,11 @@ export default function Dashboard() {
     const now = new Date();
 
     const ordensMes = orders;
-    const ordensFaturadas = ordensMes.filter(o => isFaturado(o.status));
+    const ordensFaturadas = allOrders.filter(o => {
+      if (!isFaturado(o.status) || !o.data_conclusao) return false;
+      const d = new Date(o.data_conclusao);
+      return d >= range.start && d <= range.end;
+    });
     const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
