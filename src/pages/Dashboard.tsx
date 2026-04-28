@@ -165,13 +165,12 @@ async function fetchDashboardSummary(rangeStart: Date, rangeEnd: Date) {
   };
 }
 
-async function fetchContasPagas(rangeStart: Date, rangeEnd: Date) {
+async function fetchContasPeriodo(rangeStart: Date, rangeEnd: Date) {
   const { data, error } = await supabase
     .from("contas_a_pagar")
-    .select("valor, data_pagamento, categoria, categoria_financeira_id, categorias_financeiras ( tipo )")
-    .eq("status", "paga")
-    .gte("data_pagamento", rangeStart.toISOString().split("T")[0])
-    .lte("data_pagamento", rangeEnd.toISOString().split("T")[0]);
+    .select("valor, recorrente, data_vencimento")
+    .gte("data_vencimento", rangeStart.toISOString().split("T")[0])
+    .lte("data_vencimento", rangeEnd.toISOString().split("T")[0]);
   if (error) throw error;
   return data ?? [];
 }
@@ -211,9 +210,9 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
-  const { data: contasPagas } = useQuery({
-    queryKey: ["dashboard-contas-pagas", range.start.toISOString(), range.end.toISOString()],
-    queryFn: () => fetchContasPagas(range.start, range.end),
+  const { data: contasPeriodo } = useQuery({
+    queryKey: ["dashboard-contas-periodo", range.start.toISOString(), range.end.toISOString()],
+    queryFn: () => fetchContasPeriodo(range.start, range.end),
     refetchInterval: 60000,
   });
 
@@ -254,13 +253,15 @@ export default function Dashboard() {
     const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    const allContasPagas = contasPagas ?? [];
+    const allContasPeriodo = contasPeriodo ?? [];
     const totalComissoesPeriodo = Number(summary?.comissoes_periodo_total ?? 0);
-    const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
-    const gastosFixos = allContasPagas
-      .filter((c: any) => c.categorias_financeiras?.tipo === "fixo")
+    const gastosFixos = allContasPeriodo
+      .filter((c: any) => c.recorrente === true)
       .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
-    const gastosVariaveis = despesasPagasMes - gastosFixos;
+    const gastosVariaveis = allContasPeriodo
+      .filter((c: any) => c.recorrente === false)
+      .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const despesasPagasMes = gastosFixos + gastosVariaveis;
 
     const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis - totalComissoesPeriodo;
     const ebitdaMargem = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
@@ -283,7 +284,7 @@ export default function Dashboard() {
     const nSocios = Number(empresaConfig?.numero_socios ?? 2) || 1;
 
     const prevLl = metaFaturamento > 0 && faturamento > 0 ? metaFaturamento * (ll / faturamento) : 0;
-    const totalGastos = custosPecasMes + despesasPagasMes + totalComissoesPeriodo + depreciacao + impostos;
+    const totalGastos = custosPecasMes + gastosFixos + gastosVariaveis + totalComissoesPeriodo + depreciacao + impostos;
     const metaPct = metaGastos > 0 ? Math.min(100, (totalGastos / metaGastos) * 100) : 0;
 
     const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
@@ -312,7 +313,7 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
       iphonesReparados,
     };
-  }, [orders, allOrders, contasPagas, summary?.comissoes_periodo_total, empresaConfig]);
+  }, [orders, allOrders, contasPeriodo, summary?.comissoes_periodo_total, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
