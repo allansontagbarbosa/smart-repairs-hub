@@ -17,6 +17,7 @@ export type ContaPagar = {
   ordem_servico_id: string | null;
   valor: number;
   data_vencimento: string;
+  mes_competencia: string | null;
   data_pagamento: string | null;
   status: "pendente" | "paga" | "vencida" | "cancelada";
   recorrente: boolean;
@@ -164,6 +165,9 @@ async function fetchLojas() {
   return data ?? [];
 }
 
+const formatCompetencia = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
 export function useFinanceiro() {
   const contas = useQuery({ queryKey: ["contas_pagar"], queryFn: fetchContas });
   const comissoes = useQuery({ queryKey: ["comissoes"], queryFn: fetchComissoes });
@@ -184,6 +188,7 @@ export function useFinanceiro() {
     const next30DaysEnd = addDays(todayStart, 30);
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
+    const currentCompetencia = formatCompetencia(now);
 
     const allContas = contas.data ?? [];
     const allComissoes = comissoes.data ?? [];
@@ -241,10 +246,9 @@ export function useFinanceiro() {
     const receitaMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas reais do mês: contas com vencimento no mês, independente de status
+    // Despesas reais do mês: contas por mês de competência, independente de status
     const despesasMes = allContas.filter(c => {
-      const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= monthStart && d <= monthEnd;
+      return c.mes_competencia === currentCompetencia;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
     // Recebimentos extras do mês: entradas avulsas, sem duplicar receita de OS já contabilizada em receitaMes
@@ -254,15 +258,14 @@ export function useFinanceiro() {
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, r) => s + Number(r.valor), 0);
 
-    // Lucro REAL: receita - custos peças - despesas por vencimento - comissões + recebimentos extras
+    // Lucro REAL: receita - custos peças - despesas por competência - comissões + recebimentos extras
     const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes;
 
-    // Despesas por categoria — contas por data_vencimento, independente de status
+    // Despesas por categoria — contas por competência, independente de status
     const despesasPorCategoria: Record<string, number> = {};
     allContas
       .filter(c => {
-        const d = new Date(c.data_vencimento + "T12:00:00");
-        return d >= monthStart && d <= monthEnd;
+        return c.mes_competencia === currentCompetencia;
       })
       .forEach(c => {
         const cat = c.categoria || "Outros";
@@ -276,11 +279,11 @@ export function useFinanceiro() {
       const ms = startOfMonth(d);
       const me = endOfMonth(d);
       const label = format(d, "MMM", { locale: ptBR });
+      const competencia = formatCompetencia(d);
 
       const desp = allContas
         .filter(c => {
-          const dd = new Date(c.data_vencimento + "T12:00:00");
-          return dd >= ms && dd <= me;
+          return c.mes_competencia === competencia;
         })
         .reduce((s, c) => s + Number(c.valor), 0);
 
