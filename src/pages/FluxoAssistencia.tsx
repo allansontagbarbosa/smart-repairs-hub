@@ -58,6 +58,27 @@ function daysAgo(dateStr: string) {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
+function TecnicosStack({ servicos }: { servicos: any[] }) {
+  const nomes = Array.from(new Set((servicos ?? []).map((s) => s.funcionarios?.nome).filter(Boolean)));
+  if (nomes.length === 0) {
+    return <Badge variant="outline" className="w-fit text-[10px] text-muted-foreground">Sem técnico</Badge>;
+  }
+  const visiveis = nomes.slice(0, 3);
+  const extras = nomes.length - visiveis.length;
+  return (
+    <div className="flex items-center gap-1" title={nomes.join(", ")}>
+      <div className="flex -space-x-1.5">
+        {visiveis.map((nome) => (
+          <span key={nome} className="flex h-5 w-5 items-center justify-center rounded-full border bg-primary text-[9px] font-semibold text-primary-foreground">
+            {String(nome).slice(0, 1).toUpperCase()}
+          </span>
+        ))}
+      </div>
+      {extras > 0 && <span className="text-[10px] text-muted-foreground">+{extras}</span>}
+    </div>
+  );
+}
+
 export default function FluxoAssistencia() {
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
