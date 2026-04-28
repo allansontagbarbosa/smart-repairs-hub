@@ -669,6 +669,7 @@ export type Database = {
           mes_competencia: string | null
           observacoes: string | null
           ordem_id: string | null
+          os_servico_id: string | null
           status: Database["public"]["Enums"]["status_comissao"]
           tipo: string | null
           updated_at: string
@@ -686,6 +687,7 @@ export type Database = {
           mes_competencia?: string | null
           observacoes?: string | null
           ordem_id?: string | null
+          os_servico_id?: string | null
           status?: Database["public"]["Enums"]["status_comissao"]
           tipo?: string | null
           updated_at?: string
@@ -703,6 +705,7 @@ export type Database = {
           mes_competencia?: string | null
           observacoes?: string | null
           ordem_id?: string | null
+          os_servico_id?: string | null
           status?: Database["public"]["Enums"]["status_comissao"]
           tipo?: string | null
           updated_at?: string
@@ -729,6 +732,13 @@ export type Database = {
             columns: ["ordem_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_os_servico_id_fkey"
+            columns: ["os_servico_id"]
+            isOneToOne: false
+            referencedRelation: "os_servicos"
             referencedColumns: ["id"]
           },
         ]
@@ -2624,6 +2634,7 @@ export type Database = {
           descricao: string
           empresa_id: string | null
           estoque_id: string | null
+          estornada_em: string | null
           id: string
           ordem_id: string | null
           tipo: Database["public"]["Enums"]["tipo_movimentacao"]
@@ -2635,6 +2646,7 @@ export type Database = {
           descricao: string
           empresa_id?: string | null
           estoque_id?: string | null
+          estornada_em?: string | null
           id?: string
           ordem_id?: string | null
           tipo: Database["public"]["Enums"]["tipo_movimentacao"]
@@ -2646,6 +2658,7 @@ export type Database = {
           descricao?: string
           empresa_id?: string | null
           estoque_id?: string | null
+          estornada_em?: string | null
           id?: string
           ordem_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
