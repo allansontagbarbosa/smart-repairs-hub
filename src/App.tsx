@@ -55,6 +55,7 @@ import { TecnicoGuard, TecnicoLayout } from "@/components/tecnico/TecnicoLayout"
 import TecnicoHome from "./pages/tecnico/TecnicoHome";
 import TecnicoOrdens from "./pages/tecnico/TecnicoOrdens";
 import TecnicoOrdemDetalhe from "./pages/tecnico/TecnicoOrdemDetalhe";
+import TecnicoComissoes from "./pages/tecnico/TecnicoComissoes";
 import TecnicoMetas from "./pages/tecnico/TecnicoMetas";
 import TecnicoTransferencias from "./pages/tecnico/TecnicoTransferencias";
 import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
@@ -106,6 +107,7 @@ const App = () => (
               <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico/comissoes" element={<TecnicoGuard><TecnicoLayout><TecnicoComissoes /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/os" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/os/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/metas" element={<TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard>} />
