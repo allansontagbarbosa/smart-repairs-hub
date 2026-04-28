@@ -1,0 +1,35 @@
+CREATE TABLE IF NOT EXISTS public.assinaturas_digitais_backup_20260428 AS SELECT * FROM public.assinaturas_digitais;
+CREATE TABLE IF NOT EXISTS public.avaliacoes_backup_20260428 AS SELECT * FROM public.avaliacoes;
+CREATE TABLE IF NOT EXISTS public.garantias_backup_20260428 AS SELECT * FROM public.garantias;
+CREATE TABLE IF NOT EXISTS public.historico_ordens_backup_20260428 AS SELECT * FROM public.historico_ordens;
+CREATE TABLE IF NOT EXISTS public.os_auditoria_backup_20260428 AS SELECT * FROM public.os_auditoria;
+CREATE TABLE IF NOT EXISTS public.os_checklist_saida_backup_20260428 AS SELECT * FROM public.os_checklist_saida;
+CREATE TABLE IF NOT EXISTS public.os_fotos_backup_20260428 AS SELECT * FROM public.os_fotos;
+CREATE TABLE IF NOT EXISTS public.os_transferencias_backup_20260428 AS SELECT * FROM public.os_transferencias;
+CREATE TABLE IF NOT EXISTS public.recebimentos_backup_20260428 AS SELECT * FROM public.recebimentos;
+CREATE TABLE IF NOT EXISTS public.listas_preco_backup_20260428 AS SELECT * FROM public.listas_preco;
+CREATE TABLE IF NOT EXISTS public.servico_pecas_backup_20260428 AS SELECT * FROM public.servico_pecas;
+
+ALTER TABLE public.assinaturas_digitais_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.avaliacoes_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.garantias_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.historico_ordens_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.os_auditoria_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.os_checklist_saida_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.os_fotos_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.os_transferencias_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recebimentos_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.listas_preco_backup_20260428 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.servico_pecas_backup_20260428 ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Backup empresa isolada" ON public.assinaturas_digitais_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.avaliacoes_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.garantias_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.historico_ordens_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.os_auditoria_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.os_checklist_saida_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.os_fotos_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.os_transferencias_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.recebimentos_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.listas_preco_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
+CREATE POLICY "Backup empresa isolada" ON public.servico_pecas_backup_20260428 FOR SELECT TO authenticated USING (empresa_id = get_my_empresa_id());
