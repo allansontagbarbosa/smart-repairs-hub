@@ -148,8 +148,11 @@ function AlertCard({
 
 // ─── DATA FETCHING ────────────────────────────────────────────────────────────
 
-async function fetchDashboardSummary() {
-  const { data, error } = await supabase.rpc("get_dashboard_summary");
+async function fetchDashboardSummary(rangeStart: Date, rangeEnd: Date) {
+  const { data, error } = await (supabase as any).rpc("get_dashboard_summary", {
+    p_inicio: rangeStart.toISOString(),
+    p_fim: rangeEnd.toISOString(),
+  });
   if (error) throw error;
   return data as {
     ordens: OrderRow[];
@@ -160,18 +163,6 @@ async function fetchDashboardSummary() {
     comissoes_periodo_a_pagar: number | null;
     lojas: { id: string; nome: string }[];
   };
-}
-
-async function fetchComissoesPeriodo(rangeStart: Date, rangeEnd: Date) {
-  const { data, error } = await supabase
-    .from("comissoes")
-    .select("valor, status, estornada_em, created_at")
-    .is("estornada_em", null)
-    .in("status", ["pendente", "liberada", "paga"])
-    .gte("created_at", rangeStart.toISOString())
-    .lt("created_at", rangeEnd.toISOString());
-  if (error) throw error;
-  return data ?? [];
 }
 
 async function fetchContasPagas(rangeStart: Date, rangeEnd: Date) {
@@ -215,20 +206,14 @@ export default function Dashboard() {
   // ── QUERIES ──────────────────────────────────────────────────────────────
 
   const { data: summary, isLoading } = useQuery({
-    queryKey: ["dashboard-summary"],
-    queryFn: fetchDashboardSummary,
+    queryKey: ["dashboard-summary", range.start.toISOString(), range.end.toISOString()],
+    queryFn: () => fetchDashboardSummary(range.start, range.end),
     refetchInterval: 60000,
   });
 
   const { data: contasPagas } = useQuery({
     queryKey: ["dashboard-contas-pagas", range.start.toISOString(), range.end.toISOString()],
     queryFn: () => fetchContasPagas(range.start, range.end),
-    refetchInterval: 60000,
-  });
-
-  const { data: comissoesPeriodo } = useQuery({
-    queryKey: ["dashboard-comissoes-periodo", range.start.toISOString(), range.end.toISOString()],
-    queryFn: () => fetchComissoesPeriodo(range.start, range.end),
     refetchInterval: 60000,
   });
 
@@ -268,7 +253,7 @@ export default function Dashboard() {
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     const allContasPagas = contasPagas ?? [];
-    const totalComissoesPeriodo = (comissoesPeriodo ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const totalComissoesPeriodo = Number(summary?.comissoes_periodo_total ?? 0);
     const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosFixos = allContasPagas
       .filter((c: any) => c.categorias_financeiras?.tipo === "fixo")
@@ -325,7 +310,7 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
       iphonesReparados,
     };
-  }, [orders, allOrders, contasPagas, comissoesPeriodo, empresaConfig]);
+  }, [orders, allOrders, contasPagas, summary?.comissoes_periodo_total, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
