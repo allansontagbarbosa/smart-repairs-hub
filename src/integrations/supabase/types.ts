@@ -5122,6 +5122,66 @@ export type Database = {
         }
         Relationships: []
       }
+      recebimentos_clientes: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data_pagamento: string
+          deleted_at: string | null
+          empresa_id: string
+          forma_pagamento: string
+          id: string
+          movimentacao_financeira_id: string | null
+          observacoes: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string
+          deleted_at?: string | null
+          empresa_id: string
+          forma_pagamento?: string
+          id?: string
+          movimentacao_financeira_id?: string | null
+          observacoes?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string
+          deleted_at?: string | null
+          empresa_id?: string
+          forma_pagamento?: string
+          id?: string
+          movimentacao_financeira_id?: string | null
+          observacoes?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_clientes_movimentacao_financeira_id_fkey"
+            columns: ["movimentacao_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servico_pecas: {
         Row: {
           created_at: string
@@ -5594,6 +5654,10 @@ export type Database = {
         Args: { p_email: string; p_user_id: string }
         Returns: undefined
       }
+      estornar_recebimento_cliente: {
+        Args: { p_recebimento_id: string }
+        Returns: Json
+      }
       excluir_definitivamente_os_cancelada: {
         Args: { p_confirmacao: string; p_ordem_id: string }
         Returns: Json
@@ -5601,6 +5665,18 @@ export type Database = {
       excluir_definitivamente_os_canceladas_lote: {
         Args: { p_confirmacao: string; p_ordem_ids: string[] }
         Returns: Json
+      }
+      extrato_cliente: {
+        Args: { p_cliente_id: string; p_fim?: string; p_inicio?: string }
+        Returns: {
+          data: string
+          descricao: string
+          referencia_id: string
+          referencia_numero: string
+          saldo_apos: number
+          tipo: string
+          valor: number
+        }[]
       }
       gerar_movimentacao_entrada_os: {
         Args: { p_ordem_id: string }
@@ -5685,6 +5761,17 @@ export type Database = {
         Returns: number
       }
       recalcular_totais_os: { Args: { p_ordem_id: string }; Returns: undefined }
+      registrar_recebimento_cliente: {
+        Args: {
+          p_cliente_id: string
+          p_data_pagamento?: string
+          p_forma_pagamento?: string
+          p_observacoes?: string
+          p_valor: number
+        }
+        Returns: Json
+      }
+      saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       verificar_lojista_por_email: {
         Args: { email_input: string }
