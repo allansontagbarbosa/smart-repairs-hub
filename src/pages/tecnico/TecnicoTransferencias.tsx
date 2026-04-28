@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Check, X, Plus } from "lucide-react";
+import { ArrowRight, Check, X, Plus, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade, useMinhasOS } from "@/hooks/useTecnico";
 
@@ -62,6 +62,11 @@ export default function TecnicoTransferencias() {
         <Button size="sm" onClick={() => setNovaOpen(true)}>
           <Plus className="h-4 w-4 mr-1" /> Nova
         </Button>
+      </div>
+
+      <div className="flex gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-sm text-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+        <p>ℹ️ Transferências da OS estão em transição. Para o novo modelo multi-técnico, use a Fila de Serviços para se atribuir a serviços específicos.</p>
       </div>
 
       <Tabs defaultValue="recebidas">

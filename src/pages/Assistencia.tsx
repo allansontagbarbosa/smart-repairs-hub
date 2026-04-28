@@ -39,7 +39,6 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
-import { useGerarComissao } from "@/hooks/useGerarComissao";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
@@ -126,7 +125,7 @@ function getFiltersFromParams(params: URLSearchParams): OrderFilters {
 
 function applyOrderFilters<T extends ReturnType<typeof supabase.from>>(query: any, filters: OrderFilters): T {
   if (filters.cliente_id) query = query.eq("aparelhos.cliente_id", filters.cliente_id);
-  if (filters.funcionario_id) query = query.eq("funcionario_id", filters.funcionario_id);
+  if (filters.funcionario_id) query = query.eq("os_servicos.tecnico_id", filters.funcionario_id);
   if (filters.marca) query = query.eq("aparelhos.marca", filters.marca);
   if (filters.modelo) query = query.eq("aparelhos.modelo", filters.modelo);
   if (filters.prioridade) query = query.eq("prioridade", filters.prioridade);
@@ -166,7 +165,7 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
 
   let query = supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"} ( tecnico_id )`)
     .order("data_entrada", { ascending: false })
     .range(start, end);
 
@@ -185,7 +184,7 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
 async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   let query = supabase
     .from("ordens_de_servico")
-    .select("*, aparelhos!inner(cliente_id, marca, modelo)", { count: "exact", head: true });
+    .select(`*, aparelhos!inner(cliente_id, marca, modelo), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`, { count: "exact", head: true });
 
   query = applyDateRange(query, dateRange);
   query = applyOrderFilters(query, filters);
@@ -225,7 +224,7 @@ async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filt
   while (true) {
     let query = supabase
       .from("ordens_de_servico")
-      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), funcionarios ( nome ), formas_pagamento ( nome )`)
+      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"} ( tecnico_id ), funcionarios ( nome ), formas_pagamento ( nome )`)
       .order("data_entrada", { ascending: false })
       .range(start, start + batchSize - 1);
 
@@ -686,7 +685,6 @@ export default function Assistencia() {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
   const { empresaId } = useEmpresa();
-  const { gerarOuAtualizarComissao } = useGerarComissao();
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
   const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
   const filtersKey = useMemo(() => filterHash(filters), [filters]);
@@ -811,9 +809,6 @@ export default function Assistencia() {
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
-      if ((status === "pronto" || status === "entregue") && ordemAtual?.status !== "pronto" && ordemAtual?.status !== "entregue") {
-        await gerarOuAtualizarComissao({ ...ordemAtual, ...updates, id });
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ordens"] });
@@ -1001,13 +996,6 @@ export default function Assistencia() {
             .eq("id", id)
             .eq("status", "entregue");
           if (dateError) throw dateError;
-        }));
-      }
-      if (status === "pronto" || status === "entregue") {
-        await Promise.all(ids.map(async (id) => {
-          const ordemAtual = orders.find((order) => order.id === id);
-          if (!ordemAtual || ordemAtual.status === "pronto" || ordemAtual.status === "entregue") return;
-          await gerarOuAtualizarComissao({ ...ordemAtual, status });
         }));
       }
       return data as { atualizadas: number; ignoradas: number; motivos_ignoradas: any[] };

@@ -230,6 +230,11 @@ export default function FilaIA() {
         </div>
       </div>
 
+      <div className="flex gap-2 rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-sm text-foreground">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+        <p>ℹ️ Esta funcionalidade distribui OSs por técnico no cabeçalho. No novo modelo multi-técnico, cada serviço é atribuído individualmente. Considere usar a Fila de Serviços do portal do técnico.</p>
+      </div>
+
       {/* Loading state */}
       {analisarMutation.isPending && (
         <Card className="border-primary/20 bg-primary/5">

@@ -18,7 +18,6 @@ import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
 import { statusLabels } from "@/lib/status";
-import { useGerarComissao } from "@/hooks/useGerarComissao";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
 
 const DEFAULT_CHECKLIST = [
@@ -40,7 +39,6 @@ export default function TecnicoOrdemDetalhe() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data: identidade } = useTecnicoIdentidade();
-  const { gerarOuAtualizarComissao } = useGerarComissao();
   const iniciarServico = useIniciarServico();
   const concluirServico = useConcluirServico();
   const soltarServico = useSoltarServico();
@@ -146,9 +144,6 @@ export default function TecnicoOrdemDetalhe() {
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id!);
       if (error) throw error;
-      if ((nextStatus === "pronto" || nextStatus === "entregue") && ordem?.status !== "pronto" && ordem?.status !== "entregue") {
-        await gerarOuAtualizarComissao({ ...(ordem as any), ...updates });
-      }
     },
     onSuccess: () => {
       toast({ title: "Atualizado" });

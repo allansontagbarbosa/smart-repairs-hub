@@ -30,7 +30,6 @@ import { useReactToPrint } from "react-to-print";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
-import { useGerarComissao } from "@/hooks/useGerarComissao";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 
@@ -77,7 +76,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const printRef = useRef<HTMLDivElement>(null);
   const { isAdmin } = usePermissoes();
-  const { gerarOuAtualizarComissao } = useGerarComissao();
 
   // Bloqueia entrada não-admin no modo edição
   useEffect(() => {
@@ -138,8 +136,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (!orderId) return [];
       const { data, error } = await supabase
         .from("comissoes")
-        .select("*, funcionarios ( nome )")
-        .eq("ordem_id", orderId)
+        .select("*, funcionarios ( nome ), os_servicos!inner ( id, nome, ordem_id )")
+        .eq("os_servicos.ordem_id", orderId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -362,92 +360,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId && historicoOpen,
   });
 
-  // Fetch commission preview: tries per-service rules (over os_servicos N:N) first,
-  // then falls back to funcionario.valor_comissao default.
-  const { data: comissaoPreview } = useQuery({
-    queryKey: ["comissao_preview", ordem?.funcionario_id, ordem?.tipo_servico_id, ordem?.id, ordem?.valor],
-    queryFn: async () => {
-      if (!ordem?.funcionario_id) return null;
-
-      // 1) Buscar funcionário (precisa estar ativo)
-      const { data: func } = await supabase
-        .from("funcionarios")
-        .select("id, nome, tipo_comissao, valor_comissao, ativo")
-        .eq("id", ordem.funcionario_id)
-        .maybeSingle();
-
-      if (!func || !func.ativo) {
-        return { tipo: null as any, config: 0, calculado: 0, origem: "sem_config" as const };
-      }
-
-      // 2) Coletar tipo_servico_ids (preferir N:N os_servicos; fallback ao tipo_servico_id legado)
-      const servicoIds: string[] = [];
-      const valorPorServico: Record<string, number> = {};
-      for (const s of (servicosAtuais as any[])) {
-        if (s.servico_id) {
-          servicoIds.push(s.servico_id);
-          valorPorServico[s.servico_id] = Number(s.valor ?? 0);
-        }
-      }
-      if (servicoIds.length === 0 && ordem.tipo_servico_id) {
-        servicoIds.push(ordem.tipo_servico_id);
-        valorPorServico[ordem.tipo_servico_id] = Number(ordem.valor ?? 0);
-      }
-
-      // 3) Tentar comissoes_servico específicas
-      let totalEspecifico = 0;
-      let tipoEncontrado: "percentual" | "fixo" | null = null;
-      let configEncontrado = 0;
-      if (servicoIds.length > 0) {
-        const { data: regras } = await supabase
-          .from("comissoes_servico")
-          .select("tipo_servico_id, tipo_comissao, valor")
-          .eq("funcionario_id", ordem.funcionario_id)
-          .in("tipo_servico_id", servicoIds);
-
-        for (const r of regras ?? []) {
-          const valorRegra = Number(r.valor ?? 0);
-          if (valorRegra <= 0) continue;
-          const baseValor = valorPorServico[r.tipo_servico_id] ?? 0;
-          const itemCalc = r.tipo_comissao === "percentual"
-            ? baseValor * valorRegra / 100
-            : valorRegra;
-          totalEspecifico += itemCalc;
-          if (!tipoEncontrado) {
-            tipoEncontrado = r.tipo_comissao as any;
-            configEncontrado = valorRegra;
-          }
-        }
-      }
-
-      if (totalEspecifico > 0) {
-        return {
-          tipo: tipoEncontrado,
-          config: configEncontrado,
-          calculado: totalEspecifico,
-          origem: "comissoes_servico" as const,
-        };
-      }
-
-      // 4) Fallback: comissão padrão do funcionário
-      if (Number(func.valor_comissao) > 0) {
-        const valorCalc = func.tipo_comissao === "percentual"
-          ? Number(ordem.valor ?? 0) * Number(func.valor_comissao) / 100
-          : Number(func.valor_comissao);
-        return {
-          tipo: func.tipo_comissao as any,
-          config: Number(func.valor_comissao),
-          calculado: valorCalc,
-          origem: "funcionario_padrao" as const,
-        };
-      }
-
-      // 5) Sem configuração
-      return { tipo: null as any, config: 0, calculado: 0, origem: "sem_config" as const };
-    },
-    enabled: !!ordem?.funcionario_id && comissoesOS.length === 0,
-  });
-
   const { data: despesasOS = [] } = useQuery({
     queryKey: ["despesas_os", orderId],
     queryFn: async () => {
@@ -593,9 +505,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
       const { error: e1 } = await supabase.from("ordens_de_servico").update(updates).eq("id", ordem.id);
       if (e1) throw e1;
-      if ((newStatus === "pronto" || newStatus === "entregue") && (ordem as any).status !== "pronto" && (ordem as any).status !== "entregue") {
-        await gerarOuAtualizarComissao({ ...(ordem as any), ...updates });
-      }
       // Histórico registrado automaticamente pelo trigger
     },
     onSuccess: () => {
@@ -1665,12 +1574,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
                   {(() => {
                     const statusAtual = ordem.status;
-                    const osFinalizada = statusAtual === "pronto" || statusAtual === "entregue";
                     const osCancelada = statusAtual === "cancelado";
-                    const tecnicoNome =
-                      funcionariosAtivos.find((f) => f.id === ordem.funcionario_id)?.nome ??
-                      ordem.tecnico ??
-                      "o técnico";
 
                     if (osCancelada) {
                       return (
@@ -1699,48 +1603,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       );
                     }
 
-                    if (!ordem.funcionario_id) {
-                      return (
-                        <p className="text-xs text-muted-foreground">
-                          Atribua um técnico para ver a comissão prevista
-                        </p>
-                      );
-                    }
-
-                    if (comissaoPreview && comissaoPreview.calculado > 0) {
-                      return (
-                        <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-medium text-warning">Comissão prevista</p>
-                            <span className="text-sm font-semibold text-warning">
-                              {fmtCurrency(comissaoPreview.calculado)}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            {comissaoPreview.tipo === "percentual"
-                              ? `${comissaoPreview.config}% · `
-                              : `Valor fixo · `}
-                            Origem: {comissaoPreview.origem === "comissoes_servico"
-                              ? "regra por serviço"
-                              : "padrão do técnico"}
-                          </p>
-                          {!osFinalizada && (
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Será gerada ao marcar OS como "Pronto"
-                            </p>
-                          )}
-                        </div>
-                      );
-                    }
-
                     return (
                       <div className="rounded-lg border border-dashed border-muted px-3 py-2.5">
                         <p className="text-xs font-medium text-muted-foreground mb-1">
-                          Comissão não configurada para {tecnicoNome}
+                          Nenhuma comissão gerada para os serviços desta OS
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          Configure em Configurações → Funcionários → {tecnicoNome} (valor padrão)
-                          ou em Configurações → Comissões por serviço (valor específico).
+                          As comissões são criadas automaticamente por serviço quando há técnico atribuído ao serviço.
                         </p>
                       </div>
                     );
@@ -1839,7 +1708,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                                       os_origem_id: orderId,
                                       retrabalho: true,
                                       loja_id: ordem.loja_id,
-                                      funcionario_id: ordem.funcionario_id,
                                       tipo_servico_id: ordem.tipo_servico_id,
                                     })
                                     .select("id, numero")

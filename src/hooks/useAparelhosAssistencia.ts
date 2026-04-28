@@ -19,6 +19,7 @@ export type AparelhoAssistencia = {
   status: string;
   tecnico: string | null;
   funcionario_nome: string | null;
+  tecnicos_envolvidos: string[];
   previsao_entrega: string | null;
   prazo_vencido: boolean;
   loja_id: string | null;
@@ -34,10 +35,10 @@ async function fetchAparelhosAssistencia() {
     .from("ordens_de_servico")
     .select(`
       id, numero, numero_formatado, status, data_entrada, tecnico, previsao_entrega,
-      loja_id, funcionario_id, defeito_relatado, valor, valor_total, sinal_pago, aprovacao_orcamento,
+      loja_id, defeito_relatado, valor, valor_total, sinal_pago, aprovacao_orcamento,
       aparelhos!inner ( marca, modelo, cor, imei, capacidade, cliente_id, clientes!inner ( nome, telefone ) ),
       lojas ( nome ),
-      funcionarios ( nome )
+      os_servicos ( tecnico_id, funcionarios ( nome ) )
     `)
     .is("deleted_at", null)
     .not("status", "in", '("entregue","cancelado")')
@@ -51,36 +52,43 @@ async function fetchAparelhosAssistencia() {
   const now = new Date();
   const statusFinalizados = new Set(["pronto", "entregue", "cancelado"]);
 
-  return (data ?? []).map((os: any) => ({
-    os_id: os.id,
-    os_numero: os.numero,
-    os_numero_formatado: os.numero_formatado ?? null,
-    cliente_nome: os.aparelhos?.clientes?.nome ?? "—",
-    cliente_telefone: os.aparelhos?.clientes?.telefone ?? "",
-    loja_nome: os.lojas?.nome ?? null,
-    aparelho_marca: os.aparelhos?.marca ?? "",
-    aparelho_modelo: os.aparelhos?.modelo ?? "",
-    aparelho_cor: os.aparelhos?.cor ?? null,
-    aparelho_imei: os.aparelhos?.imei ?? null,
-    aparelho_capacidade: os.aparelhos?.capacidade ?? null,
-    defeito_relatado: os.defeito_relatado ?? "",
-    data_entrada: os.data_entrada,
-    status: os.status,
-    tecnico: os.tecnico,
-    funcionario_nome: os.funcionarios?.nome ?? null,
-    previsao_entrega: os.previsao_entrega,
-    prazo_vencido: !!(
-      os.previsao_entrega &&
-      new Date(os.previsao_entrega) < now &&
-      !statusFinalizados.has(os.status)
-    ),
-    loja_id: os.loja_id,
-    funcionario_id: os.funcionario_id,
-    valor: os.valor,
-    valor_total: os.valor_total ?? os.valor ?? null,
-    sinal_pago: os.sinal_pago ?? null,
-    aprovacao_orcamento: os.aprovacao_orcamento ?? null,
-  })) as AparelhoAssistencia[];
+  return (data ?? []).map((os: any) => {
+    const servicos = os.os_servicos ?? [];
+    const tecnicosEnvolvidos = Array.from(new Set(servicos.map((s: any) => s.funcionarios?.nome).filter(Boolean))) as string[];
+    const primeiroTecnicoId = servicos.find((s: any) => s.tecnico_id)?.tecnico_id ?? null;
+
+    return {
+      os_id: os.id,
+      os_numero: os.numero,
+      os_numero_formatado: os.numero_formatado ?? null,
+      cliente_nome: os.aparelhos?.clientes?.nome ?? "—",
+      cliente_telefone: os.aparelhos?.clientes?.telefone ?? "",
+      loja_nome: os.lojas?.nome ?? null,
+      aparelho_marca: os.aparelhos?.marca ?? "",
+      aparelho_modelo: os.aparelhos?.modelo ?? "",
+      aparelho_cor: os.aparelhos?.cor ?? null,
+      aparelho_imei: os.aparelhos?.imei ?? null,
+      aparelho_capacidade: os.aparelhos?.capacidade ?? null,
+      defeito_relatado: os.defeito_relatado ?? "",
+      data_entrada: os.data_entrada,
+      status: os.status,
+      tecnico: os.tecnico,
+      funcionario_nome: tecnicosEnvolvidos[0] ?? null,
+      tecnicos_envolvidos: tecnicosEnvolvidos,
+      previsao_entrega: os.previsao_entrega,
+      prazo_vencido: !!(
+        os.previsao_entrega &&
+        new Date(os.previsao_entrega) < now &&
+        !statusFinalizados.has(os.status)
+      ),
+      loja_id: os.loja_id,
+      funcionario_id: primeiroTecnicoId,
+      valor: os.valor,
+      valor_total: os.valor_total ?? os.valor ?? null,
+      sinal_pago: os.sinal_pago ?? null,
+      aprovacao_orcamento: os.aprovacao_orcamento ?? null,
+    };
+  }) as AparelhoAssistencia[];
 }
 
 export function useAparelhosAssistencia() {
