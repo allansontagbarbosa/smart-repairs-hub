@@ -4372,34 +4372,46 @@ export type Database = {
         Row: {
           categoria: string | null
           comissao: number
+          concluido_em: string | null
           created_at: string
           empresa_id: string | null
           id: string
+          iniciado_em: string | null
           nome: string
           ordem_id: string
           servico_id: string | null
+          status: Database["public"]["Enums"]["status_servico"]
+          tecnico_id: string | null
           valor: number
         }
         Insert: {
           categoria?: string | null
           comissao?: number
+          concluido_em?: string | null
           created_at?: string
           empresa_id?: string | null
           id?: string
+          iniciado_em?: string | null
           nome: string
           ordem_id: string
           servico_id?: string | null
+          status?: Database["public"]["Enums"]["status_servico"]
+          tecnico_id?: string | null
           valor?: number
         }
         Update: {
           categoria?: string | null
           comissao?: number
+          concluido_em?: string | null
           created_at?: string
           empresa_id?: string | null
           id?: string
+          iniciado_em?: string | null
           nome?: string
           ordem_id?: string
           servico_id?: string | null
+          status?: Database["public"]["Enums"]["status_servico"]
+          tecnico_id?: string | null
           valor?: number
         }
         Relationships: [
@@ -4422,6 +4434,13 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_servicos_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
         ]
@@ -5538,6 +5557,7 @@ export type Database = {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
       }
+      concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       criar_os_com_data: {
         Args: {
           p_dados: Json
@@ -5603,6 +5623,7 @@ export type Database = {
       get_my_empresa_id: { Args: never; Returns: string }
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
+      iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       lojista_verificar_acesso: {
@@ -5675,6 +5696,7 @@ export type Database = {
         | "pronto"
         | "entregue"
         | "cancelado"
+      status_servico: "pendente" | "em_reparo" | "concluido" | "cancelado"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
       tipo_movimentacao: "entrada" | "saida"
     }
@@ -5824,6 +5846,7 @@ export const Constants = {
         "entregue",
         "cancelado",
       ],
+      status_servico: ["pendente", "em_reparo", "concluido", "cancelado"],
       tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
       tipo_movimentacao: ["entrada", "saida"],
     },
