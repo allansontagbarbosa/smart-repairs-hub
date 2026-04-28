@@ -130,17 +130,6 @@ export default function FluxoAssistencia() {
     updateStatus.mutate({ id, newStatus: targetStatus });
   };
 
-  const handleDropTecnico = (e: DragEvent, tecnicoId: string | null) => {
-    e.preventDefault();
-    setDragOverColumn(null);
-    if (!dragItemRef.current) return;
-    const { id } = dragItemRef.current;
-    const order = orders.find((o) => o.id === id);
-    if (!order) return;
-    if (order.funcionario_id === tecnicoId) return;
-    updateTecnico.mutate({ id, tecnicoId });
-  };
-
   const moveOrder = (id: string, direction: 1 | -1, currentStatus: Status) => {
     const idx = statusFlow.indexOf(currentStatus);
     const newIdx = idx + direction;
@@ -246,7 +235,9 @@ export default function FluxoAssistencia() {
           </div>
         </div>
 
-        {viewMode === "status" && order.status !== "entregue" && (
+        <TecnicosStack servicos={order.os_servicos ?? []} />
+
+        {order.status !== "entregue" && (
           <div className="flex gap-1 pt-0.5">
             <button
               type="button"
@@ -270,12 +261,6 @@ export default function FluxoAssistencia() {
     );
   };
 
-  // Columns for technician view
-  const tecnicoColumns = [
-    { id: null, nome: "Sem técnico" },
-    ...tecnicos,
-  ];
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -284,27 +269,6 @@ export default function FluxoAssistencia() {
           <p className="page-subtitle">{totalAtivas} ordens ativas</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex rounded-lg border overflow-hidden">
-            <button
-              onClick={() => setViewMode("status")}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors",
-                viewMode === "status" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <Columns3 className="h-3.5 w-3.5" /> Por Status
-            </button>
-            <button
-              onClick={() => setViewMode("tecnico")}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors",
-                viewMode === "tecnico" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <Users className="h-3.5 w-3.5" /> Por Técnico
-            </button>
-          </div>
           <Link
             to="/assistencia"
             className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
@@ -316,9 +280,7 @@ export default function FluxoAssistencia() {
 
       {/* Kanban board */}
       <div className="flex gap-2.5 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x" style={{ minHeight: "calc(100vh - 200px)" }}>
-        {viewMode === "status" ? (
-          // === STATUS VIEW ===
-          statusFlow.map((status) => {
+        {statusFlow.map((status) => {
             const columnOrders = orders.filter((o) => o.status === status);
             const isDropTarget = dragOverColumn === status;
 
@@ -354,52 +316,7 @@ export default function FluxoAssistencia() {
                 </div>
               </div>
             );
-          })
-        ) : (
-          // === TECHNICIAN VIEW ===
-          tecnicoColumns.map((tec) => {
-            const columnOrders = orders.filter((o) => {
-              if (o.status === "entregue") return false;
-              if (tec.id === null) return !o.funcionario_id;
-              return o.funcionario_id === tec.id;
-            });
-            const colKey = tec.id ?? "__none__";
-            const isDropTarget = dragOverColumn === colKey;
-
-            return (
-              <div
-                key={colKey}
-                className={cn(
-                  "flex-shrink-0 w-60 md:w-[17rem] rounded-xl border flex flex-col snap-start transition-all",
-                  isDropTarget && "ring-2 ring-primary/40 bg-primary/5",
-                  !isDropTarget && "bg-muted/30"
-                )}
-                onDragOver={(e) => handleDragOver(e, colKey)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDropTecnico(e, tec.id)}
-              >
-                <div className="px-3 py-2.5 rounded-t-xl flex items-center justify-between bg-primary/10">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-xs font-semibold">{tec.nome}</span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                    {columnOrders.length}
-                  </span>
-                </div>
-
-                <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-280px)]">
-                  {columnOrders.map((order) => renderCard(order, true))}
-                  {columnOrders.length === 0 && (
-                    <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
-                      Nenhuma ordem
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+          })}
       </div>
 
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
