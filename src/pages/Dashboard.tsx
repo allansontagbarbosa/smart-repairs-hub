@@ -443,9 +443,9 @@ export default function Dashboard() {
           <MetricCard
             icon={Target}
             label="Saúde financeira"
-            value={kpis.llMargem >= 20 ? "Excelente" : kpis.llMargem >= 10 ? "Saudável" : kpis.llMargem >= 0 ? "Atenção" : "Prejuízo"}
-            color={kpis.llMargem >= 20 ? "text-green-600" : kpis.llMargem >= 10 ? "text-blue-600" : kpis.llMargem >= 0 ? "text-amber-600" : "text-red-600"}
-            iconColor={kpis.llMargem >= 10 ? "text-green-500" : "text-amber-500"}
+            value={kpis.llMargem < 0 ? "Prejuízo" : kpis.llMargem >= 30 ? "Excelente" : kpis.llMargem >= 15 ? "Saudável" : kpis.llMargem >= 5 ? "Atenção" : "Crítica"}
+            color={kpis.llMargem < 0 ? "text-red-600" : kpis.llMargem >= 30 ? "text-green-600" : kpis.llMargem >= 15 ? "text-blue-600" : kpis.llMargem >= 5 ? "text-amber-600" : "text-red-600"}
+            iconColor={kpis.llMargem < 0 ? "text-red-500" : kpis.llMargem >= 15 ? "text-green-500" : kpis.llMargem >= 5 ? "text-amber-500" : "text-red-500"}
           />
         </div>
 
@@ -469,7 +469,7 @@ export default function Dashboard() {
           <CardContent className="p-3 space-y-1">
             <p className="text-xs text-muted-foreground">
               <strong>EBITDA:</strong>{" "}
-              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Outros ({brl(kpis.gastosVariaveis)}) ={" "}
+              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Outros ({brl(kpis.gastosVariaveis)}) − Comissões ({brl(kpis.totalComissoesPeriodo)}) ={" "}
               <strong className={kpis.ebitda >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ebitda)}</strong>
             </p>
             <p className="text-xs text-muted-foreground">
