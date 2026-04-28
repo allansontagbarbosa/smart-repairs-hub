@@ -30,7 +30,6 @@ import { useReactToPrint } from "react-to-print";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
-import { useGerarComissao } from "@/hooks/useGerarComissao";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 
@@ -77,7 +76,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const printRef = useRef<HTMLDivElement>(null);
   const { isAdmin } = usePermissoes();
-  const { gerarOuAtualizarComissao } = useGerarComissao();
 
   // Bloqueia entrada não-admin no modo edição
   useEffect(() => {
@@ -138,8 +136,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       if (!orderId) return [];
       const { data, error } = await supabase
         .from("comissoes")
-        .select("*, funcionarios ( nome )")
-        .eq("ordem_id", orderId)
+        .select("*, funcionarios ( nome ), os_servicos!inner ( id, nome, ordem_id )")
+        .eq("os_servicos.ordem_id", orderId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
