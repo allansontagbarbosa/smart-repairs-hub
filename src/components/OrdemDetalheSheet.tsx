@@ -233,7 +233,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       const o = ordem as any;
       const cl = o.checklist_entrada || {};
       setEditForm({
-        funcionario_id: o.funcionario_id ?? "",
         lojista_id: o.lojista_id ?? "",
         contato_preferido: o.contato_preferido ?? "whatsapp",
         forma_pagamento_sinal: o.forma_pagamento_sinal ?? "nenhum",
@@ -727,7 +726,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     const fd = new FormData(e.currentTarget);
     const valorStr = (fd.get("valor") as string) || "";
     const previsaoStr = (fd.get("previsao_entrega") as string) || "";
-    const funcId = (fd.get("funcionario_id") as string) || "";
     const lojistaIdStr = (fd.get("lojista_id") as string) || "";
     const maoObraStr = (fd.get("mao_obra_adicional") as string) || "";
     const descontoStr = (fd.get("desconto") as string) || "";
@@ -740,9 +738,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     // Validações
     if (valorStr && (isNaN(parseFloat(valorStr)) || parseFloat(valorStr) < 0)) {
       toast.error("Valor cobrado inválido"); return;
-    }
-    if (funcId && !/^[0-9a-f-]{36}$/i.test(funcId)) {
-      toast.error("Técnico inválido"); return;
     }
     if (lojistaIdStr && !/^[0-9a-f-]{36}$/i.test(lojistaIdStr)) {
       toast.error("Lojista inválido"); return;
@@ -779,7 +774,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       obs_cliente: (fd.get("obs_cliente") as string) || "",
       observacoes: (fd.get("observacoes") as string) || "",
       // Operacional
-      funcionario_id: funcId,
       previsao_entrega: previsaoStr ? new Date(previsaoStr).toISOString() : "",
       prioridade: (fd.get("prioridade") as string) || "normal",
       localizacao: (fd.get("localizacao") as string) || "",
