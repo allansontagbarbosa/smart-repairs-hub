@@ -31,19 +31,22 @@ export type Comissao = {
   id: string;
   funcionario_id: string;
   ordem_id: string | null;
+  os_servico_id: string | null;
   tipo: string | null;
   valor_base: number | null;
   valor: number;
-  status: "pendente" | "liberada" | "paga";
+  status: "pendente" | "liberada" | "paga" | "estornada";
   data_pagamento: string | null;
+  estornada_em: string | null;
   observacoes: string | null;
   created_at: string;
   funcionarios?: { nome: string } | null;
   ordens_de_servico?: {
     numero: number;
-    valor: number | null;
+    numero_formatado: string | null;
     aparelhos?: { marca: string; modelo: string } | null;
   } | null;
+  os_servicos?: { nome: string; status: string } | null;
 };
 
 async function fetchContas() {
@@ -61,7 +64,12 @@ async function fetchContas() {
 async function fetchComissoes() {
   const { data, error } = await supabase
     .from("comissoes")
-    .select("*, funcionarios ( nome ), ordens_de_servico ( numero, valor, aparelhos ( marca, modelo ) )")
+    .select(`*,
+      funcionarios ( nome ),
+      ordens_de_servico ( numero, numero_formatado, aparelhos ( marca, modelo ) ),
+      os_servicos ( nome, status )
+    `)
+    .is("estornada_em", null)
     .order("created_at", { ascending: false });
   if (error) {
     console.error("ERRO fetchComissoes:", error.code, error.message, error.details);
