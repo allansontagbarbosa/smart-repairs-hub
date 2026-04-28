@@ -5669,6 +5669,7 @@ export type Database = {
         Returns: number
       }
       recalcular_totais_os: { Args: { p_ordem_id: string }; Returns: undefined }
+      soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       verificar_lojista_por_email: {
         Args: { email_input: string }
         Returns: {
