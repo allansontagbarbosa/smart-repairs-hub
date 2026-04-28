@@ -130,9 +130,9 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
         .gte("concluido_em", inicio)
         .lt("concluido_em", fim);
 
-      const { count: emAndamento } = await supabase
+      const { data: emAndamento } = await supabase
         .from("os_servicos")
-        .select("ordem_id", { count: "exact", head: true })
+        .select("ordem_id")
         .eq("tecnico_id", funcionarioId!)
         .eq("status", "em_reparo");
 
@@ -152,11 +152,12 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
         .lt("concluido_em", fimHoje);
 
       const ordensConcluidas = new Set((servicosMes ?? []).map((s: any) => s.ordem_id));
+      const ordensEmAndamento = new Set((emAndamento ?? []).map((s: any) => s.ordem_id));
 
       return {
         os_concluidas: ordensConcluidas.size,
         valor_servicos: (servicosMes ?? []).reduce((s, o: any) => s + Number(o.valor || 0), 0),
-        os_em_aberto: emAndamento ?? 0,
+        os_em_aberto: ordensEmAndamento.size,
         servicos_no_mes: servicosMes?.length ?? 0,
         comissao_no_mes: (comissoes ?? []).reduce((s, c: any) => s + Number(c.valor || 0), 0),
         servicos_concluidos_hoje: concluidosHoje ?? 0,
