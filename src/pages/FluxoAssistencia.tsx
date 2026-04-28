@@ -8,13 +8,11 @@ import { abrirWhatsApp } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { calcularPrioridade } from "@/lib/prioridade";
-import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { useGerarComissao } from "@/hooks/useGerarComissao";
-import { useEmpresa } from "@/contexts/EmpresaContext";
 
 const statusHeaderColors: Record<Status, string> = {
   recebido: "bg-muted-foreground/20",
