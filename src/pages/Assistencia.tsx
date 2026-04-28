@@ -165,7 +165,7 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
 
   let query = supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) )`)
+    .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), os_servicos!inner ( tecnico_id )`)
     .order("data_entrada", { ascending: false })
     .range(start, end);
 
@@ -184,7 +184,7 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
 async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   let query = supabase
     .from("ordens_de_servico")
-    .select("*, aparelhos!inner(cliente_id, marca, modelo)", { count: "exact", head: true });
+    .select("*, aparelhos!inner(cliente_id, marca, modelo), os_servicos!inner(tecnico_id)", { count: "exact", head: true });
 
   query = applyDateRange(query, dateRange);
   query = applyOrderFilters(query, filters);
@@ -224,7 +224,7 @@ async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filt
   while (true) {
     let query = supabase
       .from("ordens_de_servico")
-      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), funcionarios ( nome ), formas_pagamento ( nome )`)
+      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), os_servicos!inner ( tecnico_id ), funcionarios ( nome ), formas_pagamento ( nome )`)
       .order("data_entrada", { ascending: false })
       .range(start, start + batchSize - 1);
 
@@ -685,7 +685,6 @@ export default function Assistencia() {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
   const { empresaId } = useEmpresa();
-  const { gerarOuAtualizarComissao } = useGerarComissao();
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
   const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
   const filtersKey = useMemo(() => filterHash(filters), [filters]);
