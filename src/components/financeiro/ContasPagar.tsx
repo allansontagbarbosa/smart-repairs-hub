@@ -13,6 +13,18 @@ import type { ContaPagar } from "@/hooks/useFinanceiro";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
+const fmtCompetencia = (m?: string | null) => {
+  if (!m) return "—";
+  const [year, month] = m.split("-").map(Number);
+  if (!year || !month) return "—";
+  return format(new Date(year, month - 1, 1), "MMM/yyyy", { locale: ptBR }).replace(/^./, l => l.toUpperCase());
+};
+const toMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+const getDefaultCompetencia = (date: Date, recorrente: boolean) => {
+  const competencia = new Date(date);
+  if (recorrente) competencia.setMonth(competencia.getMonth() - 1);
+  return toMonthKey(competencia);
+};
 
 function getSmartStatus(c: ContaPagar): { key: string; label: string; color: string } {
   if (c.status === "paga") return { key: "paga", label: "Pago", color: "bg-success text-success-foreground" };
@@ -120,6 +132,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
           ordem_servico_id: null,
           valor: conta.valor,
           data_vencimento: nextDate.toISOString().split("T")[0],
+          mes_competencia: getDefaultCompetencia(nextDate, true),
           recorrente: true,
           observacoes: conta.observacoes,
           status: "pendente" as any,
@@ -161,6 +174,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
         ordem_servico_id: conta.ordem_servico_id,
         valor: conta.valor,
         data_vencimento: nextMonth.toISOString().split("T")[0],
+        mes_competencia: getDefaultCompetencia(nextMonth, conta.recorrente),
         recorrente: conta.recorrente,
         observacoes: conta.observacoes,
         status: "pendente" as any,
@@ -194,6 +208,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
           </div>
         </td>
         <td className="hidden sm:table-cell text-sm text-muted-foreground">{c.categoria}</td>
+        <td className="text-sm text-muted-foreground">{fmtCompetencia(c.mes_competencia)}</td>
         <td className={`text-sm ${c.smartStatus.key === "atrasado" ? "text-destructive font-medium" : c.smartStatus.key === "hoje" ? "text-warning font-medium" : ""}`}>
           {fmtDate(c.data_vencimento)}
         </td>
@@ -289,6 +304,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
               <tr>
                 <th>Descrição</th>
                 <th className="hidden sm:table-cell">Categoria</th>
+                <th>Competência</th>
                 <th>Vencimento</th>
                 <th>Valor</th>
                 <th>Status</th>
@@ -298,7 +314,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
             <tbody>
               {filtered.map(renderRow)}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center text-muted-foreground py-10 text-sm">Nenhuma conta encontrada</td></tr>
+                <tr><td colSpan={7} className="text-center text-muted-foreground py-10 text-sm">Nenhuma conta encontrada</td></tr>
               )}
             </tbody>
           </table>
