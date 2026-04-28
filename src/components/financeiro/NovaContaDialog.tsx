@@ -34,8 +34,19 @@ type FormValues = {
   ordem_servico_id: string;
   valor: string;
   data_vencimento: string;
+  mes_competencia: string;
   recorrente: boolean;
   observacoes: string;
+};
+
+const toMonthKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const getDefaultCompetencia = (dataVencimento: string, recorrente: boolean) => {
+  const date = new Date(`${dataVencimento}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return toMonthKey(new Date());
+  if (recorrente) date.setMonth(date.getMonth() - 1);
+  return toMonthKey(date);
 };
 
 export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, centros, fornecedores, lojas, ordens }: Props) {
@@ -83,6 +94,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
       ordem_servico_id: "",
       valor: "",
       data_vencimento: new Date().toISOString().split("T")[0],
+      mes_competencia: getDefaultCompetencia(new Date().toISOString().split("T")[0], false),
       recorrente: false,
       observacoes: "",
     },
@@ -99,6 +111,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         ordem_servico_id: editingConta.ordem_servico_id ?? "",
         valor: editingConta.valor ? String(editingConta.valor) : "",
         data_vencimento: editingConta.data_vencimento,
+        mes_competencia: editingConta.mes_competencia ?? getDefaultCompetencia(editingConta.data_vencimento, editingConta.recorrente),
         recorrente: editingConta.recorrente,
         observacoes: editingConta.observacoes ?? "",
       });
@@ -112,6 +125,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         ordem_servico_id: "",
         valor: "",
         data_vencimento: new Date().toISOString().split("T")[0],
+        mes_competencia: getDefaultCompetencia(new Date().toISOString().split("T")[0], false),
         recorrente: false,
         observacoes: "",
       });
@@ -132,6 +146,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         ordem_servico_id: clean(values.ordem_servico_id),
         valor: parseFloat(values.valor),
         data_vencimento: values.data_vencimento,
+        mes_competencia: values.mes_competencia || getDefaultCompetencia(values.data_vencimento, values.recorrente),
         recorrente: values.recorrente,
         observacoes: values.observacoes || null,
         fornecedor: null,
@@ -139,7 +154,7 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
       };
 
       if (isEditing) {
-        const { error } = await supabase.from("contas_a_pagar").update(payload).eq("id", editingConta.id);
+        const { error } = await supabase.from("contas_a_pagar").update(payload as any).eq("id", editingConta.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("contas_a_pagar").insert(payload as any);
