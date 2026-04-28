@@ -1204,6 +1204,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           loja_id: string | null
+          mes_competencia: string | null
           observacoes: string | null
           ordem_servico_id: string | null
           recorrente: boolean
@@ -1226,6 +1227,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           loja_id?: string | null
+          mes_competencia?: string | null
           observacoes?: string | null
           ordem_servico_id?: string | null
           recorrente?: boolean
@@ -1248,6 +1250,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           loja_id?: string | null
+          mes_competencia?: string | null
           observacoes?: string | null
           ordem_servico_id?: string | null
           recorrente?: boolean
