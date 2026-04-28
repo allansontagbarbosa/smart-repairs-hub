@@ -149,6 +149,57 @@ export type Database = {
           },
         ]
       }
+      aparelhos_backup_20260428: {
+        Row: {
+          capacidade: string | null
+          capacidade_id: string | null
+          cliente_id: string | null
+          cor: string | null
+          cor_id: string | null
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          imei: string | null
+          marca: string | null
+          marca_id: string | null
+          modelo: string | null
+          modelo_id: string | null
+          observacoes: string | null
+        }
+        Insert: {
+          capacidade?: string | null
+          capacidade_id?: string | null
+          cliente_id?: string | null
+          cor?: string | null
+          cor_id?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          imei?: string | null
+          marca?: string | null
+          marca_id?: string | null
+          modelo?: string | null
+          modelo_id?: string | null
+          observacoes?: string | null
+        }
+        Update: {
+          capacidade?: string | null
+          capacidade_id?: string | null
+          cliente_id?: string | null
+          cor?: string | null
+          cor_id?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          imei?: string | null
+          marca?: string | null
+          marca_id?: string | null
+          modelo?: string | null
+          modelo_id?: string | null
+          observacoes?: string | null
+        }
+        Relationships: []
+      }
       assinaturas_digitais: {
         Row: {
           assinatura_base64: string
@@ -657,6 +708,87 @@ export type Database = {
           },
         ]
       }
+      clientes_backup_20260428: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cpf: string | null
+          created_at: string | null
+          data_nascimento: string | null
+          deleted_at: string | null
+          documento: string | null
+          email: string | null
+          empresa_id: string | null
+          estado: string | null
+          id: string | null
+          lojista_id: string | null
+          nome: string | null
+          numero_endereco: string | null
+          observacoes: string | null
+          origem: string | null
+          rua: string | null
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          deleted_at?: string | null
+          documento?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          estado?: string | null
+          id?: string | null
+          lojista_id?: string | null
+          nome?: string | null
+          numero_endereco?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          rua?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          deleted_at?: string | null
+          documento?: string | null
+          email?: string | null
+          empresa_id?: string | null
+          estado?: string | null
+          id?: string | null
+          lojista_id?: string | null
+          nome?: string | null
+          numero_endereco?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          rua?: string | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       comissoes: {
         Row: {
           created_at: string
@@ -742,6 +874,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      comissoes_backup_20260428: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string | null
+          empresa_id: string | null
+          estornada_em: string | null
+          estornada_por: string | null
+          funcionario_id: string | null
+          id: string | null
+          mes_competencia: string | null
+          observacoes: string | null
+          ordem_id: string | null
+          os_servico_id: string | null
+          status: Database["public"]["Enums"]["status_comissao"] | null
+          tipo: string | null
+          updated_at: string | null
+          valor: number | null
+          valor_base: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          empresa_id?: string | null
+          estornada_em?: string | null
+          estornada_por?: string | null
+          funcionario_id?: string | null
+          id?: string | null
+          mes_competencia?: string | null
+          observacoes?: string | null
+          ordem_id?: string | null
+          os_servico_id?: string | null
+          status?: Database["public"]["Enums"]["status_comissao"] | null
+          tipo?: string | null
+          updated_at?: string | null
+          valor?: number | null
+          valor_base?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          empresa_id?: string | null
+          estornada_em?: string | null
+          estornada_por?: string | null
+          funcionario_id?: string | null
+          id?: string | null
+          mes_competencia?: string | null
+          observacoes?: string | null
+          ordem_id?: string | null
+          os_servico_id?: string | null
+          status?: Database["public"]["Enums"]["status_comissao"] | null
+          tipo?: string | null
+          updated_at?: string | null
+          valor?: number | null
+          valor_base?: number | null
+        }
+        Relationships: []
       }
       comissoes_servico: {
         Row: {
@@ -1044,6 +1233,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contas_a_pagar_backup_20260428: {
+        Row: {
+          categoria: string | null
+          categoria_financeira_id: string | null
+          centro_custo: string | null
+          centro_custo_id: string | null
+          created_at: string | null
+          created_by: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          empresa_id: string | null
+          fornecedor: string | null
+          fornecedor_id: string | null
+          id: string | null
+          loja_id: string | null
+          observacoes: string | null
+          ordem_servico_id: string | null
+          recorrente: boolean | null
+          status: Database["public"]["Enums"]["status_conta"] | null
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          categoria_financeira_id?: string | null
+          centro_custo?: string | null
+          centro_custo_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          fornecedor_id?: string | null
+          id?: string | null
+          loja_id?: string | null
+          observacoes?: string | null
+          ordem_servico_id?: string | null
+          recorrente?: boolean | null
+          status?: Database["public"]["Enums"]["status_conta"] | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          categoria_financeira_id?: string | null
+          centro_custo?: string | null
+          centro_custo_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          fornecedor_id?: string | null
+          id?: string | null
+          loja_id?: string | null
+          observacoes?: string | null
+          ordem_servico_id?: string | null
+          recorrente?: boolean | null
+          status?: Database["public"]["Enums"]["status_conta"] | null
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: []
       }
       cores: {
         Row: {
@@ -1400,6 +1658,42 @@ export type Database = {
           },
         ]
       }
+      entradas_estoque_backup_20260428: {
+        Row: {
+          created_at: string | null
+          data_compra: string | null
+          empresa_id: string | null
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          id: string | null
+          numero_nota: string | null
+          observacoes: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_compra?: string | null
+          empresa_id?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string | null
+          numero_nota?: string | null
+          observacoes?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data_compra?: string | null
+          empresa_id?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string | null
+          numero_nota?: string | null
+          observacoes?: string | null
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
       entradas_estoque_itens: {
         Row: {
           created_at: string
@@ -1451,6 +1745,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      entradas_estoque_itens_backup_20260428: {
+        Row: {
+          created_at: string | null
+          custo_unitario: number | null
+          empresa_id: string | null
+          entrada_id: string | null
+          estoque_item_id: string | null
+          id: string | null
+          quantidade: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          empresa_id?: string | null
+          entrada_id?: string | null
+          estoque_item_id?: string | null
+          id?: string | null
+          quantidade?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          empresa_id?: string | null
+          entrada_id?: string | null
+          estoque_item_id?: string | null
+          id?: string | null
+          quantidade?: number | null
+        }
+        Relationships: []
       }
       equipe_metas: {
         Row: {
@@ -1594,6 +1918,96 @@ export type Database = {
           },
         ]
       }
+      estoque_aparelhos_backup_20260428: {
+        Row: {
+          capacidade: string | null
+          cor: string | null
+          created_at: string | null
+          custo_compra: number | null
+          data_entrada: string | null
+          empresa_id: string | null
+          fornecedor: string | null
+          id: string | null
+          imei: string | null
+          localizacao: string | null
+          marca: string | null
+          modelo: string | null
+          observacoes: string | null
+          status: Database["public"]["Enums"]["status_estoque_aparelho"] | null
+        }
+        Insert: {
+          capacidade?: string | null
+          cor?: string | null
+          created_at?: string | null
+          custo_compra?: number | null
+          data_entrada?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          id?: string | null
+          imei?: string | null
+          localizacao?: string | null
+          marca?: string | null
+          modelo?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_estoque_aparelho"] | null
+        }
+        Update: {
+          capacidade?: string | null
+          cor?: string | null
+          created_at?: string | null
+          custo_compra?: number | null
+          data_entrada?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          id?: string | null
+          imei?: string | null
+          localizacao?: string | null
+          marca?: string | null
+          modelo?: string | null
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["status_estoque_aparelho"] | null
+        }
+        Relationships: []
+      }
+      estoque_backup_20260428: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          empresa_id: string | null
+          fornecedor: string | null
+          id: string | null
+          nome: string | null
+          preco_custo: number | null
+          preco_venda: number | null
+          quantidade: number | null
+          quantidade_minima: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          id?: string | null
+          nome?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          quantidade_minima?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          id?: string | null
+          nome?: string | null
+          preco_custo?: number | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          quantidade_minima?: number | null
+        }
+        Relationships: []
+      }
       estoque_categorias: {
         Row: {
           ativo: boolean
@@ -1631,6 +2045,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estoque_categorias_backup_20260428: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          empresa_id: string | null
+          id: string | null
+          nome: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       estoque_itens: {
         Row: {
@@ -1745,6 +2189,90 @@ export type Database = {
           },
         ]
       }
+      estoque_itens_backup_20260428: {
+        Row: {
+          ativo: boolean | null
+          capacidade: string | null
+          categoria_id: string | null
+          codigo_barras: string | null
+          cor: string | null
+          created_at: string | null
+          custo_medio: number | null
+          custo_unitario: number | null
+          deleted_at: string | null
+          empresa_id: string | null
+          fornecedor: string | null
+          id: string | null
+          imei_serial: string | null
+          local_estoque: string | null
+          marca_id: string | null
+          modelo_id: string | null
+          nome_personalizado: string | null
+          observacoes: string | null
+          preco_venda: number | null
+          quantidade: number | null
+          quantidade_minima: number | null
+          sku: string | null
+          status: string | null
+          tipo_item: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          capacidade?: string | null
+          categoria_id?: string | null
+          codigo_barras?: string | null
+          cor?: string | null
+          created_at?: string | null
+          custo_medio?: number | null
+          custo_unitario?: number | null
+          deleted_at?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          id?: string | null
+          imei_serial?: string | null
+          local_estoque?: string | null
+          marca_id?: string | null
+          modelo_id?: string | null
+          nome_personalizado?: string | null
+          observacoes?: string | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          quantidade_minima?: number | null
+          sku?: string | null
+          status?: string | null
+          tipo_item?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          capacidade?: string | null
+          categoria_id?: string | null
+          codigo_barras?: string | null
+          cor?: string | null
+          created_at?: string | null
+          custo_medio?: number | null
+          custo_unitario?: number | null
+          deleted_at?: string | null
+          empresa_id?: string | null
+          fornecedor?: string | null
+          id?: string | null
+          imei_serial?: string | null
+          local_estoque?: string | null
+          marca_id?: string | null
+          modelo_id?: string | null
+          nome_personalizado?: string | null
+          observacoes?: string | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          quantidade_minima?: number | null
+          sku?: string | null
+          status?: string | null
+          tipo_item?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       estoque_movimentos: {
         Row: {
           created_at: string
@@ -1809,6 +2337,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      estoque_movimentos_backup_20260428: {
+        Row: {
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          motivo: string | null
+          os_id: string | null
+          peca_id: string | null
+          pecas_utilizadas_id: string | null
+          quantidade: number | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          motivo?: string | null
+          os_id?: string | null
+          peca_id?: string | null
+          pecas_utilizadas_id?: string | null
+          quantidade?: number | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          motivo?: string | null
+          os_id?: string | null
+          peca_id?: string | null
+          pecas_utilizadas_id?: string | null
+          quantidade?: number | null
+          tipo?: string | null
+        }
+        Relationships: []
       }
       formas_pagamento: {
         Row: {
@@ -2108,6 +2672,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      historico_custo_peca_backup_20260428: {
+        Row: {
+          custo_anterior: number | null
+          custo_novo: number | null
+          empresa_id: string | null
+          id: string | null
+          origem: string | null
+          origem_id: string | null
+          peca_id: string | null
+          preco_compra_unitario: number | null
+          quantidade_anterior: number | null
+          quantidade_movimentada: number | null
+          registrado_em: string | null
+          registrado_por: string | null
+        }
+        Insert: {
+          custo_anterior?: number | null
+          custo_novo?: number | null
+          empresa_id?: string | null
+          id?: string | null
+          origem?: string | null
+          origem_id?: string | null
+          peca_id?: string | null
+          preco_compra_unitario?: number | null
+          quantidade_anterior?: number | null
+          quantidade_movimentada?: number | null
+          registrado_em?: string | null
+          registrado_por?: string | null
+        }
+        Update: {
+          custo_anterior?: number | null
+          custo_novo?: number | null
+          empresa_id?: string | null
+          id?: string | null
+          origem?: string | null
+          origem_id?: string | null
+          peca_id?: string | null
+          preco_compra_unitario?: number | null
+          quantidade_anterior?: number | null
+          quantidade_movimentada?: number | null
+          registrado_em?: string | null
+          registrado_por?: string | null
+        }
+        Relationships: []
       }
       historico_ordens: {
         Row: {
@@ -2688,6 +3297,45 @@ export type Database = {
           },
         ]
       }
+      movimentacoes_financeiras_backup_20260428: {
+        Row: {
+          created_at: string | null
+          data: string | null
+          descricao: string | null
+          empresa_id: string | null
+          estoque_id: string | null
+          estornada_em: string | null
+          id: string | null
+          ordem_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao"] | null
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          estoque_id?: string | null
+          estornada_em?: string | null
+          id?: string | null
+          ordem_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"] | null
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          estoque_id?: string | null
+          estornada_em?: string | null
+          id?: string | null
+          ordem_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao"] | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       notificacoes: {
         Row: {
           created_at: string | null
@@ -3002,6 +3650,219 @@ export type Database = {
           },
         ]
       }
+      ordens_de_servico_backup_20260428: {
+        Row: {
+          aparelho_id: string | null
+          aprovacao_orcamento: string | null
+          aprovado_no_ato: boolean | null
+          bateria_entrada: number | null
+          cancelada_em: string | null
+          cancelada_por: string | null
+          checklist_entrada: Json | null
+          contato_preferido: string | null
+          created_at: string | null
+          created_by: string | null
+          criada_retroativamente_por: string | null
+          custo_mao_de_obra: number | null
+          custo_pecas: number | null
+          custo_total: number | null
+          data_aprovacao: string | null
+          data_conclusao: string | null
+          data_entrada: string | null
+          data_entrega: string | null
+          defeito_relatado: string | null
+          deleted_at: string | null
+          desconto: number | null
+          diagnostico: string | null
+          eh_retroativa: boolean | null
+          empresa_id: string | null
+          estado_geral: string | null
+          forma_pagamento_id: string | null
+          forma_pagamento_sinal: string | null
+          funcionario_id: string | null
+          garantia_dias: number | null
+          id: string | null
+          imei2: string | null
+          impacto_cancelamento: Json | null
+          justificativa_retroativa: string | null
+          liga: string | null
+          localizacao: string | null
+          loja_id: string | null
+          lojista_id: string | null
+          lucro_bruto: number | null
+          mao_obra_adicional: number | null
+          margem_calculada: number | null
+          motivo_cancelamento: string | null
+          motivo_reprovacao: string | null
+          numero: number | null
+          numero_formatado: string | null
+          obs_cliente: string | null
+          observacoes: string | null
+          orcamento_aprovado_em: string | null
+          os_origem_id: string | null
+          prazo_vencido: boolean | null
+          previsao_entrega: string | null
+          prioridade: string | null
+          referencia_lote: string | null
+          relato_cliente: string | null
+          retrabalho: boolean | null
+          servico_realizado: string | null
+          sinal_pago: number | null
+          status: Database["public"]["Enums"]["status_ordem"] | null
+          tecnico: string | null
+          tipo_servico: string | null
+          tipo_servico_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          valor: number | null
+          valor_pago: number | null
+          valor_pendente: number | null
+          valor_total: number | null
+          valor_total_pecas: number | null
+          valor_total_servicos: number | null
+        }
+        Insert: {
+          aparelho_id?: string | null
+          aprovacao_orcamento?: string | null
+          aprovado_no_ato?: boolean | null
+          bateria_entrada?: number | null
+          cancelada_em?: string | null
+          cancelada_por?: string | null
+          checklist_entrada?: Json | null
+          contato_preferido?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          criada_retroativamente_por?: string | null
+          custo_mao_de_obra?: number | null
+          custo_pecas?: number | null
+          custo_total?: number | null
+          data_aprovacao?: string | null
+          data_conclusao?: string | null
+          data_entrada?: string | null
+          data_entrega?: string | null
+          defeito_relatado?: string | null
+          deleted_at?: string | null
+          desconto?: number | null
+          diagnostico?: string | null
+          eh_retroativa?: boolean | null
+          empresa_id?: string | null
+          estado_geral?: string | null
+          forma_pagamento_id?: string | null
+          forma_pagamento_sinal?: string | null
+          funcionario_id?: string | null
+          garantia_dias?: number | null
+          id?: string | null
+          imei2?: string | null
+          impacto_cancelamento?: Json | null
+          justificativa_retroativa?: string | null
+          liga?: string | null
+          localizacao?: string | null
+          loja_id?: string | null
+          lojista_id?: string | null
+          lucro_bruto?: number | null
+          mao_obra_adicional?: number | null
+          margem_calculada?: number | null
+          motivo_cancelamento?: string | null
+          motivo_reprovacao?: string | null
+          numero?: number | null
+          numero_formatado?: string | null
+          obs_cliente?: string | null
+          observacoes?: string | null
+          orcamento_aprovado_em?: string | null
+          os_origem_id?: string | null
+          prazo_vencido?: boolean | null
+          previsao_entrega?: string | null
+          prioridade?: string | null
+          referencia_lote?: string | null
+          relato_cliente?: string | null
+          retrabalho?: boolean | null
+          servico_realizado?: string | null
+          sinal_pago?: number | null
+          status?: Database["public"]["Enums"]["status_ordem"] | null
+          tecnico?: string | null
+          tipo_servico?: string | null
+          tipo_servico_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          valor?: number | null
+          valor_pago?: number | null
+          valor_pendente?: number | null
+          valor_total?: number | null
+          valor_total_pecas?: number | null
+          valor_total_servicos?: number | null
+        }
+        Update: {
+          aparelho_id?: string | null
+          aprovacao_orcamento?: string | null
+          aprovado_no_ato?: boolean | null
+          bateria_entrada?: number | null
+          cancelada_em?: string | null
+          cancelada_por?: string | null
+          checklist_entrada?: Json | null
+          contato_preferido?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          criada_retroativamente_por?: string | null
+          custo_mao_de_obra?: number | null
+          custo_pecas?: number | null
+          custo_total?: number | null
+          data_aprovacao?: string | null
+          data_conclusao?: string | null
+          data_entrada?: string | null
+          data_entrega?: string | null
+          defeito_relatado?: string | null
+          deleted_at?: string | null
+          desconto?: number | null
+          diagnostico?: string | null
+          eh_retroativa?: boolean | null
+          empresa_id?: string | null
+          estado_geral?: string | null
+          forma_pagamento_id?: string | null
+          forma_pagamento_sinal?: string | null
+          funcionario_id?: string | null
+          garantia_dias?: number | null
+          id?: string | null
+          imei2?: string | null
+          impacto_cancelamento?: Json | null
+          justificativa_retroativa?: string | null
+          liga?: string | null
+          localizacao?: string | null
+          loja_id?: string | null
+          lojista_id?: string | null
+          lucro_bruto?: number | null
+          mao_obra_adicional?: number | null
+          margem_calculada?: number | null
+          motivo_cancelamento?: string | null
+          motivo_reprovacao?: string | null
+          numero?: number | null
+          numero_formatado?: string | null
+          obs_cliente?: string | null
+          observacoes?: string | null
+          orcamento_aprovado_em?: string | null
+          os_origem_id?: string | null
+          prazo_vencido?: boolean | null
+          previsao_entrega?: string | null
+          prioridade?: string | null
+          referencia_lote?: string | null
+          relato_cliente?: string | null
+          retrabalho?: boolean | null
+          servico_realizado?: string | null
+          sinal_pago?: number | null
+          status?: Database["public"]["Enums"]["status_ordem"] | null
+          tecnico?: string | null
+          tipo_servico?: string | null
+          tipo_servico_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          valor?: number | null
+          valor_pago?: number | null
+          valor_pendente?: number | null
+          valor_total?: number | null
+          valor_total_pecas?: number | null
+          valor_total_servicos?: number | null
+        }
+        Relationships: []
+      }
       os_auditoria: {
         Row: {
           acao: string
@@ -3201,6 +4062,42 @@ export type Database = {
           },
         ]
       }
+      os_servicos_backup_20260428: {
+        Row: {
+          categoria: string | null
+          comissao: number | null
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          nome: string | null
+          ordem_id: string | null
+          servico_id: string | null
+          valor: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          comissao?: number | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          ordem_id?: string | null
+          servico_id?: string | null
+          valor?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          comissao?: number | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          ordem_id?: string | null
+          servico_id?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       os_transferencias: {
         Row: {
           created_at: string
@@ -3322,6 +4219,42 @@ export type Database = {
           },
         ]
       }
+      pecas_utilizadas_backup_20260428: {
+        Row: {
+          created_at: string | null
+          custo_unitario: number | null
+          empresa_id: string | null
+          id: string | null
+          ordem_id: string | null
+          origem_servico_id: string | null
+          peca_id: string | null
+          preco_unitario: number | null
+          quantidade: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          empresa_id?: string | null
+          id?: string | null
+          ordem_id?: string | null
+          origem_servico_id?: string | null
+          peca_id?: string | null
+          preco_unitario?: number | null
+          quantidade?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          empresa_id?: string | null
+          id?: string | null
+          ordem_id?: string | null
+          origem_servico_id?: string | null
+          peca_id?: string | null
+          preco_unitario?: number | null
+          quantidade?: number | null
+        }
+        Relationships: []
+      }
       pedidos_compra: {
         Row: {
           created_at: string | null
@@ -3382,6 +4315,51 @@ export type Database = {
           },
         ]
       }
+      pedidos_compra_backup_20260428: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_pedido: string | null
+          data_previsao: string | null
+          data_recebimento: string | null
+          empresa_id: string | null
+          fornecedor_id: string | null
+          id: string | null
+          observacoes: string | null
+          status: string | null
+          updated_at: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_pedido?: string | null
+          data_previsao?: string | null
+          data_recebimento?: string | null
+          empresa_id?: string | null
+          fornecedor_id?: string | null
+          id?: string | null
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_pedido?: string | null
+          data_previsao?: string | null
+          data_recebimento?: string | null
+          empresa_id?: string | null
+          fornecedor_id?: string | null
+          id?: string | null
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
       pedidos_compra_itens: {
         Row: {
           created_at: string | null
@@ -3439,6 +4417,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pedidos_compra_itens_backup_20260428: {
+        Row: {
+          created_at: string | null
+          custo_unitario: number | null
+          empresa_id: string | null
+          estoque_item_id: string | null
+          id: string | null
+          nome_item: string | null
+          pedido_id: string | null
+          quantidade: number | null
+          quantidade_recebida: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          empresa_id?: string | null
+          estoque_item_id?: string | null
+          id?: string | null
+          nome_item?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          quantidade_recebida?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_unitario?: number | null
+          empresa_id?: string | null
+          estoque_item_id?: string | null
+          id?: string | null
+          nome_item?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          quantidade_recebida?: number | null
+        }
+        Relationships: []
       }
       perfis_acesso: {
         Row: {
@@ -3922,6 +4936,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tipos_servico_backup_20260428: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          comissao_padrao: number | null
+          created_at: string | null
+          descricao: string | null
+          empresa_id: string | null
+          id: string | null
+          nome: string | null
+          updated_at: string | null
+          valor_padrao: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          comissao_padrao?: number | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          updated_at?: string | null
+          valor_padrao?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          comissao_padrao?: number | null
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          updated_at?: string | null
+          valor_padrao?: number | null
+        }
+        Relationships: []
       }
       user_profiles: {
         Row: {
