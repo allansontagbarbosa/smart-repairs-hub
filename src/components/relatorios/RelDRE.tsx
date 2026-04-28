@@ -213,12 +213,12 @@ export function RelDRE() {
           <div>
             <p className="font-bold text-muted-foreground mb-1">DESPESAS OPERACIONAIS</p>
             <LinhaItem label="Gastos fixos" valor={dre.gastosFixos} negativo />
-            <LinhaItem label="Depreciação" valor={dre.depreciacao} negativo />
             <LinhaItem label="Outros gastos" valor={dre.outrosGastos} negativo />
             <LinhaItem label="= EBITDA" valor={dre.ebitda} bold />
           </div>
           <div className="border-t pt-3">
             <p className="font-bold text-muted-foreground mb-1">RESULTADO</p>
+            <LinhaItem label="Depreciação estimada" valor={dre.depreciacao} negativo />
             <LinhaItem label="= Lucro Líquido" valor={dre.lucroLiquido} bold />
             <div className="flex justify-between py-0.5 font-bold">
               <span>= Margem Líquida</span>
