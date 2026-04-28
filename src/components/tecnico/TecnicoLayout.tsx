@@ -181,7 +181,7 @@ export function TecnicoLayout({ children }: { children: ReactNode }) {
 
       {/* Bottom nav (mobile) */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-card/95 backdrop-blur md:hidden">
-        <div className="max-w-3xl mx-auto grid grid-cols-5">
+        <div className="max-w-3xl mx-auto grid grid-cols-6">
           {NAV.map((item) => {
             const Icon = item.icon;
             return (
