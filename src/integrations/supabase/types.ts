@@ -247,6 +247,45 @@ export type Database = {
           },
         ]
       }
+      assinaturas_digitais_backup_20260428: {
+        Row: {
+          assinatura_base64: string | null
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          ip_address: string | null
+          ordem_id: string | null
+          signatario_nome: string | null
+          signatario_user_id: string | null
+          tipo: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          assinatura_base64?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          ip_address?: string | null
+          ordem_id?: string | null
+          signatario_nome?: string | null
+          signatario_user_id?: string | null
+          tipo?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          assinatura_base64?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          ip_address?: string | null
+          ordem_id?: string | null
+          signatario_nome?: string | null
+          signatario_user_id?: string | null
+          tipo?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       auditoria: {
         Row: {
           acao: string
@@ -374,6 +413,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      avaliacoes_backup_20260428: {
+        Row: {
+          comentario: string | null
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          nota: number | null
+          ordem_id: string | null
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nota?: number | null
+          ordem_id?: string | null
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nota?: number | null
+          ordem_id?: string | null
+        }
+        Relationships: []
       }
       avaliacoes_fornecedor: {
         Row: {
@@ -2620,6 +2686,42 @@ export type Database = {
           },
         ]
       }
+      garantias_backup_20260428: {
+        Row: {
+          created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          dias_garantia: number | null
+          empresa_id: string | null
+          id: string | null
+          observacoes: string | null
+          ordem_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          dias_garantia?: number | null
+          empresa_id?: string | null
+          id?: string | null
+          observacoes?: string | null
+          ordem_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          dias_garantia?: number | null
+          empresa_id?: string | null
+          id?: string | null
+          observacoes?: string | null
+          ordem_id?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       historico_custo_peca: {
         Row: {
           custo_anterior: number | null
@@ -2769,6 +2871,42 @@ export type Database = {
           },
         ]
       }
+      historico_ordens_backup_20260428: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          empresa_id: string | null
+          id: string | null
+          observacao: string | null
+          ordem_id: string | null
+          status_anterior: string | null
+          status_novo: string | null
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          observacao?: string | null
+          ordem_id?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          observacao?: string | null
+          ordem_id?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          usuario_responsavel?: string | null
+        }
+        Relationships: []
+      }
       imei_device_cache: {
         Row: {
           capacidade: string | null
@@ -2866,6 +3004,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      listas_preco_backup_20260428: {
+        Row: {
+          ativo: boolean | null
+          cliente_id: string | null
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          nome: string | null
+          observacoes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cliente_id?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          observacoes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cliente_id?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          nome?: string | null
+          observacoes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       listas_preco_itens: {
         Row: {
@@ -3916,6 +4087,51 @@ export type Database = {
           },
         ]
       }
+      os_auditoria_backup_20260428: {
+        Row: {
+          acao: string | null
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          ip_address: string | null
+          motivo: string | null
+          ordem_id: string | null
+          payload: Json | null
+          realizada_por: string | null
+          realizada_por_nome: string | null
+          realizada_por_role: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          acao?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          ip_address?: string | null
+          motivo?: string | null
+          ordem_id?: string | null
+          payload?: Json | null
+          realizada_por?: string | null
+          realizada_por_nome?: string | null
+          realizada_por_role?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          acao?: string | null
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          ip_address?: string | null
+          motivo?: string | null
+          ordem_id?: string | null
+          payload?: Json | null
+          realizada_por?: string | null
+          realizada_por_nome?: string | null
+          realizada_por_role?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       os_checklist_saida: {
         Row: {
           created_at: string
@@ -3963,6 +4179,45 @@ export type Database = {
           },
         ]
       }
+      os_checklist_saida_backup_20260428: {
+        Row: {
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          item_key: string | null
+          item_label: string | null
+          observacao: string | null
+          ordem_id: string | null
+          testado: boolean | null
+          testado_em: string | null
+          testado_por: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          item_key?: string | null
+          item_label?: string | null
+          observacao?: string | null
+          ordem_id?: string | null
+          testado?: boolean | null
+          testado_em?: string | null
+          testado_por?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          item_key?: string | null
+          item_label?: string | null
+          observacao?: string | null
+          ordem_id?: string | null
+          testado?: boolean | null
+          testado_em?: string | null
+          testado_por?: string | null
+        }
+        Relationships: []
+      }
       os_fotos: {
         Row: {
           created_at: string
@@ -4003,6 +4258,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      os_fotos_backup_20260428: {
+        Row: {
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          legenda: string | null
+          ordem_id: string | null
+          tipo: string | null
+          uploaded_by: string | null
+          url_storage: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          legenda?: string | null
+          ordem_id?: string | null
+          tipo?: string | null
+          uploaded_by?: string | null
+          url_storage?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          legenda?: string | null
+          ordem_id?: string | null
+          tipo?: string | null
+          uploaded_by?: string | null
+          url_storage?: string | null
+        }
+        Relationships: []
       }
       os_servicos: {
         Row: {
@@ -4153,6 +4441,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      os_transferencias_backup_20260428: {
+        Row: {
+          created_at: string | null
+          data_resposta: string | null
+          data_solicitacao: string | null
+          empresa_id: string | null
+          funcionario_destino_id: string | null
+          funcionario_origem_id: string | null
+          id: string | null
+          motivo: string | null
+          ordem_id: string | null
+          respondido_por: string | null
+          resposta_observacao: string | null
+          solicitado_por: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_resposta?: string | null
+          data_solicitacao?: string | null
+          empresa_id?: string | null
+          funcionario_destino_id?: string | null
+          funcionario_origem_id?: string | null
+          id?: string | null
+          motivo?: string | null
+          ordem_id?: string | null
+          respondido_por?: string | null
+          resposta_observacao?: string | null
+          solicitado_por?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_resposta?: string | null
+          data_solicitacao?: string | null
+          empresa_id?: string | null
+          funcionario_destino_id?: string | null
+          funcionario_origem_id?: string | null
+          id?: string | null
+          motivo?: string | null
+          ordem_id?: string | null
+          respondido_por?: string | null
+          resposta_observacao?: string | null
+          solicitado_por?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
       pecas_utilizadas: {
         Row: {
@@ -4646,6 +4982,48 @@ export type Database = {
           },
         ]
       }
+      recebimentos_backup_20260428: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          data_recebimento: string | null
+          descricao: string | null
+          empresa_id: string | null
+          forma_pagamento: string | null
+          id: string | null
+          loja_id: string | null
+          observacoes: string | null
+          ordem_servico_id: string | null
+          valor: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_recebimento?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          forma_pagamento?: string | null
+          id?: string | null
+          loja_id?: string | null
+          observacoes?: string | null
+          ordem_servico_id?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_recebimento?: string | null
+          descricao?: string | null
+          empresa_id?: string | null
+          forma_pagamento?: string | null
+          id?: string | null
+          loja_id?: string | null
+          observacoes?: string | null
+          ordem_servico_id?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       servico_pecas: {
         Row: {
           created_at: string
@@ -4697,6 +5075,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      servico_pecas_backup_20260428: {
+        Row: {
+          created_at: string | null
+          empresa_id: string | null
+          id: string | null
+          obrigatoria: boolean | null
+          peca_id: string | null
+          quantidade: number | null
+          servico_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          obrigatoria?: boolean | null
+          peca_id?: string | null
+          quantidade?: number | null
+          servico_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          empresa_id?: string | null
+          id?: string | null
+          obrigatoria?: boolean | null
+          peca_id?: string | null
+          quantidade?: number | null
+          servico_id?: string | null
+        }
+        Relationships: []
       }
       socios: {
         Row: {
