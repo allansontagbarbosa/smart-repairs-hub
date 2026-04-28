@@ -5626,6 +5626,7 @@ export type Database = {
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       lojista_verificar_acesso: {
         Args: { email_input: string }
         Returns: {
@@ -5644,6 +5645,11 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      pagar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
+      pagar_comissoes_em_lote: {
+        Args: { p_comissao_ids: string[] }
+        Returns: Json
       }
       preview_cancelamento_os: { Args: { p_ordem_id: string }; Returns: Json }
       preview_exclusao_os_cancelada: {
