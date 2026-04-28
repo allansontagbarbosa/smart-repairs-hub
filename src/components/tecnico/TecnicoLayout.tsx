@@ -9,6 +9,7 @@ import {
   LogOut,
   Wrench,
   Eye,
+  DollarSign,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
@@ -64,6 +65,7 @@ export function TecnicoGuard({ children }: { children: ReactNode }) {
 const NAV = [
   { to: "/tecnico", icon: LayoutGrid, label: "Início", end: true },
   { to: "/tecnico/ordens", icon: ClipboardList, label: "Minhas OS" },
+  { to: "/tecnico/comissoes", icon: DollarSign, label: "Comissões" },
   { to: "/tecnico/transferencias", icon: ArrowLeftRight, label: "Transferências" },
   { to: "/tecnico/metas", icon: Target, label: "Metas" },
   { to: "/tecnico/historico", icon: History, label: "Histórico" },
@@ -179,7 +181,7 @@ export function TecnicoLayout({ children }: { children: ReactNode }) {
 
       {/* Bottom nav (mobile) */}
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-card/95 backdrop-blur md:hidden">
-        <div className="max-w-3xl mx-auto grid grid-cols-5">
+        <div className="max-w-3xl mx-auto grid grid-cols-6">
           {NAV.map((item) => {
             const Icon = item.icon;
             return (
