@@ -1154,22 +1154,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <AccordionTrigger className="text-sm font-semibold">Operacional</AccordionTrigger>
                     <AccordionContent className="space-y-3 pt-2">
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs">Técnico</Label>
-                          <Select
-                            value={editForm.funcionario_id || "__none__"}
-                            onValueChange={(v) => setEditForm(p => ({ ...p, funcionario_id: v === "__none__" ? "" : v }))}
-                          >
-                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">— Sem técnico —</SelectItem>
-                              {tecnicos.map((t: any) => (
-                                <SelectItem key={t.id} value={t.id}>{t.nome}{t.atual ? " (atribuição atual)" : ""}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <input type="hidden" name="funcionario_id" value={editForm.funcionario_id} />
-                        </div>
+                        <Alert className="border-info/30 bg-info/10 text-info">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Os técnicos se atribuem aos serviços pelo portal do técnico ao iniciar cada um.
+                          </AlertDescription>
+                        </Alert>
                         <div>
                           <Label className="text-xs">Previsão entrega</Label>
                           <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />
