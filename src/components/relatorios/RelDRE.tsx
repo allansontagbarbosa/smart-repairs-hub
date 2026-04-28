@@ -62,10 +62,9 @@ export function RelDRE() {
     queryFn: async () => {
       const { data } = await supabase
         .from("contas_a_pagar")
-        .select("valor, categoria, status")
-        .eq("status", "paga")
-        .gte("data_pagamento", inicio)
-        .lt("data_pagamento", fim);
+        .select("valor, recorrente, data_vencimento")
+        .gte("data_vencimento", inicio)
+        .lt("data_vencimento", fim);
       return data ?? [];
     },
   });
@@ -125,12 +124,12 @@ export function RelDRE() {
     const comissoesPagas = (comissoes ?? []).reduce((s, c) => s + c.valor, 0);
     const lucroBruto = receitaLiquida - custoPecas - comissoesPagas;
 
-    const gastosFixos = (contas ?? []).filter(c => c.categoria === "fixo").reduce((s, c) => s + c.valor, 0);
+    const gastosFixos = (contas ?? []).filter(c => c.recorrente === true).reduce((s, c) => s + c.valor, 0);
     const depreciacao = (ajustes ?? []).filter(a => a.tipo === "depreciacao").reduce((s, a) => s + a.valor, 0);
-    const outrosGastos = (contas ?? []).filter(c => c.categoria !== "fixo").reduce((s, c) => s + c.valor, 0);
-    const ebitda = lucroBruto - gastosFixos - depreciacao - outrosGastos;
+    const outrosGastos = (contas ?? []).filter(c => c.recorrente === false).reduce((s, c) => s + c.valor, 0);
+    const ebitda = lucroBruto - gastosFixos - outrosGastos;
 
-    const lucroLiquido = ebitda;
+    const lucroLiquido = ebitda - depreciacao;
     const margem = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
 
     const reservaPct = empresaConfig?.percentual_reserva_empresa ?? 10;
@@ -164,7 +163,7 @@ export function RelDRE() {
 
         const [{ data: os }, { data: cp }] = await Promise.all([
           supabase.from("ordens_de_servico").select("valor, custo_pecas").is("deleted_at", null).eq("status", "entregue").gte("data_entrada", ini).lt("data_entrada", fi),
-          supabase.from("contas_a_pagar").select("valor").eq("status", "paga").gte("data_pagamento", ini).lt("data_pagamento", fi),
+          supabase.from("contas_a_pagar").select("valor").gte("data_vencimento", ini).lt("data_vencimento", fi),
         ]);
 
         const receita = (os ?? []).reduce((s, o) => s + (o.valor ?? 0), 0);
