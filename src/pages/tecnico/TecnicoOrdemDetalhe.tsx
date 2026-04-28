@@ -12,12 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, Smartphone } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
 import { statusLabels } from "@/lib/status";
 import { useGerarComissao } from "@/hooks/useGerarComissao";
+import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
 
 const DEFAULT_CHECKLIST = [
   { key: "touch", label: "Touch responde corretamente" },
@@ -39,6 +41,9 @@ export default function TecnicoOrdemDetalhe() {
   const qc = useQueryClient();
   const { data: identidade } = useTecnicoIdentidade();
   const { gerarOuAtualizarComissao } = useGerarComissao();
+  const iniciarServico = useIniciarServico();
+  const concluirServico = useConcluirServico();
+  const soltarServico = useSoltarServico();
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["tecnico-os", id],
@@ -91,6 +96,20 @@ export default function TecnicoOrdemDetalhe() {
         .select("*")
         .eq("ordem_id", id!)
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: servicos = [] } = useQuery({
+    queryKey: ["tecnico-os-servicos", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("os_servicos")
+        .select("id, nome, valor, comissao, status, tecnico_id, concluido_em, funcionarios ( nome )")
+        .eq("ordem_id", id!)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
