@@ -2,7 +2,7 @@ import { useState, useRef, DragEvent } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, Loader2, MessageCircle, Users, Columns3 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
@@ -46,35 +46,11 @@ async function fetchOrders() {
 
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) ), funcionarios ( nome )`)
+    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) ), os_servicos ( tecnico_id, funcionarios ( nome ) )`)
     .gte("data_entrada", ninetyDaysAgo.toISOString())
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data;
-}
-
-async function fetchTecnicos(empresaId: string) {
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
-    .eq("empresa_id", empresaId)
-    .eq("ativo", true)
-    .eq("perfis_acesso.nome_perfil", "Técnico")
-    .not("funcionario_id", "is", null);
-
-  if (error) throw error;
-
-  return (data ?? [])
-    .filter((up: any) =>
-      up.funcionario_id
-      && up.funcionarios?.ativo
-      && !up.funcionarios?.deleted_at
-    )
-    .map((up: any) => ({
-      id: up.funcionario_id as string,
-      nome: (up.funcionarios?.nome || up.nome_exibicao) as string,
-    }))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
 function daysAgo(dateStr: string) {
@@ -82,18 +58,13 @@ function daysAgo(dateStr: string) {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
-type ViewMode = "status" | "tecnico";
-
 export default function FluxoAssistencia() {
   const queryClient = useQueryClient();
-  const { empresaId } = useEmpresa();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const dragItemRef = useRef<{ id: string; aparelhoId: string } | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("status");
 
   const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens", "ultimos-90"], queryFn: fetchOrders });
-  const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos_kanban", empresaId], queryFn: () => fetchTecnicos(empresaId!), enabled: !!empresaId });
   const { gerarOuAtualizarComissao } = useGerarComissao();
 
   const updateStatus = useMutation({
@@ -119,18 +90,6 @@ export default function FluxoAssistencia() {
       toast.success("Status atualizado!");
     },
     onError: () => toast.error("Erro ao atualizar status"),
-  });
-
-  const updateTecnico = useMutation({
-    mutationFn: async ({ id, tecnicoId }: { id: string; tecnicoId: string | null }) => {
-      const { error } = await supabase.from("ordens_de_servico").update({ funcionario_id: tecnicoId }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidateOrdensDependentes(queryClient);
-      toast.success("Técnico reatribuído!");
-    },
-    onError: () => toast.error("Erro ao reatribuir técnico"),
   });
 
   // Drag handlers
