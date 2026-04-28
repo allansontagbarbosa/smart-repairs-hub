@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
-import { useEmpresa } from "@/contexts/EmpresaContext";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
@@ -90,7 +89,6 @@ interface PecaSelecionada {
 export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClientId }: Props) {
   const queryClient = useQueryClient();
   const { isAdmin } = usePermissoes();
-  const { empresaId } = useEmpresa();
 
   const [step, setStep] = useState<Step>("cliente");
 
