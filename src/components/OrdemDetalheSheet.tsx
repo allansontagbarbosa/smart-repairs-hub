@@ -1708,7 +1708,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                                       os_origem_id: orderId,
                                       retrabalho: true,
                                       loja_id: ordem.loja_id,
-                                      funcionario_id: ordem.funcionario_id,
                                       tipo_servico_id: ordem.tipo_servico_id,
                                     })
                                     .select("id, numero")
