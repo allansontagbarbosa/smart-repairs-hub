@@ -146,7 +146,7 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
       const { count: concluidosHoje } = await supabase
         .from("os_servicos")
         .select("id", { count: "exact", head: true })
-        .eq("funcionario_id", funcionarioId!)
+        .eq("tecnico_id", funcionarioId!)
         .eq("status", "concluido")
         .gte("concluido_em", inicioHoje)
         .lt("concluido_em", fimHoje);
