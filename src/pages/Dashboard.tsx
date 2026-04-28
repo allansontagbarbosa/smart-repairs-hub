@@ -77,6 +77,22 @@ const brl = (v: number) =>
 
 const pct = (v: number) => `${v.toFixed(1)}%`;
 
+const formatMonthKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const getCompetenciaMonths = (start: Date, end: Date) => {
+  const months: string[] = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const last = new Date(end.getFullYear(), end.getMonth(), 1);
+
+  while (cursor <= last) {
+    months.push(formatMonthKey(cursor));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return months;
+};
+
 // ─── COMPONENTES AUXILIARES ───────────────────────────────────────────────────
 
 function MetricCard({
@@ -166,11 +182,11 @@ async function fetchDashboardSummary(rangeStart: Date, rangeEnd: Date) {
 }
 
 async function fetchContasPeriodo(rangeStart: Date, rangeEnd: Date) {
+  const competencias = getCompetenciaMonths(rangeStart, rangeEnd);
   const { data, error } = await supabase
     .from("contas_a_pagar")
-    .select("valor, recorrente, data_vencimento")
-    .gte("data_vencimento", rangeStart.toISOString().split("T")[0])
-    .lte("data_vencimento", rangeEnd.toISOString().split("T")[0]);
+    .select("valor, recorrente, mes_competencia")
+    .in("mes_competencia", competencias);
   if (error) throw error;
   return data ?? [];
 }
