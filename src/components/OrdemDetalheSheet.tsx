@@ -1574,12 +1574,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <p className="text-xs font-medium text-muted-foreground mb-2">Comissões</p>
                   {(() => {
                     const statusAtual = ordem.status;
-                    const osFinalizada = statusAtual === "pronto" || statusAtual === "entregue";
                     const osCancelada = statusAtual === "cancelado";
-                    const tecnicoNome =
-                      funcionariosAtivos.find((f) => f.id === ordem.funcionario_id)?.nome ??
-                      ordem.tecnico ??
-                      "o técnico";
 
                     if (osCancelada) {
                       return (
@@ -1608,48 +1603,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       );
                     }
 
-                    if (!ordem.funcionario_id) {
-                      return (
-                        <p className="text-xs text-muted-foreground">
-                          Atribua um técnico para ver a comissão prevista
-                        </p>
-                      );
-                    }
-
-                    if (comissaoPreview && comissaoPreview.calculado > 0) {
-                      return (
-                        <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 px-3 py-2.5">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-medium text-warning">Comissão prevista</p>
-                            <span className="text-sm font-semibold text-warning">
-                              {fmtCurrency(comissaoPreview.calculado)}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            {comissaoPreview.tipo === "percentual"
-                              ? `${comissaoPreview.config}% · `
-                              : `Valor fixo · `}
-                            Origem: {comissaoPreview.origem === "comissoes_servico"
-                              ? "regra por serviço"
-                              : "padrão do técnico"}
-                          </p>
-                          {!osFinalizada && (
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Será gerada ao marcar OS como "Pronto"
-                            </p>
-                          )}
-                        </div>
-                      );
-                    }
-
                     return (
                       <div className="rounded-lg border border-dashed border-muted px-3 py-2.5">
                         <p className="text-xs font-medium text-muted-foreground mb-1">
-                          Comissão não configurada para {tecnicoNome}
+                          Nenhuma comissão gerada para os serviços desta OS
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          Configure em Configurações → Funcionários → {tecnicoNome} (valor padrão)
-                          ou em Configurações → Comissões por serviço (valor específico).
+                          As comissões são criadas automaticamente por serviço quando há técnico atribuído ao serviço.
                         </p>
                       </div>
                     );
