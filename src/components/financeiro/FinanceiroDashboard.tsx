@@ -141,7 +141,7 @@ export function FinanceiroDashboard({ kpis }: Props) {
         <div className="stat-card">
           <Receipt className="h-4 w-4 text-destructive mb-3" />
           <p className="stat-value">{fmtCurrency(kpis.despesasPagasMes)}</p>
-          <p className="stat-label">Despesas pagas</p>
+          <p className="stat-label">Despesas do mês</p>
         </div>
         <div className={`stat-card ${kpis.lucroReal >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
           <TrendingUp className={`h-4 w-4 mb-3 ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`} />

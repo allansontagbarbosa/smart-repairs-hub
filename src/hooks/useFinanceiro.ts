@@ -241,10 +241,9 @@ export function useFinanceiro() {
     const receitaMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas pagas no mês
-    const despesasPagasMes = allContas.filter(c => {
-      if (c.status !== "paga" || !c.data_pagamento) return false;
-      const d = new Date(c.data_pagamento + "T12:00:00");
+    // Despesas reais do mês: contas com vencimento no mês, independente de status
+    const despesasMes = allContas.filter(c => {
+      const d = new Date(c.data_vencimento + "T12:00:00");
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
@@ -255,15 +254,14 @@ export function useFinanceiro() {
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, r) => s + Number(r.valor), 0);
 
-    // Lucro REAL: receita - custos peças - despesas pagas - comissões + recebimentos extras
-    const lucroReal = receitaMes - custosPecasMes - despesasPagasMes - comissoesMes + recebimentosMes;
+    // Lucro REAL: receita - custos peças - despesas por vencimento - comissões + recebimentos extras
+    const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes;
 
-    // Despesas por categoria — só contas pagas, por data_pagamento (consistente com despesasPagasMes)
+    // Despesas por categoria — contas por data_vencimento, independente de status
     const despesasPorCategoria: Record<string, number> = {};
     allContas
       .filter(c => {
-        if (c.status !== "paga" || !c.data_pagamento) return false;
-        const d = new Date(c.data_pagamento + "T12:00:00");
+        const d = new Date(c.data_vencimento + "T12:00:00");
         return d >= monthStart && d <= monthEnd;
       })
       .forEach(c => {
@@ -281,8 +279,7 @@ export function useFinanceiro() {
 
       const desp = allContas
         .filter(c => {
-          if (c.status !== "paga" || !c.data_pagamento) return false;
-          const dd = new Date(c.data_pagamento + "T12:00:00");
+          const dd = new Date(c.data_vencimento + "T12:00:00");
           return dd >= ms && dd <= me;
         })
         .reduce((s, c) => s + Number(c.valor), 0);
@@ -312,7 +309,7 @@ export function useFinanceiro() {
       lucroReal,
       receitaMes,
       custosPecasMes,
-      despesasPagasMes,
+      despesasPagasMes: despesasMes,
       recebimentosMes,
       despesasPorCategoria,
       evolucaoMensal,
