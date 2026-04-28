@@ -12,12 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, Smartphone } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
 import { statusLabels } from "@/lib/status";
 import { useGerarComissao } from "@/hooks/useGerarComissao";
+import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
 
 const DEFAULT_CHECKLIST = [
   { key: "touch", label: "Touch responde corretamente" },
@@ -39,6 +41,9 @@ export default function TecnicoOrdemDetalhe() {
   const qc = useQueryClient();
   const { data: identidade } = useTecnicoIdentidade();
   const { gerarOuAtualizarComissao } = useGerarComissao();
+  const iniciarServico = useIniciarServico();
+  const concluirServico = useConcluirServico();
+  const soltarServico = useSoltarServico();
 
   const { data: ordem, isLoading } = useQuery({
     queryKey: ["tecnico-os", id],
@@ -91,6 +96,20 @@ export default function TecnicoOrdemDetalhe() {
         .select("*")
         .eq("ordem_id", id!)
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: servicos = [] } = useQuery({
+    queryKey: ["tecnico-os-servicos", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("os_servicos")
+        .select("id, nome, valor, comissao, status, tecnico_id, concluido_em, funcionarios ( nome )")
+        .eq("ordem_id", id!)
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
@@ -249,6 +268,25 @@ export default function TecnicoOrdemDetalhe() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Serviços da OS</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {servicos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
+          ) : servicos.map((servico: any) => (
+            <ServicoCard
+              key={servico.id}
+              servico={servico}
+              meuFuncionarioId={identidade?.funcionario_id ?? null}
+              onPegar={() => iniciarServico.mutate(servico.id)}
+              onConcluir={() => concluirServico.mutate(servico.id)}
+              onSoltar={() => soltarServico.mutate(servico.id)}
+              pending={iniciarServico.isPending || concluirServico.isPending || soltarServico.isPending}
+            />
+          ))}
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="checklist">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
@@ -326,6 +364,64 @@ function Row({ icon: Icon, label }: { icon: any; label: string }) {
     <div className="flex items-center gap-2 text-sm">
       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
       <span className="truncate">{label}</span>
+    </div>
+  );
+}
+
+function ServicoCard({ servico, meuFuncionarioId, onPegar, onConcluir, onSoltar, pending }: {
+  servico: any;
+  meuFuncionarioId: string | null;
+  onPegar: () => void;
+  onConcluir: () => void;
+  onSoltar: () => void;
+  pending: boolean;
+}) {
+  const tecnicoNome = servico.funcionarios?.nome;
+  const isMeu = servico.tecnico_id && servico.tecnico_id === meuFuncionarioId;
+  const statusLabel: Record<string, string> = { pendente: "Pendente", em_reparo: "Em reparo", concluido: "Concluído", cancelado: "Cancelado" };
+  return (
+    <div className="rounded-md border p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{servico.nome}</p>
+          <p className="text-xs text-muted-foreground">
+            Comissão {Number(servico.comissao ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </p>
+        </div>
+        <Badge variant={servico.status === "concluido" ? "default" : "outline"}>{statusLabel[servico.status] ?? servico.status}</Badge>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Técnico: {tecnicoNome || "Sem técnico"}
+      </p>
+      {servico.status === "pendente" && !servico.tecnico_id && (
+        <Button size="sm" className="w-full" onClick={onPegar} disabled={pending}>Pegar este serviço</Button>
+      )}
+      {servico.status === "em_reparo" && isMeu && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" onClick={onConcluir} disabled={pending}>Concluir</Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild><Button size="sm" variant="outline" disabled={pending}>Soltar</Button></AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Soltar serviço?</AlertDialogTitle>
+                <AlertDialogDescription>Ele voltará para a fila de serviços disponíveis.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={onSoltar}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+      {servico.status === "em_reparo" && servico.tecnico_id && !isMeu && (
+        <Badge variant="outline">Em andamento por {tecnicoNome || "outro técnico"}</Badge>
+      )}
+      {servico.status === "concluido" && (
+        <Badge className="bg-success text-success-foreground">
+          Concluído por {tecnicoNome || "técnico"}{servico.concluido_em ? ` em ${new Date(servico.concluido_em).toLocaleDateString("pt-BR")}` : ""}
+        </Badge>
+      )}
     </div>
   );
 }

@@ -1,95 +1,165 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTecnicoIdentidade, useMinhasOS } from "@/hooks/useTecnico";
-import { statusLabels } from "@/lib/status";
-import { ChevronRight, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useTecnicoIdentidade } from "@/hooks/useTecnico";
+import { useMeusServicosEmAndamento, useServicosDisponiveis } from "@/hooks/useServicosDisponiveis";
+import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
+import { Clock, ExternalLink, Loader2, Play, RotateCcw, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const FILTROS = [
-  { value: "abertas", label: "Abertas" },
-  { value: "concluidas", label: "Concluídas" },
-  { value: "todas", label: "Todas" },
-];
+const brl = (v: number | null | undefined) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
+
+function aparelhoLabel(servico: any) {
+  const ap = servico.ordens_de_servico?.aparelhos;
+  return [ap?.marca, ap?.modelo, ap?.cor].filter(Boolean).join(" ") || "Aparelho não informado";
+}
+
+function prazoInfo(previsao: string | null | undefined) {
+  if (!previsao) return { label: "Sem prazo", late: false };
+  const d = new Date(previsao);
+  const late = d.getTime() < new Date(new Date().toDateString()).getTime();
+  return { label: d.toLocaleDateString("pt-BR"), late };
+}
+
+function tempoDesde(iso: string | null | undefined) {
+  if (!iso) return "agora";
+  const min = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h ${min % 60}min`;
+  return `${Math.floor(h / 24)}d ${h % 24}h`;
+}
 
 export default function TecnicoOrdens() {
   const { data: identidade } = useTecnicoIdentidade();
-  const { data: ordens = [], isLoading } = useMinhasOS(identidade?.funcionario_id);
-  const [filtro, setFiltro] = useState("abertas");
-  const [busca, setBusca] = useState("");
-
-  const filtradas = useMemo(() => {
-    return ordens.filter(o => {
-      if (filtro === "abertas" && ["entregue", "cancelado"].includes(o.status)) return false;
-      if (filtro === "concluidas" && !["pronto", "entregue"].includes(o.status)) return false;
-      if (busca) {
-        const q = busca.toLowerCase();
-        const blob = `${o.numero_formatado || o.numero} ${o.aparelhos?.marca} ${o.aparelhos?.modelo} ${o.clientes?.nome} ${o.defeito_relatado || ""}`.toLowerCase();
-        if (!blob.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [ordens, filtro, busca]);
+  const { data: disponiveis = [], isLoading: loadingDisp } = useServicosDisponiveis(identidade?.empresa_id);
+  const { data: andamento = [], isLoading: loadingAndamento } = useMeusServicosEmAndamento(identidade?.funcionario_id);
+  const iniciar = useIniciarServico();
+  const concluir = useConcluirServico();
+  const soltar = useSoltarServico();
+  const [tab, setTab] = useState("disponiveis");
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Minhas Ordens</h1>
-
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por número, aparelho, cliente..."
-            className="pl-9"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-          />
-        </div>
-        <Tabs value={filtro} onValueChange={setFiltro}>
-          <TabsList className="grid grid-cols-3 w-full">
-            {FILTROS.map(f => (
-              <TabsTrigger key={f.value} value={f.value}>{f.label}</TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+      <div>
+        <h1 className="text-xl font-semibold">Fila de Serviços</h1>
+        <p className="text-sm text-muted-foreground">Pegue serviços disponíveis e acompanhe seus reparos em andamento.</p>
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
-      ) : filtradas.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Nenhuma OS encontrada.
-        </CardContent></Card>
-      ) : (
-        <div className="space-y-2">
-          {filtradas.map(os => (
-            <Link key={os.id} to={`/tecnico/ordens/${os.id}`}>
-              <Card className="hover:bg-accent/50 transition-colors">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-muted-foreground">
-                        #{os.numero_formatado || os.numero}
-                      </span>
-                      <Badge variant="outline" className="text-[10px]">{statusLabels[os.status as keyof typeof statusLabels] ?? os.status}</Badge>
-                      {os.prioridade === "alta" && <Badge variant="destructive" className="text-[10px]">Alta</Badge>}
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="disponiveis">Disponíveis</TabsTrigger>
+          <TabsTrigger value="andamento">Minhas em andamento</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="disponiveis" className="space-y-2 pt-3">
+          {loadingDisp ? (
+            <Loading />
+          ) : disponiveis.length === 0 ? (
+            <Empty text="Nenhum serviço disponível agora" />
+          ) : (
+            disponiveis.map((servico: any) => {
+              const os = servico.ordens_de_servico;
+              const prazo = prazoInfo(os?.previsao_entrega);
+              return (
+                <Card key={servico.id}>
+                  <CardContent className="p-3 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-mono text-muted-foreground">#{os?.numero_formatado || os?.numero}</span>
+                          {os?.prioridade === "alta" || os?.prioridade === "urgente" ? <Badge variant="destructive" className="text-[10px]">Alta</Badge> : null}
+                        </div>
+                        <p className="text-sm font-semibold truncate">{aparelhoLabel(servico)}</p>
+                        <p className="text-sm text-muted-foreground truncate">{servico.nome}</p>
+                      </div>
+                      <Button size="sm" onClick={() => iniciar.mutate(servico.id)} disabled={iniciar.isPending}>
+                        {iniciar.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1" />}
+                        Pegar serviço
+                      </Button>
                     </div>
-                    <p className="text-sm font-medium truncate">
-                      {os.aparelhos?.marca} {os.aparelhos?.modelo}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {os.clientes?.nome} · {os.defeito_relatado || "Sem defeito relatado"}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={cn("inline-flex items-center gap-1", prazo.late ? "text-destructive font-medium" : "text-muted-foreground")}>
+                        <Clock className="h-3 w-3" /> Prazo: {prazo.label}
+                      </span>
+                      <span className="font-semibold text-warning">Comissão {brl(servico.comissao)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </TabsContent>
+
+        <TabsContent value="andamento" className="space-y-2 pt-3">
+          {loadingAndamento ? (
+            <Loading />
+          ) : andamento.length === 0 ? (
+            <Empty text="Você não tem serviços em andamento" />
+          ) : (
+            andamento.map((servico: any) => {
+              const os = servico.ordens_de_servico;
+              return (
+                <Card key={servico.id}>
+                  <CardContent className="p-3 space-y-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-muted-foreground">#{os?.numero_formatado || os?.numero}</span>
+                        {os?.prioridade === "alta" || os?.prioridade === "urgente" ? <Badge variant="destructive" className="text-[10px]">Alta</Badge> : null}
+                      </div>
+                      <p className="text-sm font-semibold truncate">{aparelhoLabel(servico)}</p>
+                      <p className="text-sm text-muted-foreground truncate">{servico.nome}</p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Iniciado há {tempoDesde(servico.iniciado_em)}</span>
+                      <span className="font-semibold text-warning">Comissão {brl(servico.comissao)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button size="sm" onClick={() => concluir.mutate(servico.id)} disabled={concluir.isPending}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Concluir
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" disabled={soltar.isPending}>
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Soltar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Soltar serviço?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O serviço voltará para a fila de disponíveis e outro técnico poderá pegá-lo.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => soltar.mutate(servico.id)}>Confirmar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to={`/tecnico/ordens/${os?.id}`}><ExternalLink className="h-3.5 w-3.5 mr-1" /> Detalhes</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
+}
+
+function Loading() {
+  return <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>;
+}
+
+function Empty({ text }: { text: string }) {
+  return <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">{text}</CardContent></Card>;
 }

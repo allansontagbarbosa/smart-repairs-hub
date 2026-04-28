@@ -13,9 +13,10 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText, Info, History, Ban, AlertTriangle } from "lucide-react";
+import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText, Info, History, Ban, AlertTriangle, AlertCircle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
@@ -63,7 +64,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   // Estado controlado dos campos do form de edição (para Selects/radios shadcn)
   const [editForm, setEditForm] = useState({
-    funcionario_id: "",
     lojista_id: "",
     contato_preferido: "whatsapp",
     forma_pagamento_sinal: "nenhum",
@@ -233,7 +233,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       const o = ordem as any;
       const cl = o.checklist_entrada || {};
       setEditForm({
-        funcionario_id: o.funcionario_id ?? "",
         lojista_id: o.lojista_id ?? "",
         contato_preferido: o.contato_preferido ?? "whatsapp",
         forma_pagamento_sinal: o.forma_pagamento_sinal ?? "nenhum",
@@ -727,7 +726,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     const fd = new FormData(e.currentTarget);
     const valorStr = (fd.get("valor") as string) || "";
     const previsaoStr = (fd.get("previsao_entrega") as string) || "";
-    const funcId = (fd.get("funcionario_id") as string) || "";
     const lojistaIdStr = (fd.get("lojista_id") as string) || "";
     const maoObraStr = (fd.get("mao_obra_adicional") as string) || "";
     const descontoStr = (fd.get("desconto") as string) || "";
@@ -740,9 +738,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     // Validações
     if (valorStr && (isNaN(parseFloat(valorStr)) || parseFloat(valorStr) < 0)) {
       toast.error("Valor cobrado inválido"); return;
-    }
-    if (funcId && !/^[0-9a-f-]{36}$/i.test(funcId)) {
-      toast.error("Técnico inválido"); return;
     }
     if (lojistaIdStr && !/^[0-9a-f-]{36}$/i.test(lojistaIdStr)) {
       toast.error("Lojista inválido"); return;
@@ -779,7 +774,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       obs_cliente: (fd.get("obs_cliente") as string) || "",
       observacoes: (fd.get("observacoes") as string) || "",
       // Operacional
-      funcionario_id: funcId,
       previsao_entrega: previsaoStr ? new Date(previsaoStr).toISOString() : "",
       prioridade: (fd.get("prioridade") as string) || "normal",
       localizacao: (fd.get("localizacao") as string) || "",
@@ -1160,22 +1154,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     <AccordionTrigger className="text-sm font-semibold">Operacional</AccordionTrigger>
                     <AccordionContent className="space-y-3 pt-2">
                       <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs">Técnico</Label>
-                          <Select
-                            value={editForm.funcionario_id || "__none__"}
-                            onValueChange={(v) => setEditForm(p => ({ ...p, funcionario_id: v === "__none__" ? "" : v }))}
-                          >
-                            <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">— Sem técnico —</SelectItem>
-                              {tecnicos.map((t: any) => (
-                                <SelectItem key={t.id} value={t.id}>{t.nome}{t.atual ? " (atribuição atual)" : ""}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <input type="hidden" name="funcionario_id" value={editForm.funcionario_id} />
-                        </div>
+                        <Alert className="border-info/30 bg-info/10 text-info">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Os técnicos se atribuem aos serviços pelo portal do técnico ao iniciar cada um.
+                          </AlertDescription>
+                        </Alert>
                         <div>
                           <Label className="text-xs">Previsão entrega</Label>
                           <Input name="previsao_entrega" type="date" defaultValue={ordem.previsao_entrega?.split("T")[0] ?? ""} className="mt-1 h-8" />

@@ -68,6 +68,7 @@ export type MinhaOS = {
   tipo_servico: string | null;
   aparelhos: { marca: string; modelo: string; cor: string | null } | null;
   clientes: { nome: string; telefone: string | null } | null;
+  os_servicos?: Array<{ id: string; nome: string; status: string; tecnico_id: string | null; comissao: number | null }>;
 };
 
 export function useMinhasOS(funcionarioId: string | null | undefined) {
@@ -80,9 +81,10 @@ export function useMinhasOS(funcionarioId: string | null | undefined) {
         .select(
           `id, numero, numero_formatado, status, defeito_relatado, data_entrada,
            previsao_entrega, data_conclusao, prioridade, valor, tipo_servico,
-           aparelhos ( marca, modelo, cor, clientes ( nome, telefone ) )`
+           aparelhos ( marca, modelo, cor, clientes ( nome, telefone ) ),
+           os_servicos!inner ( id, nome, status, tecnico_id, comissao )`
         )
-        .eq("funcionario_id", funcionarioId!)
+        .eq("os_servicos.tecnico_id", funcionarioId!)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false })
         .limit(200);
@@ -103,6 +105,9 @@ export type TecnicoMetricas = {
   os_concluidas: number;
   valor_servicos: number;
   os_em_aberto: number;
+  servicos_no_mes: number;
+  comissao_no_mes: number;
+  servicos_concluidos_hoje: number;
 };
 
 export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano: number, mes: number) {
@@ -113,26 +118,49 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
       const inicio = new Date(ano, mes - 1, 1).toISOString();
       const fim = new Date(ano, mes, 1).toISOString();
 
-      const { data: concluidas } = await supabase
-        .from("ordens_de_servico")
-        .select("id, valor")
-        .eq("funcionario_id", funcionarioId!)
-        .in("status", ["pronto", "entregue"])
-        .gte("data_conclusao", inicio)
-        .lt("data_conclusao", fim)
-        .is("deleted_at", null);
+      const hoje = new Date();
+      const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+      const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
 
-      const { count: aberto } = await supabase
-        .from("ordens_de_servico")
-        .select("id", { count: "exact", head: true })
+      const { data: servicosMes } = await supabase
+        .from("os_servicos")
+        .select("id, ordem_id, valor, concluido_em")
+        .eq("tecnico_id", funcionarioId!)
+        .eq("status", "concluido")
+        .gte("concluido_em", inicio)
+        .lt("concluido_em", fim);
+
+      const { data: emAndamento } = await supabase
+        .from("os_servicos")
+        .select("ordem_id")
+        .eq("tecnico_id", funcionarioId!)
+        .eq("status", "em_reparo");
+
+      const { data: comissoes } = await supabase
+        .from("comissoes")
+        .select("valor")
         .eq("funcionario_id", funcionarioId!)
-        .not("status", "in", "(entregue,cancelado)")
-        .is("deleted_at", null);
+        .eq("mes_competencia", `${ano}-${String(mes).padStart(2, "0")}`)
+        .is("estornada_em", null);
+
+      const { count: concluidosHoje } = await supabase
+        .from("os_servicos")
+        .select("id", { count: "exact", head: true })
+        .eq("tecnico_id", funcionarioId!)
+        .eq("status", "concluido")
+        .gte("concluido_em", inicioHoje)
+        .lt("concluido_em", fimHoje);
+
+      const ordensConcluidas = new Set((servicosMes ?? []).map((s: any) => s.ordem_id));
+      const ordensEmAndamento = new Set((emAndamento ?? []).map((s: any) => s.ordem_id));
 
       return {
-        os_concluidas: concluidas?.length ?? 0,
-        valor_servicos: (concluidas ?? []).reduce((s, o: any) => s + Number(o.valor || 0), 0),
-        os_em_aberto: aberto ?? 0,
+        os_concluidas: ordensConcluidas.size,
+        valor_servicos: (servicosMes ?? []).reduce((s, o: any) => s + Number(o.valor || 0), 0),
+        os_em_aberto: ordensEmAndamento.size,
+        servicos_no_mes: servicosMes?.length ?? 0,
+        comissao_no_mes: (comissoes ?? []).reduce((s, c: any) => s + Number(c.valor || 0), 0),
+        servicos_concluidos_hoje: concluidosHoje ?? 0,
       };
     },
   });
