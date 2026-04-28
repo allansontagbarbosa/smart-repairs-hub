@@ -183,8 +183,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [relatoCliente, setRelatoCliente] = useState("");
   const [contatoPreferido, setContatoPreferido] = useState<"whatsapp" | "ligacao" | "sms" | "email">("whatsapp");
   const [aprovadoNoAto, setAprovadoNoAto] = useState(false);
-  const [tecnico, setTecnico] = useState("");
-  const [tecnicoId, setTecnicoId] = useState("");
   const [localizacao, setLocalizacao] = useState("");
   const [previsaoEntrega, setPrevisaoEntrega] = useState<Date | undefined>();
   const [previsaoHora, setPrevisaoHora] = useState("18:00");
@@ -319,34 +317,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     queryFn: async () => {
       const { data } = await supabase.from("capacidades").select("id, nome, ordem").eq("ativo", true).order("ordem").order("nome");
       return data ?? [];
-    },
-  });
-
-  const { data: tecnicosList = [] } = useQuery({
-    queryKey: ["tecnicos-os-user-profiles-tecnico-v3", empresaId],
-    enabled: !!empresaId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("funcionario_id, funcionarios!inner(id, nome, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
-        .eq("empresa_id", empresaId!)
-        .eq("ativo", true)
-        .eq("perfis_acesso.nome_perfil", "Técnico")
-        .eq("funcionarios.ativo", true)
-        .is("funcionarios.deleted_at", null);
-
-      if (error) throw error;
-
-      const tecnicos = new Map<string, { id: string; nome: string }>();
-      (data ?? []).forEach((up: any) => {
-        if (!up.funcionario_id || !up.funcionarios?.nome) return;
-        tecnicos.set(up.funcionario_id, {
-          id: up.funcionario_id as string,
-          nome: up.funcionarios.nome as string,
-        });
-      });
-
-      return Array.from(tecnicos.values()).sort((a, b) => a.nome.localeCompare(b.nome));
     },
   });
 
@@ -664,8 +634,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setRelatoCliente("");
     setContatoPreferido("whatsapp");
     setAprovadoNoAto(false);
-    setTecnico("");
-    setTecnicoId("");
     setLocalizacao("");
     setPrevisaoEntrega(undefined);
     setPrevisaoHora("18:00");
