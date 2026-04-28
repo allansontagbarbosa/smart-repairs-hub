@@ -27,6 +27,7 @@ export function RelDRE() {
   const [ano, setAno] = useState(now.getFullYear());
 
   const inicio = `${ano}-${String(mes + 1).padStart(2, "0")}-01`;
+  const competencia = `${ano}-${String(mes + 1).padStart(2, "0")}`;
   const nextM = mes === 11 ? 0 : mes + 1;
   const nextY = mes === 11 ? ano + 1 : ano;
   const fim = `${nextY}-${String(nextM + 1).padStart(2, "0")}-01`;
@@ -58,13 +59,12 @@ export function RelDRE() {
   });
 
   const { data: contas } = useQuery({
-    queryKey: ["rel-dre-contas", inicio],
+    queryKey: ["rel-dre-contas", competencia],
     queryFn: async () => {
       const { data } = await supabase
         .from("contas_a_pagar")
-        .select("valor, recorrente, data_vencimento")
-        .gte("data_vencimento", inicio)
-        .lt("data_vencimento", fim);
+        .select("valor, recorrente, mes_competencia")
+        .eq("mes_competencia", competencia);
       return data ?? [];
     },
   });
@@ -163,7 +163,7 @@ export function RelDRE() {
 
         const [{ data: os }, { data: cp }] = await Promise.all([
           supabase.from("ordens_de_servico").select("valor, custo_pecas").is("deleted_at", null).eq("status", "entregue").gte("data_entrada", ini).lt("data_entrada", fi),
-          supabase.from("contas_a_pagar").select("valor").gte("data_vencimento", ini).lt("data_vencimento", fi),
+          supabase.from("contas_a_pagar").select("valor").eq("mes_competencia", `${y}-${String(m + 1).padStart(2, "0")}`),
         ]);
 
         const receita = (os ?? []).reduce((s, o) => s + (o.valor ?? 0), 0);
