@@ -823,8 +823,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         aprovacao_orcamento: finalAprovacao,
         aprovado_no_ato: aprovadoNoAto,
         data_aprovacao: finalAprovacao === "aprovado" ? new Date().toISOString() : null,
-        tecnico: tecnico || null,
-        funcionario_id: tecnicoId || null,
         obs_cliente: obsCliente || null,
         liga,
         bateria_entrada: bateriaEntrada
@@ -1646,25 +1644,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     />
                   </div>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Técnico responsável</Label>
-                  {tecnicosList.length > 0 ? (
-                    <ComboboxWithCreate
-                      value={tecnicoId}
-                      onChange={(id, nome) => { setTecnicoId(id); setTecnico(nome); }}
-                      items={tecnicosList as any}
-                      placeholder="Não atribuído"
-                      entityName="técnico"
-                      className="mt-1"
-                    />
-                  ) : (
-                    <div className="mt-1 rounded-md border border-dashed border-border bg-muted/20 p-2 text-center">
-                      <Link to="/configuracoes/tecnicos" target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary hover:underline font-medium">
-                        Cadastrar primeiro técnico em Configurações →
-                      </Link>
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* ── 7. SWITCH "Cliente aprovou no ato?" ── */}
@@ -1878,7 +1857,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   previsaoEntrega: previsaoEntrega?.toISOString() || null,
                   valor: valorTotal || null,
                   imei: imei.replace(/\D/g, "") || null,
-                  tecnicoAtribuido: tecnico || null,
+                  tecnicoAtribuido: null,
                 }}
               />
 
