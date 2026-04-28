@@ -156,8 +156,22 @@ async function fetchDashboardSummary() {
     estoque_baixo: number;
     contas_pendentes: any[];
     comissoes_pendentes: any[];
+    comissoes_periodo_total: number | null;
+    comissoes_periodo_a_pagar: number | null;
     lojas: { id: string; nome: string }[];
   };
+}
+
+async function fetchComissoesPeriodo(rangeStart: Date, rangeEnd: Date) {
+  const { data, error } = await supabase
+    .from("comissoes")
+    .select("valor, status, estornada_em, created_at")
+    .is("estornada_em", null)
+    .in("status", ["pendente", "liberada", "paga"])
+    .gte("created_at", rangeStart.toISOString())
+    .lt("created_at", rangeEnd.toISOString());
+  if (error) throw error;
+  return data ?? [];
 }
 
 async function fetchContasPagas(rangeStart: Date, rangeEnd: Date) {
@@ -212,6 +226,12 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  const { data: comissoesPeriodo } = useQuery({
+    queryKey: ["dashboard-comissoes-periodo", range.start.toISOString(), range.end.toISOString()],
+    queryFn: () => fetchComissoesPeriodo(range.start, range.end),
+    refetchInterval: 60000,
+  });
+
   const { data: empresaConfig } = useQuery({
     queryKey: ["dashboard-empresa-config"],
     queryFn: fetchEmpresaConfig,
@@ -230,7 +250,9 @@ export default function Dashboard() {
   const orders = useMemo(() => {
     return allOrders.filter(o => {
       if (isCancelada(o.status)) return false;
-      const d = new Date(o.data_entrada);
+      const ref = isFaturado(o.status) ? o.data_conclusao : o.data_entrada;
+      if (!ref) return false;
+      const d = new Date(ref);
       return d >= range.start && d <= range.end;
     });
   }, [allOrders, range]);
@@ -246,13 +268,14 @@ export default function Dashboard() {
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     const allContasPagas = contasPagas ?? [];
+    const totalComissoesPeriodo = (comissoesPeriodo ?? []).reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosFixos = allContasPagas
       .filter((c: any) => c.categorias_financeiras?.tipo === "fixo")
       .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosVariaveis = despesasPagasMes - gastosFixos;
 
-    const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis;
+    const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis - totalComissoesPeriodo;
     const ebitdaMargem = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
 
     const depreciacao = 0;
@@ -273,7 +296,7 @@ export default function Dashboard() {
     const nSocios = Number(empresaConfig?.numero_socios ?? 2) || 1;
 
     const prevLl = metaFaturamento > 0 && faturamento > 0 ? metaFaturamento * (ll / faturamento) : 0;
-    const totalGastos = custosPecasMes + despesasPagasMes + depreciacao + impostos;
+    const totalGastos = custosPecasMes + despesasPagasMes + totalComissoesPeriodo + depreciacao + impostos;
     const metaPct = metaGastos > 0 ? Math.min(100, (totalGastos / metaGastos) * 100) : 0;
 
     const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
@@ -294,7 +317,7 @@ export default function Dashboard() {
     }).length;
 
     return {
-      faturamento, custosPecasMes, despesasPagasMes, gastosFixos, gastosVariaveis,
+      faturamento, custosPecasMes, despesasPagasMes, gastosFixos, gastosVariaveis, totalComissoesPeriodo,
       ebitda, ebitdaMargem, ll, llMargem, depreciacao, impostos,
       ticket, llPorAssist, prevLl, totalGastos, metaGastos, metaFaturamento,
       metaPct, reservaPct, nSocios, reservaVal, lucroDistrib, lucroSocio,
@@ -302,7 +325,7 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
       iphonesReparados,
     };
-  }, [orders, allOrders, contasPagas, empresaConfig]);
+  }, [orders, allOrders, contasPagas, comissoesPeriodo, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
