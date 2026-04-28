@@ -360,92 +360,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     enabled: !!orderId && historicoOpen,
   });
 
-  // Fetch commission preview: tries per-service rules (over os_servicos N:N) first,
-  // then falls back to funcionario.valor_comissao default.
-  const { data: comissaoPreview } = useQuery({
-    queryKey: ["comissao_preview", ordem?.funcionario_id, ordem?.tipo_servico_id, ordem?.id, ordem?.valor],
-    queryFn: async () => {
-      if (!ordem?.funcionario_id) return null;
-
-      // 1) Buscar funcionário (precisa estar ativo)
-      const { data: func } = await supabase
-        .from("funcionarios")
-        .select("id, nome, tipo_comissao, valor_comissao, ativo")
-        .eq("id", ordem.funcionario_id)
-        .maybeSingle();
-
-      if (!func || !func.ativo) {
-        return { tipo: null as any, config: 0, calculado: 0, origem: "sem_config" as const };
-      }
-
-      // 2) Coletar tipo_servico_ids (preferir N:N os_servicos; fallback ao tipo_servico_id legado)
-      const servicoIds: string[] = [];
-      const valorPorServico: Record<string, number> = {};
-      for (const s of (servicosAtuais as any[])) {
-        if (s.servico_id) {
-          servicoIds.push(s.servico_id);
-          valorPorServico[s.servico_id] = Number(s.valor ?? 0);
-        }
-      }
-      if (servicoIds.length === 0 && ordem.tipo_servico_id) {
-        servicoIds.push(ordem.tipo_servico_id);
-        valorPorServico[ordem.tipo_servico_id] = Number(ordem.valor ?? 0);
-      }
-
-      // 3) Tentar comissoes_servico específicas
-      let totalEspecifico = 0;
-      let tipoEncontrado: "percentual" | "fixo" | null = null;
-      let configEncontrado = 0;
-      if (servicoIds.length > 0) {
-        const { data: regras } = await supabase
-          .from("comissoes_servico")
-          .select("tipo_servico_id, tipo_comissao, valor")
-          .eq("funcionario_id", ordem.funcionario_id)
-          .in("tipo_servico_id", servicoIds);
-
-        for (const r of regras ?? []) {
-          const valorRegra = Number(r.valor ?? 0);
-          if (valorRegra <= 0) continue;
-          const baseValor = valorPorServico[r.tipo_servico_id] ?? 0;
-          const itemCalc = r.tipo_comissao === "percentual"
-            ? baseValor * valorRegra / 100
-            : valorRegra;
-          totalEspecifico += itemCalc;
-          if (!tipoEncontrado) {
-            tipoEncontrado = r.tipo_comissao as any;
-            configEncontrado = valorRegra;
-          }
-        }
-      }
-
-      if (totalEspecifico > 0) {
-        return {
-          tipo: tipoEncontrado,
-          config: configEncontrado,
-          calculado: totalEspecifico,
-          origem: "comissoes_servico" as const,
-        };
-      }
-
-      // 4) Fallback: comissão padrão do funcionário
-      if (Number(func.valor_comissao) > 0) {
-        const valorCalc = func.tipo_comissao === "percentual"
-          ? Number(ordem.valor ?? 0) * Number(func.valor_comissao) / 100
-          : Number(func.valor_comissao);
-        return {
-          tipo: func.tipo_comissao as any,
-          config: Number(func.valor_comissao),
-          calculado: valorCalc,
-          origem: "funcionario_padrao" as const,
-        };
-      }
-
-      // 5) Sem configuração
-      return { tipo: null as any, config: 0, calculado: 0, origem: "sem_config" as const };
-    },
-    enabled: !!ordem?.funcionario_id && comissoesOS.length === 0,
-  });
-
   const { data: despesasOS = [] } = useQuery({
     queryKey: ["despesas_os", orderId],
     queryFn: async () => {
@@ -591,9 +505,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
       const { error: e1 } = await supabase.from("ordens_de_servico").update(updates).eq("id", ordem.id);
       if (e1) throw e1;
-      if ((newStatus === "pronto" || newStatus === "entregue") && (ordem as any).status !== "pronto" && (ordem as any).status !== "entregue") {
-        await gerarOuAtualizarComissao({ ...(ordem as any), ...updates });
-      }
       // Histórico registrado automaticamente pelo trigger
     },
     onSuccess: () => {
