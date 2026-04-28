@@ -3158,6 +3158,62 @@ export type Database = {
           },
         ]
       }
+      lojista_faturas: {
+        Row: {
+          created_at: string
+          data_emissao: string | null
+          data_pagamento: string | null
+          empresa_id: string
+          id: string
+          lojista_id: string
+          mes_competencia: string
+          observacoes: string | null
+          status: string
+          total_geral: number
+          total_pecas: number
+          total_servicos: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          empresa_id: string
+          id?: string
+          lojista_id: string
+          mes_competencia: string
+          observacoes?: string | null
+          status?: string
+          total_geral?: number
+          total_pecas?: number
+          total_servicos?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_emissao?: string | null
+          data_pagamento?: string | null
+          empresa_id?: string
+          id?: string
+          lojista_id?: string
+          mes_competencia?: string
+          observacoes?: string | null
+          status?: string
+          total_geral?: number
+          total_pecas?: number
+          total_servicos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojista_faturas_lojista_id_fkey"
+            columns: ["lojista_id"]
+            isOneToOne: false
+            referencedRelation: "lojistas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lojista_usuarios: {
         Row: {
           ativo: boolean | null
@@ -3416,6 +3472,7 @@ export type Database = {
           estoque_id: string | null
           estornada_em: string | null
           id: string
+          lojista_fatura_id: string | null
           ordem_id: string | null
           tipo: Database["public"]["Enums"]["tipo_movimentacao"]
           valor: number
@@ -3428,6 +3485,7 @@ export type Database = {
           estoque_id?: string | null
           estornada_em?: string | null
           id?: string
+          lojista_fatura_id?: string | null
           ordem_id?: string | null
           tipo: Database["public"]["Enums"]["tipo_movimentacao"]
           valor: number
@@ -3440,6 +3498,7 @@ export type Database = {
           estoque_id?: string | null
           estornada_em?: string | null
           id?: string
+          lojista_fatura_id?: string | null
           ordem_id?: string | null
           tipo?: Database["public"]["Enums"]["tipo_movimentacao"]
           valor?: number
@@ -3457,6 +3516,13 @@ export type Database = {
             columns: ["estoque_id"]
             isOneToOne: false
             referencedRelation: "estoque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_financeiras_lojista_fatura_id_fkey"
+            columns: ["lojista_fatura_id"]
+            isOneToOne: false
+            referencedRelation: "lojista_faturas"
             referencedColumns: ["id"]
           },
           {
@@ -3578,6 +3644,7 @@ export type Database = {
           eh_retroativa: boolean
           empresa_id: string | null
           estado_geral: string | null
+          fatura_id: string | null
           forma_pagamento_id: string | null
           forma_pagamento_sinal: string | null
           funcionario_id: string | null
@@ -3648,6 +3715,7 @@ export type Database = {
           eh_retroativa?: boolean
           empresa_id?: string | null
           estado_geral?: string | null
+          fatura_id?: string | null
           forma_pagamento_id?: string | null
           forma_pagamento_sinal?: string | null
           funcionario_id?: string | null
@@ -3718,6 +3786,7 @@ export type Database = {
           eh_retroativa?: boolean
           empresa_id?: string | null
           estado_geral?: string | null
+          fatura_id?: string | null
           forma_pagamento_id?: string | null
           forma_pagamento_sinal?: string | null
           funcionario_id?: string | null
@@ -3775,6 +3844,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_de_servico_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "lojista_faturas"
             referencedColumns: ["id"]
           },
           {
@@ -5502,6 +5578,10 @@ export type Database = {
       excluir_definitivamente_os_canceladas_lote: {
         Args: { p_confirmacao: string; p_ordem_ids: string[] }
         Returns: Json
+      }
+      gerar_ou_atualizar_fatura_lojista: {
+        Args: { p_lojista_id: string; p_mes: string }
+        Returns: string
       }
       get_clientes_com_stats: {
         Args: never
