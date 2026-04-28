@@ -450,7 +450,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Linha 2: Peças, Fixos, Depreciação, Impostos, Ticket */}
+        {/* Linha 2: Peças, Fixos, Variáveis, Depreciação, Impostos, Ticket */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
           <MetricCard
             icon={Package}
@@ -460,7 +460,7 @@ export default function Dashboard() {
             iconColor="text-orange-500"
           />
           <MetricCard icon={Receipt} label="Gastos fixos" value={brl(kpis.gastosFixos)} iconColor="text-gray-500" />
-          <MetricCard icon={Receipt} label="Depreciação" value={brl(kpis.depreciacao)} iconColor="text-gray-500" />
+          <MetricCard icon={Receipt} label="Gastos variáveis" value={brl(kpis.gastosVariaveis)} iconColor="text-orange-500" />
           <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-gray-500" />
           <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-blue-500" />
         </div>
@@ -470,7 +470,7 @@ export default function Dashboard() {
           <CardContent className="p-3 space-y-1">
             <p className="text-xs text-muted-foreground">
               <strong>EBITDA:</strong>{" "}
-              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Outros ({brl(kpis.gastosVariaveis)}) − Comissões ({brl(kpis.totalComissoesPeriodo)}) ={" "}
+              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Variáveis ({brl(kpis.gastosVariaveis)}) − Comissões ({brl(kpis.totalComissoesPeriodo)}) ={" "}
               <strong className={kpis.ebitda >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ebitda)}</strong>
             </p>
             <p className="text-xs text-muted-foreground">
@@ -539,7 +539,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard icon={Receipt} label="Total gastos do período" value={brl(kpis.totalGastos)} iconColor="text-red-500" />
-          <MetricCard icon={Receipt} label="Gastos variáveis" value={brl(kpis.gastosVariaveis)} iconColor="text-orange-500" />
+          <MetricCard icon={Receipt} label="Depreciação" value={brl(kpis.depreciacao)} iconColor="text-gray-500" />
           <MetricCard
             icon={Target}
             label="Previsão faturamento"
