@@ -5619,7 +5619,10 @@ export type Database = {
           whatsapp: string
         }[]
       }
-      get_dashboard_summary: { Args: never; Returns: Json }
+      get_dashboard_summary: {
+        Args: { p_fim?: string; p_inicio?: string }
+        Returns: Json
+      }
       get_my_empresa_id: { Args: never; Returns: string }
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
