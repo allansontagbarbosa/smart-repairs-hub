@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTecnicoIdentidade, useMinhasOS, useTecnicoMetricas } from "@/hooks/useTecnico";
-import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign } from "lucide-react";
+import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign, Wrench } from "lucide-react";
 import { statusLabels } from "@/lib/status";
 
 export default function TecnicoHome() {
@@ -22,13 +22,14 @@ export default function TecnicoHome() {
         <h1 className="text-2xl font-semibold tracking-tight">{identidade?.nome?.split(" ")[0]} 👋</h1>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <KpiCard icon={Clock} label="Em aberto" value={metricas?.os_em_aberto ?? 0} />
-        <KpiCard icon={CheckCircle2} label="Concluídas/mês" value={metricas?.os_concluidas ?? 0} />
+      <div className="grid grid-cols-2 gap-3">
+        <KpiCard icon={CheckCircle2} label="Concluídos hoje" value={metricas?.servicos_concluidos_hoje ?? 0} />
+        <KpiCard icon={Wrench} label="Concluídos/mês" value={metricas?.servicos_no_mes ?? 0} />
+        <KpiCard icon={Clock} label="Em andamento" value={metricas?.os_em_aberto ?? 0} />
         <KpiCard
           icon={DollarSign}
-          label="Faturado/mês"
-          value={(metricas?.valor_servicos ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          label="Comissão/mês"
+          value={(metricas?.comissao_no_mes ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
           small
         />
       </div>
