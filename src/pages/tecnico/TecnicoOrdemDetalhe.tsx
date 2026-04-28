@@ -368,6 +368,64 @@ function Row({ icon: Icon, label }: { icon: any; label: string }) {
   );
 }
 
+function ServicoCard({ servico, meuFuncionarioId, onPegar, onConcluir, onSoltar, pending }: {
+  servico: any;
+  meuFuncionarioId: string | null;
+  onPegar: () => void;
+  onConcluir: () => void;
+  onSoltar: () => void;
+  pending: boolean;
+}) {
+  const tecnicoNome = servico.funcionarios?.nome;
+  const isMeu = servico.tecnico_id && servico.tecnico_id === meuFuncionarioId;
+  const statusLabel: Record<string, string> = { pendente: "Pendente", em_reparo: "Em reparo", concluido: "Concluído", cancelado: "Cancelado" };
+  return (
+    <div className="rounded-md border p-3 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{servico.nome}</p>
+          <p className="text-xs text-muted-foreground">
+            Comissão {Number(servico.comissao ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </p>
+        </div>
+        <Badge variant={servico.status === "concluido" ? "default" : "outline"}>{statusLabel[servico.status] ?? servico.status}</Badge>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Técnico: {tecnicoNome || "Sem técnico"}
+      </p>
+      {servico.status === "pendente" && !servico.tecnico_id && (
+        <Button size="sm" className="w-full" onClick={onPegar} disabled={pending}>Pegar este serviço</Button>
+      )}
+      {servico.status === "em_reparo" && isMeu && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" onClick={onConcluir} disabled={pending}>Concluir</Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild><Button size="sm" variant="outline" disabled={pending}>Soltar</Button></AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Soltar serviço?</AlertDialogTitle>
+                <AlertDialogDescription>Ele voltará para a fila de serviços disponíveis.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={onSoltar}>Confirmar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+      {servico.status === "em_reparo" && servico.tecnico_id && !isMeu && (
+        <Badge variant="outline">Em andamento por {tecnicoNome || "outro técnico"}</Badge>
+      )}
+      {servico.status === "concluido" && (
+        <Badge className="bg-success text-success-foreground">
+          Concluído por {tecnicoNome || "técnico"}{servico.concluido_em ? ` em ${new Date(servico.concluido_em).toLocaleDateString("pt-BR")}` : ""}
+        </Badge>
+      )}
+    </div>
+  );
+}
+
 function UploadFotoButton({ tipo, onPick }: { tipo: string; onPick: (f: File, tipo: string) => void }) {
   const id = `up-${tipo}`;
   return (
