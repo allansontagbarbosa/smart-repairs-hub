@@ -148,14 +148,19 @@ function AlertCard({
 
 // ─── DATA FETCHING ────────────────────────────────────────────────────────────
 
-async function fetchDashboardSummary() {
-  const { data, error } = await supabase.rpc("get_dashboard_summary");
+async function fetchDashboardSummary(rangeStart: Date, rangeEnd: Date) {
+  const { data, error } = await (supabase as any).rpc("get_dashboard_summary", {
+    p_inicio: rangeStart.toISOString(),
+    p_fim: rangeEnd.toISOString(),
+  });
   if (error) throw error;
   return data as {
     ordens: OrderRow[];
     estoque_baixo: number;
     contas_pendentes: any[];
     comissoes_pendentes: any[];
+    comissoes_periodo_total: number | null;
+    comissoes_periodo_a_pagar: number | null;
     lojas: { id: string; nome: string }[];
   };
 }
@@ -201,8 +206,8 @@ export default function Dashboard() {
   // ── QUERIES ──────────────────────────────────────────────────────────────
 
   const { data: summary, isLoading } = useQuery({
-    queryKey: ["dashboard-summary"],
-    queryFn: fetchDashboardSummary,
+    queryKey: ["dashboard-summary", range.start.toISOString(), range.end.toISOString()],
+    queryFn: () => fetchDashboardSummary(range.start, range.end),
     refetchInterval: 60000,
   });
 
@@ -241,18 +246,23 @@ export default function Dashboard() {
     const now = new Date();
 
     const ordensMes = orders;
-    const ordensFaturadas = ordensMes.filter(o => isFaturado(o.status));
+    const ordensFaturadas = allOrders.filter(o => {
+      if (!isFaturado(o.status) || !o.data_conclusao) return false;
+      const d = new Date(o.data_conclusao);
+      return d >= range.start && d <= range.end;
+    });
     const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
     const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     const allContasPagas = contasPagas ?? [];
+    const totalComissoesPeriodo = Number(summary?.comissoes_periodo_total ?? 0);
     const despesasPagasMes = allContasPagas.reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosFixos = allContasPagas
       .filter((c: any) => c.categorias_financeiras?.tipo === "fixo")
       .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
     const gastosVariaveis = despesasPagasMes - gastosFixos;
 
-    const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis;
+    const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis - totalComissoesPeriodo;
     const ebitdaMargem = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
 
     const depreciacao = 0;
@@ -273,7 +283,7 @@ export default function Dashboard() {
     const nSocios = Number(empresaConfig?.numero_socios ?? 2) || 1;
 
     const prevLl = metaFaturamento > 0 && faturamento > 0 ? metaFaturamento * (ll / faturamento) : 0;
-    const totalGastos = custosPecasMes + despesasPagasMes + depreciacao + impostos;
+    const totalGastos = custosPecasMes + despesasPagasMes + totalComissoesPeriodo + depreciacao + impostos;
     const metaPct = metaGastos > 0 ? Math.min(100, (totalGastos / metaGastos) * 100) : 0;
 
     const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
@@ -294,7 +304,7 @@ export default function Dashboard() {
     }).length;
 
     return {
-      faturamento, custosPecasMes, despesasPagasMes, gastosFixos, gastosVariaveis,
+      faturamento, custosPecasMes, despesasPagasMes, gastosFixos, gastosVariaveis, totalComissoesPeriodo,
       ebitda, ebitdaMargem, ll, llMargem, depreciacao, impostos,
       ticket, llPorAssist, prevLl, totalGastos, metaGastos, metaFaturamento,
       metaPct, reservaPct, nSocios, reservaVal, lucroDistrib, lucroSocio,
@@ -302,7 +312,7 @@ export default function Dashboard() {
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
       iphonesReparados,
     };
-  }, [orders, allOrders, contasPagas, empresaConfig]);
+  }, [orders, allOrders, contasPagas, summary?.comissoes_periodo_total, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
@@ -433,9 +443,9 @@ export default function Dashboard() {
           <MetricCard
             icon={Target}
             label="Saúde financeira"
-            value={kpis.llMargem >= 20 ? "Excelente" : kpis.llMargem >= 10 ? "Saudável" : kpis.llMargem >= 0 ? "Atenção" : "Prejuízo"}
-            color={kpis.llMargem >= 20 ? "text-green-600" : kpis.llMargem >= 10 ? "text-blue-600" : kpis.llMargem >= 0 ? "text-amber-600" : "text-red-600"}
-            iconColor={kpis.llMargem >= 10 ? "text-green-500" : "text-amber-500"}
+            value={kpis.llMargem < 0 ? "Prejuízo" : kpis.llMargem >= 30 ? "Excelente" : kpis.llMargem >= 15 ? "Saudável" : kpis.llMargem >= 5 ? "Atenção" : "Crítica"}
+            color={kpis.llMargem < 0 ? "text-red-600" : kpis.llMargem >= 30 ? "text-green-600" : kpis.llMargem >= 15 ? "text-blue-600" : kpis.llMargem >= 5 ? "text-amber-600" : "text-red-600"}
+            iconColor={kpis.llMargem < 0 ? "text-red-500" : kpis.llMargem >= 15 ? "text-green-500" : kpis.llMargem >= 5 ? "text-amber-500" : "text-red-500"}
           />
         </div>
 
@@ -459,7 +469,7 @@ export default function Dashboard() {
           <CardContent className="p-3 space-y-1">
             <p className="text-xs text-muted-foreground">
               <strong>EBITDA:</strong>{" "}
-              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Outros ({brl(kpis.gastosVariaveis)}) ={" "}
+              {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Outros ({brl(kpis.gastosVariaveis)}) − Comissões ({brl(kpis.totalComissoesPeriodo)}) ={" "}
               <strong className={kpis.ebitda >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ebitda)}</strong>
             </p>
             <p className="text-xs text-muted-foreground">

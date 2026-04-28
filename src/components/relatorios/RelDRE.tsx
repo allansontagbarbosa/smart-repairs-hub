@@ -36,10 +36,11 @@ export function RelDRE() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("valor, custo_pecas, status, data_entrada")
+        .select("valor, custo_pecas, status, data_conclusao")
         .is("deleted_at", null)
-        .gte("data_entrada", inicio)
-        .lt("data_entrada", fim);
+        .in("status", ["pronto", "entregue"])
+        .gte("data_conclusao", inicio)
+        .lt("data_conclusao", fim);
       return data ?? [];
     },
   });
@@ -112,7 +113,6 @@ export function RelDRE() {
   // Calculate DRE
   const dre = useMemo(() => {
     const servicosFaturados = (ordens ?? [])
-      .filter(o => o.status === "entregue")
       .reduce((s, o) => s + (o.valor ?? 0), 0);
     const outrosReceb = (recebimentos ?? []).reduce((s, r) => s + r.valor, 0);
     const receitaBruta = servicosFaturados + outrosReceb;
@@ -121,7 +121,6 @@ export function RelDRE() {
     const receitaLiquida = receitaBruta - impostos;
 
     const custoPecas = (ordens ?? [])
-      .filter(o => o.status === "entregue")
       .reduce((s, o) => s + (o.custo_pecas ?? 0), 0);
     const comissoesPagas = (comissoes ?? []).reduce((s, c) => s + c.valor, 0);
     const lucroBruto = receitaLiquida - custoPecas - comissoesPagas;
