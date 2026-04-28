@@ -5599,6 +5599,10 @@ export type Database = {
         Args: { p_confirmacao: string; p_ordem_ids: string[] }
         Returns: Json
       }
+      gerar_movimentacao_entrada_os: {
+        Args: { p_ordem_id: string }
+        Returns: undefined
+      }
       gerar_ou_atualizar_fatura_lojista: {
         Args: { p_lojista_id: string; p_mes: string }
         Returns: string
