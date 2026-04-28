@@ -222,10 +222,11 @@ export function useFinanceiro() {
     const comissoesPendentes = allComissoes.filter(c => c.status === "pendente" || c.status === "liberada");
     const totalComissoesPendentes = comissoesPendentes.reduce((s, c) => s + Number(c.valor), 0);
 
-    // Comissões EFETIVAMENTE pagas no mês (regime de caixa, consistente com despesasPagasMes)
+    // Comissões provisionadas no mês: pendentes, liberadas e pagas, exceto estornadas
     const comissoesMes = allComissoes.filter(c => {
-      if (c.status !== "paga" || !c.data_pagamento) return false;
-      const d = new Date(c.data_pagamento + "T12:00:00");
+      if (c.status !== "pendente" && c.status !== "liberada" && c.status !== "paga") return false;
+      if (c.estornada_em) return false;
+      const d = new Date(c.created_at);
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
