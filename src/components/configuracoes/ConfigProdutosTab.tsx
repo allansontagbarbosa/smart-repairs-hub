@@ -35,7 +35,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
   const [confirmStatus, setConfirmStatus] = useState<null | "ativar" | "inativar">(null);
 
   const filtered = produtosBase.filter(
-    (p) => p.nome?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase())
+    (p) => p.nome_personalizado?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase())
   );
   const bulk = useBulkSelection(filtered);
 
@@ -43,25 +43,28 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
   const openEdit = (p: any) => { setEditId(p.id); setModalOpen(true); };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("produtos_base").delete().eq("id", id);
+    await supabase.from("estoque_itens").update({ deleted_at: new Date().toISOString() }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["produtos_base"] });
+    qc.invalidateQueries({ queryKey: ["estoque_itens"] });
     toast.success("Peça removida");
   };
 
   const bulkDelete = async () => {
     const ids = Array.from(bulk.selectedIds);
-    const { error } = await supabase.from("produtos_base").delete().in("id", ids);
+    const { error } = await supabase.from("estoque_itens").update({ deleted_at: new Date().toISOString() }).in("id", ids);
     if (error) { toast.error("Erro ao excluir", { description: error.message }); return; }
     qc.invalidateQueries({ queryKey: ["produtos_base"] });
+    qc.invalidateQueries({ queryKey: ["estoque_itens"] });
     toast.success(`${ids.length} ${ids.length === 1 ? "peça removida" : "peças removidas"}`);
     bulk.clear();
   };
 
   const bulkToggleStatus = async (ativo: boolean) => {
     const ids = Array.from(bulk.selectedIds);
-    const { error } = await supabase.from("produtos_base").update({ ativo }).in("id", ids);
+    const { error } = await supabase.from("estoque_itens").update({ ativo }).in("id", ids);
     if (error) { toast.error("Erro ao atualizar", { description: error.message }); return; }
     qc.invalidateQueries({ queryKey: ["produtos_base"] });
+    qc.invalidateQueries({ queryKey: ["estoque_itens"] });
     toast.success(`${ids.length} ${ids.length === 1 ? "peça" : "peças"} ${ativo ? "ativada(s)" : "inativada(s)"}`);
     bulk.clear();
   };
@@ -70,12 +73,12 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
     const rows = bulk.count > 0 ? bulk.selectedItems : filtered;
     if (!rows.length) { toast.warning("Nenhuma peça para exportar"); return; }
     exportToCsv(`pecas-catalogo-${new Date().toISOString().slice(0, 10)}.csv`, rows, [
-      { header: "Nome", value: r => r.nome ?? "" },
+      { header: "Nome", value: r => r.nome_personalizado ?? "" },
       { header: "SKU", value: r => r.sku ?? "" },
       { header: "Marca", value: r => (r as any).marcas?.nome ?? "" },
       { header: "Modelo", value: r => (r as any).modelos?.nome ?? "" },
       { header: "Categoria", value: r => (r as any).estoque_categorias?.nome ?? "" },
-      { header: "Preço padrão", value: r => r.preco_padrao ?? 0 },
+      { header: "Preço padrão", value: r => r.preco_venda ?? 0 },
       { header: "Preço especial", value: r => r.preco_especial ?? "" },
       { header: "Status", value: r => r.ativo ? "Ativo" : "Inativo" },
     ]);
@@ -83,7 +86,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
   };
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-  const previewNames = bulk.selectedItems.slice(0, 5).map((p: any) => p.nome);
+  const previewNames = bulk.selectedItems.slice(0, 5).map((p: any) => p.nome_personalizado);
   const restCount = Math.max(0, bulk.count - previewNames.length);
 
   return (
