@@ -1953,18 +1953,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </div>
 
-              {/* ── Actions ── */}
-              <div className="flex gap-2 pt-1">
-                <Button type="button" variant="outline" size="sm" onClick={() => setStep("aparelho")}>Voltar</Button>
-                <Button
-                  type="button" className="flex-1"
-                  disabled={!canSubmit || createOrderMutation.isPending}
-                  onClick={() => createOrderMutation.mutate()}
-                >
-                  {createOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                  Criar Ordem de Serviço
-                </Button>
-              </div>
               </div>
 
               <aside className="bg-muted/30 border-l p-6 overflow-y-auto">
@@ -2047,6 +2035,39 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </aside>
             </div>
+            <div className="flex justify-between items-center px-7 py-4 border-t bg-muted/30">
+              <div className="text-[13px] text-muted-foreground">
+                {!canSubmit ? (
+                  <span>
+                    ⚠️ Falta: {
+                      !relatoCliente?.trim() ? "relato do cliente" :
+                      !servicosEditorValue?.length ? "ao menos 1 serviço" :
+                      "preencher campos obrigatórios"
+                    }
+                  </span>
+                ) : (
+                  <span className="text-green-600 font-medium">✓ Tudo certo para criar a OS</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setStep("aparelho")}>
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!canSubmit || createOrderMutation.isPending}
+                  onClick={() => createOrderMutation.mutate()}
+                >
+                  {createOrderMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  )}
+                  Criar Ordem de Serviço
+                </Button>
+              </div>
+            </div>
+            </>
           )}
 
           {/* ── Step: Sucesso ── */}
