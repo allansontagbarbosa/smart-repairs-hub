@@ -105,10 +105,10 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
     headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold" },
     columnStyles: {
       0: { cellWidth: 58 },
-      1: { cellWidth: 220 },
-      2: { halign: "right", cellWidth: 74 },
-      3: { halign: "right", cellWidth: 74 },
-      4: { halign: "right", cellWidth: 82 },
+      1: { cellWidth: 210 },
+      2: { halign: "right", cellWidth: 72 },
+      3: { halign: "right", cellWidth: 72 },
+      4: { halign: "right", cellWidth: 80 },
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => {
