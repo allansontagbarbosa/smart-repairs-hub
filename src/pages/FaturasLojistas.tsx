@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, FileDown, Loader2 } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, FileDown, Loader2, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +10,9 @@ import { useExtratoPDF } from "@/hooks/useExtratoPDF";
 import { ExtratoPDFViewer } from "@/components/financeiro/ExtratoPDFViewer";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 const today = new Date();
@@ -39,8 +39,8 @@ export default function FaturasLojistas() {
   const { data: faturasAntigas = 0 } = useQuery({
     queryKey: ["lojista-faturas-count"],
     queryFn: async () => {
-      const { count, error: countError } = await supabase
-        .from("lojista_faturas" as never)
+      const { count, error: countError } = await (supabase as any)
+        .from("lojista_faturas")
         .select("id", { count: "exact", head: true });
       if (countError) throw countError;
       return count ?? 0;
@@ -86,16 +86,12 @@ export default function FaturasLojistas() {
         <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_auto] lg:items-end">
           <div className="space-y-2">
             <Label>Cliente</Label>
-            <Select value={clienteId} onValueChange={setClienteId} disabled={loadingClientes}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingClientes ? "Carregando clientes..." : "Selecione um cliente"} />
-              </SelectTrigger>
-              <SelectContent>
-                {clientes.map((cliente) => (
-                  <SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClienteSearchSelect
+              value={clienteId}
+              onChange={setClienteId}
+              clientes={clientes.map((cliente) => ({ id: cliente.id, nome: cliente.nome }))}
+              disabled={loadingClientes}
+            />
           </div>
           <DatePicker label="Data início" value={inicio} onChange={setInicio} />
           <DatePicker label="Data fim" value={fim} onChange={setFim} />
@@ -128,6 +124,50 @@ export default function FaturasLojistas() {
         </div>
       )}
     </div>
+  );
+}
+
+function ClienteSearchSelect({ value, onChange, clientes, disabled }: { value: string; onChange: (value: string) => void; clientes: Array<{ id: string; nome: string }>; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const selected = clientes.find((cliente) => cliente.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          disabled={disabled}
+          className={cn("w-full justify-between font-normal", !selected && "text-muted-foreground")}
+        >
+          <span className="truncate">{selected?.nome || (disabled ? "Carregando clientes..." : "Buscar cliente...")}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar cliente..." />
+          <CommandList>
+            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+            <CommandGroup>
+              {clientes.map((cliente) => (
+                <CommandItem
+                  key={cliente.id}
+                  value={cliente.nome}
+                  onSelect={() => {
+                    onChange(cliente.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === cliente.id ? "opacity-100" : "opacity-0")} />
+                  {cliente.nome}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
