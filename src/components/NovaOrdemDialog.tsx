@@ -1086,7 +1086,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-[1100px] w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0">
 
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 text-base">
@@ -1473,7 +1473,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
           {/* ═══ STEP 3 — SERVIÇO ═══ */}
           {step === "servico" && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-[1fr_320px] max-h-[70vh]">
+              <div className="overflow-y-auto px-7 py-6 space-y-4">
 
               {/* ── 1. RELATO DO CLIENTE * ── */}
               <div>
@@ -1964,6 +1965,87 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   Criar Ordem de Serviço
                 </Button>
               </div>
+              </div>
+
+              <aside className="bg-muted/30 border-l p-6 overflow-y-auto">
+                <div className="space-y-5">
+                  <div className="pb-5 border-b">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                      Cliente
+                    </p>
+                    <p className="text-[15px] font-semibold">
+                      {clienteSelecionadoResumo?.nome ?? "—"}
+                      {clienteSelecionadoResumo?.tipo === "B2B" && (
+                        <span className="ml-1 inline-block px-2 py-0.5 rounded bg-green-100 text-green-700 text-[11px] font-semibold align-middle">
+                          B2B
+                        </span>
+                      )}
+                    </p>
+                    {clienteSelecionadoResumo?.saldo_devedor != null && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Saldo devedor: {formatCurrency(clienteSelecionadoResumo.saldo_devedor)}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pb-5 border-b">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                      Aparelho
+                    </p>
+                    <p className="text-[15px] font-semibold">
+                      {[marca, modelo].filter(Boolean).join(" ") || "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {[cor, capacidade, imei && `IMEI ${imei}`].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+
+                  <div className="pb-5 border-b">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                      Resumo financeiro
+                    </p>
+                    <div className="space-y-1 text-[13px]">
+                      <div className="flex justify-between">
+                        <span>Subtotal serviços</span>
+                        <span className="tabular-nums font-medium">{formatCurrency(subtotalServicos)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Peças ({(pecasSelecionadas ?? []).length})</span>
+                        <span className="tabular-nums font-medium">{formatCurrency(subtotalPecasVenda)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Mão de obra adicional</span>
+                        <span className="tabular-nums font-medium">{formatCurrency(Number(maoObraAdicional) || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Desconto</span>
+                        <span className="tabular-nums font-medium">−{formatCurrency(Number(desconto) || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Sinal pago</span>
+                        <span className="tabular-nums font-medium">−{formatCurrency(Number(sinalPago) || 0)}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between pt-2 mt-2 border-t font-semibold text-base">
+                      <span>Total ao cliente</span>
+                      <span className="tabular-nums text-primary">{formatCurrency(totalAoClienteNovo)}</span>
+                    </div>
+                    <p className="text-[13px] text-green-600 font-semibold text-right mt-1.5">
+                      Lucro estimado: {formatCurrency(lucroEstimado)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                      Comissões a pagar
+                    </p>
+                    <div className="flex justify-between text-[13px]">
+                      <span>{tecnicosUnicos.join(", ") || "—"}</span>
+                      <span className="tabular-nums font-medium">{formatCurrency(totalComissoes)}</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
             </div>
           )}
 
