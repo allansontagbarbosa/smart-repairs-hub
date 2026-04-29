@@ -1655,6 +1655,7 @@ export type Database = {
           modelo_id: string | null
           nome_personalizado: string | null
           observacoes: string | null
+          preco_especial: number | null
           preco_venda: number | null
           quantidade: number
           quantidade_minima: number
@@ -1682,6 +1683,7 @@ export type Database = {
           modelo_id?: string | null
           nome_personalizado?: string | null
           observacoes?: string | null
+          preco_especial?: number | null
           preco_venda?: number | null
           quantidade?: number
           quantidade_minima?: number
@@ -1709,6 +1711,7 @@ export type Database = {
           modelo_id?: string | null
           nome_personalizado?: string | null
           observacoes?: string | null
+          preco_especial?: number | null
           preco_venda?: number | null
           quantidade?: number
           quantidade_minima?: number
