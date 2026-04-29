@@ -714,9 +714,15 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     const diff = calcularDiff(ordem, payload);
     const camposAlterados = Object.keys(diff).length > 0;
 
-    // Diff dos serviços vinculados
-    const { adicionar, remover, removerInfo } = calcDiffServicos();
-    const servicosAlterados = adicionar.length > 0 || remover.length > 0;
+    // Diff dos serviços vinculados no editor v2
+    const normalizeServicos = (items: any[]) => items.map((s) => ({
+      id: s.id ?? null,
+      servico_id: s.servico_id,
+      tecnico_id: s.tecnico_id ?? null,
+      valor: Number(s.valor) || 0,
+      comissao: Number(s.comissao) || 0,
+    }));
+    const servicosAlterados = JSON.stringify(normalizeServicos(servicosEditorDraft)) !== JSON.stringify(normalizeServicos(servicosOSDetalhados));
 
     // Nada mudou? fecha
     if (!camposAlterados && !servicosAlterados) {
@@ -725,26 +731,26 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     }
 
     // Função interna que dispara as duas mutations (campos + serviços) na ordem
-    const dispatchAll = (campos: Record<string, any> | null) => {
+    const dispatchAll = async (campos: Record<string, any> | null) => {
       if (campos) {
         editarOSAdmin.mutate({ dados: campos, pulou_fluxo: false });
       } else {
         // só serviços mudaram → fecha edição manualmente após sucesso
         setEditing(false);
       }
-      if (servicosAlterados) {
-        editarServicos.mutate({ adicionar, remover });
+      if (servicosAlterados && ordem?.id) {
+        const { data, error } = await supabase.rpc("editar_os_servicos_v2" as any, {
+          p_ordem_id: ordem.id,
+          p_servicos: normalizeServicos(servicosEditorDraft),
+        });
+        if (error) { toast.error(error.message); return; }
+        if ((data as any)?.success === false) { toast.error((data as any)?.error || "Erro ao salvar serviços"); return; }
+        queryClient.invalidateQueries({ queryKey: ["os-servicos-v2", orderId] });
+        queryClient.invalidateQueries({ queryKey: ["os-servicos", orderId] });
+        queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+        toast.success("Serviços atualizados");
       }
     };
-
-    // Se vamos remover serviços com comissão > 0, confirmar primeiro
-    const removidosComComissao = removerInfo.filter((r) => r.comissao > 0);
-    if (removidosComComissao.length > 0) {
-      setPendingRemovedServicos(removidosComComissao);
-      setPendingEditPayload(camposAlterados ? payload : null);
-      setRemoveServicosWarnOpen(true);
-      return;
-    }
 
     // Warning se valor mudou e já existe comissão
     const valorNovo = valorStr ? parseFloat(valorStr) : null;
@@ -752,8 +758,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     if (camposAlterados && valorNovo !== valorAtual && comissoesOS.length > 0) {
       setPendingEditPayload(payload);
       setValorWarningOpen(true);
-      // serviços (sem comissão) podem seguir junto
-      if (servicosAlterados) editarServicos.mutate({ adicionar, remover });
       return;
     }
 
