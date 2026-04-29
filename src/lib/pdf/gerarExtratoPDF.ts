@@ -46,6 +46,16 @@ const sanitizeFileName = (value: string) =>
     .replace(/[^a-zA-Z0-9_-]+/g, "_")
     .replace(/^_+|_+$/g, "") || "cliente";
 
+const aparelhoImei = (item: ExtratoClienteItem) => {
+  if (item.tipo === "pagamento") return "—";
+  return [item.modelo_aparelho, item.imei ? `IMEI ${item.imei}` : null].filter(Boolean).join("\n") || "—";
+};
+
+const servicosLabel = (item: ExtratoClienteItem) => {
+  if (item.tipo === "pagamento") return item.descricao.replace(/^Pagamento\s*/i, "") || "—";
+  return item.servicos_realizados || "—";
+};
+
 function enderecoToText(endereco: unknown) {
   if (!endereco || typeof endereco !== "object") return "";
   const e = endereco as Record<string, unknown>;
@@ -95,20 +105,26 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
     margin: { left: margin, right: margin },
     tableWidth: pageWidth - margin * 2,
     theme: "grid",
-    head: [["Data", "Descrição", "Débito", "Crédito", "Saldo"]],
+    head: [["Data", "OS", "Aparelho/IMEI", "Serviço(s)", "Débito", "Crédito", "Saldo"]],
     body: payload.extrato.map((item) => [
       date(item.data),
       item.descricao,
+      aparelhoImei(item),
+      servicosLabel(item),
       Number(item.debito) > 0 ? currency(item.debito) : "—",
       Number(item.credito) > 0 ? currency(item.credito) : "—",
       currency(item.saldo_apos),
     ]),
-    styles: { font: "helvetica", fontSize: 7, cellPadding: 3, overflow: "linebreak", minCellWidth: 10 },
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 3, overflow: "linebreak", minCellWidth: 10 },
     headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold" },
     columnStyles: {
-      2: { halign: "right" },
-      3: { halign: "right" },
-      4: { halign: "right" },
+      0: { cellWidth: 58 },
+      1: { cellWidth: 78 },
+      2: { cellWidth: 205 },
+      3: { cellWidth: 180 },
+      4: { halign: "right", cellWidth: 72 },
+      5: { halign: "right", cellWidth: 72 },
+      6: { halign: "right", cellWidth: 72 },
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => {
