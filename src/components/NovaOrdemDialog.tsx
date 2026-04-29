@@ -606,6 +606,31 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     return m;
   }, [defeitosSelecionados]);
 
+  const servicosEditorValue: ServicoOSPayload[] = useMemo(() => defeitosSelecionados.map((d) => ({
+    id: d.os_servico_id,
+    servico_id: d.id,
+    tecnico_id: d.tecnico_id ?? null,
+    valor: d.valor_mao_obra,
+    comissao: d.comissao_padrao,
+  })), [defeitosSelecionados]);
+
+  function syncServicosEditor(servicos: ServicoOSPayload[]) {
+    setDefeitosSelecionados(servicos
+      .filter((s) => s.servico_id)
+      .map((s) => {
+        const tipo = tiposDefeito.find((t) => t.id === s.servico_id);
+        return {
+          id: s.servico_id,
+          os_servico_id: s.id,
+          nome: tipo?.nome ?? "Serviço",
+          categoria: tipo?.categoria,
+          valor_mao_obra: Number(s.valor) || 0,
+          comissao_padrao: Number(s.comissao) || 0,
+          tecnico_id: s.tecnico_id ?? null,
+        };
+      }));
+  }
+
   // ── Reset ──
   function resetAll() {
     setStep("cliente");
