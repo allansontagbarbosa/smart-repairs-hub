@@ -1444,10 +1444,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               )}
 
               {/* ── 3. SERVIÇOS SELECIONADOS ── */}
-              <ServicosSelector
-                value={defeitosSelecionados}
-                onChange={setDefeitosSelecionados}
-              />
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Serviços executados
+                </Label>
+                <p className="text-[11px] text-muted-foreground">Cada serviço pode ter um técnico diferente.</p>
+                <ServicosOSEditor
+                  servicosIniciais={servicosEditorValue}
+                  tiposServico={tiposDefeito as any[]}
+                  tecnicos={tecnicosAtivos as any[]}
+                  autoSave={false}
+                  onChange={syncServicosEditor}
+                />
+              </div>
 
               {/* ── 4. PEÇAS UTILIZADAS ── */}
               <div>
