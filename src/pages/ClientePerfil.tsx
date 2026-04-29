@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, CreditCard, Loader2, Plus, Smartphone, Wrench } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -48,10 +48,11 @@ const monthLabel = (key: string) => {
 export default function ClientePerfil() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [periodo, setPeriodo] = useState<Periodo>("6m");
-  const [customInicio, setCustomInicio] = useState("");
-  const [customFim, setCustomFim] = useState("");
+  const [periodo, setPeriodoState] = useState<Periodo>((searchParams.get("periodo") as Periodo) || "6m");
+  const [customInicio, setCustomInicioState] = useState(searchParams.get("inicio") || "");
+  const [customFim, setCustomFimState] = useState(searchParams.get("fim") || "");
   const [pagamentoOpen, setPagamentoOpen] = useState(false);
   const [novaOsOpen, setNovaOsOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -91,6 +92,30 @@ export default function ClientePerfil() {
   const ticketMedio = Number(cliente?.qtd_oss ?? 0) > 0 ? Number(cliente?.total_faturado ?? 0) / Number(cliente?.qtd_oss ?? 1) : 0;
   const atualizacoes = [cliente?.ultima_os_data, cliente?.ultimo_pagamento_data].filter(Boolean).sort();
   const ultimaAtualizacao = atualizacoes.length > 0 ? atualizacoes[atualizacoes.length - 1] : null;
+
+  const setPeriodo = (value: Periodo) => {
+    setPeriodoState(value);
+    setSearchParams((current) => {
+      current.set("periodo", value);
+      return current;
+    });
+  };
+
+  const setCustomInicio = (value: string) => {
+    setCustomInicioState(value);
+    setSearchParams((current) => {
+      value ? current.set("inicio", value) : current.delete("inicio");
+      return current;
+    });
+  };
+
+  const setCustomFim = (value: string) => {
+    setCustomFimState(value);
+    setSearchParams((current) => {
+      value ? current.set("fim", value) : current.delete("fim");
+      return current;
+    });
+  };
 
   if (loadingClientes) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

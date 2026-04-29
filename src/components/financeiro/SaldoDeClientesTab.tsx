@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowDownUp, CreditCard, Loader2, Search, TrendingUp, Users, Wallet } from "lucide-react";
 import { useClientesSaldos, type ClienteSaldoResumo } from "@/hooks/useClientesSaldos";
 import { RegistrarPagamentoDialog } from "@/components/ClienteHistoricoSheet";
@@ -16,10 +16,11 @@ const saldoClass = (saldo: number) => saldo > 0 ? "text-destructive" : saldo < 0
 
 export function SaldoDeClientesTab() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [onlyDebito, setOnlyDebito] = useState(true);
-  const [sortKey, setSortKey] = useState<SortKey>("saldo_devedor");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearchState] = useState(searchParams.get("busca_saldo") || "");
+  const [onlyDebito, setOnlyDebitoState] = useState(searchParams.get("com_debito") !== "false");
+  const [sortKey, setSortKey] = useState<SortKey>((searchParams.get("ordem_saldo") as SortKey) || "saldo_devedor");
+  const [sortDirection, setSortDirection] = useState<SortDirection>((searchParams.get("dir_saldo") as SortDirection) || "desc");
   const [pagamentoClienteId, setPagamentoClienteId] = useState<string | null>(null);
   const { data: clientes = [], isLoading } = useClientesSaldos();
 
@@ -47,6 +48,27 @@ export function SaldoDeClientesTab() {
     }
     setSortKey(key);
     setSortDirection("desc");
+    setSearchParams((current) => {
+      current.set("ordem_saldo", key);
+      current.set("dir_saldo", "desc");
+      return current;
+    });
+  };
+
+  const setSearch = (value: string) => {
+    setSearchState(value);
+    setSearchParams((current) => {
+      value ? current.set("busca_saldo", value) : current.delete("busca_saldo");
+      return current;
+    });
+  };
+
+  const setOnlyDebito = (value: boolean) => {
+    setOnlyDebitoState(value);
+    setSearchParams((current) => {
+      current.set("com_debito", String(value));
+      return current;
+    });
   };
 
   return (
