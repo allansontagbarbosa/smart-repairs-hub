@@ -904,19 +904,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       };
 
 
-      // 3. Inserir os_servicos (N:N) — com snapshot de comissão do serviço
+      // 3. Inserir os_servicos (N:N) via RPC v2 — com técnico e snapshot de comissão por serviço
       if (defeitosSelecionados.length > 0) {
-        const { error: defErr } = await supabase.from("os_servicos").insert(
-          defeitosSelecionados.map(d => ({
-            ordem_id: ordem.id,
-            servico_id: d.id,
-            nome: d.nome,
-            valor: d.valor_mao_obra,
-            categoria: d.categoria,
-            comissao: d.comissao_padrao || 0,
-          })) as any
-        );
+        const { data: servData, error: defErr } = await supabase.rpc("editar_os_servicos_v2" as any, {
+          p_ordem_id: ordem.id,
+          p_servicos: servicosEditorValue.map((s) => ({
+            servico_id: s.servico_id,
+            tecnico_id: s.tecnico_id,
+            valor: s.valor,
+            comissao: s.comissao,
+          })),
+        });
         if (defErr) throw defErr;
+        if ((servData as any)?.success === false) throw new Error((servData as any)?.error || "Erro ao salvar serviços");
       }
 
       // 4. Inserir pecas_utilizadas — com preço cobrado e origem (serviço auto vs avulsa)
