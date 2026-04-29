@@ -15,7 +15,7 @@ import { Loader2, Info } from "lucide-react";
 
 /**
  * Modal único para CADASTRO de peça (catálogo).
- * Opera SOMENTE em produtos_base. Não toca em estoque_itens.
+ * Opera em estoque_itens, tabela canônica de peças.
  *
  * Usado em:
  *  - /configuracoes/pecas (criar/editar do catálogo)
@@ -79,7 +79,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
     }
     (async () => {
       const { data, error } = await supabase
-        .from("produtos_base")
+        .from("estoque_itens")
         .select("*")
         .eq("id", pecaId)
         .single();
@@ -88,12 +88,12 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
         return;
       }
       setForm({
-        nome: data.nome ?? "",
+        nome: data.nome_personalizado ?? "",
         categoria_id: data.categoria_id ?? "",
         marca_id: data.marca_id ?? "",
         modelo_id: data.modelo_id ?? "",
-        descricao: data.descricao ?? "",
-        preco_padrao: data.preco_padrao ?? null,
+        descricao: data.observacoes ?? "",
+        preco_padrao: data.preco_venda ?? null,
         preco_especial: data.preco_especial ?? null,
         sku: data.sku ?? "",
         ativo: data.ativo ?? true,
@@ -129,39 +129,41 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
       if (!form.nome.trim()) throw new Error("Informe o nome da peça");
 
       const payload = {
-        nome: form.nome.trim(),
-        descricao: form.descricao || null,
+        nome_personalizado: form.nome.trim(),
+        observacoes: form.descricao || null,
         sku: form.sku?.trim() || null,
         ativo: form.ativo,
         categoria_id: form.categoria_id || null,
         marca_id: form.marca_id || null,
         modelo_id: form.modelo_id || null,
+        tipo_item: "peca" as const,
         // custo NÃO é mais editável manualmente — vem das compras (média ponderada em estoque_itens.custo_medio)
-        preco_padrao: Number(form.preco_padrao) || 0,
+        preco_venda: Number(form.preco_padrao) || 0,
         preco_especial: form.preco_especial != null ? Number(form.preco_especial) : null,
       };
 
       if (isEditing) {
         const { data, error } = await supabase
-          .from("produtos_base")
+          .from("estoque_itens")
           .update(payload)
           .eq("id", pecaId!)
-          .select("id, nome, sku, preco_padrao, ativo")
+          .select("id, nome_personalizado, sku, preco_venda, ativo")
           .single();
         if (error) throw error;
-        return data as PecaSalva;
+        return { id: data.id, nome: data.nome_personalizado ?? "", sku: data.sku, preco_padrao: data.preco_venda, ativo: data.ativo } as PecaSalva;
       } else {
         const { data, error } = await supabase
-          .from("produtos_base")
+          .from("estoque_itens")
           .insert(payload)
-          .select("id, nome, sku, preco_padrao, ativo")
+          .select("id, nome_personalizado, sku, preco_venda, ativo")
           .single();
         if (error) throw error;
-        return data as PecaSalva;
+        return { id: data.id, nome: data.nome_personalizado ?? "", sku: data.sku, preco_padrao: data.preco_venda, ativo: data.ativo } as PecaSalva;
       }
     },
     onSuccess: (peca) => {
       qc.invalidateQueries({ queryKey: ["produtos_base"] });
+      qc.invalidateQueries({ queryKey: ["estoque_itens"] });
       toast.success(isEditing ? "Peça atualizada" : "Peça cadastrada no catálogo");
       onSaved?.(peca);
       onOpenChange(false);
