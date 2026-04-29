@@ -1473,6 +1473,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
           {/* ═══ STEP 3 — SERVIÇO ═══ */}
           {step === "servico" && (
+            <>
             <div className="grid grid-cols-[1fr_320px] max-h-[70vh]">
               <div className="overflow-y-auto px-7 py-6 space-y-4">
 
@@ -1543,11 +1544,13 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               </div>
 
               {/* ── 4. PEÇAS UTILIZADAS ── */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                    <Package className="h-3 w-3" /> Peças utilizadas
-                  </Label>
+              <CollapsibleSection
+                icon="🧩"
+                title="Peças utilizadas"
+                count={`(${(pecasSelecionadas ?? []).length})`}
+                defaultOpen={true}
+              >
+                <div className="flex items-center justify-end mb-1.5">
                   <button
                     type="button"
                     onClick={() => setPecasFocused(true)}
@@ -1655,7 +1658,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     </p>
                   </>
                 )}
-              </div>
+              </CollapsibleSection>
 
               {/* ── 5. MÃO DE OBRA ADICIONAL + DESCONTO ── */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
