@@ -58,11 +58,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
   const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
+  const [servicosEditorDraft, setServicosEditorDraft] = useState<any[]>([]);
 
-  // Edição de serviços vinculados (os_servicos)
+  // Edição legada de serviços vinculados (mantida apenas para compatibilidade de tipos antigos)
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
-  const [removeServicosWarnOpen, setRemoveServicosWarnOpen] = useState(false);
-  const [pendingRemovedServicos, setPendingRemovedServicos] = useState<Array<{ id: string; nome: string; comissao: number }>>([]);
 
   // Estado controlado dos campos do form de edição (para Selects/radios shadcn)
   const [editForm, setEditForm] = useState({
