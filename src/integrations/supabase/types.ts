@@ -3468,12 +3468,15 @@ export type Database = {
       }
       movimentacoes_financeiras: {
         Row: {
+          categoria: string | null
+          cliente_id: string | null
           created_at: string
           data: string
           descricao: string
           empresa_id: string | null
           estoque_id: string | null
           estornada_em: string | null
+          forma_pagamento: string | null
           id: string
           lojista_fatura_id: string | null
           ordem_id: string | null
@@ -3481,12 +3484,15 @@ export type Database = {
           valor: number
         }
         Insert: {
+          categoria?: string | null
+          cliente_id?: string | null
           created_at?: string
           data?: string
           descricao: string
           empresa_id?: string | null
           estoque_id?: string | null
           estornada_em?: string | null
+          forma_pagamento?: string | null
           id?: string
           lojista_fatura_id?: string | null
           ordem_id?: string | null
@@ -3494,12 +3500,15 @@ export type Database = {
           valor: number
         }
         Update: {
+          categoria?: string | null
+          cliente_id?: string | null
           created_at?: string
           data?: string
           descricao?: string
           empresa_id?: string | null
           estoque_id?: string | null
           estornada_em?: string | null
+          forma_pagamento?: string | null
           id?: string
           lojista_fatura_id?: string | null
           ordem_id?: string | null
@@ -4588,6 +4597,63 @@ export type Database = {
         }
         Relationships: []
       }
+      pagamentos_clientes: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data_pagamento: string
+          deleted_at: string | null
+          deleted_by: string | null
+          empresa_id: string
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          empresa_id: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          empresa_id?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_clientes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pecas_utilizadas: {
         Row: {
           created_at: string
@@ -5629,6 +5695,16 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_pagamento_cliente: {
+        Args: {
+          p_cliente_id: string
+          p_data?: string
+          p_forma?: string
+          p_obs?: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -5706,9 +5782,35 @@ export type Database = {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
       }
+      get_extrato_cliente: {
+        Args: { p_cliente_id: string; p_fim?: string; p_inicio?: string }
+        Returns: {
+          credito: number
+          data: string
+          debito: number
+          descricao: string
+          referencia_id: string
+          saldo_apos: number
+          tipo: string
+        }[]
+      }
       get_my_empresa_id: { Args: never; Returns: string }
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
+      get_saldo_cliente: { Args: { p_cliente_id: string }; Returns: Json }
+      get_saldos_clientes_resumo: {
+        Args: never
+        Returns: {
+          cliente_id: string
+          nome: string
+          qtd_oss: number
+          saldo_devedor: number
+          total_faturado: number
+          total_recebido: number
+          ultima_os_data: string
+          ultimo_pagamento_data: string
+        }[]
+      }
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
