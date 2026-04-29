@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowDownUp, CreditCard, Loader2, Search, TrendingUp, Users, Wallet } from "lucide-react";
+import { ArrowDownUp, CreditCard, FileDown, Loader2, Search, TrendingUp, Users, Wallet } from "lucide-react";
 import { useClientesSaldos, type ClienteSaldoResumo } from "@/hooks/useClientesSaldos";
 import { RegistrarPagamentoDialog } from "@/components/ClienteHistoricoSheet";
 import { Button } from "@/components/ui/button";
@@ -128,7 +128,12 @@ export function SaldoDeClientesTab() {
                     <td className="text-center">{cliente.qtd_oss}</td>
                     <td className="text-muted-foreground">{fmtDate(cliente.ultima_os_data)}</td>
                     <td className="text-muted-foreground">{fmtDate(cliente.ultimo_pagamento_data)}</td>
-                    <td onClick={(e) => e.stopPropagation()}><Button size="sm" variant="outline" onClick={() => setPagamentoClienteId(cliente.id)}><CreditCard className="h-4 w-4 mr-2" />Registrar</Button></td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setPagamentoClienteId(cliente.id)}><CreditCard className="h-4 w-4 mr-2" />Registrar</Button>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/financeiro/faturas-lojistas?cliente=${cliente.id}`)}><FileDown className="h-4 w-4 mr-2" />Gerar PDF</Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 ? <tr><td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">Nenhum cliente encontrado.</td></tr> : null}

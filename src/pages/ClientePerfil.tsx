@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CreditCard, Loader2, Plus, Smartphone, Wrench } from "lucide-react";
+import { ArrowLeft, CreditCard, FileDown, Loader2, Plus, Smartphone } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useClientesSaldos } from "@/hooks/useClientesSaldos";
@@ -39,6 +39,7 @@ type AparelhoCliente = {
 const fmtCurrency = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null | undefined) => d ? new Date(d.includes("T") ? d : `${d}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 const toISODate = (d: Date) => d.toISOString().split("T")[0];
+const currentDate = new Date();
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const monthLabel = (key: string) => {
   const [year, month] = key.split("-").map(Number);
@@ -67,6 +68,8 @@ export default function ClientePerfil() {
     const months = periodo === "3m" ? 2 : 5;
     return { inicio: toISODate(new Date(today.getFullYear(), today.getMonth() - months, 1)), fim: toISODate(today) };
   }, [customFim, customInicio, periodo]);
+  const exportInicio = periodoFiltro.inicio ?? toISODate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
+  const exportFim = periodoFiltro.fim ?? toISODate(currentDate);
 
   const { data: extrato = [], isLoading: loadingExtrato } = useExtratoCliente(id, periodoFiltro.inicio, periodoFiltro.fim);
   const { data: pagamentos = [], isLoading: loadingPagamentos } = usePagamentosClienteLista(id);
@@ -185,6 +188,7 @@ export default function ClientePerfil() {
             setCustomInicio={setCustomInicio}
             customFim={customFim}
             setCustomFim={setCustomFim}
+            onExportPDF={() => navigate(`/financeiro/faturas-lojistas?cliente=${id}&inicio=${exportInicio}&fim=${exportFim}`)}
           />
         </TabsContent>
 
@@ -241,7 +245,7 @@ function ClienteAnaliseMensal({ data }: { data: Array<{ mes: string; faturamento
   );
 }
 
-function ExtratoTab({ extrato, isLoading, periodo, setPeriodo, customInicio, setCustomInicio, customFim, setCustomFim }: {
+function ExtratoTab({ extrato, isLoading, periodo, setPeriodo, customInicio, setCustomInicio, customFim, setCustomFim, onExportPDF }: {
   extrato: ExtratoClienteItem[];
   isLoading: boolean;
   periodo: Periodo;
@@ -250,11 +254,17 @@ function ExtratoTab({ extrato, isLoading, periodo, setPeriodo, customInicio, set
   setCustomInicio: (v: string) => void;
   customFim: string;
   setCustomFim: (v: string) => void;
+  onExportPDF: () => void;
 }) {
   return (
     <div className="rounded-lg border bg-card">
       <div className="flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
-        <h2 className="text-base font-semibold">Extrato</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold">Extrato</h2>
+          <Button size="sm" variant="outline" onClick={onExportPDF} className="gap-1.5">
+            <FileDown className="h-3.5 w-3.5" /> Exportar PDF
+          </Button>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {([ ["mes", "Mês corrente"], ["3m", "3 meses"], ["6m", "6 meses"], ["custom", "Custom"] ] as Array<[Periodo, string]>).map(([value, label]) => (
             <Button key={value} type="button" size="sm" variant={periodo === value ? "default" : "outline"} onClick={() => setPeriodo(value)}>{label}</Button>
