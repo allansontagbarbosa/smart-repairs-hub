@@ -9,6 +9,7 @@ import { ContasPagar } from "@/components/financeiro/ContasPagar";
 import { Comissoes } from "@/components/financeiro/Comissoes";
 import { Recebimentos } from "@/components/financeiro/Recebimentos";
 import { FluxoCaixa } from "@/components/financeiro/FluxoCaixa";
+import { SaldoDeClientesTab } from "@/components/financeiro/SaldoDeClientesTab";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 export default function Financeiro() {
@@ -35,7 +36,7 @@ export default function Financeiro() {
       </div>
 
       <Tabs defaultValue="fluxo" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 lg:max-w-4xl h-auto">
           <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="contas">
@@ -55,6 +56,7 @@ export default function Financeiro() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="saldo-clientes">Saldo de Clientes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fluxo">
@@ -82,6 +84,10 @@ export default function Financeiro() {
 
         <TabsContent value="comissoes">
           <Comissoes comissoes={comissoes} funcionarios={funcionarios} tiposServico={tiposServico} onViewOrder={setSelectedOrderId} />
+        </TabsContent>
+
+        <TabsContent value="saldo-clientes">
+          <SaldoDeClientesTab />
         </TabsContent>
       </Tabs>
 

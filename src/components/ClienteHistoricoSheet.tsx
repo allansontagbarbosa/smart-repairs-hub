@@ -231,7 +231,7 @@ function SummaryCard({ label, value, valueClassName = "", featured = false }: { 
   );
 }
 
-function RegistrarPagamentoDialog({ open, onOpenChange, clienteId }: { open: boolean; onOpenChange: (open: boolean) => void; clienteId: string }) {
+export function RegistrarPagamentoDialog({ open, onOpenChange, clienteId }: { open: boolean; onOpenChange: (open: boolean) => void; clienteId: string }) {
   const [valor, setValor] = useState(0);
   const [forma, setForma] = useState("pix");
   const [dataPagamento, setDataPagamento] = useState(new Date().toISOString().split("T")[0]);

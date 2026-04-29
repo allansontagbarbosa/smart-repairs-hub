@@ -22,6 +22,7 @@ import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
 import FaturasLojistas from "./pages/FaturasLojistas";
 import Clientes from "./pages/Clientes";
+import ClientePerfil from "./pages/ClientePerfil";
 import Fornecedores from "./pages/Fornecedores";
 import Compras from "./pages/Compras";
 import ConsultaCliente from "./pages/ConsultaCliente";
@@ -129,6 +130,7 @@ const App = () => (
                     <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
                     <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="financeiro.ver"><FaturasLojistas /></ProtectedRoute>} />
                     <Route path="/clientes" element={<ProtectedRoute permissao="clientes.ver"><Clientes /></ProtectedRoute>} />
+                    <Route path="/clientes/:id" element={<ProtectedRoute permissao="clientes.ver"><ClientePerfil /></ProtectedRoute>} />
                     <Route path="/fornecedores" element={<ProtectedRoute permissao="pecas.ver"><Fornecedores /></ProtectedRoute>} />
                     <Route path="/compras" element={<ProtectedRoute permissao="pecas.ver"><Compras /></ProtectedRoute>} />
                     <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
