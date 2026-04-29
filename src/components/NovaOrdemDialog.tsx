@@ -34,6 +34,7 @@ import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
 import { ServicosSelector } from "@/components/ServicosSelector";
+import { ServicosOSEditor, type ServicoOSPayload } from "@/components/ordens/ServicosOSEditor";
 import { Link } from "react-router-dom";
 import { suggestServicos } from "@/lib/sugestoesServico";
 
@@ -72,6 +73,8 @@ interface DefeitoSelecionado {
   categoria?: string;
   valor_mao_obra: number;
   comissao_padrao: number;
+  tecnico_id?: string | null;
+  os_servico_id?: string;
 }
 
 interface PecaSelecionada {
