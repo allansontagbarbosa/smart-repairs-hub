@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type ElementType, type FormEvent } from "react";
 import { ArrowDownUp, Loader2, MessageCircle, Pencil, Phone, Plus, Search, TrendingUp, Users, Wallet, Wrench } from "lucide-react";
 import { ClienteHistorico } from "@/components/ClienteHistoricoSheet";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
@@ -249,7 +249,7 @@ export default function Clientes() {
   );
 }
 
-function KpiCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+function KpiCard({ icon: Icon, label, value }: { icon: ElementType; label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-card p-4">
       <div className="flex items-center gap-3">
