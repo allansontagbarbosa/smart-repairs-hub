@@ -256,8 +256,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         nome: s.nome,
         categoria: s.categoria || "geral",
         valor_mao_obra: Number(s.valor_padrao) || 0,
+        valor_padrao: Number(s.valor_padrao) || 0,
         comissao_padrao: Number(s.comissao_padrao) || 0,
       }));
+    },
+  });
+
+  const { data: tecnicosAtivos = [] } = useQuery<any[]>({
+    queryKey: ["funcionarios_ativos_nova_os"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
