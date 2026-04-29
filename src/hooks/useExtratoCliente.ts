@@ -6,6 +6,9 @@ export type ExtratoClienteItem = {
   tipo: "os" | "pagamento";
   referencia_id: string;
   descricao: string;
+  imei: string | null;
+  modelo_aparelho: string | null;
+  servicos_realizados: string | null;
   debito: number;
   credito: number;
   saldo_apos: number;
