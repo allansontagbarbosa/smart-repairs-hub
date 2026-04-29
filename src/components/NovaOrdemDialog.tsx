@@ -2043,6 +2043,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {!canSubmit ? (
                   <span>
                     ⚠️ Falta: {
+                      !todasPecasComEstoqueOk ? "ajustar quantidade de peça (estoque insuficiente)" :
                       !relatoCliente?.trim() ? "relato do cliente" :
                       !servicosEditorValue?.length ? "ao menos 1 serviço" :
                       "preencher campos obrigatórios"
