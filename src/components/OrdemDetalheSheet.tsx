@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText, Info, History, Ban, AlertTriangle, AlertCircle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
@@ -29,6 +30,8 @@ import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
+import { ServicosOSEditor } from "@/components/ordens/ServicosOSEditor";
+import { useOSServicos } from "@/hooks/useOSServicos";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
