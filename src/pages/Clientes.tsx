@@ -51,6 +51,8 @@ export default function Clientes() {
     clientesComDebito: filtered.filter((c) => Number(c.saldo_devedor ?? 0) > 0).length,
     totalFaturado: filtered.reduce((sum, c) => sum + Number(c.total_faturado ?? 0), 0),
   }), [filtered]);
+  const activeViewingClient = viewingClient ? clientes.find((c) => c.id === viewingClient.id) ?? viewingClient : null;
+  const activeEditingClient = editingClient ? clientes.find((c) => c.id === editingClient.id) ?? editingClient : null;
 
   const createMutation = useMutation({
     mutationFn: async (fd: FormData) => {
@@ -94,7 +96,7 @@ export default function Clientes() {
     onError: () => toast.error("Erro ao atualizar"),
   });
 
-  const fmtDate = (d: string | null) => d ? new Date(`${d}T00:00:00`).toLocaleDateString("pt-BR") : "—";
+  const fmtDate = (d: string | null) => d ? new Date(d.includes("T") ? d : `${d}T00:00:00`).toLocaleDateString("pt-BR") : "—";
   const fmtCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const saldoClass = (saldo: number) => saldo > 0 ? "text-destructive" : saldo < 0 ? "text-success" : "text-muted-foreground";
 
@@ -200,37 +202,37 @@ export default function Clientes() {
 
       <ClienteFormDialog open={dialogOpen} onOpenChange={setDialogOpen} title="Novo Cliente" onSubmit={(fd) => createMutation.mutate(fd)} isPending={createMutation.isPending} />
 
-      <Sheet open={!!editingClient} onOpenChange={(open) => { if (!open) setEditingClient(null); }}>
+      <Sheet open={!!activeEditingClient} onOpenChange={(open) => { if (!open) setEditingClient(null); }}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {editingClient && (
+          {activeEditingClient && (
             <>
-              <SheetHeader className="pb-4"><SheetTitle>{editingClient.nome}</SheetTitle></SheetHeader>
-              <ClienteHistorico cliente={editingClient} />
+              <SheetHeader className="pb-4"><SheetTitle>{activeEditingClient.nome}</SheetTitle></SheetHeader>
+              <ClienteHistorico cliente={activeEditingClient} />
               <Separator className="my-4" />
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Dados Cadastrais</p>
-              <ClienteForm defaultValues={editingClient} onSubmit={(fd) => updateMutation.mutate({ id: editingClient.id, fd })} isPending={updateMutation.isPending} submitLabel="Salvar Alterações" />
+              <ClienteForm defaultValues={activeEditingClient} onSubmit={(fd) => updateMutation.mutate({ id: activeEditingClient.id, fd })} isPending={updateMutation.isPending} submitLabel="Salvar Alterações" />
             </>
           )}
         </SheetContent>
       </Sheet>
 
-      <Sheet open={!!viewingClient} onOpenChange={(open) => { if (!open) setViewingClient(null); }}>
+      <Sheet open={!!activeViewingClient} onOpenChange={(open) => { if (!open) setViewingClient(null); }}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {viewingClient && (
+          {activeViewingClient && (
             <>
-              <SheetHeader className="pb-4"><SheetTitle>{viewingClient.nome}</SheetTitle></SheetHeader>
+              <SheetHeader className="pb-4"><SheetTitle>{activeViewingClient.nome}</SheetTitle></SheetHeader>
               <Button
                 size="sm"
                 className="w-full mb-4 gap-1.5"
                 onClick={() => {
-                  setNovaOsClienteId(viewingClient.id);
+                  setNovaOsClienteId(activeViewingClient.id);
                   setNovaOsOpen(true);
                 }}
               >
                 <Wrench className="h-3.5 w-3.5" />
                 Nova OS para este cliente
               </Button>
-              <ClienteHistorico cliente={viewingClient} />
+              <ClienteHistorico cliente={activeViewingClient} />
             </>
           )}
         </SheetContent>
