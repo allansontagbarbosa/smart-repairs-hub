@@ -43,31 +43,41 @@ export function SaldoDeClientesTab() {
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
-      setSortDirection((current) => current === "desc" ? "asc" : "desc");
+      const nextDirection = sortDirection === "desc" ? "asc" : "desc";
+      setSortDirection(nextDirection);
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set("ordem_saldo", key);
+        next.set("dir_saldo", nextDirection);
+        return next;
+      });
       return;
     }
     setSortKey(key);
     setSortDirection("desc");
     setSearchParams((current) => {
-      current.set("ordem_saldo", key);
-      current.set("dir_saldo", "desc");
-      return current;
+      const next = new URLSearchParams(current);
+      next.set("ordem_saldo", key);
+      next.set("dir_saldo", "desc");
+      return next;
     });
   };
 
   const setSearch = (value: string) => {
     setSearchState(value);
     setSearchParams((current) => {
-      value ? current.set("busca_saldo", value) : current.delete("busca_saldo");
-      return current;
+      const next = new URLSearchParams(current);
+      value ? next.set("busca_saldo", value) : next.delete("busca_saldo");
+      return next;
     });
   };
 
   const setOnlyDebito = (value: boolean) => {
     setOnlyDebitoState(value);
     setSearchParams((current) => {
-      current.set("com_debito", String(value));
-      return current;
+      const next = new URLSearchParams(current);
+      next.set("com_debito", String(value));
+      return next;
     });
   };
 

@@ -96,24 +96,27 @@ export default function ClientePerfil() {
   const setPeriodo = (value: Periodo) => {
     setPeriodoState(value);
     setSearchParams((current) => {
-      current.set("periodo", value);
-      return current;
+      const next = new URLSearchParams(current);
+      next.set("periodo", value);
+      return next;
     });
   };
 
   const setCustomInicio = (value: string) => {
     setCustomInicioState(value);
     setSearchParams((current) => {
-      value ? current.set("inicio", value) : current.delete("inicio");
-      return current;
+      const next = new URLSearchParams(current);
+      value ? next.set("inicio", value) : next.delete("inicio");
+      return next;
     });
   };
 
   const setCustomFim = (value: string) => {
     setCustomFimState(value);
     setSearchParams((current) => {
-      value ? current.set("fim", value) : current.delete("fim");
-      return current;
+      const next = new URLSearchParams(current);
+      value ? next.set("fim", value) : next.delete("fim");
+      return next;
     });
   };
 
