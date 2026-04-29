@@ -172,14 +172,14 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                       <RowCheckbox checked={bulk.isSelected(p.id)} onToggle={(e) => bulk.toggle(p.id, e)} />
                     </td>
                     <td className="p-3 font-medium">
-                      {p.nome}
+                      {p.nome_personalizado}
                       <div className="text-xs text-muted-foreground">
                         {(p as any).marcas?.nome} {(p as any).modelos?.nome}
                       </div>
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{p.sku || "—"}</td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{(p as any).estoque_categorias?.nome || "—"}</td>
-                    <td className="p-3 hidden md:table-cell">{fmt(p.preco_padrao || 0)}</td>
+                    <td className="p-3 hidden md:table-cell">{fmt(p.preco_venda || 0)}</td>
                     <td className="p-3">
                       <Badge variant={p.ativo ? "default" : "secondary"}>
                         {p.ativo ? "Ativo" : "Inativo"}
