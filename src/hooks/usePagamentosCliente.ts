@@ -27,8 +27,10 @@ export function useCriarPagamentoCliente() {
       }
       return data as { success: boolean; saldo_devedor_atual?: number; pagamento_id?: string };
     },
-    onSuccess: (data) => {
-      toast.success(`Pagamento registrado. Saldo atual: R$ ${Number(data.saldo_devedor_atual ?? 0).toFixed(2)}`);
+    onSuccess: (data, params) => {
+      const valor = Number(params.valor ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const saldo = Number(data.saldo_devedor_atual ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      toast.success(`Pagamento de ${valor} registrado. Saldo atual: ${saldo}`);
       qc.invalidateQueries({ queryKey: ["clientes-saldos"] });
       qc.invalidateQueries({ queryKey: ["saldo-cliente"] });
       qc.invalidateQueries({ queryKey: ["extrato-cliente"] });
