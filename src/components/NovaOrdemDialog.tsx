@@ -1086,7 +1086,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-[1100px] w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0">
 
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 text-base">
@@ -1473,7 +1473,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
           {/* ═══ STEP 3 — SERVIÇO ═══ */}
           {step === "servico" && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-[1fr_320px] max-h-[70vh]">
+              <div className="overflow-y-auto px-7 py-6 space-y-4">
 
               {/* ── 1. RELATO DO CLIENTE * ── */}
               <div>
