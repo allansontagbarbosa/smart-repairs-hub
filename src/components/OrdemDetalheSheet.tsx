@@ -1332,6 +1332,25 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   </div>
                 </div>
 
+                <Card>
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <CardTitle className="text-sm">Serviços executados</CardTitle>
+                      <Badge variant="secondary">{servicosOSDetalhados.length} serviço(s)</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Cada serviço pode ter um técnico diferente. A comissão é calculada por serviço.</p>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <ServicosOSEditor
+                      ordemId={ordem.id}
+                      servicosIniciais={servicosOSDetalhados}
+                      tiposServico={tiposServico as any[]}
+                      tecnicos={tecnicos as any[]}
+                      onSave={() => queryClient.invalidateQueries({ queryKey: ["ordem", orderId] })}
+                    />
+                  </CardContent>
+                </Card>
+
                 {/* Serviço */}
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Serviço</p>
