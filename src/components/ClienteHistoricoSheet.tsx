@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -238,7 +238,7 @@ function RegistrarPagamentoDialog({ open, onOpenChange, clienteId }: { open: boo
   const [observacoes, setObservacoes] = useState("");
   const criarPagamento = useCriarPagamentoCliente();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (valor <= 0) {
       return;
