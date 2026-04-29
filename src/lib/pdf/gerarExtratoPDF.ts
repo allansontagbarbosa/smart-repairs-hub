@@ -95,7 +95,7 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
     margin: { left: margin, right: margin },
     tableWidth: pageWidth - margin * 2,
     theme: "grid",
-    head: [["Data", "Descrição", "Débito", "Crédito", "Saldo após"]],
+    head: [["Data", "Descrição", "Débito", "Crédito", "Saldo"]],
     body: payload.extrato.map((item) => [
       date(item.data),
       item.descricao,
@@ -103,7 +103,7 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
       Number(item.credito) > 0 ? currency(item.credito) : "—",
       currency(item.saldo_apos),
     ]),
-    styles: { font: "helvetica", fontSize: 7.5, cellPadding: 4, overflow: "linebreak" },
+    styles: { font: "helvetica", fontSize: 7, cellPadding: 3, overflow: "linebreak", minCellWidth: 10 },
     headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold" },
     columnStyles: {
       0: { cellWidth: 66 },
