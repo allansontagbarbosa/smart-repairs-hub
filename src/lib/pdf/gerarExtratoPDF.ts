@@ -92,6 +92,8 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
 
   autoTable(doc, {
     startY: 186,
+    margin: { left: margin, right: margin },
+    tableWidth: pageWidth - margin * 2,
     theme: "grid",
     head: [["Data", "Descrição", "Débito", "Crédito", "Saldo após"]],
     body: payload.extrato.map((item) => [
@@ -101,14 +103,14 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
       Number(item.credito) > 0 ? currency(item.credito) : "—",
       currency(item.saldo_apos),
     ]),
-    styles: { font: "helvetica", fontSize: 8, cellPadding: 5, overflow: "linebreak" },
+    styles: { font: "helvetica", fontSize: 7.5, cellPadding: 4, overflow: "linebreak" },
     headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold" },
     columnStyles: {
       0: { cellWidth: 58 },
-      1: { cellWidth: 210 },
-      2: { halign: "right", cellWidth: 72 },
-      3: { halign: "right", cellWidth: 72 },
-      4: { halign: "right", cellWidth: 80 },
+      1: { cellWidth: 205 },
+      2: { halign: "right", cellWidth: 70 },
+      3: { halign: "right", cellWidth: 70 },
+      4: { halign: "right", cellWidth: 78 },
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => {
