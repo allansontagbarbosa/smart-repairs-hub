@@ -58,7 +58,7 @@ export function nomeArquivoExtratoPDF(payload: Pick<ExtratoPDFPayload, "cliente"
 }
 
 export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 40;
@@ -106,11 +106,11 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
     styles: { font: "helvetica", fontSize: 7.5, cellPadding: 4, overflow: "linebreak" },
     headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: "bold" },
     columnStyles: {
-      0: { cellWidth: 58 },
-      1: { cellWidth: 205 },
-      2: { halign: "right", cellWidth: 70 },
-      3: { halign: "right", cellWidth: 70 },
-      4: { halign: "right", cellWidth: 78 },
+      0: { cellWidth: 70 },
+      1: { cellWidth: 410 },
+      2: { halign: "right", cellWidth: 86 },
+      3: { halign: "right", cellWidth: 86 },
+      4: { halign: "right", cellWidth: 94 },
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => {
