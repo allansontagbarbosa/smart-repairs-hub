@@ -34,6 +34,7 @@ import { EtiquetaOS } from "@/components/EtiquetaOS";
 import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
 import { ServicosSelector } from "@/components/ServicosSelector";
+import { ServicosOSEditor, type ServicoOSPayload } from "@/components/ordens/ServicosOSEditor";
 import { Link } from "react-router-dom";
 import { suggestServicos } from "@/lib/sugestoesServico";
 
@@ -72,6 +73,8 @@ interface DefeitoSelecionado {
   categoria?: string;
   valor_mao_obra: number;
   comissao_padrao: number;
+  tecnico_id?: string | null;
+  os_servico_id?: string;
 }
 
 interface PecaSelecionada {
@@ -253,8 +256,23 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         nome: s.nome,
         categoria: s.categoria || "geral",
         valor_mao_obra: Number(s.valor_padrao) || 0,
+        valor_padrao: Number(s.valor_padrao) || 0,
         comissao_padrao: Number(s.comissao_padrao) || 0,
       }));
+    },
+  });
+
+  const { data: tecnicosAtivos = [] } = useQuery<any[]>({
+    queryKey: ["funcionarios_ativos_nova_os"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("nome");
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -588,6 +606,31 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     return m;
   }, [defeitosSelecionados]);
 
+  const servicosEditorValue: ServicoOSPayload[] = useMemo(() => defeitosSelecionados.map((d) => ({
+    id: d.os_servico_id,
+    servico_id: d.id,
+    tecnico_id: d.tecnico_id ?? null,
+    valor: d.valor_mao_obra,
+    comissao: d.comissao_padrao,
+  })), [defeitosSelecionados]);
+
+  function syncServicosEditor(servicos: ServicoOSPayload[]) {
+    setDefeitosSelecionados(servicos
+      .filter((s) => s.servico_id)
+      .map((s) => {
+        const tipo = tiposDefeito.find((t) => t.id === s.servico_id);
+        return {
+          id: s.servico_id,
+          os_servico_id: s.id,
+          nome: tipo?.nome ?? "Serviço",
+          categoria: tipo?.categoria,
+          valor_mao_obra: Number(s.valor) || 0,
+          comissao_padrao: Number(s.comissao) || 0,
+          tecnico_id: s.tecnico_id ?? null,
+        };
+      }));
+  }
+
   // ── Reset ──
   function resetAll() {
     setStep("cliente");
@@ -861,19 +904,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       };
 
 
-      // 3. Inserir os_servicos (N:N) — com snapshot de comissão do serviço
+      // 3. Inserir os_servicos (N:N) via RPC v2 — com técnico e snapshot de comissão por serviço
       if (defeitosSelecionados.length > 0) {
-        const { error: defErr } = await supabase.from("os_servicos").insert(
-          defeitosSelecionados.map(d => ({
-            ordem_id: ordem.id,
-            servico_id: d.id,
-            nome: d.nome,
-            valor: d.valor_mao_obra,
-            categoria: d.categoria,
-            comissao: d.comissao_padrao || 0,
-          })) as any
-        );
+        const { data: servData, error: defErr } = await supabase.rpc("editar_os_servicos_v2" as any, {
+          p_ordem_id: ordem.id,
+          p_servicos: servicosEditorValue.map((s) => ({
+            servico_id: s.servico_id,
+            tecnico_id: s.tecnico_id,
+            valor: s.valor,
+            comissao: s.comissao,
+          })),
+        });
         if (defErr) throw defErr;
+        if ((servData as any)?.success === false) throw new Error((servData as any)?.error || "Erro ao salvar serviços");
       }
 
       // 4. Inserir pecas_utilizadas — com preço cobrado e origem (serviço auto vs avulsa)
@@ -1401,10 +1444,19 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               )}
 
               {/* ── 3. SERVIÇOS SELECIONADOS ── */}
-              <ServicosSelector
-                value={defeitosSelecionados}
-                onChange={setDefeitosSelecionados}
-              />
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Serviços executados
+                </Label>
+                <p className="text-[11px] text-muted-foreground">Cada serviço pode ter um técnico diferente.</p>
+                <ServicosOSEditor
+                  servicosIniciais={servicosEditorValue}
+                  tiposServico={tiposDefeito as any[]}
+                  tecnicos={tecnicosAtivos as any[]}
+                  autoSave={false}
+                  onChange={syncServicosEditor}
+                />
+              </div>
 
               {/* ── 4. PEÇAS UTILIZADAS ── */}
               <div>

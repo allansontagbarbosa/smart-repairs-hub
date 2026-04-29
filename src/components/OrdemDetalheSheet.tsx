@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Pencil, X, Check, ChevronRight, Phone, Smartphone, Clock, User, Plus, Trash2, Printer, Star, Copy, Share2, Shield, FileText, Info, History, Ban, AlertTriangle, AlertCircle } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
@@ -29,6 +30,8 @@ import { ResultadoFinanceiroOS } from "@/components/ResultadoFinanceiroOS";
 import { useReactToPrint } from "react-to-print";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { ServicosSelector, type ServicoSelecionado } from "@/components/ServicosSelector";
+import { ServicosOSEditor } from "@/components/ordens/ServicosOSEditor";
+import { useOSServicos } from "@/hooks/useOSServicos";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
@@ -55,8 +58,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
   const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
+  const [servicosEditorDraft, setServicosEditorDraft] = useState<any[]>([]);
 
-  // Edição de serviços vinculados (os_servicos)
+  // Edição legada de serviços vinculados (mantida apenas para compatibilidade de tipos antigos)
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
   const [removeServicosWarnOpen, setRemoveServicosWarnOpen] = useState(false);
   const [pendingRemovedServicos, setPendingRemovedServicos] = useState<Array<{ id: string; nome: string; comissao: number }>>([]);
@@ -177,7 +181,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico_os"],
     queryFn: async () => {
-      const { data } = await supabase.from("tipos_servico").select("id, nome").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("tipos_servico").select("id, nome, valor_padrao, comissao_padrao").eq("ativo", true).order("nome");
       return data || [];
     },
   });
@@ -210,6 +214,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     ? { id: ordem.funcionario_id, nome: ordem.tecnico || "Atribuição atual", atual: true }
     : null;
   const tecnicos = tecnicoAtualForaDaLista ? [tecnicoAtualForaDaLista, ...funcionariosAtivos] : funcionariosAtivos;
+
+  const { data: servicosOSDetalhados = [] } = useOSServicos(orderId);
+
+  useEffect(() => {
+    setServicosEditorDraft(servicosOSDetalhados);
+  }, [servicosOSDetalhados]);
 
   // Lista de lojistas ativos da empresa
   const { data: lojistasAtivos = [] } = useQuery({
@@ -708,9 +718,15 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     const diff = calcularDiff(ordem, payload);
     const camposAlterados = Object.keys(diff).length > 0;
 
-    // Diff dos serviços vinculados
-    const { adicionar, remover, removerInfo } = calcDiffServicos();
-    const servicosAlterados = adicionar.length > 0 || remover.length > 0;
+    // Diff dos serviços vinculados no editor v2
+    const normalizeServicos = (items: any[]) => items.map((s) => ({
+      id: s.id ?? null,
+      servico_id: s.servico_id,
+      tecnico_id: s.tecnico_id ?? null,
+      valor: Number(s.valor) || 0,
+      comissao: Number(s.comissao) || 0,
+    }));
+    const servicosAlterados = JSON.stringify(normalizeServicos(servicosEditorDraft)) !== JSON.stringify(normalizeServicos(servicosOSDetalhados));
 
     // Nada mudou? fecha
     if (!camposAlterados && !servicosAlterados) {
@@ -719,26 +735,26 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     }
 
     // Função interna que dispara as duas mutations (campos + serviços) na ordem
-    const dispatchAll = (campos: Record<string, any> | null) => {
+    const dispatchAll = async (campos: Record<string, any> | null) => {
       if (campos) {
         editarOSAdmin.mutate({ dados: campos, pulou_fluxo: false });
       } else {
         // só serviços mudaram → fecha edição manualmente após sucesso
         setEditing(false);
       }
-      if (servicosAlterados) {
-        editarServicos.mutate({ adicionar, remover });
+      if (servicosAlterados && ordem?.id) {
+        const { data, error } = await supabase.rpc("editar_os_servicos_v2" as any, {
+          p_ordem_id: ordem.id,
+          p_servicos: normalizeServicos(servicosEditorDraft),
+        });
+        if (error) { toast.error(error.message); return; }
+        if ((data as any)?.success === false) { toast.error((data as any)?.error || "Erro ao salvar serviços"); return; }
+        queryClient.invalidateQueries({ queryKey: ["os-servicos-v2", orderId] });
+        queryClient.invalidateQueries({ queryKey: ["os-servicos", orderId] });
+        queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+        toast.success("Serviços atualizados");
       }
     };
-
-    // Se vamos remover serviços com comissão > 0, confirmar primeiro
-    const removidosComComissao = removerInfo.filter((r) => r.comissao > 0);
-    if (removidosComComissao.length > 0) {
-      setPendingRemovedServicos(removidosComComissao);
-      setPendingEditPayload(camposAlterados ? payload : null);
-      setRemoveServicosWarnOpen(true);
-      return;
-    }
 
     // Warning se valor mudou e já existe comissão
     const valorNovo = valorStr ? parseFloat(valorStr) : null;
@@ -746,8 +762,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     if (camposAlterados && valorNovo !== valorAtual && comissoesOS.length > 0) {
       setPendingEditPayload(payload);
       setValorWarningOpen(true);
-      // serviços (sem comissão) podem seguir junto
-      if (servicosAlterados) editarServicos.mutate({ adicionar, remover });
       return;
     }
 
@@ -1044,14 +1058,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         <Label className="text-xs">Observações internas (só equipe vê)</Label>
                         <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
                       </div>
-                      <div className="pt-2 border-t">
-                        <ServicosSelector
-                          value={servicosSelecionados}
-                          onChange={setServicosSelecionados}
-                          label="Serviços vinculados"
-                          hint="Busque e adicione os serviços feitos nesta OS. Remover um serviço estorna a comissão vinculada."
-                        />
-                      </div>
+                      <Card className="mt-3">
+                        <CardHeader className="p-4 pb-2">
+                          <CardTitle className="text-sm">Serviços executados</CardTitle>
+                          <p className="text-xs text-muted-foreground">Cada serviço pode ter um técnico diferente. A comissão é calculada por serviço.</p>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <ServicosOSEditor
+                            ordemId={ordem.id}
+                            servicosIniciais={servicosOSDetalhados}
+                            tiposServico={tiposServico as any[]}
+                            tecnicos={tecnicos as any[]}
+                            autoSave={false}
+                            onChange={setServicosEditorDraft}
+                          />
+                        </CardContent>
+                      </Card>
                       <p className="text-[11px] text-muted-foreground italic">
                         Para adicionar/remover peças, use as ações dedicadas fora deste formulário.
                       </p>
@@ -1313,6 +1335,25 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     )}
                   </div>
                 </div>
+
+                <Card>
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <CardTitle className="text-sm">Serviços executados</CardTitle>
+                      <Badge variant="secondary">{servicosOSDetalhados.length} serviço(s)</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Cada serviço pode ter um técnico diferente. A comissão é calculada por serviço.</p>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <ServicosOSEditor
+                      ordemId={ordem.id}
+                      servicosIniciais={servicosOSDetalhados}
+                      tiposServico={tiposServico as any[]}
+                      tecnicos={tecnicos as any[]}
+                      onSave={() => queryClient.invalidateQueries({ queryKey: ["ordem", orderId] })}
+                    />
+                  </CardContent>
+                </Card>
 
                 {/* Serviço */}
                 <div>
@@ -1638,16 +1679,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
-                    {(() => {
-                      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
-                      const tipoServ = tiposServico.find(t => t.id === ordem.tipo_servico_id);
-                      return (
-                        <>
-                          <InfoRow label="Técnico" value={func?.nome ?? ordem.tecnico ?? "—"} />
-                          <InfoRow label="Tipo de serviço" value={tipoServ?.nome ?? "—"} />
-                        </>
-                      );
-                    })()}
                     <InfoRow label="Data entrada" value={fmtDate(ordem.data_entrada)} />
                     <InfoRow label="Previsão entrega" value={fmtDate(ordem.previsao_entrega)} />
                     <InfoRow label="Conclusão" value={fmtDate(ordem.data_conclusao)} />
