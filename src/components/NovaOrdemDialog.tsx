@@ -1037,12 +1037,16 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const canAdvanceAparelho = !!marca && !!modelo;
   const justificativaOk = !isRetroativa || justificativaRetroativa.trim().length >= 10;
   const podeRetroativa = !isRetroativa || isAdmin;
+  const todasPecasComEstoqueOk = (pecasSelecionadas ?? []).every(
+    (p) => Number(p.quantidade) <= Number(p.estoque_disponivel)
+  );
   const canSubmit =
     canAdvanceCliente &&
     canAdvanceAparelho &&
     (defeitosSelecionados.length > 0 || !!relatoCliente.trim()) &&
     justificativaOk &&
-    podeRetroativa;
+    podeRetroativa &&
+    todasPecasComEstoqueOk;
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
@@ -1068,9 +1072,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   function updatePecaQtd(id: string, delta: number) {
     setPecasSelecionadas(prev => prev.map(p => {
       if (p.id !== id) return p;
-      // Permitir quantidade > estoque (com warning visual depois)
-      const novoMax = Math.max(p.estoque_disponivel, p.quantidade + delta);
-      const newQtd = Math.max(1, Math.min(novoMax, p.quantidade + delta));
+      const newQtd = Math.max(0, Math.min(p.estoque_disponivel, p.quantidade + delta));
       return { ...p, quantidade: newQtd };
     }));
   }
