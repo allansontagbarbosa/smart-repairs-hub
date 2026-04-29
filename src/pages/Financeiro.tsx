@@ -56,6 +56,7 @@ export default function Financeiro() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="saldo-clientes">Saldo de Clientes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fluxo">

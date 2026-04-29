@@ -1,4 +1,5 @@
 import { useMemo, useState, type ElementType, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowDownUp, Loader2, MessageCircle, Pencil, Phone, Plus, Search, TrendingUp, Users, Wallet, Wrench } from "lucide-react";
 import { ClienteHistorico } from "@/components/ClienteHistoricoSheet";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
@@ -28,6 +29,7 @@ export default function Clientes() {
   const [sortKey, setSortKey] = useState<SortKey>("saldo_devedor");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { can } = usePermissoes();
 
   const { data: clientes = [], isLoading } = useClientesSaldos();
@@ -154,7 +156,7 @@ export default function Clientes() {
               </thead>
               <tbody>
                 {filtered.map((c) => (
-                  <tr key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewingClient(c)}>
+                  <tr key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/clientes/${c.id}`)}>
                     <td>
                       <p className="text-sm font-medium text-primary hover:underline">{c.nome}</p>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -231,6 +233,14 @@ export default function Clientes() {
               >
                 <Wrench className="h-3.5 w-3.5" />
                 Nova OS para este cliente
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full mb-4"
+                onClick={() => navigate(`/clientes/${activeViewingClient.id}`)}
+              >
+                Ver perfil completo
               </Button>
               <ClienteHistorico cliente={activeViewingClient} />
             </>
