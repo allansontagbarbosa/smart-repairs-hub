@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Search, Plus, Pencil, EyeOff, Minus, MapPin, Download, Power } from "lucide-react";
+import { Search, Pencil, EyeOff, MapPin, Download, Power } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScannableInput } from "@/components/ui/scannable-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,19 +98,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     onError: (err: any) => toast.error("Erro ao alterar peça", { description: err?.message }),
   });
 
-  const ajustarMutation = useMutation({
-    mutationFn: async ({ id, delta }: { id: string; delta: number }) => {
-      const item = itens.find(i => i.id === id);
-      if (!item) return;
-      const novaQtd = item.quantidade + delta;
-      const { error } = await supabase.from("estoque_itens").update({ quantidade: novaQtd }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
-    },
-  });
-
   const bulkToggleStatusMutation = useMutation({
     mutationFn: async ({ ids, status }: { ids: string[]; status: "ativo" | "inativo" }) => {
       const { error } = await supabase.from("estoque_itens").update({ status }).in("id", ids);
@@ -182,9 +168,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
           onClick={() => setMostrarInativas(v => !v)}
         >
           {mostrarInativas ? "Ocultar inativas" : "Mostrar inativas"}
-        </Button>
-        <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingItem(null); setDialogOpen(true); }}>
-          <Plus className="h-3.5 w-3.5" /> Nova Peça
         </Button>
       </div>
 
@@ -287,39 +270,16 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                       {[item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" / ") || "—"}
                     </td>
                     <td className="text-center">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => ajustarMutation.mutate({ id: item.id, delta: -1 })}
-                          className="h-6 w-6 rounded-md border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <span className={cn("text-sm font-medium min-w-8 text-center", isBaixo && "text-destructive font-bold")}>
-                          {item.quantidade}
-                        </span>
-                        <button
-                          onClick={() => ajustarMutation.mutate({ id: item.id, delta: 1 })}
-                          className="h-6 w-6 rounded-md border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
+                      <span className={cn("text-sm font-medium min-w-8 text-center inline-block", isBaixo && "text-destructive font-bold")}>
+                        {item.quantidade}
+                      </span>
                     </td>
                     <td className="hidden sm:table-cell text-center text-sm text-muted-foreground">{item.quantidade_minima || "—"}</td>
                     <td className="hidden md:table-cell text-sm text-right">
                       {item.custo_medio && item.custo_medio > 0 ? (
                         <span className="font-mono text-xs">{fmtCurrency(item.custo_medio)}</span>
                       ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-muted-foreground cursor-help">—</span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              Sem custo registrado. Registre uma compra ou faça ajuste de estoque inicial.
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <span className="text-xs text-muted-foreground">Sem entrada registrada</span>
                       )}
                     </td>
                     <td className="hidden md:table-cell text-sm text-right">
