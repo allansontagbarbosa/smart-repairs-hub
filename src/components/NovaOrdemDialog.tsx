@@ -1037,12 +1037,16 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const canAdvanceAparelho = !!marca && !!modelo;
   const justificativaOk = !isRetroativa || justificativaRetroativa.trim().length >= 10;
   const podeRetroativa = !isRetroativa || isAdmin;
+  const todasPecasComEstoqueOk = (pecasSelecionadas ?? []).every(
+    (p) => Number(p.quantidade) <= Number(p.estoque_disponivel)
+  );
   const canSubmit =
     canAdvanceCliente &&
     canAdvanceAparelho &&
     (defeitosSelecionados.length > 0 || !!relatoCliente.trim()) &&
     justificativaOk &&
-    podeRetroativa;
+    podeRetroativa &&
+    todasPecasComEstoqueOk;
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
@@ -1068,9 +1072,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   function updatePecaQtd(id: string, delta: number) {
     setPecasSelecionadas(prev => prev.map(p => {
       if (p.id !== id) return p;
-      // Permitir quantidade > estoque (com warning visual depois)
-      const novoMax = Math.max(p.estoque_disponivel, p.quantidade + delta);
-      const newQtd = Math.max(1, Math.min(novoMax, p.quantidade + delta));
+      const newQtd = Math.max(0, Math.min(p.estoque_disponivel, p.quantidade + delta));
       return { ...p, quantidade: newQtd };
     }));
   }
@@ -1630,14 +1632,15 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                               <Input
                                 type="number"
                                 min="1"
+                                max={p.estoque_disponivel}
                                 value={p.quantidade}
                                 onChange={(e) => {
-                                  const v = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                  const v = Math.max(0, Math.min(p.estoque_disponivel, parseInt(e.target.value, 10) || 1));
                                   setPecasSelecionadas((prev) => prev.map((x) => x.id === p.id ? { ...x, quantidade: v } : x));
                                 }}
                                 className="h-6 w-[44px] text-center text-xs px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
-                              <button type="button" onClick={() => updatePecaQtd(p.id, 1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted">
+                              <button type="button" disabled={p.quantidade >= p.estoque_disponivel} onClick={() => updatePecaQtd(p.id, 1)} className="h-6 w-6 flex items-center justify-center rounded border hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50">
                                 <Plus className="h-3 w-3" />
                               </button>
                             </div>
@@ -2040,6 +2043,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 {!canSubmit ? (
                   <span>
                     ⚠️ Falta: {
+                      !todasPecasComEstoqueOk ? "ajustar quantidade de peça (estoque insuficiente)" :
                       !relatoCliente?.trim() ? "relato do cliente" :
                       !servicosEditorValue?.length ? "ao menos 1 serviço" :
                       "preencher campos obrigatórios"
