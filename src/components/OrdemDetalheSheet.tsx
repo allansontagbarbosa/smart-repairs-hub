@@ -1675,16 +1675,6 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Detalhes</p>
                   <div className="space-y-2">
-                    {(() => {
-                      const func = funcionariosAtivos.find(f => f.id === ordem.funcionario_id);
-                      const tipoServ = tiposServico.find(t => t.id === ordem.tipo_servico_id);
-                      return (
-                        <>
-                          <InfoRow label="Técnico" value={func?.nome ?? ordem.tecnico ?? "—"} />
-                          <InfoRow label="Tipo de serviço" value={tipoServ?.nome ?? "—"} />
-                        </>
-                      );
-                    })()}
                     <InfoRow label="Data entrada" value={fmtDate(ordem.data_entrada)} />
                     <InfoRow label="Previsão entrega" value={fmtDate(ordem.previsao_entrega)} />
                     <InfoRow label="Conclusão" value={fmtDate(ordem.data_conclusao)} />
