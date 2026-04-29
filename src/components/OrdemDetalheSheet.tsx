@@ -62,6 +62,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   // Edição legada de serviços vinculados (mantida apenas para compatibilidade de tipos antigos)
   const [servicosSelecionados, setServicosSelecionados] = useState<ServicoSelecionado[]>([]);
+  const [removeServicosWarnOpen, setRemoveServicosWarnOpen] = useState(false);
+  const [pendingRemovedServicos, setPendingRemovedServicos] = useState<Array<{ id: string; nome: string; comissao: number }>>([]);
 
   // Estado controlado dos campos do form de edição (para Selects/radios shadcn)
   const [editForm, setEditForm] = useState({
