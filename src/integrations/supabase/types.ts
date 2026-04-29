@@ -5789,8 +5789,11 @@ export type Database = {
           data: string
           debito: number
           descricao: string
+          imei: string
+          modelo_aparelho: string
           referencia_id: string
           saldo_apos: number
+          servicos_realizados: string
           tipo: string
         }[]
       }
