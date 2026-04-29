@@ -5,6 +5,8 @@ import { baixarExtratoPDF, type ExtratoPDFPayload } from "@/lib/pdf/gerarExtrato
 const fmtCurrency = (value: number | null | undefined) => Number(value ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (value: string | null | undefined) => value ? new Date(value.includes("T") ? value : `${value}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 const generatedAt = () => new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+const aparelhoImei = (item: ExtratoPDFPayload["extrato"][number]) => [item.modelo_aparelho, item.imei ? `IMEI ${item.imei}` : null].filter(Boolean).join(" • ") || "—";
+const servicosLabel = (item: ExtratoPDFPayload["extrato"][number]) => item.tipo === "pagamento" ? item.descricao.replace(/^Pagamento\s*/i, "") || "—" : item.servicos_realizados || "—";
 
 export function ExtratoPDFViewer({ payload }: { payload: ExtratoPDFPayload }) {
   return (
@@ -46,11 +48,13 @@ export function ExtratoPDFViewer({ payload }: { payload: ExtratoPDFPayload }) {
         </div>
 
         <div className="overflow-x-auto rounded-md border">
-          <table className="data-table min-w-[820px]">
+          <table className="data-table min-w-[1120px]">
             <thead>
               <tr>
                 <th>Data</th>
-                <th>Descrição</th>
+                <th>OS</th>
+                <th>Aparelho/IMEI</th>
+                <th>Serviço(s)</th>
                 <th className="text-right">Débito</th>
                 <th className="text-right">Crédito</th>
                 <th className="text-right">Saldo após</th>
@@ -61,13 +65,15 @@ export function ExtratoPDFViewer({ payload }: { payload: ExtratoPDFPayload }) {
                 <tr key={`${item.tipo}-${item.referencia_id}-${item.data}`} className={item.tipo === "pagamento" ? "bg-success/10" : ""}>
                   <td className="text-sm text-muted-foreground">{fmtDate(item.data)}</td>
                   <td className="text-sm font-medium">{item.descricao}</td>
+                  <td className="max-w-xs whitespace-normal text-sm text-muted-foreground">{aparelhoImei(item)}</td>
+                  <td className="max-w-xs whitespace-normal text-sm text-muted-foreground">{servicosLabel(item)}</td>
                   <td className="text-right text-sm">{Number(item.debito) > 0 ? fmtCurrency(item.debito) : "—"}</td>
                   <td className="text-right text-sm text-success">{Number(item.credito) > 0 ? fmtCurrency(item.credito) : "—"}</td>
                   <td className="text-right text-sm font-semibold">{fmtCurrency(item.saldo_apos)}</td>
                 </tr>
               ))}
               {payload.extrato.length === 0 ? (
-                <tr><td colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Nenhuma movimentação no período.</td></tr>
+                <tr><td colSpan={7} className="py-10 text-center text-sm text-muted-foreground">Nenhuma movimentação no período.</td></tr>
               ) : null}
             </tbody>
           </table>
