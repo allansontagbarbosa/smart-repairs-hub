@@ -36,10 +36,12 @@ export function useConfiguracoes() {
     enabled: !!empresaId,
     queryFn: async () => {
       const { data } = await supabase
-        .from("produtos_base")
+        .from("estoque_itens")
         .select("*, marcas(nome), modelos(nome), estoque_categorias(nome)")
         .eq("empresa_id", empresaId!)
-        .order("nome");
+        .eq("tipo_item", "peca")
+        .is("deleted_at", null)
+        .order("nome_personalizado");
       return data || [];
     },
   });
