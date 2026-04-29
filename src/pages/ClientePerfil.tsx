@@ -39,6 +39,7 @@ type AparelhoCliente = {
 const fmtCurrency = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (d: string | null | undefined) => d ? new Date(d.includes("T") ? d : `${d}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 const toISODate = (d: Date) => d.toISOString().split("T")[0];
+const currentDate = new Date();
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const monthLabel = (key: string) => {
   const [year, month] = key.split("-").map(Number);
@@ -67,8 +68,8 @@ export default function ClientePerfil() {
     const months = periodo === "3m" ? 2 : 5;
     return { inicio: toISODate(new Date(today.getFullYear(), today.getMonth() - months, 1)), fim: toISODate(today) };
   }, [customFim, customInicio, periodo]);
-  const exportInicio = periodoFiltro.inicio ?? toISODate(new Date(today.getFullYear(), today.getMonth(), 1));
-  const exportFim = periodoFiltro.fim ?? toISODate(today);
+  const exportInicio = periodoFiltro.inicio ?? toISODate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
+  const exportFim = periodoFiltro.fim ?? toISODate(currentDate);
 
   const { data: extrato = [], isLoading: loadingExtrato } = useExtratoCliente(id, periodoFiltro.inicio, periodoFiltro.fim);
   const { data: pagamentos = [], isLoading: loadingPagamentos } = usePagamentosClienteLista(id);
