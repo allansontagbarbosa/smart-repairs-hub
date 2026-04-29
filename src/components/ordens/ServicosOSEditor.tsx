@@ -48,7 +48,11 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   const [novo, setNovo] = useState<ServicoOSPayload>({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0 });
 
   useEffect(() => setServicos(servicosIniciais.map(clean)), [servicosIniciais]);
-  useEffect(() => onChange?.(servicos), [servicos, onChange]);
+
+  function updateServicos(next: ServicoOSPayload[]) {
+    setServicos(next);
+    onChange?.(next);
+  }
 
   const totalValor = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.valor), 0), [servicos]);
   const totalComissao = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.comissao), 0), [servicos]);
@@ -78,7 +82,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   });
 
   function patchRow(index: number, patch: Partial<ServicoOSPayload>) {
-    setServicos((prev) => prev.map((item, i) => i === index ? clean({ ...item, ...patch }) : item));
+    updateServicos(servicos.map((item, i) => i === index ? clean({ ...item, ...patch }) : item));
   }
 
   function applyTipo(current: ServicoOSPayload, servicoId: string) {
@@ -96,7 +100,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
       toast.error("Selecione o tipo de serviço");
       return;
     }
-    setServicos((prev) => [...prev, clean(novo)]);
+    updateServicos([...servicos, clean(novo)]);
     setNovo({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0 });
     setOpenAdd(false);
     toast.success("Serviço adicionado");
@@ -104,7 +108,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
 
   function removePending() {
     if (pendingRemove === null) return;
-    setServicos((prev) => prev.filter((_, index) => index !== pendingRemove));
+    updateServicos(servicos.filter((_, index) => index !== pendingRemove));
     setPendingRemove(null);
     toast.success("Serviço removido");
   }
