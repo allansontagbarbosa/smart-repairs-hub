@@ -35,6 +35,8 @@ import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate
 import { ChecklistEntrada, type ChecklistStatus } from "@/components/ChecklistEntrada";
 import { ServicosSelector } from "@/components/ServicosSelector";
 import { ServicosOSEditor, type ServicoOSPayload } from "@/components/ordens/ServicosOSEditor";
+import { CollapsibleSection } from "@/components/ordens/CollapsibleSection";
+import { formatCurrency } from "@/lib/format";
 import { Link } from "react-router-dom";
 import { suggestServicos } from "@/lib/sugestoesServico";
 
@@ -613,6 +615,87 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     valor: d.valor_mao_obra,
     comissao: d.comissao_padrao,
   })), [defeitosSelecionados]);
+
+  // === Cálculos para a sidebar de resumo (novo) ===
+
+  // Subtotal de serviços (já existe parcialmente como totalMaoObraDefeitos, criar versão memoizada)
+  const subtotalServicos = useMemo(
+    () => (servicosEditorValue ?? []).reduce(
+      (sum, s) => sum + (Number(s.valor) || 0),
+      0
+    ),
+    [servicosEditorValue]
+  );
+
+  // Subtotal de peças = preco_venda * quantidade (PecaSelecionada tem preco_venda, NÃO valor_unitario)
+  const subtotalPecasVenda = useMemo(
+    () => (pecasSelecionadas ?? []).reduce(
+      (sum, p) => sum + (Number(p.preco_venda || 0) * Number(p.quantidade || 1)),
+      0
+    ),
+    [pecasSelecionadas]
+  );
+
+  // Custo das peças (para o cálculo correto do lucro)
+  const custoPecasTotal = useMemo(
+    () => (pecasSelecionadas ?? []).reduce(
+      (sum, p) => sum + (Number(p.custo_unitario || 0) * Number(p.quantidade || 1)),
+      0
+    ),
+    [pecasSelecionadas]
+  );
+
+  // Total de comissões (não existe hoje)
+  const totalComissoes = useMemo(
+    () => (servicosEditorValue ?? []).reduce(
+      (sum, s) => sum + (Number(s.comissao) || 0),
+      0
+    ),
+    [servicosEditorValue]
+  );
+
+  // Total ao cliente (incluindo peças, diferente do valorTotal atual)
+  const totalAoClienteNovo = useMemo(
+    () =>
+      subtotalServicos +
+      subtotalPecasVenda +
+      Number(maoObraAdicional || 0) -
+      Number(desconto || 0) -
+      Number(sinalPago || 0),
+    [subtotalServicos, subtotalPecasVenda, maoObraAdicional, desconto, sinalPago]
+  );
+
+  // Lucro estimado: receita − custo das peças − comissões
+  const lucroEstimado = useMemo(
+    () =>
+      subtotalServicos +
+      subtotalPecasVenda +
+      Number(maoObraAdicional || 0) -
+      custoPecasTotal -
+      totalComissoes,
+    [subtotalServicos, subtotalPecasVenda, maoObraAdicional, custoPecasTotal, totalComissoes]
+  );
+
+  // Lista de nomes de técnicos únicos usados (para a seção "Comissões a pagar")
+  // ServicoOSPayload tem só tecnico_id (string|null), por isso o lookup em tecnicosAtivos
+  const tecnicosUnicos = useMemo(() => {
+    const ids = new Set<string>();
+    (servicosEditorValue ?? []).forEach((s) => {
+      if (s?.tecnico_id) ids.add(s.tecnico_id);
+    });
+    const nomes: string[] = [];
+    ids.forEach((id) => {
+      const t = (tecnicosAtivos as any[])?.find((x: any) => x?.id === id);
+      if (t?.nome) nomes.push(t.nome);
+    });
+    return nomes;
+  }, [servicosEditorValue, tecnicosAtivos]);
+
+  // Cliente selecionado completo (objeto, não só ID)
+  const clienteSelecionadoResumo = useMemo(
+    () => (clientes as any[])?.find((c: any) => c?.id === selectedClientId) ?? null,
+    [clientes, selectedClientId]
+  );
 
   function syncServicosEditor(servicos: ServicoOSPayload[]) {
     setDefeitosSelecionados(servicos
