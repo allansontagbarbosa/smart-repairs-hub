@@ -1800,68 +1800,65 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </label>
               </div>
 
-              {/* ── Observações + Conferência (mantidos antes do resumo final) ── */}
-              <div className="space-y-2">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Observações internas (só a loja vê)</Label>
-                  <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Diagnóstico técnico, histórico..." rows={2} className="mt-1 resize-none text-sm" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Observações para o cliente (no recibo)</Label>
-                  <Textarea value={obsCliente} onChange={(e) => setObsCliente(e.target.value)} placeholder='Ex: "aparelho sem garantia por já ter sido aberto"...' rows={2} className="mt-1 resize-none text-sm" />
-                </div>
-              </div>
-
-              <div className="rounded-md border bg-muted/20 p-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" />
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Conferência na entrada</p>
-                </div>
+              <CollapsibleSection icon="✅" title="Conferência na entrada" defaultOpen={true}>
                 <ChecklistEntrada
                   value={checklist}
                   onChange={setChecklist}
                   customItems={checklistCustom}
                   onCustomItemsChange={setChecklistCustom}
                 />
-              </div>
+              </CollapsibleSection>
 
-              {/* Sinal pago + Forma + Garantia (linha compacta) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Sinal pago</Label>
-                  <div className="relative mt-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                    <Input value={sinalPago} onChange={(e) => setSinalPago(e.target.value.replace(/^-/, ""))} type="number" step="0.01" min="0" placeholder="0,00" className="pl-8 h-9" />
+              <CollapsibleSection icon="⚙️" title="Avançado" defaultOpen={false}>
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Observações internas (só a loja vê)</Label>
+                    <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Diagnóstico técnico, histórico..." rows={2} className="mt-1 resize-none text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Observações para o cliente (no recibo)</Label>
+                    <Textarea value={obsCliente} onChange={(e) => setObsCliente(e.target.value)} placeholder='Ex: "aparelho sem garantia por já ter sido aberto"...' rows={2} className="mt-1 resize-none text-sm" />
                   </div>
                 </div>
-                {sinalPagoNum > 0 && (
+
+                {/* Sinal pago + Forma + Garantia (linha compacta) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Forma do sinal</Label>
-                    <select value={formaPagamentoSinal} onChange={(e) => setFormaPagamentoSinal(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
-                      <option value="nenhum">—</option>
-                      <option value="dinheiro">Dinheiro</option>
-                      <option value="pix">Pix</option>
-                      <option value="debito">Débito</option>
-                      <option value="credito">Crédito</option>
+                    <Label className="text-xs text-muted-foreground">Sinal pago</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                      <Input value={sinalPago} onChange={(e) => setSinalPago(e.target.value.replace(/^-/, ""))} type="number" step="0.01" min="0" placeholder="0,00" className="pl-8 h-9" />
+                    </div>
+                  </div>
+                  {sinalPagoNum > 0 && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Forma do sinal</Label>
+                      <select value={formaPagamentoSinal} onChange={(e) => setFormaPagamentoSinal(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+                        <option value="nenhum">—</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="pix">Pix</option>
+                        <option value="debito">Débito</option>
+                        <option value="credito">Crédito</option>
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Garantia (dias)</Label>
+                    <Input value={garantiaDias} onChange={(e) => setGarantiaDias(e.target.value.replace(/[^\d]/g, ""))} type="number" min="0" placeholder="90" className="mt-1 h-9" />
+                  </div>
+                </div>
+
+                {/* Lojista parceiro */}
+                {lojistasAtivos.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Lojista parceiro (opcional)</Label>
+                    <select value={lojistaId} onChange={(e) => setLojistaId(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <option value="">Nenhum</option>
+                      {lojistasAtivos.map((l) => (<option key={l.id} value={l.id}>{l.nome}</option>))}
                     </select>
                   </div>
                 )}
-                <div>
-                  <Label className="text-xs text-muted-foreground">Garantia (dias)</Label>
-                  <Input value={garantiaDias} onChange={(e) => setGarantiaDias(e.target.value.replace(/[^\d]/g, ""))} type="number" min="0" placeholder="90" className="mt-1 h-9" />
-                </div>
-              </div>
-
-              {/* Lojista parceiro */}
-              {lojistasAtivos.length > 0 && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Lojista parceiro (opcional)</Label>
-                  <select value={lojistaId} onChange={(e) => setLojistaId(e.target.value)} className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
-                    <option value="">Nenhum</option>
-                    {lojistasAtivos.map((l) => (<option key={l.id} value={l.id}>{l.nome}</option>))}
-                  </select>
-                </div>
-              )}
+              </CollapsibleSection>
 
               {/* ── 8. CONFERÊNCIA FINAL ── */}
               <div className="rounded-r-md border-l-[3px] border-info bg-secondary p-4 space-y-3">
