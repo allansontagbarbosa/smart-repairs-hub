@@ -40,6 +40,8 @@ const fmtCurrency = (v: number | null | undefined) => Number(v ?? 0).toLocaleStr
 const fmtDate = (d: string | null | undefined) => d ? new Date(d.includes("T") ? d : `${d}T00:00:00`).toLocaleDateString("pt-BR") : "—";
 const toISODate = (d: Date) => d.toISOString().split("T")[0];
 const currentDate = new Date();
+const aparelhoImei = (item: ExtratoClienteItem) => [item.modelo_aparelho, item.imei ? `IMEI ${item.imei}` : null].filter(Boolean).join(" • ") || "—";
+const servicosLabel = (item: ExtratoClienteItem) => item.tipo === "pagamento" ? item.descricao.replace(/^Pagamento\s*/i, "") || "—" : item.servicos_realizados || "—";
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 const monthLabel = (key: string) => {
   const [year, month] = key.split("-").map(Number);
@@ -274,19 +276,21 @@ function ExtratoTab({ extrato, isLoading, periodo, setPeriodo, customInicio, set
       </div>
       {isLoading ? <Loading /> : (
         <div className="overflow-x-auto">
-          <table className="data-table min-w-[860px]">
-            <thead><tr><th>Data</th><th>Descrição</th><th className="text-right">Débito</th><th className="text-right">Crédito</th><th className="text-right">Saldo após</th></tr></thead>
+          <table className="data-table min-w-[1120px]">
+            <thead><tr><th>Data</th><th>OS</th><th>Aparelho/IMEI</th><th>Serviço(s)</th><th className="text-right">Débito</th><th className="text-right">Crédito</th><th className="text-right">Saldo após</th></tr></thead>
             <tbody>
               {extrato.map((item) => (
                 <tr key={`${item.tipo}-${item.referencia_id}-${item.data}`} className={item.tipo === "pagamento" ? "bg-success/10" : ""}>
                   <td className="text-sm text-muted-foreground">{fmtDate(item.data)}</td>
                   <td className="text-sm font-medium">{item.descricao}</td>
+                  <td className="max-w-xs whitespace-normal text-sm text-muted-foreground">{aparelhoImei(item)}</td>
+                  <td className="max-w-xs whitespace-normal text-sm text-muted-foreground">{servicosLabel(item)}</td>
                   <td className="text-right text-sm">{Number(item.debito) > 0 ? fmtCurrency(item.debito) : "—"}</td>
                   <td className="text-right text-sm text-success">{Number(item.credito) > 0 ? fmtCurrency(item.credito) : "—"}</td>
                   <td className="text-right text-sm font-semibold">{fmtCurrency(item.saldo_apos)}</td>
                 </tr>
               ))}
-              {extrato.length === 0 ? <tr><td colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Nenhuma movimentação no período.</td></tr> : null}
+              {extrato.length === 0 ? <tr><td colSpan={7} className="py-10 text-center text-sm text-muted-foreground">Nenhuma movimentação no período.</td></tr> : null}
             </tbody>
           </table>
         </div>
