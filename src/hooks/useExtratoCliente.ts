@@ -26,7 +26,7 @@ export function useExtratoCliente(clienteId: string, inicio?: string, fim?: stri
       });
 
       if (error) throw error;
-      return (data ?? []) as ExtratoClienteItem[];
+      return (data ?? []) as unknown as ExtratoClienteItem[];
     },
   });
 }
