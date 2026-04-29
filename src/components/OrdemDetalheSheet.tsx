@@ -181,7 +181,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico_os"],
     queryFn: async () => {
-      const { data } = await supabase.from("tipos_servico").select("id, nome").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("tipos_servico").select("id, nome, valor_padrao, comissao_padrao").eq("ativo", true).order("nome");
       return data || [];
     },
   });
@@ -214,6 +214,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     ? { id: ordem.funcionario_id, nome: ordem.tecnico || "Atribuição atual", atual: true }
     : null;
   const tecnicos = tecnicoAtualForaDaLista ? [tecnicoAtualForaDaLista, ...funcionariosAtivos] : funcionariosAtivos;
+
+  const { data: servicosOSDetalhados = [] } = useOSServicos(orderId);
 
   // Lista de lojistas ativos da empresa
   const { data: lojistasAtivos = [] } = useQuery({
