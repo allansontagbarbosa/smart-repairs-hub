@@ -89,7 +89,8 @@ export default function ClientePerfil() {
   const saldoClass = saldo > 0 ? "text-destructive" : saldo < 0 ? "text-success" : "text-muted-foreground";
   const saldoBgClass = saldo > 0 ? "bg-destructive/10 border-destructive/30" : saldo < 0 ? "bg-success/10 border-success/30" : "bg-muted/30";
   const ticketMedio = Number(cliente?.qtd_oss ?? 0) > 0 ? Number(cliente?.total_faturado ?? 0) / Number(cliente?.qtd_oss ?? 1) : 0;
-  const ultimaAtualizacao = [cliente?.ultima_os_data, cliente?.ultimo_pagamento_data].filter(Boolean).sort().at(-1) ?? null;
+  const atualizacoes = [cliente?.ultima_os_data, cliente?.ultimo_pagamento_data].filter(Boolean).sort();
+  const ultimaAtualizacao = atualizacoes.length > 0 ? atualizacoes[atualizacoes.length - 1] : null;
 
   if (loadingClientes) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
