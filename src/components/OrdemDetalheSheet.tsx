@@ -1054,14 +1054,22 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         <Label className="text-xs">Observações internas (só equipe vê)</Label>
                         <Textarea name="observacoes" defaultValue={ordem.observacoes ?? ""} className="mt-1 resize-none" rows={2} />
                       </div>
-                      <div className="pt-2 border-t">
-                        <ServicosSelector
-                          value={servicosSelecionados}
-                          onChange={setServicosSelecionados}
-                          label="Serviços vinculados"
-                          hint="Busque e adicione os serviços feitos nesta OS. Remover um serviço estorna a comissão vinculada."
-                        />
-                      </div>
+                      <Card className="mt-3">
+                        <CardHeader className="p-4 pb-2">
+                          <CardTitle className="text-sm">Serviços executados</CardTitle>
+                          <p className="text-xs text-muted-foreground">Cada serviço pode ter um técnico diferente. A comissão é calculada por serviço.</p>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <ServicosOSEditor
+                            ordemId={ordem.id}
+                            servicosIniciais={servicosOSDetalhados}
+                            tiposServico={tiposServico as any[]}
+                            tecnicos={tecnicos as any[]}
+                            autoSave={false}
+                            onChange={setServicosEditorDraft}
+                          />
+                        </CardContent>
+                      </Card>
                       <p className="text-[11px] text-muted-foreground italic">
                         Para adicionar/remover peças, use as ações dedicadas fora deste formulário.
                       </p>
