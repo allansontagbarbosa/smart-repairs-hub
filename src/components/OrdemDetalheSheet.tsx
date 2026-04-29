@@ -217,6 +217,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   const { data: servicosOSDetalhados = [] } = useOSServicos(orderId);
 
+  useEffect(() => {
+    setServicosEditorDraft(servicosOSDetalhados);
+  }, [servicosOSDetalhados]);
+
   // Lista de lojistas ativos da empresa
   const { data: lojistasAtivos = [] } = useQuery({
     queryKey: ["lojistas_ativos_os"],
