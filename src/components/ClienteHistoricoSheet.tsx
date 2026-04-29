@@ -83,7 +83,7 @@ export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
   });
 
   const { data: pagamentos = [], isLoading: loadingPagamentos } = useQuery({
-    queryKey: ["pagamentos-cliente", cliente.id],
+    queryKey: ["pagamentos-cliente", cliente.id, "ultimos-10"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pagamentos_clientes")
