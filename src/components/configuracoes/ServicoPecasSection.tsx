@@ -42,7 +42,7 @@ export function ServicoPecasSection({ servicoId, valorServico, value, onChange }
     queryFn: async () => {
       const { data, error } = await supabase
         .from("estoque_itens")
-        .select("id, nome_personalizado, sku, custo_unitario, preco_venda, quantidade, marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
+        .select("id, nome_personalizado, sku, custo_unitario, quantidade, marcas:marca_id ( nome ), modelos:modelo_id ( nome )")
         .eq("tipo_item", "peca")
         .is("deleted_at", null)
         .order("nome_personalizado", { nullsFirst: false });
@@ -177,9 +177,6 @@ export function ServicoPecasSection({ servicoId, valorServico, value, onChange }
                         Custo {fmt(Number(p.custo_unitario) || 0)} · Estoque {p.quantidade}
                       </p>
                     </div>
-                    <span className="text-xs font-medium text-success ml-2 shrink-0">
-                      {fmt(Number(p.preco_venda) || 0)}
-                    </span>
                   </button>
                 ))
               )}
