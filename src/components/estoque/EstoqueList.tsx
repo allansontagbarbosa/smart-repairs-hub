@@ -150,6 +150,37 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9"
+          onClick={() => setImportOpen(true)}
+        >
+          <Sparkles className="h-4 w-4 mr-1.5" />
+          Importar via IA
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9"
+          onClick={handleExportCsv}
+        >
+          <Download className="h-4 w-4 mr-1.5" />
+          Exportar
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          className="h-9"
+          onClick={() => { setEditingItem(null); setDialogOpen(true); }}
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Nova peça
+        </Button>
+      </div>
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
@@ -322,6 +353,15 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                         >
                           {item.ativo === false ? <Power className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          title="Excluir peça"
+                          onClick={() => setConfirmDeleteSingle(item)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -343,6 +383,8 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
         marcas={marcas}
         modelos={modelos}
       />
+
+      <ImportIADialog open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Confirmação - Ativar/Inativar em lote */}
       <AlertDialog open={confirmToggleStatus !== null} onOpenChange={(o) => !o && setConfirmToggleStatus(null)}>
@@ -370,6 +412,61 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
               }}
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação - Excluir individual */}
+      <AlertDialog open={confirmDeleteSingle !== null} onOpenChange={(o) => !o && setConfirmDeleteSingle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir peça "{confirmDeleteSingle ? getItemName(confirmDeleteSingle) : ""}"?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é permanente e não pode ser desfeita. Caso a peça tenha histórico em
+              compras ou OS, considere desativá-la em vez de excluir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDeleteSingle) deleteMutation.mutate([confirmDeleteSingle.id]);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmação - Excluir em lote */}
+      <AlertDialog open={confirmDeleteBulk} onOpenChange={setConfirmDeleteBulk}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {bulk.count} {bulk.count === 1 ? "peça" : "peças"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Esta ação é permanente e não pode ser desfeita.</p>
+                <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+                  {previewNames.map((n, i) => <li key={i}>{n}</li>)}
+                  {restCount > 0 && <li>...e mais {restCount}</li>}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteMutation.mutate(Array.from(bulk.selectedIds))}
+            >
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
