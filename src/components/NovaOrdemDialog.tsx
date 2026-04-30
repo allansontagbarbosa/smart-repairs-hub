@@ -191,7 +191,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [previsaoHora, setPrevisaoHora] = useState("18:00");
   const [checklist, setChecklist] = useState<Record<string, ChecklistStatus>>({});
   const [checklistCustom, setChecklistCustom] = useState<{ key: string; label: string }[]>([]);
-  const [createdOS, setCreatedOS] = useState<{ numero: number; id: string } | null>(null);
+  const [createdOS, setCreatedOS] = useState<{ numero: number; numero_formatado?: string | null; id: string } | null>(null);
   const [lojistaId, setLojistaId] = useState("");
 
   // Financeiro
