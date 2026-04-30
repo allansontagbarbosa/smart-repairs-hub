@@ -1751,6 +1751,65 @@ export type Database = {
           },
         ]
       }
+      estoque_lotes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          custo_unitario: number
+          data_compra: string
+          empresa_id: string
+          fornecedor_id: string | null
+          id: string
+          observacoes: string | null
+          origem: string
+          origem_id: string | null
+          peca_id: string
+          quantidade_disponivel: number
+          quantidade_inicial: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          custo_unitario: number
+          data_compra: string
+          empresa_id: string
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          origem: string
+          origem_id?: string | null
+          peca_id: string
+          quantidade_disponivel: number
+          quantidade_inicial: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          custo_unitario?: number
+          data_compra?: string
+          empresa_id?: string
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          origem?: string
+          origem_id?: string | null
+          peca_id?: string
+          quantidade_disponivel?: number
+          quantidade_inicial?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_lotes_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_movimentos: {
         Row: {
           created_at: string
@@ -3489,6 +3548,51 @@ export type Database = {
           },
         ]
       }
+      pecas_utilizadas_lotes: {
+        Row: {
+          created_at: string
+          custo_unitario_snapshot: number
+          empresa_id: string
+          id: string
+          lote_id: string
+          peca_utilizada_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          custo_unitario_snapshot: number
+          empresa_id: string
+          id?: string
+          lote_id: string
+          peca_utilizada_id: string
+          quantidade: number
+        }
+        Update: {
+          created_at?: string
+          custo_unitario_snapshot?: number
+          empresa_id?: string
+          id?: string
+          lote_id?: string
+          peca_utilizada_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pecas_utilizadas_lotes_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "estoque_lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pecas_utilizadas_lotes_peca_utilizada_id_fkey"
+            columns: ["peca_utilizada_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_utilizadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos_compra: {
         Row: {
           created_at: string | null
@@ -4224,11 +4328,33 @@ export type Database = {
         }
         Returns: Json
       }
+      calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
       }
       concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      consumir_estoque_fifo: {
+        Args: {
+          p_lote_id_especifico?: string
+          p_peca_id: string
+          p_quantidade: number
+        }
+        Returns: Json
+      }
+      criar_lote_compra: {
+        Args: {
+          p_custo_unitario: number
+          p_data_compra: string
+          p_fornecedor_id?: string
+          p_observacoes?: string
+          p_origem: string
+          p_origem_id?: string
+          p_peca_id: string
+          p_quantidade: number
+        }
+        Returns: string
+      }
       criar_os_com_data: {
         Args: {
           p_dados: Json
@@ -4250,6 +4376,10 @@ export type Database = {
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
+      }
+      devolver_estoque_lotes: {
+        Args: { p_peca_utilizada_id: string }
+        Returns: undefined
       }
       editar_os_admin: {
         Args: {
