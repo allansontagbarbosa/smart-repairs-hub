@@ -1321,6 +1321,7 @@ export default function Assistencia() {
                       pedirConfirmacao({
                         orderId: order.id,
                         numero: order.numero,
+                        numero_formatado: order.numero_formatado ?? null,
                         clienteNome: order.aparelhos?.clientes?.nome ?? "—",
                       });
                     } else {
@@ -1359,7 +1360,7 @@ export default function Assistencia() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleWhatsApp(phone, order.numero)}>
+              <DropdownMenuItem onClick={() => handleWhatsApp(phone, order.numero, order.numero_formatado)}>
                 <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
               </DropdownMenuItem>
               {!["pronto", "entregue"].includes(order.status) && (
@@ -1368,7 +1369,7 @@ export default function Assistencia() {
                 </DropdownMenuItem>
               )}
               {order.status === "pronto" && (
-                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
                   <Truck className="mr-2 h-4 w-4" /> Marcar como Entregue
                 </DropdownMenuItem>
               )}
@@ -1381,6 +1382,7 @@ export default function Assistencia() {
               <DropdownMenuItem
                 onClick={() => printEtiquetaOS({
                   numero: order.numero,
+                  numero_formatado: order.numero_formatado ?? null,
                   clienteNome: order.aparelhos?.clientes?.nome ?? "—",
                   clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
                   marca: order.aparelhos?.marca ?? "",
