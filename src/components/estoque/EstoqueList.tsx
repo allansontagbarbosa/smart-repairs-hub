@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Pencil, EyeOff, MapPin, Download, Power } from "lucide-react";
+import { Search, Pencil, EyeOff, MapPin, Download, Power, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { NovoItemDialog } from "./NovoItemDialog";
+import { ImportIADialog } from "@/components/configuracoes/ImportIADialog";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { BulkActionBar } from "@/components/BulkActionBar";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
@@ -44,6 +45,9 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EstoqueItem | null>(null);
   const [confirmToggleStatus, setConfirmToggleStatus] = useState<null | "ativar" | "inativar">(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [confirmDeleteSingle, setConfirmDeleteSingle] = useState<EstoqueItem | null>(null);
+  const [confirmDeleteBulk, setConfirmDeleteBulk] = useState(false);
   const queryClient = useQueryClient();
 
   const getItemName = (item: EstoqueItem) => {
