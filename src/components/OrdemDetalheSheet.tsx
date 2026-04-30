@@ -1071,6 +1071,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                             tecnicos={tecnicos as any[]}
                             autoSave={false}
                             onChange={setServicosEditorDraft}
+                            custoPecas={Number(ordem.custo_pecas ?? 0)}
+                            desconto={Number((ordem as any).desconto ?? 0)}
                           />
                         </CardContent>
                       </Card>
@@ -1351,6 +1353,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       tiposServico={tiposServico as any[]}
                       tecnicos={tecnicos as any[]}
                       onSave={() => queryClient.invalidateQueries({ queryKey: ["ordem", orderId] })}
+                      custoPecas={Number(ordem.custo_pecas ?? 0)}
+                      desconto={Number((ordem as any).desconto ?? 0)}
                     />
                   </CardContent>
                 </Card>
