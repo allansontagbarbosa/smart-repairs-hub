@@ -261,7 +261,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
           <DialogDescription className="text-xs flex items-start gap-1.5 text-muted-foreground pt-1">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
-              O custo desta peça é calculado pelas compras (média ponderada). Aqui você define só o que ela é e por quanto vende.
+              O custo desta peça é calculado pelas compras (média ponderada). Peças entram como custo interno da OS — o cliente paga pelo serviço, que já engloba a peça.
             </span>
           </DialogDescription>
         </DialogHeader>
