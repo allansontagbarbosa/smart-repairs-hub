@@ -2104,7 +2104,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </aside>
             </div>
-            <div className="flex justify-between items-center px-7 py-4 border-t bg-muted/30">
+            <div className="flex justify-between items-center px-7 py-4 border-t bg-muted/30 -mx-5 -mb-5">
               <div className="text-[13px] text-muted-foreground">
                 {!canSubmit ? (
                   <span>
