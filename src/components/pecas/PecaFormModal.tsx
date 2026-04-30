@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ScannableInput } from "@/components/ui/scannable-input";
 import { CreatableSelect } from "@/components/smart-inputs/CreatableSelect";
-import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { toast } from "sonner";
 import { Loader2, Info } from "lucide-react";
 
@@ -17,17 +16,14 @@ import { Loader2, Info } from "lucide-react";
  * Modal único para CADASTRO de peça (catálogo).
  * Opera em estoque_itens, tabela canônica de peças.
  *
- * Usado em:
- *  - /configuracoes/pecas (criar/editar do catálogo)
- *  - /pecas (atalho "+ Nova peça" — abre este modal sem campo quantidade)
- *  - /compras/nova (link "Cadastrar nova peça" inline)
+ * Peça é apenas custo interno da OS — não tem preço de venda.
+ * O cliente paga pelo serviço, que já engloba a peça.
  */
 
 export interface PecaSalva {
   id: string;
   nome: string;
   sku: string | null;
-  preco_padrao: number | null;
   ativo: boolean;
 }
 
@@ -45,8 +41,6 @@ const emptyForm = {
   marca_id: "",
   modelo_id: "",
   descricao: "",
-  preco_padrao: null as number | null,
-  preco_especial: null as number | null,
   sku: "",
   ativo: true,
 };
@@ -93,8 +87,6 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
         marca_id: data.marca_id ?? "",
         modelo_id: data.modelo_id ?? "",
         descricao: data.observacoes ?? "",
-        preco_padrao: data.preco_venda ?? null,
-        preco_especial: data.preco_especial ?? null,
         sku: data.sku ?? "",
         ativo: data.ativo ?? true,
       });
@@ -137,9 +129,8 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
         marca_id: form.marca_id || null,
         modelo_id: form.modelo_id || null,
         tipo_item: "peca" as const,
-        // custo NÃO é mais editável manualmente — vem das compras (média ponderada em estoque_itens.custo_medio)
-        preco_venda: Number(form.preco_padrao) || 0,
-        preco_especial: form.preco_especial != null ? Number(form.preco_especial) : null,
+        // custo NÃO é editável manualmente — vem das compras (média ponderada).
+        // Peça não tem preço de venda — é só custo interno da OS.
       };
 
       if (isEditing) {
@@ -147,18 +138,18 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
           .from("estoque_itens")
           .update(payload)
           .eq("id", pecaId!)
-          .select("id, nome_personalizado, sku, preco_venda, ativo")
+          .select("id, nome_personalizado, sku, ativo")
           .single();
         if (error) throw error;
-        return { id: data.id, nome: data.nome_personalizado ?? "", sku: data.sku, preco_padrao: data.preco_venda, ativo: data.ativo } as PecaSalva;
+        return { id: data.id, nome: data.nome_personalizado ?? "", sku: data.sku, ativo: data.ativo } as PecaSalva;
       } else {
         const { data, error } = await supabase
           .from("estoque_itens")
           .insert(payload)
-          .select("id, nome_personalizado, sku, preco_venda, ativo")
+          .select("id, nome_personalizado, sku, ativo")
           .single();
         if (error) throw error;
-        return { id: data.id, nome: data.nome_personalizado ?? "", sku: data.sku, preco_padrao: data.preco_venda, ativo: data.ativo } as PecaSalva;
+        return { id: data.id, nome: data.nome_personalizado ?? "", sku: data.sku, ativo: data.ativo } as PecaSalva;
       }
     },
     onSuccess: (peca) => {
@@ -257,30 +248,12 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Preço padrão de venda</Label>
-              <CurrencyInput
-                value={form.preco_padrao}
-                onValueChange={(v) => set("preco_padrao", v)}
-                className="h-9 mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Preço especial</Label>
-              <CurrencyInput
-                value={form.preco_especial}
-                onValueChange={(v) => set("preco_especial", v)}
-                className="h-9 mt-1"
-              />
-            </div>
-          </div>
-
-          <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 -mt-1">
+          <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
             <Info className="h-3 w-3 mt-0.5 shrink-0" />
             <span>
               O custo desta peça é calculado automaticamente pelas compras registradas
-              (média ponderada). Não há campo de custo manual.
+              (média ponderada). Peças entram como custo interno da OS — o cliente paga o
+              valor do serviço, que já inclui a peça.
             </span>
           </p>
 
