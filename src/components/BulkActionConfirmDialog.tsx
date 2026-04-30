@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 export type BulkAffectedItem = {
   id: string;
   numero: string | number;
+  numero_formatado?: string | null;
   cliente: string;
   aparelho?: string;
 };
@@ -83,7 +85,7 @@ export function BulkActionConfirmDialog({
               {preview.map((it) => (
                 <li key={it.id} className="px-3 py-2 flex items-center gap-2">
                   <span className="font-mono text-xs text-primary shrink-0">
-                    #{String(it.numero).padStart(3, "0")}
+                    #{formatNumeroOS(it.numero, it.numero_formatado)}
                   </span>
                   <span className="truncate">
                     {it.cliente}

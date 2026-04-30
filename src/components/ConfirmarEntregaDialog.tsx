@@ -9,10 +9,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 interface EntregaInfo {
   orderId: string;
   numero: number;
+  numero_formatado?: string | null;
   clienteNome: string;
 }
 
@@ -29,7 +31,7 @@ export function ConfirmarEntregaDialog({ entrega, onConfirm, onCancel }: Confirm
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmar entrega</AlertDialogTitle>
           <AlertDialogDescription>
-            Deseja marcar a OS #{String(entrega?.numero ?? 0).padStart(3, "0")} de{" "}
+            Deseja marcar a OS #{formatNumeroOS(entrega?.numero, entrega?.numero_formatado)} de{" "}
             <strong>{entrega?.clienteNome ?? "—"}</strong> como entregue? Esta ação não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { statusLabels, type Status } from "@/lib/status";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 type Preview = {
   pode_cancelar: boolean;
@@ -83,7 +84,7 @@ export function CancelarOSDialog({ ordemId, onClose, onCancelled }: Props) {
       };
     },
     onSuccess: (res) => {
-      const label = res.numero_formatado ?? `#${String(res.numero).padStart(3, "0")}`;
+      const label = `#${formatNumeroOS(res.numero, res.numero_formatado)}`;
       const partes: string[] = [];
       if (res.qtd_pecas > 0) partes.push(`${fmt(res.pecas_estornadas)} em peças devolvidas ao estoque`);
       if (res.qtd_comissoes > 0) partes.push(`${fmt(res.comissoes_estornadas)} em comissões estornadas`);
@@ -102,7 +103,7 @@ export function CancelarOSDialog({ ordemId, onClose, onCancelled }: Props) {
   });
 
   const motivoValido = motivo.trim().length >= 10;
-  const labelOS = preview?.numero_formatado ?? (preview ? `#${String(preview.numero).padStart(3, "0")}` : "");
+  const labelOS = preview ? `#${formatNumeroOS(preview.numero, preview.numero_formatado)}` : "";
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>

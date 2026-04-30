@@ -40,6 +40,7 @@ import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -305,7 +306,7 @@ function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
 
 function toExportRows(rows: any[]) {
   return rows.map((row) => ({
-    "Número": row.numero_formatado || `#${String(row.numero).padStart(3, "0")}`,
+    "Número": formatNumeroOS(row.numero, row.numero_formatado),
     "Data Entrada": formatDateExport(row.data_entrada),
     "Status": statusLabels[row.status as Status] ?? row.status ?? "",
     "Prioridade": row.prioridade ?? "",
@@ -837,9 +838,9 @@ export default function Assistencia() {
     enabled: isAdmin && !!empresaId,
   });
 
-  const handleWhatsApp = (phone: string | undefined, orderNum: number) => {
+  const handleWhatsApp = (phone: string | undefined, orderNum: number, numeroFormatado?: string | null) => {
     if (!phone) return toast.error("Cliente sem telefone cadastrado");
-    abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}. Por favor, entre em contato conosco.`);
+    abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${formatNumeroOS(orderNum, numeroFormatado)}. Por favor, entre em contato conosco.`);
   };
 
   const getNextStatus = (current: Status): Status | null => {
@@ -923,6 +924,7 @@ export default function Assistencia() {
       bulk.selectedItems.map((o: any) => ({
         id: o.id,
         numero: o.numero,
+        numero_formatado: o.numero_formatado ?? null,
         cliente: o.aparelhos?.clientes?.nome ?? "—",
         aparelho: [o.aparelhos?.marca, o.aparelhos?.modelo].filter(Boolean).join(" "),
       })),
@@ -934,9 +936,9 @@ export default function Assistencia() {
       bulk.selectedItems
         .map((o: any) => {
           const motivo = o.status === "cancelado" ? "já está cancelada" : null;
-          return motivo ? { id: o.id, numero: o.numero, motivo } : null;
+          return motivo ? { id: o.id, numero: o.numero, numero_formatado: o.numero_formatado ?? null, motivo } : null;
         })
-        .filter(Boolean) as { id: string; numero: string | number; motivo: string }[],
+        .filter(Boolean) as { id: string; numero: string | number; numero_formatado?: string | null; motivo: string }[],
     [bulk.selectedItems],
   );
 
@@ -953,7 +955,7 @@ export default function Assistencia() {
         motivos && motivos.length > 0
           ? motivos
               .slice(0, 5)
-              .map((m: any) => `#${String(m.numero).padStart(3, "0")} — ${m.motivo}`)
+              .map((m: any) => `#${formatNumeroOS(m.numero, m.numero_formatado)} — ${m.motivo}`)
               .join("\n") + (motivos.length > 5 ? `\n+ ${motivos.length - 5} outras` : "")
           : undefined,
       duration: 8000,
@@ -1272,7 +1274,7 @@ export default function Assistencia() {
         <td className="w-[70px] px-3 py-3 font-mono text-[13px] font-medium text-info cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
-          #{String(order.numero).padStart(3, "0")}
+          #{formatNumeroOS(order.numero, order.numero_formatado)}
           {isCancelada && (
             <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-medium">
               <XCircle className="h-2.5 w-2.5" /> Cancelada
@@ -1319,6 +1321,7 @@ export default function Assistencia() {
                       pedirConfirmacao({
                         orderId: order.id,
                         numero: order.numero,
+                        numero_formatado: order.numero_formatado ?? null,
                         clienteNome: order.aparelhos?.clientes?.nome ?? "—",
                       });
                     } else {
@@ -1357,7 +1360,7 @@ export default function Assistencia() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleWhatsApp(phone, order.numero)}>
+              <DropdownMenuItem onClick={() => handleWhatsApp(phone, order.numero, order.numero_formatado)}>
                 <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
               </DropdownMenuItem>
               {!["pronto", "entregue"].includes(order.status) && (
@@ -1366,7 +1369,7 @@ export default function Assistencia() {
                 </DropdownMenuItem>
               )}
               {order.status === "pronto" && (
-                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
                   <Truck className="mr-2 h-4 w-4" /> Marcar como Entregue
                 </DropdownMenuItem>
               )}
@@ -1379,6 +1382,7 @@ export default function Assistencia() {
               <DropdownMenuItem
                 onClick={() => printEtiquetaOS({
                   numero: order.numero,
+                  numero_formatado: order.numero_formatado ?? null,
                   clienteNome: order.aparelhos?.clientes?.nome ?? "—",
                   clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
                   marca: order.aparelhos?.marca ?? "",

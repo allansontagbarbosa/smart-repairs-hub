@@ -11,6 +11,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { ClipboardList, User, Zap } from "lucide-react";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 interface Props {
   open: boolean;
@@ -22,6 +23,7 @@ interface Props {
 interface OSResult {
   id: string;
   numero: number;
+  numero_formatado: string | null;
   defeito_relatado: string;
   aparelhos: { marca: string; modelo: string; clientes: { nome: string } | null } | null;
 }
@@ -51,13 +53,13 @@ export function GlobalSearch({ open, onOpenChange, onNewOS, onNewClient }: Props
       isNumeric
         ? supabase
             .from("ordens_de_servico")
-            .select("id, numero, defeito_relatado, aparelhos(marca, modelo, clientes(nome))")
+            .select("id, numero, numero_formatado, defeito_relatado, aparelhos(marca, modelo, clientes(nome))")
             .eq("numero", parseInt(q))
             .is("deleted_at", null)
             .limit(5)
         : supabase
             .from("ordens_de_servico")
-            .select("id, numero, defeito_relatado, aparelhos(marca, modelo, clientes(nome))")
+            .select("id, numero, numero_formatado, defeito_relatado, aparelhos(marca, modelo, clientes(nome))")
             .is("deleted_at", null)
             .limit(5),
       supabase
@@ -108,7 +110,7 @@ export function GlobalSearch({ open, onOpenChange, onNewOS, onNewClient }: Props
               >
                 <ClipboardList className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>
-                  OS #{String(os.numero).padStart(3, "0")} —{" "}
+                  OS #{formatNumeroOS(os.numero, os.numero_formatado)} —{" "}
                   {os.aparelhos?.clientes?.nome || "—"} —{" "}
                   {os.aparelhos?.marca} {os.aparelhos?.modelo}
                 </span>

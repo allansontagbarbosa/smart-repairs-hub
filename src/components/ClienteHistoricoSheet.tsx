@@ -16,6 +16,7 @@ import { Smartphone, ChevronDown, ChevronRight, MessageCircle, Eye, Wrench, Load
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { useCriarPagamentoCliente } from "@/hooks/usePagamentosCliente";
 import type { Database } from "@/integrations/supabase/types";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 const FORMAS_PAGAMENTO = [
   { value: "pix", label: "Pix" },
@@ -72,7 +73,7 @@ export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
       if (!apIds.length) return [];
       const { data, error } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, data_entrada, defeito_relatado, status, valor, aparelho_id")
+        .select("id, numero, numero_formatado, data_entrada, defeito_relatado, status, valor, aparelho_id")
         .in("aparelho_id", apIds)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
@@ -194,7 +195,7 @@ export function ClienteHistorico({ cliente }: { cliente: ClienteInfo }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-muted-foreground">{fmtDate(os.data_entrada)}</span>
-                          <span className="text-xs font-medium">#{String(os.numero).padStart(3, "0")}</span>
+                          <span className="text-xs font-medium">#{formatNumeroOS((os as any).numero, (os as any).numero_formatado)}</span>
                           <StatusBadge status={os.status} />
                         </div>
                         <p className="text-sm mt-0.5 truncate">
@@ -378,7 +379,7 @@ function AparelhoItem({
                 className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/50 cursor-pointer transition-colors"
                 onClick={() => onViewOS(os.id)}
               >
-                <span className="text-xs font-medium w-10">#{String(os.numero).padStart(3, "0")}</span>
+                <span className="text-xs font-medium w-10">#{formatNumeroOS((os as any).numero, (os as any).numero_formatado)}</span>
                 <span className="text-xs text-muted-foreground w-16">{fmtDate(os.data_entrada)}</span>
                 <span className="text-xs truncate flex-1">{os.defeito_relatado}</span>
                 <StatusBadge status={os.status} />

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 import { statusLabelsCliente as statusLabels, type Status } from "@/lib/status";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 
 const statusDescriptions: Record<Status, string> = {
@@ -40,6 +41,7 @@ const stepLabels = ["Recebido", "Análise", "Orçamento", "Aprovado", "Reparo", 
 
 type OrderResult = {
   numero: number;
+  numero_formatado: string | null;
   status: Status;
   defeito_relatado: string;
   valor: number | null;
@@ -76,7 +78,7 @@ export default function ConsultaCliente() {
     if (num && num.length <= 10) {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select(`id, numero, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
+        .select(`id, numero, numero_formatado, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
         .eq("numero", parseInt(num))
         .maybeSingle();
       osData = data;
@@ -93,7 +95,7 @@ export default function ConsultaCliente() {
       if (aparelhos && aparelhos.length > 0) {
         const { data } = await supabase
           .from("ordens_de_servico")
-          .select(`id, numero, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
+          .select(`id, numero, numero_formatado, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
           .eq("aparelho_id", aparelhos[0].id)
           .is("deleted_at", null)
           .order("data_entrada", { ascending: false })
@@ -192,7 +194,7 @@ export default function ConsultaCliente() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Ordem de Serviço</p>
-                  <p className="text-2xl font-bold tracking-tight">#{String(order.numero).padStart(3, "0")}</p>
+                  <p className="text-2xl font-bold tracking-tight">#{formatNumeroOS(order.numero, order.numero_formatado)}</p>
                 </div>
                 <span className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",

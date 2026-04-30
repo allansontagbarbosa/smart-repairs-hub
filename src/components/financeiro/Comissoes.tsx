@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/hooks/useComissoesActions";
 import type { Comissao } from "@/hooks/useFinanceiro";
 import { format } from "date-fns";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d), "dd/MM/yyyy");
@@ -136,7 +137,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                 const cfg = statusConfig[c.status] ?? statusConfig.pendente;
                 const canPay = c.status === "pendente" || c.status === "liberada";
                 const canRelease = c.status === "pendente";
-                const osLabel = c.ordens_de_servico?.numero_formatado ?? (c.ordens_de_servico?.numero ? `#${String(c.ordens_de_servico.numero).padStart(3, "0")}` : "—");
+                const osLabel = c.ordens_de_servico?.numero ? `#${formatNumeroOS(c.ordens_de_servico.numero, c.ordens_de_servico.numero_formatado)}` : "—";
                 return (
                   <tr key={c.id}>
                     <td>

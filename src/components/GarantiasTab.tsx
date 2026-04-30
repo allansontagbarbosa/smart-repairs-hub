@@ -5,6 +5,7 @@ import { Shield, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 type FilterType = "todas" | "ativas" | "vencendo" | "vencidas" | "utilizadas";
 
@@ -17,7 +18,7 @@ export function GarantiasTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("garantias")
-        .select("*, ordens_de_servico ( numero, aparelhos ( marca, modelo, clientes ( nome ) ) )")
+        .select("*, ordens_de_servico ( numero, numero_formatado, aparelhos ( marca, modelo, clientes ( nome ) ) )")
         .order("data_fim", { ascending: true });
       if (error) throw error;
       return data;
@@ -34,6 +35,7 @@ export function GarantiasTab() {
       ...g,
       diasRestantes,
       osNumero: os?.numero,
+      osNumeroFormatado: os?.numero_formatado,
       clienteNome: os?.aparelhos?.clientes?.nome || "—",
       aparelhoNome: os?.aparelhos ? `${os.aparelhos.marca} ${os.aparelhos.modelo}` : "—",
       computed: g.status === "utilizada" ? "utilizada" as const
@@ -128,7 +130,7 @@ export function GarantiasTab() {
                 {filtered.map((g) => (
                   <tr key={g.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-3 py-2 font-mono text-xs text-primary">
-                      #{String(g.osNumero).padStart(3, "0")}
+                      #{formatNumeroOS(g.osNumero, g.osNumeroFormatado)}
                     </td>
                     <td className="px-3 py-2 text-sm">{g.clienteNome}</td>
                     <td className="px-3 py-2 text-sm text-muted-foreground">{g.aparelhoNome}</td>

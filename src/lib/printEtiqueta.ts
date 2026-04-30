@@ -1,8 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import JsBarcode from "jsbarcode";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 export interface EtiquetaPrintData {
   numero: number;
+  numero_formatado?: string | null;
   clienteNome: string;
   clienteTelefone: string;
   marca: string;
@@ -70,7 +72,7 @@ export async function printEtiquetaOS(data: EtiquetaPrintData) {
   const html = `<!DOCTYPE html>
 <html>
 <head>
-  <title>Etiqueta OS #${String(data.numero).padStart(3, "0")}</title>
+  <title>Etiqueta OS #${formatNumeroOS(data.numero, data.numero_formatado)}</title>
   <style>
     @page { margin: 0; size: 62mm 100mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -98,7 +100,7 @@ export async function printEtiquetaOS(data: EtiquetaPrintData) {
   </style>
 </head>
 <body>
-  <div class="header">OS #${String(data.numero).padStart(3, "0")}</div>
+  <div class="header">OS #${formatNumeroOS(data.numero, data.numero_formatado)}</div>
   <div class="client-name">${data.clienteNome}</div>
   <div class="client-phone">${data.clienteTelefone}</div>
   <div class="divider"></div>
