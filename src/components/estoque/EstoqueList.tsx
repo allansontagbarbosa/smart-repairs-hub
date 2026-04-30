@@ -205,8 +205,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                 <th className="text-center">Qtd</th>
                 <th className="hidden sm:table-cell text-center">Mín</th>
                 <th className="hidden md:table-cell text-right">Custo médio</th>
-                <th className="hidden md:table-cell text-right">Venda</th>
-                <th className="hidden lg:table-cell text-center">Margem</th>
                 <th className="hidden xl:table-cell">Local</th>
                 <th className="text-center">Status</th>
                 <th className="text-right">Ações</th>
@@ -265,16 +263,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
                       ) : (
                         <span className="text-xs text-muted-foreground">Sem entrada registrada</span>
                       )}
-                    </td>
-                    <td className="hidden md:table-cell text-sm text-right">
-                      {item.preco_venda == null ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : (
-                        <span className="font-mono text-xs">{fmtCurrency(item.preco_venda)}</span>
-                      )}
-                    </td>
-                    <td className="hidden lg:table-cell text-center">
-                      <MargemBadge custo={item.custo_medio} venda={item.preco_venda} />
                     </td>
                     <td className="hidden xl:table-cell text-sm text-muted-foreground">
                       {item.local_estoque ? (
