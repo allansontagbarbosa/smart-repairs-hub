@@ -208,6 +208,13 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
             icon: <EyeOff className="h-3.5 w-3.5" />,
             onClick: () => toggleAtivoMutation.mutate({ ids: Array.from(bulk.selectedIds), ativo: false }),
           },
+          {
+            id: "excluir",
+            label: "Excluir",
+            icon: <Trash2 className="h-3.5 w-3.5" />,
+            variant: "destructive",
+            onClick: () => setConfirmDeleteBulk(true),
+          },
         ]}
       />
 
