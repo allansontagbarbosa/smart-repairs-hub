@@ -1566,6 +1566,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                   tecnicos={tecnicosAtivos as any[]}
                   autoSave={false}
                   onChange={syncServicosEditor}
+                  custoPecas={custoPecasTotal}
+                  desconto={Number(desconto || 0)}
                 />
               </div>
 

@@ -32,6 +32,16 @@ type Props = {
   onSave?: (resultado: any) => void;
   autoSave?: boolean;
   className?: string;
+  /**
+   * Custo das peças usadas na OS. Quando fornecido, é descontado do lucro estimado
+   * para alinhar com o cálculo da sidebar/detalhes da OS (peça é custo, não receita).
+   */
+  custoPecas?: number;
+  /**
+   * Desconto aplicado ao total ao cliente. Quando fornecido, é descontado do lucro
+   * estimado para refletir a receita real da OS.
+   */
+  desconto?: number;
 };
 
 const SEM_TECNICO = "__sem_tecnico__";
@@ -40,7 +50,7 @@ const norm = (value: unknown) => Number(value) || 0;
 const sameList = (a: ServicoOSPayload[], b: ServicoOSPayload[]) => JSON.stringify(a.map(clean)) === JSON.stringify(b.map(clean));
 const clean = (s: ServicoOSPayload) => ({ id: s.id ?? null, servico_id: s.servico_id, tecnico_id: s.tecnico_id ?? null, valor: norm(s.valor), comissao: norm(s.comissao) });
 
-export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecnicos, onChange, onSave, autoSave = true, className }: Props) {
+export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecnicos, onChange, onSave, autoSave = true, className, custoPecas, desconto }: Props) {
   const queryClient = useQueryClient();
   const [servicos, setServicos] = useState<ServicoOSPayload[]>(() => servicosIniciais.map(clean));
   const [openAdd, setOpenAdd] = useState(false);
@@ -56,7 +66,10 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
 
   const totalValor = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.valor), 0), [servicos]);
   const totalComissao = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.comissao), 0), [servicos]);
-  const lucro = totalValor - totalComissao;
+  // Lucro estimado: usa a mesma fórmula da sidebar/detalhes da OS quando peças e desconto
+  // são fornecidos (valor − desconto − peças − comissão). Caso contrário, fallback ao
+  // cálculo legacy (valor − comissão) para compatibilidade com chamadores antigos.
+  const lucro = totalValor - norm(desconto) - norm(custoPecas) - totalComissao;
   const dirty = !sameList(servicos, servicosIniciais);
 
   const salvar = useMutation({
