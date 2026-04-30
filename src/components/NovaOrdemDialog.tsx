@@ -461,7 +461,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   // Detecção de aparelho cadastrado ao digitar IMEI no passo 2
   useEffect(() => {
-    if (imei.length !== 15) {
+    const imeiLimpo = imei.replace(/\D/g, "");
+    if (imeiLimpo.length !== 15) {
       setAparelhoExistente(null);
       return;
     }
@@ -470,7 +471,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const { data } = await supabase
         .from("aparelhos")
         .select("id, cliente_id, clientes(nome)")
-        .eq("imei", imei)
+        .eq("imei", imeiLimpo)
         .limit(1)
         .maybeSingle();
       if (cancelled || !data) {
