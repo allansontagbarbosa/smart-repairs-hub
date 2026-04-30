@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 import { statusLabelsCliente as statusLabels, type Status } from "@/lib/status";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 
 const statusDescriptions: Record<Status, string> = {
@@ -193,7 +194,7 @@ export default function ConsultaCliente() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Ordem de Serviço</p>
-                  <p className="text-2xl font-bold tracking-tight">#{String(order.numero).padStart(3, "0")}</p>
+                  <p className="text-2xl font-bold tracking-tight">#{formatNumeroOS(order.numero, order.numero_formatado)}</p>
                 </div>
                 <span className={cn(
                   "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
