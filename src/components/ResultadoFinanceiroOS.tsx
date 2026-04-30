@@ -50,8 +50,10 @@ export function ResultadoFinanceiroOS({
   const valorPecas = Number(ordem.valor_total_pecas ?? 0);
   const maoObraAdic = Number(ordem.mao_obra_adicional ?? 0);
   const desconto = Number(ordem.desconto ?? 0);
+  // O cliente paga valor_total (já inclui mão de obra adicional e desconto).
+  // Fallback ordem: valor_total → valor (compat com OS antigas) → valor_total_servicos (último recurso).
   const valorServicoCobrado = Number(
-    ordem.valor_total_servicos ?? ordem.valor_total ?? ordem.valor ?? 0
+    ordem.valor_total ?? ordem.valor ?? ordem.valor_total_servicos ?? 0
   );
   const custoPecas = Number(ordem.custo_pecas ?? 0);
   // Prioriza soma real de comissões já lançadas. Se ainda não há comissões
