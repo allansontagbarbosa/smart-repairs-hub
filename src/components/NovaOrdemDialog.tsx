@@ -1147,7 +1147,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[1100px] w-[95vw] max-h-[90vh] overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-[1100px] w-[95vw] max-h-[90vh] h-[90vh] overflow-hidden p-0 gap-0 flex flex-col">
 
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 text-base">
@@ -1194,7 +1194,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           })}
         </div>
 
-        <div className="px-5 pb-5 pt-3 space-y-4">
+        <div className="px-5 pb-5 pt-3 space-y-4 flex-1 min-h-0 overflow-y-auto flex flex-col">
 
           {/* ═══ STEP 1 — CLIENTE ═══ */}
           {step === "cliente" && (
@@ -1535,7 +1535,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           {/* ═══ STEP 3 — SERVIÇO ═══ */}
           {step === "servico" && (
             <>
-            <div className="grid grid-cols-[1fr_320px] max-h-[70vh]">
+            <div className="grid grid-cols-[1fr_320px] flex-1 min-h-0 -mx-5 -mt-3">
               <div className="overflow-y-auto px-7 py-6 space-y-4">
 
               {/* ── 1. RELATO DO CLIENTE * ── */}
@@ -2104,7 +2104,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                 </div>
               </aside>
             </div>
-            <div className="flex justify-between items-center px-7 py-4 border-t bg-muted/30">
+            <div className="flex justify-between items-center px-7 py-4 border-t bg-muted/30 -mx-5 -mb-5">
               <div className="text-[13px] text-muted-foreground">
                 {!canSubmit ? (
                   <span>
