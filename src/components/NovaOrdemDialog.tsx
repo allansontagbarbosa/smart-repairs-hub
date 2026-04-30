@@ -911,10 +911,43 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         throw new Error("Informe o relato do cliente ou selecione ao menos um serviço");
       }
 
-      // 1. Aparelho — reusa se IMEI já existe e é do mesmo cliente
+      // 1. Aparelho — SELECT defensivo antes do INSERT (evita race do useEffect)
+      const imeiLimpo = imei.replace(/\D/g, "");
       let aparelhoId: string;
-      if (aparelhoExistente && aparelhoExistente.mesmo_cliente) {
-        aparelhoId = aparelhoExistente.id;
+      if (imeiLimpo) {
+        const { data: existente, error: lookupErr } = await supabase
+          .from("aparelhos")
+          .select("id, cliente_id")
+          .eq("imei", imeiLimpo)
+          .limit(1)
+          .maybeSingle();
+        if (lookupErr) throw lookupErr;
+        if (existente) {
+          aparelhoId = existente.id;
+          if (existente.cliente_id !== selectedClientId) {
+            throw new Error(
+              "Este IMEI já está cadastrado para outro cliente. Confira o IMEI digitado ou ajuste o cadastro do aparelho diretamente."
+            );
+          }
+        } else {
+          const { data: aparelho, error: apErr } = await supabase
+            .from("aparelhos")
+            .insert({
+              cliente_id: selectedClientId,
+              marca, modelo,
+              cor: cor || null,
+              capacidade: capacidade || null,
+              imei: imeiLimpo,
+              marca_id: marcaId || null,
+              modelo_id: modeloId || null,
+              cor_id: corId || null,
+              capacidade_id: capacidadeId || null,
+              observacoes: imei2 ? `IMEI 2: ${imei2}` : null,
+            } as any)
+            .select().single();
+          if (apErr) throw apErr;
+          aparelhoId = aparelho.id;
+        }
       } else {
         const { data: aparelho, error: apErr } = await supabase
           .from("aparelhos")
@@ -923,7 +956,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             marca, modelo,
             cor: cor || null,
             capacidade: capacidade || null,
-            imei: imei.replace(/\D/g, "") || null,
+            imei: null,
             marca_id: marcaId || null,
             modelo_id: modeloId || null,
             cor_id: corId || null,
