@@ -37,6 +37,7 @@ import { ServicosSelector } from "@/components/ServicosSelector";
 import { ServicosOSEditor, type ServicoOSPayload } from "@/components/ordens/ServicosOSEditor";
 import { CollapsibleSection } from "@/components/ordens/CollapsibleSection";
 import { formatCurrency } from "@/lib/format";
+import { formatNumeroOS } from "@/lib/numeroOS";
 import { Link } from "react-router-dom";
 import { suggestServicos } from "@/lib/sugestoesServico";
 
@@ -443,7 +444,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const lastOsByApar = new Map<string, string | null>();
       (osData || []).forEach((o: any) => {
         if (!lastOsByApar.has(o.aparelho_id)) {
-          lastOsByApar.set(o.aparelho_id, o.numero_formatado || (o.numero ? String(o.numero).padStart(3, "0") : null));
+          lastOsByApar.set(o.aparelho_id, o.numero != null ? formatNumeroOS(o.numero, o.numero_formatado) : null);
         }
       });
       setImeiSearchHits(
@@ -1080,11 +1081,11 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       return ordem;
     },
     onSuccess: (ordem: any) => {
-      const labelNum = ordem?.numero_formatado || String(ordem?.numero || 0).padStart(3, "0");
+      const labelNum = formatNumeroOS(ordem?.numero, ordem?.numero_formatado);
       toast.success(`OS #${labelNum} criada!`);
       queryClient.invalidateQueries({ queryKey: ["estoque_pecas_para_os"] });
       invalidateOrdensDependentes(queryClient);
-      setCreatedOS(ordem ? { numero: ordem.numero, id: ordem.id } : null);
+      setCreatedOS(ordem ? { numero: ordem.numero, numero_formatado: ordem.numero_formatado ?? null, id: ordem.id } : null);
       setStep("sucesso");
       onSuccess();
     },
@@ -2145,7 +2146,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
               <div className="text-center space-y-2">
                 <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
                 <h3 className="text-lg font-semibold">
-                  OS #{String(createdOS.numero).padStart(3, "0")} criada com sucesso!
+                  OS #{formatNumeroOS(createdOS.numero, createdOS.numero_formatado)} criada com sucesso!
                 </h3>
               </div>
 
