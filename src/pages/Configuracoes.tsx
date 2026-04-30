@@ -257,7 +257,7 @@ export default function Configuracoes() {
           <div className="p-4 md:p-6 max-w-4xl">
             {active === "geral" && <ConfigGeralTab empresa={data.empresa} saveEmpresa={data.saveEmpresa} />}
             {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} loading={data.userProfilesLoading} error={data.userProfilesError as Error | null} onRetry={() => data.refetchUserProfiles?.()} />}
-            {active === "pecas" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
+            
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
@@ -280,7 +280,7 @@ function getSubtitle(id: string): string {
   const map: Record<string, string> = {
     geral: "Nome, endereço, contato e identidade visual da empresa",
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
-    pecas: "Catálogo de peças — o que cada peça é. Quantidades vêm das compras.",
+    
     servicos: "Tipos de serviço (defeitos/reparos), valores, categorias e comissões",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
