@@ -84,7 +84,6 @@ interface PecaSelecionada {
   nome: string;
   quantidade: number;
   custo_unitario: number;
-  preco_venda: number;
   estoque_disponivel: number;
   // IDs dos serviços que adicionaram esta peça automaticamente.
   // Vazio = peça adicionada manualmente.
@@ -622,7 +621,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           nome: getPecaNome(pEstoque),
           quantidade: auto.qtd,
           custo_unitario: Number(pEstoque.custo_unitario ?? 0),
-          preco_venda: Number(pEstoque.preco_venda ?? 0),
           estoque_disponivel: pEstoque.quantidade,
           origens: Array.from(auto.origens),
         });
@@ -1037,7 +1035,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             peca_id: p.id,
             quantidade: p.quantidade,
             custo_unitario: p.custo_unitario,
-            preco_unitario: p.preco_venda,
+            preco_unitario: p.custo_unitario,
             // Se a peça veio de algum serviço, gravar o primeiro como origem
             origem_servico_id: p.origens.length > 0 ? p.origens[0] : null,
           })) as any
@@ -1089,7 +1087,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       nome: getPecaNome(p),
       quantidade: 1,
       custo_unitario: Number(p.custo_unitario ?? 0),
-      preco_venda: Number(p.preco_venda ?? 0),
       estoque_disponivel: p.quantidade,
       origens: [],
     }]);
@@ -1618,7 +1615,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                                 Estoque: <span className={p.quantidade === 0 ? "text-destructive font-medium" : ""}>{p.quantidade}</span> · SKU: {p.sku || "—"}
                               </p>
                             </div>
-                            <span className="text-xs font-medium text-success">R$ {Number(p.preco_venda ?? 0).toFixed(2)}</span>
+                            <span className="text-xs font-medium text-muted-foreground">Custo R$ {Number(p.custo_unitario ?? 0).toFixed(2)}</span>
                           </button>
                         ))}
                       </div>
@@ -1942,7 +1939,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                       {pecasSelecionadas.map((p) => (
                         <div key={p.id} className="flex justify-between text-xs text-foreground">
                           <span>• {p.nome} ×{p.quantidade}</span>
-                          <span>R$ {(p.preco_venda * p.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span>custo R$ {(p.custo_unitario * p.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                     </div>
