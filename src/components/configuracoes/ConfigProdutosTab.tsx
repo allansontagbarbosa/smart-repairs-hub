@@ -78,14 +78,12 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
       { header: "Marca", value: r => (r as any).marcas?.nome ?? "" },
       { header: "Modelo", value: r => (r as any).modelos?.nome ?? "" },
       { header: "Categoria", value: r => (r as any).estoque_categorias?.nome ?? "" },
-      { header: "Preço padrão", value: r => r.preco_venda ?? 0 },
-      { header: "Preço especial", value: r => r.preco_especial ?? "" },
       { header: "Status", value: r => r.ativo ? "Ativo" : "Inativo" },
     ]);
     toast.success(`${rows.length} ${rows.length === 1 ? "peça exportada" : "peças exportadas"}`);
   };
 
-  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  
   const previewNames = bulk.selectedItems.slice(0, 5).map((p: any) => p.nome_personalizado);
   const restCount = Math.max(0, bulk.count - previewNames.length);
 
@@ -156,7 +154,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                   <th className="text-left p-3 font-medium">Peça</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">SKU</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Categoria</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Preço</th>
+                  
                   <th className="text-left p-3 font-medium">Status</th>
                   <th className="p-3"></th>
                 </tr>
@@ -179,7 +177,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{p.sku || "—"}</td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">{(p as any).estoque_categorias?.nome || "—"}</td>
-                    <td className="p-3 hidden md:table-cell">{fmt(p.preco_venda || 0)}</td>
+                    
                     <td className="p-3">
                       <Badge variant={p.ativo ? "default" : "secondary"}>
                         {p.ativo ? "Ativo" : "Inativo"}
@@ -197,7 +195,7 @@ export function ConfigProdutosTab({ produtosBase }: Props) {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-10 text-center">
+                    <td colSpan={6} className="p-10 text-center">
                       <div className="space-y-2">
                         <p className="text-muted-foreground text-sm">Nenhuma peça cadastrada no catálogo.</p>
                         <Button size="sm" onClick={openCreate}>

@@ -65,12 +65,12 @@ export function RelExportacao() {
   async function exportarEstoque() {
     setLoading("estoque");
     try {
-      const { data } = await supabase.from("estoque_itens").select("sku, nome_personalizado, tipo_item, quantidade, quantidade_minima, custo_unitario, preco_venda, local_estoque, fornecedor, status").is("deleted_at", null).order("nome_personalizado");
+      const { data } = await supabase.from("estoque_itens").select("sku, nome_personalizado, tipo_item, quantidade, quantidade_minima, custo_unitario, local_estoque, fornecedor, status").is("deleted_at", null).order("nome_personalizado");
       if (!data?.length) { toast.info("Nenhum item no estoque."); return; }
       downloadCSV(
         "estoque.csv",
-        ["SKU","Nome","Tipo","Quantidade","Qtd Mínima","Custo Unit","Preço Venda","Local","Fornecedor","Status"],
-        data.map(e => [e.sku, e.nome_personalizado, e.tipo_item, e.quantidade, e.quantidade_minima, e.custo_unitario, e.preco_venda, e.local_estoque, e.fornecedor, e.status])
+        ["SKU","Nome","Tipo","Quantidade","Qtd Mínima","Custo Unit","Local","Fornecedor","Status"],
+        data.map(e => [e.sku, e.nome_personalizado, e.tipo_item, e.quantidade, e.quantidade_minima, e.custo_unitario, e.local_estoque, e.fornecedor, e.status])
       );
       toast.success("CSV de estoque exportado!");
     } finally { setLoading(""); }

@@ -49,10 +49,10 @@ const exports = [
   {
     id: "estoque", title: "Estoque", icon: FileSpreadsheet,
     fn: async () => {
-      const { data } = await supabase.from("estoque_itens").select("nome_personalizado, tipo_item, sku, imei_serial, quantidade, quantidade_minima, custo_unitario, preco_venda, local_estoque, status").is("deleted_at", null);
+      const { data } = await supabase.from("estoque_itens").select("nome_personalizado, tipo_item, sku, imei_serial, quantidade, quantidade_minima, custo_unitario, local_estoque, status").is("deleted_at", null);
       if (!data?.length) { toast.error("Sem dados"); return; }
-      downloadCSV("estoque.csv", ["Nome", "Tipo", "SKU", "IMEI/Serial", "Quantidade", "Qtd Mínima", "Custo", "Preço Venda", "Local", "Status"],
-        data.map((e) => [e.nome_personalizado || "", e.tipo_item, e.sku || "", e.imei_serial || "", String(e.quantidade), String(e.quantidade_minima), String(e.custo_unitario || 0), String(e.preco_venda || 0), e.local_estoque || "", e.status]));
+      downloadCSV("estoque.csv", ["Nome", "Tipo", "SKU", "IMEI/Serial", "Quantidade", "Qtd Mínima", "Custo", "Local", "Status"],
+        data.map((e) => [e.nome_personalizado || "", e.tipo_item, e.sku || "", e.imei_serial || "", String(e.quantidade), String(e.quantidade_minima), String(e.custo_unitario || 0), e.local_estoque || "", e.status]));
       toast.success("Exportado!");
     },
   },

@@ -39,7 +39,6 @@ type FormValues = {
   sku: string;
   codigo_barras: string;
   quantidade_minima: string;
-  preco_venda: string;
   local_estoque: string;
   fornecedor: string;
   observacoes: string;
@@ -48,7 +47,7 @@ type FormValues = {
 const emptyForm: FormValues = {
   categoria_id: "", marca_id: "", modelo_id: "",
   nome_personalizado: "", cor: "", capacidade: "", imei_serial: "", sku: "", codigo_barras: "",
-  quantidade_minima: "0", preco_venda: "",
+  quantidade_minima: "0",
   local_estoque: "", fornecedor: "", observacoes: "",
 };
 
@@ -89,7 +88,6 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         sku: editingItem.sku ?? "",
         codigo_barras: (editingItem as any).codigo_barras ?? "",
         quantidade_minima: String(editingItem.quantidade_minima),
-        preco_venda: editingItem.preco_venda ? String(editingItem.preco_venda) : "",
         local_estoque: editingItem.local_estoque ?? "",
         fornecedor: editingItem.fornecedor ?? "",
         observacoes: editingItem.observacoes ?? "",
@@ -174,8 +172,6 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         }
       }
 
-      const venda = values.preco_venda ? parseFloat(values.preco_venda) : null;
-
       const payload: any = {
         tipo_item: "peca" as const,
         categoria_id: values.categoria_id || null,
@@ -188,7 +184,6 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
         sku: values.sku?.trim() || null,
         codigo_barras: values.codigo_barras?.trim() || null,
         quantidade_minima: parseInt(values.quantidade_minima) || 0,
-        preco_venda: venda,
         local_estoque: values.local_estoque || null,
         fornecedor: values.fornecedor || null,
         observacoes: values.observacoes || null,
@@ -266,7 +261,7 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
           <DialogDescription className="text-xs flex items-start gap-1.5 text-muted-foreground pt-1">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
-              O custo desta peça é calculado pelas compras (média ponderada). Aqui você define só o que ela é e por quanto vende.
+              O custo desta peça é calculado pelas compras (média ponderada). Peças entram como custo interno da OS — o cliente paga pelo serviço, que já engloba a peça.
             </span>
           </DialogDescription>
         </DialogHeader>
@@ -348,22 +343,10 @@ export function NovoItemDialog({ open, onOpenChange, editingItem, categorias, ma
             </div>
           )}
 
-          {/* Preço de venda + estoque mínimo */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Preço de venda (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                {...register("preco_venda")}
-                placeholder="Ex: 250,00"
-                className="h-9 mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-xs">Estoque mínimo</Label>
-              <Input type="number" {...register("quantidade_minima")} className="h-9 mt-1" />
-            </div>
+          {/* Estoque mínimo */}
+          <div>
+            <Label className="text-xs">Estoque mínimo</Label>
+            <Input type="number" {...register("quantidade_minima")} className="h-9 mt-1" />
           </div>
 
           {/* SKU + Código de barras + Local */}
