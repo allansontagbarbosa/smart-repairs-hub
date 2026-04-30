@@ -1394,7 +1394,7 @@ export default function Assistencia() {
                   defeitos: order.defeito_relatado ?? "",
                   dataEntrada: order.data_entrada,
                   previsaoEntrega: order.previsao_entrega,
-                  valor: order.valor,
+                  valor: order.valor_total ?? order.valor,
                   imei: (order.aparelhos as any)?.imei ?? null,
                   tecnicoAtribuido: order.tecnico ?? null,
                 })}
