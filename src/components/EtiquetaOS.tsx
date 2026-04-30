@@ -5,6 +5,7 @@ import Barcode from "react-barcode";
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { printEtiquetaOS, type EtiquetaPrintData } from "@/lib/printEtiqueta";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 interface Props {
   data: EtiquetaPrintData;
@@ -45,7 +46,7 @@ export function EtiquetaOS({ data, showButton = true }: Props) {
 
       {/* Preview card for confirmation screen */}
       <div className="border rounded-lg p-3 bg-card text-card-foreground max-w-[250px] mx-auto text-[9px] leading-tight font-mono space-y-1">
-        <div className="text-sm font-bold">OS #{String(data.numero).padStart(3, "0")}</div>
+        <div className="text-sm font-bold">OS #{formatNumeroOS(data.numero, data.numero_formatado)}</div>
         <div className="text-[10px] font-semibold">{data.clienteNome}</div>
         <div className="text-muted-foreground">{data.clienteTelefone}</div>
         <div className="border-t border-dashed my-1" />
