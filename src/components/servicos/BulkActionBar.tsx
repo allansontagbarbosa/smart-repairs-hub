@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { statusLabels, type Status } from "@/lib/status";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 /**
  * Status disponíveis para mudança em massa.
@@ -39,7 +40,7 @@ interface Props {
   onAtribuirTecnico: (funcionarioId: string, nome: string) => void;
   onCancelar: () => void;
   cancelDisabled?: boolean;
-  cancelBlockedItems?: { id: string; numero: string | number; motivo: string }[];
+  cancelBlockedItems?: { id: string; numero: string | number; numero_formatado?: string | null; motivo: string }[];
   onExportCSV: () => void;
   onClear: () => void;
 }
@@ -77,7 +78,7 @@ export function BulkActionBar({
             <span>
               {cancelBlockedItems.length} OS selecionada{cancelBlockedItems.length === 1 ? "" : "s"} não pode{cancelBlockedItems.length === 1 ? "" : "m"} ser cancelada{cancelBlockedItems.length === 1 ? "" : "s"}: {cancelBlockedItems
                 .slice(0, 4)
-                .map((item) => `#${String(item.numero).padStart(3, "0")} — ${item.motivo}`)
+                .map((item) => `#${formatNumeroOS(item.numero, item.numero_formatado)} — ${item.motivo}`)
                 .join("; ")}
               {cancelBlockedItems.length > 4 ? `; + ${cancelBlockedItems.length - 4} outra${cancelBlockedItems.length - 4 === 1 ? "" : "s"}` : ""}. Remova da seleção para liberar o cancelamento.
             </span>

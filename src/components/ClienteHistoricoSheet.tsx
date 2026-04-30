@@ -16,6 +16,7 @@ import { Smartphone, ChevronDown, ChevronRight, MessageCircle, Eye, Wrench, Load
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { useCriarPagamentoCliente } from "@/hooks/usePagamentosCliente";
 import type { Database } from "@/integrations/supabase/types";
+import { formatNumeroOS } from "@/lib/numeroOS";
 
 const FORMAS_PAGAMENTO = [
   { value: "pix", label: "Pix" },
