@@ -62,11 +62,15 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
       if (qtd <= 0) throw new Error("Quantidade inválida");
       if (!motivo) throw new Error("Selecione um motivo");
 
+      const motivoTexto = `${motivos.find((m) => m.value === motivo)?.label || motivo}${observacao ? ` — ${observacao}` : ""}`;
+
       if (tipo === "entrada") {
         if (!precoUnitario || precoUnitario <= 0) {
           throw new Error("Informe o preço unitário desta entrada");
         }
-        // Recalcula custo médio + atualiza quantidade + grava histórico
+        // recalcular_custo_medio já: atualiza quantidade + custo médio
+        // + insere registro em estoque_movimentos com tipo='entrada_compra'.
+        // Não inserir movimentação adicional aqui para evitar duplicidade.
         const { error: rpcErr } = await supabase.rpc("recalcular_custo_medio", {
           p_peca_id: pecaId,
           p_quantidade_entrada: qtd,
@@ -76,22 +80,25 @@ export function AjusteEstoqueDialog({ open, onOpenChange, itens }: Props) {
         });
         if (rpcErr) throw rpcErr;
       } else {
-        // Saída: só decrementa quantidade, não mexe no custo médio; saldo negativo é permitido
+        // Saída via ajuste manual.
+        // Insere movimento PRIMEIRO (com tipo='ajuste', que é o valor aceito pelo
+        // CHECK constraint estoque_movimentos_tipo_check). Se falhar, a quantidade
+        // não é decrementada, evitando estado inconsistente.
+        const { error: e1 } = await supabase.from("estoque_movimentos").insert({
+          peca_id: pecaId,
+          tipo: "ajuste",
+          quantidade: qtd,
+          motivo: motivoTexto,
+        });
+        if (e1) throw e1;
+
         const novaQtd = item.quantidade - qtd;
-        const { error: e1 } = await supabase
+        const { error: e2 } = await supabase
           .from("estoque_itens")
           .update({ quantidade: novaQtd })
           .eq("id", pecaId);
-        if (e1) throw e1;
+        if (e2) throw e2;
       }
-
-      const { error: e2 } = await supabase.from("estoque_movimentos").insert({
-        peca_id: pecaId,
-        tipo,
-        quantidade: qtd,
-        motivo: `${motivos.find((m) => m.value === motivo)?.label || motivo}${observacao ? ` — ${observacao}` : ""}`,
-      });
-      if (e2) throw e2;
     },
     onSuccess: () => {
       toast.success("Ajuste registrado com sucesso!");
