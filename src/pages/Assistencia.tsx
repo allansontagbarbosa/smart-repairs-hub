@@ -1254,9 +1254,12 @@ export default function Assistencia() {
     const phone = order.aparelhos?.clientes?.telefone;
     const isCritica = order.prioridade.nivel === "critica";
     const isCancelada = order.status === "cancelado";
-    const valor = Number(order.valor ?? 0);
+    // valor cobrado do cliente: valor_total (já considera desconto).
+    // Fallback p/ valor só em OS antigas que ainda não tinham esse campo.
+    const valor = Number(order.valor_total ?? order.valor ?? 0);
     const custo = Number(order.custo_pecas ?? 0);
-    const lucro = valor - custo;
+    const comissao = Number(order.custo_mao_de_obra ?? 0);
+    const lucro = valor - custo - comissao;
     const temGarantia = garantiaOrdemIds.has(order.id);
     const podeCancelar = isAdmin && ["recebido", "em_analise", "aguardando_aprovacao"].includes(order.status);
 
@@ -1391,7 +1394,7 @@ export default function Assistencia() {
                   defeitos: order.defeito_relatado ?? "",
                   dataEntrada: order.data_entrada,
                   previsaoEntrega: order.previsao_entrega,
-                  valor: order.valor,
+                  valor: order.valor_total ?? order.valor,
                   imei: (order.aparelhos as any)?.imei ?? null,
                   tecnicoAtribuido: order.tecnico ?? null,
                 })}
