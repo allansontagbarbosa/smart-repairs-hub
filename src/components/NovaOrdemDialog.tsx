@@ -1535,7 +1535,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           {/* ═══ STEP 3 — SERVIÇO ═══ */}
           {step === "servico" && (
             <>
-            <div className="grid grid-cols-[1fr_320px] max-h-[70vh]">
+            <div className="grid grid-cols-[1fr_320px] flex-1 min-h-0 -mx-5 -mt-3">
               <div className="overflow-y-auto px-7 py-6 space-y-4">
 
               {/* ── 1. RELATO DO CLIENTE * ── */}
