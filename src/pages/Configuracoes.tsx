@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  Loader2, Building2, Package, Wrench, Truck, Users, DollarSign, Boxes,
+  Loader2, Building2, Wrench, Truck, Users, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
   ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
-import { ConfigProdutosTab } from "@/components/configuracoes/ConfigProdutosTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
 
@@ -44,7 +43,6 @@ const groups = [
   {
     label: "Cadastros Base",
     items: [
-      { id: "pecas", label: "Peças", icon: Package, keywords: ["peca", "peça", "produto", "sku", "catalogo", "item", "estoque"] },
       { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao", "defeito", "problema", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
@@ -94,18 +92,25 @@ const allItems = groups.flatMap((g) => g.items);
 
 export default function Configuracoes() {
   const { aba } = useParams();
+  const navigate = useNavigate();
   const data = useConfiguracoes();
-  // Compat: a aba antiga "produtos" virou "pecas" — redireciona transparentemente
-  const normalizedAba = aba === "produtos" ? "pecas" : aba;
-  const [active, setActive] = useState(normalizedAba || "geral");
+  const [active, setActive] = useState(aba || "geral");
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // A aba "pecas" / "produtos" foi unificada em /pecas (menu principal).
+  // Qualquer link antigo é redirecionado para a página unificada.
   useEffect(() => {
-    if (normalizedAba && allItems.some((i) => i.id === normalizedAba)) {
-      setActive(normalizedAba);
+    if (aba === "pecas" || aba === "produtos") {
+      navigate("/pecas", { replace: true });
     }
-  }, [normalizedAba]);
+  }, [aba, navigate]);
+
+  useEffect(() => {
+    if (aba && allItems.some((i) => i.id === aba)) {
+      setActive(aba);
+    }
+  }, [aba]);
 
   const activeItem = allItems.find((i) => i.id === active);
 
@@ -252,7 +257,7 @@ export default function Configuracoes() {
           <div className="p-4 md:p-6 max-w-4xl">
             {active === "geral" && <ConfigGeralTab empresa={data.empresa} saveEmpresa={data.saveEmpresa} />}
             {active === "usuarios" && <ConfigUsuariosTab userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} funcionarios={data.funcionarios} loading={data.userProfilesLoading} error={data.userProfilesError as Error | null} onRetry={() => data.refetchUserProfiles?.()} />}
-            {active === "pecas" && <ConfigProdutosTab produtosBase={data.produtosBase} marcas={data.marcas} modelos={data.modelos} categorias={data.estoqueCategorias} />}
+            
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
@@ -275,7 +280,7 @@ function getSubtitle(id: string): string {
   const map: Record<string, string> = {
     geral: "Nome, endereço, contato e identidade visual da empresa",
     usuarios: "Gerencie usuários do sistema e perfis de acesso",
-    pecas: "Catálogo de peças — o que cada peça é. Quantidades vêm das compras.",
+    
     servicos: "Tipos de serviço (defeitos/reparos), valores, categorias e comissões",
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
