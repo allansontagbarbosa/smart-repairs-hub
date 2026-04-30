@@ -267,14 +267,46 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const { data: tecnicosAtivos = [] } = useQuery<any[]>({
     queryKey: ["funcionarios_ativos_nova_os"],
     queryFn: async () => {
+      // 1) Buscar perfil_id do perfil "Técnico" em perfis_acesso
+      const { data: perfilTecnico } = await supabase
+        .from("perfis_acesso")
+        .select("id")
+        .eq("nome_perfil", "Técnico")
+        .maybeSingle();
+
+      // 2) IDs de funcionários vinculados a user_profiles com perfil "Técnico"
+      let funcionariosIdsComPerfilTecnico: string[] = [];
+      if (perfilTecnico?.id) {
+        const { data: ups } = await supabase
+          .from("user_profiles")
+          .select("funcionario_id")
+          .eq("perfil_id", perfilTecnico.id)
+          .not("funcionario_id", "is", null);
+        funcionariosIdsComPerfilTecnico = (ups ?? [])
+          .map((u: any) => u.funcionario_id)
+          .filter(Boolean);
+      }
+
+      // 3) Buscar funcionários ativos (com cargo, para filtro complementar)
       const { data, error } = await supabase
         .from("funcionarios")
-        .select("id, nome")
+        .select("id, nome, cargo")
         .eq("ativo", true)
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      return data ?? [];
+
+      // 4) Filtrar: ou tem perfil "Técnico" via user_profiles, OU cargo contém "técnico"
+      const idsSet = new Set(funcionariosIdsComPerfilTecnico);
+      const filtrados = (data ?? []).filter((f: any) => {
+        if (idsSet.has(f.id)) return true;
+        const cargo = (f.cargo || "").toLowerCase();
+        return cargo.includes("técnico") || cargo.includes("tecnico");
+      });
+
+      // Fallback: se NENHUM funcionário casou (empresa sem perfis cadastrados
+      // e sem cargo "técnico"), retorna todos para não travar o uso.
+      return filtrados.length > 0 ? filtrados : (data ?? []);
     },
   });
 
@@ -627,15 +659,6 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     [servicosEditorValue]
   );
 
-  // Subtotal de peças = preco_venda * quantidade (PecaSelecionada tem preco_venda, NÃO valor_unitario)
-  const subtotalPecasVenda = useMemo(
-    () => (pecasSelecionadas ?? []).reduce(
-      (sum, p) => sum + (Number(p.preco_venda || 0) * Number(p.quantidade || 1)),
-      0
-    ),
-    [pecasSelecionadas]
-  );
-
   // Custo das peças (para o cálculo correto do lucro)
   const custoPecasTotal = useMemo(
     () => (pecasSelecionadas ?? []).reduce(
@@ -654,26 +677,30 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     [servicosEditorValue]
   );
 
-  // Total ao cliente (incluindo peças, diferente do valorTotal atual)
+  // Total ao cliente: peças NÃO somam separadamente — o valor do serviço já
+  // engloba o que o cliente paga (peça é custo interno, não receita).
   const totalAoClienteNovo = useMemo(
     () =>
-      subtotalServicos +
-      subtotalPecasVenda +
-      Number(maoObraAdicional || 0) -
-      Number(desconto || 0) -
-      Number(sinalPago || 0),
-    [subtotalServicos, subtotalPecasVenda, maoObraAdicional, desconto, sinalPago]
+      Math.max(
+        0,
+        subtotalServicos +
+          Number(maoObraAdicional || 0) -
+          Number(desconto || 0) -
+          Number(sinalPago || 0)
+      ),
+    [subtotalServicos, maoObraAdicional, desconto, sinalPago]
   );
 
-  // Lucro estimado: receita − custo das peças − comissões
+  // Lucro estimado: receita (serviços + mão de obra adicional − desconto)
+  // − custo das peças − comissões. Peça é CUSTO (igual à comissão), nunca receita.
   const lucroEstimado = useMemo(
     () =>
       subtotalServicos +
-      subtotalPecasVenda +
       Number(maoObraAdicional || 0) -
+      Number(desconto || 0) -
       custoPecasTotal -
       totalComissoes,
-    [subtotalServicos, subtotalPecasVenda, maoObraAdicional, custoPecasTotal, totalComissoes]
+    [subtotalServicos, maoObraAdicional, desconto, custoPecasTotal, totalComissoes]
   );
 
   // Lista de nomes de técnicos únicos usados (para a seção "Comissões a pagar")
@@ -1997,12 +2024,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     </p>
                     <div className="space-y-1 text-[13px]">
                       <div className="flex justify-between">
-                        <span>Subtotal serviços</span>
+                        <span>Total serviços</span>
                         <span className="tabular-nums font-medium">{formatCurrency(subtotalServicos)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Peças ({(pecasSelecionadas ?? []).length})</span>
-                        <span className="tabular-nums font-medium">{formatCurrency(subtotalPecasVenda)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Mão de obra adicional</span>
@@ -2021,6 +2044,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                       <span>Total ao cliente</span>
                       <span className="tabular-nums text-primary">{formatCurrency(totalAoClienteNovo)}</span>
                     </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                      O valor do serviço já engloba o preço final ao cliente. Peças entram como custo, não como receita.
+                    </p>
                     <p className="text-[13px] text-green-600 font-semibold text-right mt-1.5">
                       Lucro estimado: {formatCurrency(lucroEstimado)}
                     </p>
@@ -2028,11 +2054,17 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
 
                   <div>
                     <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
-                      Comissões a pagar
+                      Custos
                     </p>
-                    <div className="flex justify-between text-[13px]">
-                      <span>{tecnicosUnicos.join(", ") || "—"}</span>
-                      <span className="tabular-nums font-medium">{formatCurrency(totalComissoes)}</span>
+                    <div className="space-y-1 text-[13px]">
+                      <div className="flex justify-between">
+                        <span>Peças ({(pecasSelecionadas ?? []).length})</span>
+                        <span className="tabular-nums font-medium">−{formatCurrency(custoPecasTotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Comissões {tecnicosUnicos.length > 0 ? `· ${tecnicosUnicos.join(", ")}` : ""}</span>
+                        <span className="tabular-nums font-medium">−{formatCurrency(totalComissoes)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
