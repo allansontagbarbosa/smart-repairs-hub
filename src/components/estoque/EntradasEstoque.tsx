@@ -291,7 +291,10 @@ function NovaCompraDialog({
           p_origem: "entrada_direta",
           p_origem_id: entrada.id,
         });
-        if (rpcErr) console.error("recalcular_custo_medio falhou:", rpcErr);
+        if (rpcErr) {
+          console.error("recalcular_custo_medio falhou:", rpcErr);
+          throw new Error(`Falha ao atualizar custo da peça: ${rpcErr.message}`);
+        }
 
         if (l.imei_serial) {
           await supabase.from("estoque_itens").update({ imei_serial: l.imei_serial }).eq("id", l.estoque_item_id);
