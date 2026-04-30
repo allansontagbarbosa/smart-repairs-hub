@@ -29,21 +29,6 @@ const fmtCurrency = (v: number | null) => {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 };
 
-function MargemBadge({ custo, venda }: { custo: number | null; venda: number | null }) {
-  if (!custo || custo <= 0 || !venda || venda <= 0) {
-    return <span className="text-muted-foreground text-xs">—</span>;
-  }
-  const margem = ((venda - custo) / venda) * 100;
-  const txt = `${margem.toFixed(0)}%`;
-  let cls = "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
-  if (margem < 0) cls = "bg-destructive/10 text-destructive border-destructive/40 font-semibold";
-  else if (margem < 20) cls = "bg-amber-500/10 text-amber-600 border-amber-500/30";
-  return (
-    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", cls)}>
-      {margem < 0 ? `↓ ${txt}` : txt}
-    </span>
-  );
-}
 
 interface Props {
   itens: EstoqueItem[];
@@ -129,7 +114,6 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
       { header: "Quantidade", value: r => r.quantidade },
       { header: "Mínimo", value: r => r.quantidade_minima },
       { header: "Custo médio", value: r => r.custo_medio ?? "" },
-      { header: "Venda", value: r => r.preco_venda ?? "" },
       { header: "Local", value: r => r.local_estoque ?? "" },
       { header: "Fornecedor", value: r => r.fornecedor ?? "" },
       { header: "Status", value: r => (r as any).status ?? "ativo" },
