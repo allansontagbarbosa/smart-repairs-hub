@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Wrench, ShoppingCart, Settings as SettingsIcon } from "lucide-react";
+import { Loader2, Wrench, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -40,14 +40,6 @@ export default function Pecas() {
           </Button>
           <ConferenciaPecasButton itens={itens} />
         </div>
-      </div>
-
-      <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-        <SettingsIcon className="h-3.5 w-3.5 shrink-0" />
-        <span>
-          Esta tela mostra o <strong>saldo</strong> de cada peça. Para cadastrar nova peça (SKU, categoria, custo de referência), acesse{" "}
-          <Link to="/configuracoes/pecas" className="text-primary hover:underline font-medium">Configurações &gt; Peças</Link>.
-        </span>
       </div>
 
       <AjusteEstoqueDialog open={ajusteOpen} onOpenChange={setAjusteOpen} itens={itens} />

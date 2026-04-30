@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  Loader2, Building2, Package, Wrench, Truck, Users, DollarSign, Boxes,
+  Loader2, Building2, Wrench, Truck, Users, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
   ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
-import { ConfigProdutosTab } from "@/components/configuracoes/ConfigProdutosTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
 
@@ -44,7 +43,6 @@ const groups = [
   {
     label: "Cadastros Base",
     items: [
-      { id: "pecas", label: "Peças", icon: Package, keywords: ["peca", "peça", "produto", "sku", "catalogo", "item", "estoque"] },
       { id: "servicos", label: "Serviços", icon: Wrench, keywords: ["servico", "tipo", "comissao", "defeito", "problema", "categoria"] },
       { id: "precos", label: "Lista de Preços", icon: Tag, keywords: ["preco", "tabela", "lista", "valor"] },
     ],
@@ -94,18 +92,25 @@ const allItems = groups.flatMap((g) => g.items);
 
 export default function Configuracoes() {
   const { aba } = useParams();
+  const navigate = useNavigate();
   const data = useConfiguracoes();
-  // Compat: a aba antiga "produtos" virou "pecas" — redireciona transparentemente
-  const normalizedAba = aba === "produtos" ? "pecas" : aba;
-  const [active, setActive] = useState(normalizedAba || "geral");
+  const [active, setActive] = useState(aba || "geral");
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // A aba "pecas" / "produtos" foi unificada em /pecas (menu principal).
+  // Qualquer link antigo é redirecionado para a página unificada.
   useEffect(() => {
-    if (normalizedAba && allItems.some((i) => i.id === normalizedAba)) {
-      setActive(normalizedAba);
+    if (aba === "pecas" || aba === "produtos") {
+      navigate("/pecas", { replace: true });
     }
-  }, [normalizedAba]);
+  }, [aba, navigate]);
+
+  useEffect(() => {
+    if (aba && allItems.some((i) => i.id === aba)) {
+      setActive(aba);
+    }
+  }, [aba]);
 
   const activeItem = allItems.find((i) => i.id === active);
 
