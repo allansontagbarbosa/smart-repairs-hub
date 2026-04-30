@@ -101,6 +101,26 @@ export function EstoqueList({ itens, categorias, marcas, modelos }: Props) {
     onError: (err: any) => toast.error("Erro ao alterar status", { description: err?.message }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("estoque_itens")
+        .update({ deleted_at: new Date().toISOString() })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
+      queryClient.invalidateQueries({ queryKey: ["produtos_base"] });
+      toast.success(`${count} ${count === 1 ? "peça removida" : "peças removidas"}`);
+      bulk.clear();
+      setConfirmDeleteSingle(null);
+      setConfirmDeleteBulk(false);
+    },
+    onError: (err: Error) => toast.error("Erro ao excluir", { description: err.message }),
+  });
+
   const handleExportCsv = () => {
     const rows = bulk.selectedItems.length > 0 ? bulk.selectedItems : filtered;
     if (rows.length === 0) {
