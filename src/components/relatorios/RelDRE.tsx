@@ -35,13 +35,17 @@ export function RelDRE() {
   const { data: ordens } = useQuery({
     queryKey: ["rel-dre-ordens", inicio],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("ordens_de_servico")
-        .select("valor, custo_pecas, status, data_conclusao")
+        .select("valor, valor_total, custo_pecas, status, data_conclusao")
         .is("deleted_at", null)
         .in("status", ["pronto", "entregue"])
         .gte("data_conclusao", inicio)
         .lt("data_conclusao", fim);
+      if (error) {
+        console.error("rel-dre-ordens falhou:", error);
+        return [];
+      }
       return data ?? [];
     },
   });
@@ -129,7 +133,7 @@ export function RelDRE() {
   // Calculate DRE
   const dre = useMemo(() => {
     const servicosFaturados = (ordens ?? [])
-      .reduce((s, o) => s + (o.valor ?? 0), 0);
+      .reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     const outrosReceb = (recebimentos ?? []).reduce((s, r: any) => s + Number(r.valor ?? 0), 0);
     const receitaBruta = servicosFaturados + outrosReceb;
 
@@ -166,7 +170,7 @@ export function RelDRE() {
 
   // Last 6 months chart
   const { data: chartData } = useQuery({
-    queryKey: ["rel-dre-chart", ano, mes],
+    queryKey: ["rel-dre-chart-v2", ano, mes],
     queryFn: async () => {
       const results = [];
       for (let i = 5; i >= 0; i--) {
@@ -177,15 +181,46 @@ export function RelDRE() {
         const nm = m === 11 ? 0 : m + 1;
         const ny = m === 11 ? y + 1 : y;
         const fi = `${ny}-${String(nm + 1).padStart(2, "0")}-01`;
+        const competencia = `${y}-${String(m + 1).padStart(2, "0")}`;
 
+        // MESMA REGRA da receita do mês: status pronto+entregue, filtra por data_conclusao,
+        // usa valor_total (com fallback p/ valor em OS antigas).
         const [{ data: os }, { data: cp }] = await Promise.all([
-          supabase.from("ordens_de_servico").select("valor, custo_pecas").is("deleted_at", null).eq("status", "entregue").gte("data_entrada", ini).lt("data_entrada", fi),
-          supabase.from("contas_a_pagar").select("valor").eq("mes_competencia", `${y}-${String(m + 1).padStart(2, "0")}`),
+          supabase
+            .from("ordens_de_servico")
+            .select("valor, valor_total, custo_pecas")
+            .is("deleted_at", null)
+            .in("status", ["pronto", "entregue"])
+            .gte("data_conclusao", ini)
+            .lt("data_conclusao", fi),
+          supabase
+            .from("contas_a_pagar")
+            .select("valor")
+            .eq("mes_competencia", competencia),
         ]);
 
-        const receita = (os ?? []).reduce((s, o) => s + (o.valor ?? 0), 0);
-        const gastos = (cp ?? []).reduce((s, c) => s + c.valor, 0) + (os ?? []).reduce((s, o) => s + (o.custo_pecas ?? 0), 0);
-        results.push({ mes: meses[m].substring(0, 3), Receita: receita, Gastos: gastos, Lucro: receita - gastos });
+        const receita = (os ?? []).reduce(
+          (s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0),
+          0
+        );
+        // Custo de peças do mês = peças usadas nas OS faturadas no mês (mesmo período da receita)
+        const custoPecas = (os ?? []).reduce(
+          (s, o: any) => s + Number(o.custo_pecas ?? 0),
+          0
+        );
+        // Despesas do mês = contas com competência do mês (independente de status)
+        const despesasMes = (cp ?? []).reduce(
+          (s, c: any) => s + Number(c.valor ?? 0),
+          0
+        );
+        const gastos = custoPecas + despesasMes;
+
+        results.push({
+          mes: meses[m].substring(0, 3),
+          Receita: receita,
+          Gastos: gastos,
+          Lucro: receita - gastos,
+        });
       }
       return results;
     },
