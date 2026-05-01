@@ -84,11 +84,23 @@ export function Recebimentos({ recebimentos }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Total do mês */}
-      <div className="stat-card border-success/20 bg-success-muted">
-        <Receipt className="h-4 w-4 text-success mb-2" />
-        <p className="stat-value text-success">{fmtCurrency(totalMes)}</p>
-        <p className="stat-label">Total recebido no mês</p>
+      {/* Totais do mês */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="stat-card border-success/20 bg-success-muted">
+          <Receipt className="h-4 w-4 text-success mb-2" />
+          <p className="stat-value text-success">{fmtCurrency(totaisMes.avulsos)}</p>
+          <p className="stat-label">Recebimentos avulsos no mês</p>
+        </div>
+        <div className="stat-card">
+          <Receipt className="h-4 w-4 text-muted-foreground mb-2" />
+          <p className="stat-value">{fmtCurrency(totaisMes.deOS)}</p>
+          <p className="stat-label">Recebimentos de OS no mês</p>
+        </div>
+        <div className="stat-card">
+          <Receipt className="h-4 w-4 text-muted-foreground mb-2" />
+          <p className="stat-value">{fmtCurrency(totaisMes.total)}</p>
+          <p className="stat-label">Total geral no mês</p>
+        </div>
       </div>
 
       {/* Toolbar */}
