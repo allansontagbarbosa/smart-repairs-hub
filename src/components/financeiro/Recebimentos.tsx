@@ -54,15 +54,19 @@ export function Recebimentos({ recebimentos }: Props) {
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
 
-  const totalMes = useMemo(() =>
-    recebimentos
-      .filter(r => {
-        const d = parseDate(r.data_recebimento);
-        return d >= monthStart && d <= monthEnd;
-      })
-      .reduce((s, r) => s + Number(r.valor), 0),
-    [recebimentos, monthStart, monthEnd]
-  );
+  const totaisMes = useMemo(() => {
+    const noMes = recebimentos.filter(r => {
+      const d = parseDate(r.data_recebimento);
+      return d >= monthStart && d <= monthEnd;
+    });
+    const avulsos = noMes
+      .filter(r => !r.ordem_servico_id)
+      .reduce((s, r) => s + Number(r.valor), 0);
+    const deOS = noMes
+      .filter(r => !!r.ordem_servico_id)
+      .reduce((s, r) => s + Number(r.valor), 0);
+    return { avulsos, deOS, total: avulsos + deOS };
+  }, [recebimentos, monthStart, monthEnd]);
 
   const filtered = useMemo(() => {
     let list = recebimentos;
