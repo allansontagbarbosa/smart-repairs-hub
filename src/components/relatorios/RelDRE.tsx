@@ -49,11 +49,20 @@ export function RelDRE() {
   const { data: recebimentos } = useQuery({
     queryKey: ["rel-dre-receb", inicio],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("recebimentos")
-        .select("valor")
-        .gte("data_recebimento", inicio)
-        .lt("data_recebimento", fim);
+      // "Outros recebimentos" = entradas avulsas (sem ordem_id) no período.
+      // Recebimentos de OS já contam em "Serviços faturados" via ordens_de_servico.
+      const { data, error } = await supabase
+        .from("movimentacoes_financeiras")
+        .select("valor, ordem_id, data, estornada_em")
+        .eq("tipo", "entrada")
+        .is("ordem_id", null)
+        .is("estornada_em", null)
+        .gte("data", inicio)
+        .lt("data", fim);
+      if (error) {
+        console.error("rel-dre-receb falhou:", error);
+        return [];
+      }
       return data ?? [];
     },
   });
@@ -113,7 +122,7 @@ export function RelDRE() {
   const dre = useMemo(() => {
     const servicosFaturados = (ordens ?? [])
       .reduce((s, o) => s + (o.valor ?? 0), 0);
-    const outrosReceb = (recebimentos ?? []).reduce((s, r) => s + r.valor, 0);
+    const outrosReceb = (recebimentos ?? []).reduce((s, r: any) => s + Number(r.valor ?? 0), 0);
     const receitaBruta = servicosFaturados + outrosReceb;
 
     const impostos = (ajustes ?? []).filter(a => a.tipo === "impostos").reduce((s, a) => s + a.valor, 0);
