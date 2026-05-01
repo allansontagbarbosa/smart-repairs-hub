@@ -32,6 +32,7 @@ type OrderRow = {
   data_conclusao: string | null;
   previsao_entrega: string | null;
   valor: number | null;
+  valor_total: number | null;
   custo_pecas: number | null;
   loja_id: string | null;
   aparelhos?: {
@@ -266,8 +267,11 @@ export default function Dashboard() {
       const d = new Date(o.data_conclusao);
       return d >= range.start && d <= range.end;
     });
-    const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor ?? 0), 0);
-    const custosPecasMes = ordensMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+    // Faturamento usa valor_total (cobrado real), com fallback p/ valor em OS antigas.
+    const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
+    // Custo de peças DEVE seguir o mesmo período da receita (data_conclusao das OS faturadas)
+    // pra EBITDA não misturar temporalidades.
+    const custosPecasMes = ordensFaturadas.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     const allContasPeriodo = contasPeriodo ?? [];
     const totalComissoesPeriodo = Number(summary?.comissoes_periodo_total ?? 0);
@@ -287,9 +291,9 @@ export default function Dashboard() {
     const ll = ebitda - depreciacao - impostos;
     const llMargem = faturamento > 0 ? (ll / faturamento) * 100 : 0;
 
-    const ordensComValor = ordensFaturadas.filter(o => Number(o.valor ?? 0) > 0);
+    const ordensComValor = ordensFaturadas.filter(o => Number(o.valor_total ?? o.valor ?? 0) > 0);
     const ticket = ordensComValor.length > 0
-      ? ordensComValor.reduce((s, o) => s + Number(o.valor ?? 0), 0) / ordensComValor.length
+      ? ordensComValor.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0) / ordensComValor.length
       : 0;
 
     const llPorAssist = ordensMes.length > 0 ? ll / ordensMes.length : 0;
