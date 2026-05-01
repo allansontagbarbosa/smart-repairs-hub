@@ -49,7 +49,7 @@ const plans = [
 ];
 
 const testimonials = [
-  { name: "Carlos Silva", company: "TechFix Assistência", text: "Reduzimos o tempo de atendimento em 40% depois que adotamos o AssistPro. A Fila IA é genial.", stars: 5 },
+  { name: "Carlos Silva", company: "TechFix Assistência", text: "Reduzimos o tempo de atendimento em 40% depois que adotamos o Ditt. A Fila IA é genial.", stars: 5 },
   { name: "Ana Oliveira", company: "CelularTop Reparos", text: "O portal do cliente economiza dezenas de ligações por dia. Nossos clientes adoram acompanhar online.", stars: 5 },
   { name: "Roberto Santos", company: "Master Cell", text: "Finalmente um sistema feito para assistência técnica. Simples, rápido e com tudo que precisamos.", stars: 5 },
 ];
