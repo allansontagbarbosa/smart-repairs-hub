@@ -1,5 +1,5 @@
 import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText } from "lucide-react";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
@@ -79,9 +79,9 @@ export function AppSidebar() {
       <SidebarContent className="flex flex-col h-full">
         <div className={`flex items-center justify-center px-4 pt-5 pb-4 ${collapsed ? "px-2" : ""}`}>
           {collapsed ? (
-            <AssistProLogo iconOnly />
+            <DittLogo iconOnly />
           ) : (
-            <AssistProLogo size="sm" />
+            <DittLogo size="sm" />
           )}
         </div>
 

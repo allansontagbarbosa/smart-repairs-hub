@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { Button } from "@/components/ui/button";
 import { useLojistaAuth } from "@/hooks/useLojistaAuth";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,7 @@ export default function LojistaLayout({ children }: { children: React.ReactNode 
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <AssistProLogo size="sm" />
+            <DittLogo size="sm" />
             <div className="flex items-center gap-1.5 ml-1">
               <p className="text-[10px] text-muted-foreground">Portal Lojista</p>
               <span className="text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">B2B</span>

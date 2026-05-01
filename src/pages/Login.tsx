@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCheck, Loader2, Eye, EyeOff, AlertCircle, ArrowLeft, Mail, UserPlus, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { APP_CONFIG } from "@/config/app";
 import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
@@ -199,7 +199,7 @@ export default function Login() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto">
-            <AssistProLogo size="md" showTagline />
+            <DittLogo size="md" showTagline />
           </div>
           <CardDescription>
             {mode === "forgot"

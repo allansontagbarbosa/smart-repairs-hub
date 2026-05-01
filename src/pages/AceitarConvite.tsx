@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { toast } from "sonner";
 
 export default function AceitarConvite() {
@@ -128,7 +128,7 @@ export default function AceitarConvite() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto">
-            <AssistProLogo size="md" />
+            <DittLogo size="md" />
           </div>
           <h2 className="text-lg font-semibold">Bem-vindo!</h2>
           <CardDescription>

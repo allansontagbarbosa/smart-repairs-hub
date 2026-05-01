@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, Smartphone, Clock, DollarSign, FileText, ChevronRight, ArrowLeft } from "lucide-react";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -133,7 +133,7 @@ export default function ConsultaCliente() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-2.5">
-          <AssistProLogo size="sm" />
+          <DittLogo size="sm" />
           <p className="text-[10px] text-muted-foreground ml-1">Acompanhe seu aparelho</p>
         </div>
       </header>

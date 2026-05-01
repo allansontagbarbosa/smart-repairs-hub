@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { Loader2, Eye, EyeOff, AlertCircle, Mail, UserPlus } from "lucide-react";
 
 export default function Cadastro() {
@@ -103,7 +103,7 @@ export default function Cadastro() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto">
-            <AssistProLogo size="md" />
+            <DittLogo size="md" />
           </div>
           <CardDescription>Crie sua conta para começar</CardDescription>
         </CardHeader>

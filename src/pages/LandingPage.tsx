@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { APP_CONFIG } from "@/config/app";
 import {
   Wrench, Package, DollarSign, BrainCircuit, Globe, BarChart3,
@@ -60,7 +60,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <AssistProLogo size="sm" />
+          <DittLogo size="sm" />
           <div className="flex items-center gap-3">
             <Link to="/login">
               <Button variant="ghost" size="sm">Entrar</Button>
@@ -234,7 +234,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <AssistProLogo size="sm" />
+          <DittLogo size="sm" />
           <div className="flex gap-6 text-sm text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-colors">Termos de Uso</a>
             <a href="#" className="hover:text-foreground transition-colors">Política de Privacidade</a>

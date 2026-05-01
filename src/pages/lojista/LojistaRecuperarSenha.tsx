@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ export default function LojistaRecuperarSenha() {
     <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b bg-card">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-2.5">
-          <AssistProLogo size="sm" />
+          <DittLogo size="sm" />
           <div className="flex items-center gap-1.5 ml-1">
             <p className="text-[10px] text-muted-foreground">Portal Lojista</p>
             <span className="text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded">B2B</span>
