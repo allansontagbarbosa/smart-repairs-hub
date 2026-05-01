@@ -68,8 +68,17 @@ export function RelServicos() {
   const { data: pecasNomes } = useQuery({
     queryKey: ["rel-def-pecas-nomes"],
     queryFn: async () => {
-      const { data } = await supabase.from("estoque").select("id, nome");
-      return data ?? [];
+      // Tabela correta é estoque_itens. Campo display é nome_personalizado.
+      const { data, error } = await supabase
+        .from("estoque_itens")
+        .select("id, nome_personalizado")
+        .is("deleted_at", null);
+      if (error) {
+        console.error("rel-def-pecas-nomes falhou:", error);
+        return [];
+      }
+      // Normaliza pra manter compat com o resto do componente que espera nome
+      return (data ?? []).map((p: any) => ({ id: p.id, nome: p.nome_personalizado }));
     },
   });
 
