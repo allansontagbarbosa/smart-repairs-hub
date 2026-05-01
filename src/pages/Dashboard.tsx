@@ -337,20 +337,32 @@ export default function Dashboard() {
 
   // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
-    const meses: { mes: string; faturamento: number; lucro: number }[] = [];
+    const meses: { mes: string; faturamento: number; lucroBruto: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(new Date(), i);
       const start = startOfMonth(d);
       const end = endOfMonth(d);
-      const mesOrdens = allOrders.filter(o => {
-        const de = new Date(o.data_entrada);
-        return de >= start && de <= end;
+      // Pega OS FATURADAS do mês usando data_conclusao (mesma regra da receita do mês atual)
+      const ordensFaturadasMes = allOrders.filter(o => {
+        if (!isFaturado(o.status) || !o.data_conclusao) return false;
+        const dc = new Date(o.data_conclusao);
+        return dc >= start && dc <= end;
       });
-      const fat = mesOrdens.filter(o => isFaturado(o.status)).reduce((s, o) => s + Number(o.valor ?? 0), 0);
+      const fat = ordensFaturadasMes.reduce(
+        (s, o) => s + Number((o as any).valor_total ?? o.valor ?? 0),
+        0
+      );
+      const custoPecas = ordensFaturadasMes.reduce(
+        (s, o) => s + Number(o.custo_pecas ?? 0),
+        0
+      );
+      // Lucro BRUTO (não inclui gastos fixos/variáveis/comissões — esses não estão
+      // disponíveis por mês neste componente). É menos otimista que 30%, mas factual.
+      const lucroBruto = fat - custoPecas;
       meses.push({
         mes: format(d, "MMM", { locale: ptBR }),
         faturamento: fat,
-        lucro: fat * 0.3,
+        lucroBruto,
       });
     }
     return meses;
@@ -767,7 +779,7 @@ export default function Dashboard() {
       ══════════════════════════════════════════════════════════════════════ */}
       {can("financeiro", "ver") && (
       <div>
-        <SectionTitle>Faturamento x Lucro</SectionTitle>
+        <SectionTitle>Faturamento x Lucro Bruto</SectionTitle>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -778,7 +790,7 @@ export default function Dashboard() {
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="h-2.5 w-2.5 rounded-sm bg-green-500 inline-block" />
-                  Lucro
+                  Lucro bruto
                 </span>
               </div>
               <span className="text-[10px] text-muted-foreground">Últimos 6 meses</span>
@@ -794,10 +806,13 @@ export default function Dashboard() {
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="lucro" name="Lucro" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="lucroBruto" name="Lucro bruto" fill="#22c55e" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Lucro bruto = Faturamento − Custo de peças. Não inclui despesas fixas, comissões ou impostos.
+            </p>
           </CardContent>
         </Card>
       </div>
