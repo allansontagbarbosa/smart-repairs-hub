@@ -435,8 +435,77 @@ export default function Dashboard() {
       <div>
         <SectionTitle>Financeiro do período</SectionTitle>
 
+        {/* ── MOBILE: hierarquia destacada ── */}
+        <div className="grid grid-cols-1 gap-3 sm:hidden">
+          {/* Card grande VERDE — Faturamento (a métrica que mais importa) */}
+          <Card className="bg-primary text-primary-foreground border-0 shadow-lg">
+            <CardContent className="p-4">
+              <p className="text-[11px] uppercase tracking-wider opacity-80 font-medium">
+                Faturamento
+              </p>
+              <p className="text-3xl font-bold mt-1 tracking-tight">{brl(kpis.faturamento)}</p>
+              <p className="text-[11px] opacity-80 mt-1.5">
+                {kpis.totalFaturadas} OS faturadas · margem {pct(kpis.faturamento > 0 ? (kpis.ll / kpis.faturamento) * 100 : 0)}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Card branco — Lucro líquido */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                    Lucro líquido
+                  </p>
+                  <p className={`text-2xl font-bold mt-1 tracking-tight ${kpis.ll >= 0 ? "text-foreground" : "text-destructive"}`}>
+                    {brl(kpis.ll)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    EBITDA {brl(kpis.ebitda)} · margem {pct(kpis.llMargem)}
+                  </p>
+                </div>
+                {kpis.ll >= 0 ? (
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                ) : (
+                  <TrendingDown className="h-5 w-5 text-destructive" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pares menores */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Custo de peças
+                </p>
+                <p className="text-base font-semibold mt-1 tracking-tight">{brl(kpis.custosPecasMes)}</p>
+                {kpis.faturamento > 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {pct((kpis.custosPecasMes / kpis.faturamento) * 100)} do fat.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Ticket médio
+                </p>
+                <p className="text-base font-semibold mt-1 tracking-tight">{brl(kpis.ticket)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {kpis.totalOrdensMes} OS no período
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* ── DESKTOP/TABLET: grid completa ── */}
         {/* Linha 1: Faturamento, EBITDA, Lucro Líquido, Saúde Financeira */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard
             icon={DollarSign}
             label="Faturamento"
@@ -482,8 +551,8 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Linha 2: Peças, Fixos, Variáveis, Depreciação, Impostos, Ticket */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
+        {/* Linha 2: Peças, Fixos, Variáveis, Depreciação, Impostos, Ticket — só desktop */}
+        <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
           <MetricCard
             icon={Package}
             label="Custo de peças"
