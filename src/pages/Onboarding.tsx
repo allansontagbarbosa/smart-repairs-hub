@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Building2, ArrowRight, ArrowLeft, Check, CheckCircle2, Sparkles } from "lucide-react";
-import { AssistProLogo } from "@/components/AssistProLogo";
+import { DittLogo } from "@/components/DittLogo";
 import { toast } from "sonner";
 import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
@@ -142,7 +142,7 @@ export default function Onboarding() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
-          <AssistProLogo size="md" />
+          <DittLogo size="md" />
         </div>
         {stepIndicator}
 

@@ -1,2 +1,2 @@
-// Re-export for backward compatibility
-export { AssistProLogo as MobileFixLogo, AssistProLogo } from "./AssistProLogo";
+// DEPRECATED: use DittLogo.
+export { DittLogo as MobileFixLogo, DittLogo as AssistProLogo, DittLogo } from "./DittLogo";

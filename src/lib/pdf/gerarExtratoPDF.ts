@@ -72,7 +72,7 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 40;
-  const empresaNome = payload.empresa?.nome || "AssistPro";
+  const empresaNome = payload.empresa?.nome || "Ditt Software";
   const empresaInfo = [payload.empresa?.cnpj, payload.empresa?.telefone, payload.empresa?.email, enderecoToText(payload.empresa?.endereco)]
     .filter(Boolean)
     .join(" • ");
@@ -153,7 +153,7 @@ export function gerarExtratoPDF(payload: ExtratoPDFPayload) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(`Gerado por AssistPro em ${nowLabel()}`, margin, pageHeight - 24);
+    doc.text(`Gerado por Ditt Software em ${nowLabel()}`, margin, pageHeight - 24);
     doc.text(`Página ${i} de ${pages}`, pageWidth - margin - 55, pageHeight - 24);
     doc.setTextColor(0);
   }
