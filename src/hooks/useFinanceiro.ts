@@ -195,24 +195,31 @@ export function useFinanceiro() {
     const allOrdens = ordens.data ?? [];
     const allRecebimentos = recebimentos.data ?? [];
 
-    // Contas a pagar
+    // Contas a pagar — buckets DISJUNTOS pra UI não confundir
     const contasPendentes = allContas.filter(c => c.status === "pendente" || c.status === "vencida");
+
+    const tomorrowStart = addDays(todayStart, 1);
+    const next7DaysExclusive = addDays(todayStart, 7);   // limite superior inclusive p/ próximos 7
+    const next30DaysExclusive = addDays(todayStart, 30); // limite superior inclusive p/ próximos 30
+
     const vencidas = contasPendentes.filter(c => new Date(c.data_vencimento + "T12:00:00") < todayStart);
     const vencidasTotal = vencidas.reduce((s, c) => s + Number(c.valor), 0);
 
     const venceHoje = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= todayStart && d < addDays(todayStart, 1);
+      return d >= todayStart && d < tomorrowStart;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
+    // Disjunto: AMANHÃ até dia +7
     const venceEm7Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= todayStart && d <= next7DaysEnd;
+      return d >= tomorrowStart && d <= next7DaysExclusive;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
+    // Disjunto: dia +8 até dia +30
     const venceEm30Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
-      return d >= todayStart && d <= next30DaysEnd;
+      return d > next7DaysExclusive && d <= next30DaysExclusive;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
     const totalPendente = contasPendentes.reduce((s, c) => s + Number(c.valor), 0);
