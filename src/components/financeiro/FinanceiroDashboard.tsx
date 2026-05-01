@@ -89,12 +89,12 @@ export function FinanceiroDashboard({ kpis }: Props) {
         <div className="stat-card">
           <CalendarDays className="h-4 w-4 text-warning mb-3" />
           <p className="stat-value">{fmtCurrency(kpis.venceEm7Dias)}</p>
-          <p className="stat-label">Vence em 7 dias</p>
+          <p className="stat-label">Próximos 1–7 dias</p>
         </div>
         <div className="stat-card">
           <CalendarRange className="h-4 w-4 text-info mb-3" />
           <p className="stat-value">{fmtCurrency(kpis.venceEm30Dias)}</p>
-          <p className="stat-label">Vence em 30 dias</p>
+          <p className="stat-label">Próximos 8–30 dias</p>
         </div>
         <div className="stat-card">
           <CircleDollarSign className="h-4 w-4 text-muted-foreground mb-3" />
