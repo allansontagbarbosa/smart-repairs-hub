@@ -81,11 +81,19 @@ export function RelDRE() {
   const { data: comissoes } = useQuery({
     queryKey: ["rel-dre-comissoes", inicio],
     queryFn: async () => {
-      const { data } = await supabase
+      // Apenas comissões NÃO estornadas e em status que representa custo real
+      // (pendente, liberada e paga — estornada não conta).
+      const { data, error } = await supabase
         .from("comissoes")
-        .select("valor, status")
+        .select("valor, status, estornada_em")
+        .is("estornada_em", null)
+        .in("status", ["pendente", "liberada", "paga"])
         .gte("created_at", inicio)
         .lt("created_at", fim);
+      if (error) {
+        console.error("rel-dre-comissoes falhou:", error);
+        return [];
+      }
       return data ?? [];
     },
   });

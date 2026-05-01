@@ -52,8 +52,15 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const totalPendente = comissoes.filter(c => c.status === "pendente" || c.status === "liberada").reduce((s, c) => s + Number(c.valor), 0);
   const countPendente = comissoes.filter(c => c.status === "pendente").length;
   const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
   const pagasMes = comissoes
-    .filter(c => c.status === "paga" && c.data_pagamento && new Date(c.data_pagamento).getMonth() === now.getMonth())
+    .filter(c => {
+      if (c.status !== "paga" || !c.data_pagamento) return false;
+      const d = new Date(c.data_pagamento);
+      // FILTRA por mês E ano — getMonth() sozinho confunde Janeiros de anos diferentes.
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    })
     .reduce((s, c) => s + Number(c.valor), 0);
 
   const allPayableSelected = payable.length > 0 && payable.every(c => selected.includes(c.id));
