@@ -23,7 +23,7 @@ export function ExtratoPDFViewer({ payload }: { payload: ExtratoPDFPayload }) {
       <div className="rounded-lg border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-4 border-b pb-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{payload.empresa?.nome || "AssistPro"}</p>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{payload.empresa?.nome || "Ditt Software"}</p>
             <h2 className="mt-1 text-2xl font-semibold">Extrato de Cliente</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {[payload.empresa?.cnpj, payload.empresa?.telefone, payload.empresa?.email].filter(Boolean).join(" • ")}
@@ -79,7 +79,7 @@ export function ExtratoPDFViewer({ payload }: { payload: ExtratoPDFPayload }) {
           </table>
         </div>
 
-        <p className="pt-4 text-xs text-muted-foreground">Gerado por AssistPro em {generatedAt()}</p>
+        <p className="pt-4 text-xs text-muted-foreground">Gerado por Ditt Software em {generatedAt()}</p>
       </div>
     </section>
   );
