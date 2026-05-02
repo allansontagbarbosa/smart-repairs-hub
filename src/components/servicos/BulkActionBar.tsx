@@ -177,6 +177,14 @@ export function BulkActionBar({
             Exportar CSV
           </Button>
 
+          {/* Marcar como pagas */}
+          {onMarcarPagas && (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onMarcarPagas}>
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+              Marcar pagas
+            </Button>
+          )}
+
           <Button variant="destructive" size="sm" className="h-8 gap-1.5" onClick={onCancelar} disabled={cancelDisabled}>
             <Trash2 className="h-3.5 w-3.5" />
             Cancelar OSs
