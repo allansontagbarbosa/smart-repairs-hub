@@ -200,20 +200,40 @@ async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterSt
 }
 
 async function fetchAllOrderIds({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
-  let query = supabase
-    .from("ordens_de_servico")
-    .select(`id, aparelhos!inner(cliente_id), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`);
+  // Pagina em lotes de 1000 (limite default do PostgREST). Sem isso, filtros com >1000 OS retornavam só os primeiros 1000 IDs.
+  const batchSize = 1000;
+  let start = 0;
+  const idsSet = new Set<string>();
 
-  query = applyDateRange(query, dateRange);
-  query = applyOrderFilters(query, filters);
+  while (true) {
+    let query = supabase
+      .from("ordens_de_servico")
+      .select(`id, aparelhos!inner(cliente_id), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`)
+      .order("data_entrada", { ascending: false })
+      .range(start, start + batchSize - 1);
 
-  if (filterStatus !== "todos") {
-    query = query.eq("status", filterStatus);
+    query = applyDateRange(query, dateRange);
+    query = applyOrderFilters(query, filters);
+
+    if (filterStatus !== "todos") {
+      query = query.eq("status", filterStatus);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const batch = data ?? [];
+    for (const row of batch as any[]) {
+      if (row?.id) idsSet.add(row.id as string);
+    }
+
+    if (batch.length < batchSize) break;
+    start += batchSize;
+    // Salvaguarda contra loop infinito
+    if (start > 100000) break;
   }
 
-  const { data, error } = await query.limit(10000);
-  if (error) throw error;
-  return (data ?? []).map((o: any) => o.id as string);
+  return Array.from(idsSet);
 }
 
 async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
