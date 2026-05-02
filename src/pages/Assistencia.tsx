@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
