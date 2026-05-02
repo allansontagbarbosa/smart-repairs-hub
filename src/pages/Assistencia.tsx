@@ -1760,7 +1760,9 @@ export default function Assistencia() {
             cancelDisabled={hasCancelBlockedItems}
             cancelBlockedItems={cancelBlockedItems}
             onExportCSV={() => handleExport("csv")}
+            onMarcarPagas={() => setPendingBulk({ kind: "marcarPagas" })}
             onClear={bulk.clear}
+            totais={bulkTotais}
           />
           <BulkActionConfirmDialog
             open={!!pendingBulk}
