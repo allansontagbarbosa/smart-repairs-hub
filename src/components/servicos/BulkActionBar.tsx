@@ -44,7 +44,18 @@ interface Props {
   cancelDisabled?: boolean;
   cancelBlockedItems?: { id: string; numero: string | number; numero_formatado?: string | null; motivo: string }[];
   onExportCSV: () => void;
+  onMarcarPagas?: () => void;
   onClear: () => void;
+  /** Totalizadores agregados das OS selecionadas. Quando ausente, a linha de totais não é renderizada. */
+  totais?: {
+    valor_total: number;
+    custo_pecas: number;
+    custo_comissao: number;
+    lucro: number;
+    margem: number;
+    ticket_medio: number;
+    por_status: Record<string, number>;
+  };
 }
 
 export function BulkActionBar({
@@ -56,7 +67,9 @@ export function BulkActionBar({
   cancelDisabled = false,
   cancelBlockedItems = [],
   onExportCSV,
+  onMarcarPagas,
   onClear,
+  totais,
 }: Props) {
   const [statusOpen, setStatusOpen] = useState(false);
   const [tecOpen, setTecOpen] = useState(false);
