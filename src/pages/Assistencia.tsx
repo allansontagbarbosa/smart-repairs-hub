@@ -1258,6 +1258,11 @@ export default function Assistencia() {
       "Esta ação cancelará todas as ordens selecionadas, registrando auditoria e preservando o histórico de impacto financeiro.";
     confirmLabel = "Cancelar OSs selecionadas";
     confirmWarning = "A ação só é liberada quando todas as OS selecionadas podem ser canceladas.";
+  } else if (pendingBulk?.kind === "marcarPagas") {
+    confirmTitle = `Marcar ${affectedItems.length} OS como paga${affectedItems.length === 1 ? "" : "s"}`;
+    confirmDescription =
+      "Esta ação define o valor pago igual ao valor total das OS selecionadas e zera o valor pendente. OS já totalmente pagas serão ignoradas.";
+    confirmLabel = "Confirmar pagamento";
   }
 
   const grupos = useMemo(() => {
