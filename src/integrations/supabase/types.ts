@@ -4504,6 +4504,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      marcar_os_pagas_em_massa: { Args: { p_os_ids: string[] }; Returns: Json }
       move_to_dlq: {
         Args: {
           dlq_name: string
