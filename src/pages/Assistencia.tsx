@@ -937,6 +937,28 @@ export default function Assistencia() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, filterPrioridade, search, period.key, filtersKey]);
 
+  // Selecionar TODAS as OS de TODAS as páginas (com base no filtro atual)
+  const [selectingAll, setSelectingAll] = useState(false);
+  const handleSelectAllAcrossPages = useCallback(async () => {
+    try {
+      setSelectingAll(true);
+      const ids = await fetchAllOrderIds({ filterStatus, dateRange: period.dateRange, filters });
+      bulk.selectMany(ids);
+      toast.success(`${ids.length} ordens selecionadas`);
+    } catch (e: any) {
+      toast.error("Falha ao selecionar todas: " + (e?.message ?? "erro"));
+    } finally {
+      setSelectingAll(false);
+    }
+  }, [filterStatus, period.dateRange, filters, bulk]);
+
+  const showSelectAllBanner =
+    isAdmin &&
+    bulk.allSelected &&
+    paginatedSorted.length > 0 &&
+    totalOrders > paginatedSorted.length &&
+    bulk.count < totalOrders;
+
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
       bulk.selectedItems.map((o: any) => ({
