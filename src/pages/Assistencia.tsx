@@ -679,6 +679,7 @@ export default function Assistencia() {
     | { kind: "status"; status: Status }
     | { kind: "tecnico"; funcionarioId: string; nome: string }
     | { kind: "cancelar" }
+    | { kind: "marcarPagas" }
     | null;
   const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
 
