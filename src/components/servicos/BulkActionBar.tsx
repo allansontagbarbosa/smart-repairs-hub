@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle } from "lucide-react";
+import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/format";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +44,18 @@ interface Props {
   cancelDisabled?: boolean;
   cancelBlockedItems?: { id: string; numero: string | number; numero_formatado?: string | null; motivo: string }[];
   onExportCSV: () => void;
+  onMarcarPagas?: () => void;
   onClear: () => void;
+  /** Totalizadores agregados das OS selecionadas. Quando ausente, a linha de totais não é renderizada. */
+  totais?: {
+    valor_total: number;
+    custo_pecas: number;
+    custo_comissao: number;
+    lucro: number;
+    margem: number;
+    ticket_medio: number;
+    por_status: Record<string, number>;
+  };
 }
 
 export function BulkActionBar({
@@ -54,7 +67,9 @@ export function BulkActionBar({
   cancelDisabled = false,
   cancelBlockedItems = [],
   onExportCSV,
+  onMarcarPagas,
   onClear,
+  totais,
 }: Props) {
   const [statusOpen, setStatusOpen] = useState(false);
   const [tecOpen, setTecOpen] = useState(false);
@@ -65,7 +80,7 @@ export function BulkActionBar({
     <div
       className={cn(
         "fixed left-1/2 -translate-x-1/2 bottom-4 z-40",
-        "w-[calc(100%-1.5rem)] max-w-3xl",
+        "w-[calc(100%-1.5rem)] max-w-5xl",
         "animate-in fade-in slide-in-from-bottom-4 duration-200",
       )}
       role="region"
@@ -162,6 +177,14 @@ export function BulkActionBar({
             Exportar CSV
           </Button>
 
+          {/* Marcar como pagas */}
+          {onMarcarPagas && (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onMarcarPagas}>
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+              Marcar pagas
+            </Button>
+          )}
+
           <Button variant="destructive" size="sm" className="h-8 gap-1.5" onClick={onCancelar} disabled={cancelDisabled}>
             <Trash2 className="h-3.5 w-3.5" />
             Cancelar OSs
@@ -178,7 +201,59 @@ export function BulkActionBar({
           <X className="h-4 w-4" />
         </Button>
         </div>
+
+        {totais && (
+          <div className="border-t border-border/60 pt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-1.5">
+            <Stat label="Valor total" value={formatCurrency(totais.valor_total)} accent />
+            <Stat label="Custo peças" value={formatCurrency(totais.custo_pecas)} muted />
+            <Stat label="Comissão" value={formatCurrency(totais.custo_comissao)} muted />
+            <Stat label="Lucro" value={formatCurrency(totais.lucro)} tone={totais.lucro >= 0 ? "positive" : "negative"} />
+            <Stat label="Margem" value={`${totais.margem.toFixed(1)}%`} tone={totais.lucro >= 0 ? "positive" : "negative"} />
+            <Stat label="Ticket médio" value={formatCurrency(totais.ticket_medio)} />
+          </div>
+        )}
+
+        {totais && Object.keys(totais.por_status).length > 1 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {Object.entries(totais.por_status).map(([status, n]) => (
+              <Badge key={status} variant="secondary" className="text-[11px] font-normal">
+                {(statusLabels as any)[status] ?? status}: {n}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+  muted,
+  tone,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  muted?: boolean;
+  tone?: "positive" | "negative";
+}) {
+  const valueClass =
+    tone === "positive"
+      ? "text-primary"
+      : tone === "negative"
+      ? "text-destructive"
+      : accent
+      ? "text-foreground"
+      : muted
+      ? "text-muted-foreground"
+      : "text-foreground";
+  return (
+    <div className="flex flex-col leading-tight">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className={cn("text-sm font-semibold tabular-nums", valueClass)}>{value}</span>
     </div>
   );
 }

@@ -679,6 +679,7 @@ export default function Assistencia() {
     | { kind: "status"; status: Status }
     | { kind: "tecnico"; funcionarioId: string; nome: string }
     | { kind: "cancelar" }
+    | { kind: "marcarPagas" }
     | null;
   const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
 
@@ -944,6 +945,45 @@ export default function Assistencia() {
 
   const hasCancelBlockedItems = cancelBlockedItems.length > 0;
 
+  // ─── Comissões agregadas por OS selecionada (para totalizadores da barra) ───
+  const selectedIdsArray = useMemo(() => Array.from(bulk.selectedIds) as string[], [bulk.selectedIds]);
+  const { data: comissoesPorOs = {} } = useQuery<Record<string, number>>({
+    queryKey: ["bulk-comissoes-por-os", empresaId, selectedIdsArray.slice().sort().join(",")],
+    enabled: selectedIdsArray.length > 0 && !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comissoes")
+        .select("ordem_id, valor")
+        .in("ordem_id", selectedIdsArray)
+        .is("estornada_em", null);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((row: any) => {
+        if (!row.ordem_id) return;
+        map[row.ordem_id] = (map[row.ordem_id] ?? 0) + Number(row.valor ?? 0);
+      });
+      return map;
+    },
+  });
+
+  // Totalizadores agregados das OS selecionadas
+  const bulkTotais = useMemo(() => {
+    const lista = bulk.selectedItems as any[];
+    if (lista.length === 0) return undefined;
+    const valor_total = lista.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
+    const custo_pecas = lista.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+    const custo_comissao = lista.reduce((s, o) => s + Number(comissoesPorOs[o.id] ?? 0), 0);
+    const lucro = valor_total - custo_pecas - custo_comissao;
+    const margem = valor_total > 0 ? (lucro / valor_total) * 100 : 0;
+    const ticket_medio = lista.length > 0 ? valor_total / lista.length : 0;
+    const por_status = lista.reduce<Record<string, number>>((acc, o) => {
+      const s = String(o.status ?? "—");
+      acc[s] = (acc[s] ?? 0) + 1;
+      return acc;
+    }, {});
+    return { valor_total, custo_pecas, custo_comissao, lucro, margem, ticket_medio, por_status };
+  }, [bulk.selectedItems, comissoesPorOs]);
+
   // Helper: exibe toast com motivos de itens ignorados
   const showBulkResultToast = (atualizadas: number, ignoradas: number, motivos: any[]) => {
     if (ignoradas === 0) {
@@ -1071,6 +1111,34 @@ export default function Assistencia() {
     },
   });
 
+  const bulkMarcarPagasMutation = useMutation({
+    mutationFn: async () => {
+      const ids = Array.from(bulk.selectedIds);
+      const { data, error } = await supabase.rpc("marcar_os_pagas_em_massa" as any, {
+        p_os_ids: ids,
+      });
+      if (error) throw error;
+      const res = data as { success: boolean; atualizadas?: number; error?: string };
+      if (!res?.success) throw new Error(res?.error ?? "Erro ao marcar OS como pagas");
+      return { atualizadas: res.atualizadas ?? 0, total: ids.length };
+    },
+    onSuccess: (res) => {
+      const ignoradas = res.total - res.atualizadas;
+      if (ignoradas > 0) {
+        toast.message(`✅ ${res.atualizadas} marcada${res.atualizadas === 1 ? "" : "s"} como paga${res.atualizadas === 1 ? "" : "s"}, ⚠️ ${ignoradas} já estava${ignoradas === 1 ? "" : "m"} paga${ignoradas === 1 ? "" : "s"}`);
+      } else {
+        toast.success(`✅ ${res.atualizadas} OS marcada${res.atualizadas === 1 ? "" : "s"} como paga${res.atualizadas === 1 ? "" : "s"}`);
+      }
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
   const handleConfirmBulk = async () => {
     if (!pendingBulk) return;
     if (pendingBulk.kind === "status") {
@@ -1083,6 +1151,8 @@ export default function Assistencia() {
         return;
       }
       await bulkCancelMutation.mutateAsync();
+    } else if (pendingBulk.kind === "marcarPagas") {
+      await bulkMarcarPagasMutation.mutateAsync();
     }
   };
 
@@ -1188,6 +1258,11 @@ export default function Assistencia() {
       "Esta ação cancelará todas as ordens selecionadas, registrando auditoria e preservando o histórico de impacto financeiro.";
     confirmLabel = "Cancelar OSs selecionadas";
     confirmWarning = "A ação só é liberada quando todas as OS selecionadas podem ser canceladas.";
+  } else if (pendingBulk?.kind === "marcarPagas") {
+    confirmTitle = `Marcar ${affectedItems.length} OS como paga${affectedItems.length === 1 ? "" : "s"}`;
+    confirmDescription =
+      "Esta ação define o valor pago igual ao valor total das OS selecionadas e zera o valor pendente. OS já totalmente pagas serão ignoradas.";
+    confirmLabel = "Confirmar pagamento";
   }
 
   const grupos = useMemo(() => {
@@ -1685,7 +1760,9 @@ export default function Assistencia() {
             cancelDisabled={hasCancelBlockedItems}
             cancelBlockedItems={cancelBlockedItems}
             onExportCSV={() => handleExport("csv")}
+            onMarcarPagas={() => setPendingBulk({ kind: "marcarPagas" })}
             onClear={bulk.clear}
+            totais={bulkTotais}
           />
           <BulkActionConfirmDialog
             open={!!pendingBulk}
