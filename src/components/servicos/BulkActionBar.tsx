@@ -80,7 +80,7 @@ export function BulkActionBar({
     <div
       className={cn(
         "fixed left-1/2 -translate-x-1/2 bottom-4 z-40",
-        "w-[calc(100%-1.5rem)] max-w-3xl",
+        "w-[calc(100%-1.5rem)] max-w-5xl",
         "animate-in fade-in slide-in-from-bottom-4 duration-200",
       )}
       role="region"
