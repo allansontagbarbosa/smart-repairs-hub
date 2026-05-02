@@ -1573,13 +1573,13 @@ export default function Assistencia() {
                       <TooltipTrigger asChild>
                         <span className="inline-flex">
                           <HeaderCheckbox
-                            allSelected={bulk.allSelected}
-                            someSelected={bulk.someSelected}
-                            onToggle={bulk.toggleAll}
+                            allSelected={allFilteredSelected}
+                            someSelected={someFilteredSelected}
+                            onToggle={handleHeaderSelectAll}
                           />
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Selecionar página</TooltipContent>
+                      <TooltipContent>{allFilteredSelected ? "Limpar seleção" : "Selecionar todas as páginas"}</TooltipContent>
                     </Tooltip>
                   </th>
                 )}
