@@ -199,16 +199,16 @@ async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterSt
   return count ?? 0;
 }
 
-async function fetchAllOrderIds({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
   // Pagina em lotes de 1000 (limite default do PostgREST). Sem isso, filtros com >1000 OS retornavam só os primeiros 1000 IDs.
   const batchSize = 1000;
   let start = 0;
-  const idsSet = new Set<string>();
+  const rowsById = new Map<string, any>();
 
   while (true) {
     let query = supabase
       .from("ordens_de_servico")
-      .select(`id, aparelhos!inner(cliente_id), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`)
+      .select(`*, aparelhos!inner ( marca, modelo, imei, capacidade, cliente_id, clientes ( nome, telefone ) ), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"} ( tecnico_id )`)
       .order("data_entrada", { ascending: false })
       .range(start, start + batchSize - 1);
 
@@ -224,7 +224,7 @@ async function fetchAllOrderIds({ filterStatus, dateRange, filters }: { filterSt
 
     const batch = data ?? [];
     for (const row of batch as any[]) {
-      if (row?.id) idsSet.add(row.id as string);
+      if (row?.id) rowsById.set(row.id as string, row);
     }
 
     if (batch.length < batchSize) break;
@@ -233,7 +233,7 @@ async function fetchAllOrderIds({ filterStatus, dateRange, filters }: { filterSt
     if (start > 100000) break;
   }
 
-  return Array.from(idsSet);
+  return Array.from(rowsById.values());
 }
 
 async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
@@ -962,15 +962,26 @@ export default function Assistencia() {
   const handleSelectAllAcrossPages = useCallback(async () => {
     try {
       setSelectingAll(true);
-      const ids = await fetchAllOrderIds({ filterStatus, dateRange: period.dateRange, filters });
-      bulk.selectMany(ids);
-      toast.success(`${ids.length} ordens selecionadas`);
+      const allOrders = await fetchAllOrdersForSelection({ filterStatus, dateRange: period.dateRange, filters });
+      bulk.selectItems(allOrders, { replace: true });
+      toast.success(`${allOrders.length} ordens selecionadas`);
     } catch (e: any) {
       toast.error("Falha ao selecionar todas: " + (e?.message ?? "erro"));
     } finally {
       setSelectingAll(false);
     }
   }, [filterStatus, period.dateRange, filters, bulk]);
+
+  const allFilteredSelected = isAdmin && totalOrders > 0 && bulk.count >= totalOrders;
+  const someFilteredSelected = isAdmin && bulk.count > 0 && !allFilteredSelected;
+
+  const handleHeaderSelectAll = useCallback(() => {
+    if (allFilteredSelected) {
+      bulk.clear();
+      return;
+    }
+    void handleSelectAllAcrossPages();
+  }, [allFilteredSelected, bulk, handleSelectAllAcrossPages]);
 
   const showSelectAllBanner =
     isAdmin &&
@@ -1562,13 +1573,13 @@ export default function Assistencia() {
                       <TooltipTrigger asChild>
                         <span className="inline-flex">
                           <HeaderCheckbox
-                            allSelected={bulk.allSelected}
-                            someSelected={bulk.someSelected}
-                            onToggle={bulk.toggleAll}
+                            allSelected={allFilteredSelected}
+                            someSelected={someFilteredSelected}
+                            onToggle={handleHeaderSelectAll}
                           />
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>Selecionar página</TooltipContent>
+                      <TooltipContent>{allFilteredSelected ? "Limpar seleção" : "Selecionar todas as páginas"}</TooltipContent>
                     </Tooltip>
                   </th>
                 )}
