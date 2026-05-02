@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
   Plus, Search, Loader2, LayoutGrid, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
@@ -197,6 +197,23 @@ async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterSt
   const { count, error } = await query;
   if (error) throw error;
   return count ?? 0;
+}
+
+async function fetchAllOrderIds({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+  let query = supabase
+    .from("ordens_de_servico")
+    .select(`id, aparelhos!inner(cliente_id), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`);
+
+  query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
+
+  if (filterStatus !== "todos") {
+    query = query.eq("status", filterStatus);
+  }
+
+  const { data, error } = await query.limit(10000);
+  if (error) throw error;
+  return (data ?? []).map((o: any) => o.id as string);
 }
 
 async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
@@ -919,6 +936,28 @@ export default function Assistencia() {
     bulk.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, filterPrioridade, search, period.key, filtersKey]);
+
+  // Selecionar TODAS as OS de TODAS as páginas (com base no filtro atual)
+  const [selectingAll, setSelectingAll] = useState(false);
+  const handleSelectAllAcrossPages = useCallback(async () => {
+    try {
+      setSelectingAll(true);
+      const ids = await fetchAllOrderIds({ filterStatus, dateRange: period.dateRange, filters });
+      bulk.selectMany(ids);
+      toast.success(`${ids.length} ordens selecionadas`);
+    } catch (e: any) {
+      toast.error("Falha ao selecionar todas: " + (e?.message ?? "erro"));
+    } finally {
+      setSelectingAll(false);
+    }
+  }, [filterStatus, period.dateRange, filters, bulk]);
+
+  const showSelectAllBanner =
+    isAdmin &&
+    bulk.allSelected &&
+    paginatedSorted.length > 0 &&
+    totalOrders > paginatedSorted.length &&
+    bulk.count < totalOrders;
 
   const affectedItems: BulkAffectedItem[] = useMemo(
     () =>
@@ -1692,6 +1731,32 @@ export default function Assistencia() {
 
           <StatusTabs counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
 
+          {showSelectAllBanner && (
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-md border-[0.5px] border-primary/30 bg-primary/5 px-3 py-2 text-[13px] text-foreground">
+              <span>
+                Todas as <strong>{paginatedSorted.length}</strong> ordens desta página estão selecionadas.
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-primary"
+                disabled={selectingAll}
+                onClick={handleSelectAllAcrossPages}
+              >
+                {selectingAll ? "Selecionando…" : `Selecionar todas as ${totalOrders} ordens do filtro`}
+              </Button>
+            </div>
+          )}
+          {isAdmin && bulk.count > paginatedSorted.length && bulk.count >= totalOrders && (
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-md border-[0.5px] border-primary/30 bg-primary/5 px-3 py-2 text-[13px] text-foreground">
+              <span>
+                Todas as <strong>{bulk.count}</strong> ordens do filtro estão selecionadas.
+              </span>
+              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={bulk.clear}>
+                Limpar seleção
+              </Button>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
