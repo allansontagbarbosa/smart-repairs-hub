@@ -201,7 +201,59 @@ export function BulkActionBar({
           <X className="h-4 w-4" />
         </Button>
         </div>
+
+        {totais && (
+          <div className="border-t border-border/60 pt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-1.5">
+            <Stat label="Valor total" value={formatCurrency(totais.valor_total)} accent />
+            <Stat label="Custo peças" value={formatCurrency(totais.custo_pecas)} muted />
+            <Stat label="Comissão" value={formatCurrency(totais.custo_comissao)} muted />
+            <Stat label="Lucro" value={formatCurrency(totais.lucro)} tone={totais.lucro >= 0 ? "positive" : "negative"} />
+            <Stat label="Margem" value={`${totais.margem.toFixed(1)}%`} tone={totais.lucro >= 0 ? "positive" : "negative"} />
+            <Stat label="Ticket médio" value={formatCurrency(totais.ticket_medio)} />
+          </div>
+        )}
+
+        {totais && Object.keys(totais.por_status).length > 1 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {Object.entries(totais.por_status).map(([status, n]) => (
+              <Badge key={status} variant="secondary" className="text-[11px] font-normal">
+                {(statusLabels as any)[status] ?? status}: {n}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+  muted,
+  tone,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  muted?: boolean;
+  tone?: "positive" | "negative";
+}) {
+  const valueClass =
+    tone === "positive"
+      ? "text-primary"
+      : tone === "negative"
+      ? "text-destructive"
+      : accent
+      ? "text-foreground"
+      : muted
+      ? "text-muted-foreground"
+      : "text-foreground";
+  return (
+    <div className="flex flex-col leading-tight">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className={cn("text-sm font-semibold tabular-nums", valueClass)}>{value}</span>
     </div>
   );
 }
