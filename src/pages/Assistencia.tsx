@@ -1111,6 +1111,34 @@ export default function Assistencia() {
     },
   });
 
+  const bulkMarcarPagasMutation = useMutation({
+    mutationFn: async () => {
+      const ids = Array.from(bulk.selectedIds);
+      const { data, error } = await supabase.rpc("marcar_os_pagas_em_massa" as any, {
+        p_os_ids: ids,
+      });
+      if (error) throw error;
+      const res = data as { success: boolean; atualizadas?: number; error?: string };
+      if (!res?.success) throw new Error(res?.error ?? "Erro ao marcar OS como pagas");
+      return { atualizadas: res.atualizadas ?? 0, total: ids.length };
+    },
+    onSuccess: (res) => {
+      const ignoradas = res.total - res.atualizadas;
+      if (ignoradas > 0) {
+        toast.message(`✅ ${res.atualizadas} marcada${res.atualizadas === 1 ? "" : "s"} como paga${res.atualizadas === 1 ? "" : "s"}, ⚠️ ${ignoradas} já estava${ignoradas === 1 ? "" : "m"} paga${ignoradas === 1 ? "" : "s"}`);
+      } else {
+        toast.success(`✅ ${res.atualizadas} OS marcada${res.atualizadas === 1 ? "" : "s"} como paga${res.atualizadas === 1 ? "" : "s"}`);
+      }
+      bulk.clear();
+      queryClient.invalidateQueries({ queryKey: ["ordens"] });
+      setPendingBulk(null);
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+      setPendingBulk(null);
+    },
+  });
+
   const handleConfirmBulk = async () => {
     if (!pendingBulk) return;
     if (pendingBulk.kind === "status") {
@@ -1123,6 +1151,8 @@ export default function Assistencia() {
         return;
       }
       await bulkCancelMutation.mutateAsync();
+    } else if (pendingBulk.kind === "marcarPagas") {
+      await bulkMarcarPagasMutation.mutateAsync();
     }
   };
 
