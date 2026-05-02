@@ -1731,6 +1731,32 @@ export default function Assistencia() {
 
           <StatusTabs counts={statusCounts} active={filterStatus} onChange={(value) => setFilterStatus(value as StatusFilter)} />
 
+          {showSelectAllBanner && (
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-md border-[0.5px] border-primary/30 bg-primary/5 px-3 py-2 text-[13px] text-foreground">
+              <span>
+                Todas as <strong>{paginatedSorted.length}</strong> ordens desta página estão selecionadas.
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-primary"
+                disabled={selectingAll}
+                onClick={handleSelectAllAcrossPages}
+              >
+                {selectingAll ? "Selecionando…" : `Selecionar todas as ${totalOrders} ordens do filtro`}
+              </Button>
+            </div>
+          )}
+          {isAdmin && bulk.count > paginatedSorted.length && bulk.count >= totalOrders && (
+            <div className="flex flex-wrap items-center justify-center gap-2 rounded-md border-[0.5px] border-primary/30 bg-primary/5 px-3 py-2 text-[13px] text-foreground">
+              <span>
+                Todas as <strong>{bulk.count}</strong> ordens do filtro estão selecionadas.
+              </span>
+              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={bulk.clear}>
+                Limpar seleção
+              </Button>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
