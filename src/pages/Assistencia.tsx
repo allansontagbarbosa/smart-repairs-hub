@@ -972,6 +972,17 @@ export default function Assistencia() {
     }
   }, [filterStatus, period.dateRange, filters, bulk]);
 
+  const allFilteredSelected = isAdmin && totalOrders > 0 && bulk.count >= totalOrders;
+  const someFilteredSelected = isAdmin && bulk.count > 0 && !allFilteredSelected;
+
+  const handleHeaderSelectAll = useCallback(() => {
+    if (allFilteredSelected) {
+      bulk.clear();
+      return;
+    }
+    void handleSelectAllAcrossPages();
+  }, [allFilteredSelected, bulk, handleSelectAllAcrossPages]);
+
   const showSelectAllBanner =
     isAdmin &&
     bulk.allSelected &&
