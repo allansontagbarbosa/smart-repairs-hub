@@ -77,6 +77,15 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
     });
   }, []);
 
+  const selectItems = useCallback((nextItems: T[], opts?: { replace?: boolean }) => {
+    nextItems.forEach((item) => itemCacheRef.current.set(item.id, item));
+    setSelectedIds(prev => {
+      const next = opts?.replace ? new Set<string>() : new Set(prev);
+      nextItems.forEach((item) => next.add(item.id));
+      return next;
+    });
+  }, []);
+
   const allSelected = !!items && items.length > 0 && items.every((item) => selectedIds.has(item.id));
   const someSelected = !!items && items.some((item) => selectedIds.has(item.id)) && !allSelected;
 
@@ -98,5 +107,6 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
     toggleAll,
     clear,
     selectMany,
+    selectItems,
   };
 }
