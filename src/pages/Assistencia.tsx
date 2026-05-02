@@ -199,6 +199,23 @@ async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterSt
   return count ?? 0;
 }
 
+async function fetchAllOrderIds({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+  let query = supabase
+    .from("ordens_de_servico")
+    .select(`id, aparelhos!inner(cliente_id), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`);
+
+  query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
+
+  if (filterStatus !== "todos") {
+    query = query.eq("status", filterStatus);
+  }
+
+  const { data, error } = await query.limit(10000);
+  if (error) throw error;
+  return (data ?? []).map((o: any) => o.id as string);
+}
+
 async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
   let query = supabase
     .from("ordens_de_servico")
