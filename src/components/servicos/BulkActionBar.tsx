@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle } from "lucide-react";
+import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/format";
+import { statusLabels as statusLabelsMap, type Status as StatusKey } from "@/lib/status";
 import {
   DropdownMenu,
   DropdownMenuContent,
