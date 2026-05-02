@@ -69,6 +69,14 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
 
   const clear = useCallback(() => setSelectedIds(new Set()), []);
 
+  const selectMany = useCallback((ids: string[]) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      ids.forEach(id => next.add(id));
+      return next;
+    });
+  }, []);
+
   const allSelected = !!items && items.length > 0 && items.every((item) => selectedIds.has(item.id));
   const someSelected = !!items && items.some((item) => selectedIds.has(item.id)) && !allSelected;
 
