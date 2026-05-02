@@ -945,6 +945,45 @@ export default function Assistencia() {
 
   const hasCancelBlockedItems = cancelBlockedItems.length > 0;
 
+  // ─── Comissões agregadas por OS selecionada (para totalizadores da barra) ───
+  const selectedIdsArray = useMemo(() => Array.from(bulk.selectedIds) as string[], [bulk.selectedIds]);
+  const { data: comissoesPorOs = {} } = useQuery<Record<string, number>>({
+    queryKey: ["bulk-comissoes-por-os", empresaId, selectedIdsArray.slice().sort().join(",")],
+    enabled: selectedIdsArray.length > 0 && !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comissoes")
+        .select("ordem_id, valor")
+        .in("ordem_id", selectedIdsArray)
+        .is("estornada_em", null);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((row: any) => {
+        if (!row.ordem_id) return;
+        map[row.ordem_id] = (map[row.ordem_id] ?? 0) + Number(row.valor ?? 0);
+      });
+      return map;
+    },
+  });
+
+  // Totalizadores agregados das OS selecionadas
+  const bulkTotais = useMemo(() => {
+    const lista = bulk.selectedItems as any[];
+    if (lista.length === 0) return undefined;
+    const valor_total = lista.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
+    const custo_pecas = lista.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
+    const custo_comissao = lista.reduce((s, o) => s + Number(comissoesPorOs[o.id] ?? 0), 0);
+    const lucro = valor_total - custo_pecas - custo_comissao;
+    const margem = valor_total > 0 ? (lucro / valor_total) * 100 : 0;
+    const ticket_medio = lista.length > 0 ? valor_total / lista.length : 0;
+    const por_status = lista.reduce<Record<string, number>>((acc, o) => {
+      const s = String(o.status ?? "—");
+      acc[s] = (acc[s] ?? 0) + 1;
+      return acc;
+    }, {});
+    return { valor_total, custo_pecas, custo_comissao, lucro, margem, ticket_medio, por_status };
+  }, [bulk.selectedItems, comissoesPorOs]);
+
   // Helper: exibe toast com motivos de itens ignorados
   const showBulkResultToast = (atualizadas: number, ignoradas: number, motivos: any[]) => {
     if (ignoradas === 0) {
