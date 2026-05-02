@@ -3,7 +3,6 @@ import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle, C
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/format";
-import { statusLabels as statusLabelsMap, type Status as StatusKey } from "@/lib/status";
 import {
   DropdownMenu,
   DropdownMenuContent,
