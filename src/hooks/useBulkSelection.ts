@@ -97,5 +97,6 @@ export function useBulkSelection<T extends { id: string }>(items: T[] | undefine
     toggle,
     toggleAll,
     clear,
+    selectMany,
   };
 }
