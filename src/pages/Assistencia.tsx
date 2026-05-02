@@ -962,9 +962,9 @@ export default function Assistencia() {
   const handleSelectAllAcrossPages = useCallback(async () => {
     try {
       setSelectingAll(true);
-      const ids = await fetchAllOrderIds({ filterStatus, dateRange: period.dateRange, filters });
-      bulk.selectMany(ids);
-      toast.success(`${ids.length} ordens selecionadas`);
+      const allOrders = await fetchAllOrdersForSelection({ filterStatus, dateRange: period.dateRange, filters });
+      bulk.selectItems(allOrders, { replace: true });
+      toast.success(`${allOrders.length} ordens selecionadas`);
     } catch (e: any) {
       toast.error("Falha ao selecionar todas: " + (e?.message ?? "erro"));
     } finally {
