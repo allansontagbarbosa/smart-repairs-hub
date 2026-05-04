@@ -44,7 +44,7 @@ import { formatNumeroOS } from "@/lib/numeroOS";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
-type SortKey = "numero" | "prioridade" | "data_entrada" | "valor";
+type SortKey = "numero" | "prioridade" | "data_entrada" | "data_conclusao" | "data_entrega" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
 type PeriodPreset = "30" | "60" | "90" | "all";
