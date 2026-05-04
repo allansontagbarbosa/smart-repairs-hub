@@ -9,6 +9,7 @@ import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/h
 import type { Comissao } from "@/hooks/useFinanceiro";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { formatNumeroOS } from "@/lib/numeroOS";
+import { PeriodFilter, usePeriodFilter } from "@/components/PeriodFilter";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d), "dd/MM/yyyy");
