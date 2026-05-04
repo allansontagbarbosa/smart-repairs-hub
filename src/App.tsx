@@ -38,6 +38,7 @@ import AceitarConvite from "./pages/AceitarConvite";
 import Onboarding from "./pages/Onboarding";
 import Assistente from "./pages/Assistente";
 import Unsubscribe from "./pages/Unsubscribe";
+import DesempenhoTecnicos from "./pages/DesempenhoTecnicos";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
