@@ -504,7 +504,7 @@ export default function Dashboard() {
                 </p>
                 <p className="text-base font-semibold mt-1 tracking-tight">{brl(kpis.ticket)}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {kpis.totalOrdensMes} OS no período
+                  {kpis.totalConcluidasPeriodo} OS concluídas no período
                 </p>
               </CardContent>
             </Card>
