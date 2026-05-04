@@ -1529,12 +1529,12 @@ export default function Assistencia() {
                 <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
               </DropdownMenuItem>
               {!["pronto", "entregue"].includes(order.status) && (
-                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}>
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—", status: "pronto" })}>
                   <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Pronto
                 </DropdownMenuItem>
               )}
               {order.status === "pronto" && (
-                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—", status: "entregue" })}>
                   <Truck className="mr-2 h-4 w-4" /> Marcar como Entregue
                 </DropdownMenuItem>
               )}
