@@ -720,6 +720,7 @@ export default function Assistencia() {
     | { kind: "marcarPagas" }
     | null;
   const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
+  const [modalDatasAberto, setModalDatasAberto] = useState(false);
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
