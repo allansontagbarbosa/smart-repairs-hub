@@ -955,7 +955,10 @@ export default function Dashboard() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-3">
-              {allOrders.filter(o => isAtiva(o.status)).length} ativas
+              Snapshot ao vivo · {allOrders.filter(o => isAtiva(o.status)).length} ativas no momento
+              <span className="block text-[10px] opacity-70 mt-0.5">
+                Esta seção mostra todas as OS da empresa, independente do período selecionado.
+              </span>
             </p>
             <div className="space-y-2">
               {Object.entries(STATUS_LABELS)
