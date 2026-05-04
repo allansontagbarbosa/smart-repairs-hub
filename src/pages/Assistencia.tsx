@@ -927,6 +927,16 @@ export default function Assistencia() {
       else if (sortKey === "prioridade") cmp = prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel];
       else if (sortKey === "data_entrada")
         cmp = new Date(a.data_entrada).getTime() - new Date(b.data_entrada).getTime();
+      else if (sortKey === "data_conclusao") {
+        const da = a.data_conclusao ? new Date(a.data_conclusao).getTime() : Number.POSITIVE_INFINITY;
+        const db = b.data_conclusao ? new Date(b.data_conclusao).getTime() : Number.POSITIVE_INFINITY;
+        cmp = da - db;
+      }
+      else if (sortKey === "data_entrega") {
+        const da = a.data_entrega ? new Date(a.data_entrega).getTime() : Number.POSITIVE_INFINITY;
+        const db = b.data_entrega ? new Date(b.data_entrega).getTime() : Number.POSITIVE_INFINITY;
+        cmp = da - db;
+      }
       else if (sortKey === "valor") {
         cmp = (Number(a.valor) || 0) - (Number(b.valor) || 0);
       }
