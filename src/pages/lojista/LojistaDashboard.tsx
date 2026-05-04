@@ -24,7 +24,7 @@ export default function LojistaDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, status, valor, valor_pago, data_entrada, previsao_entrega, aparelhos(marca, modelo, imei)")
+        .select("id, numero, status, valor, valor_pago, data_entrada, data_entrega, data_conclusao, previsao_entrega, aparelhos(marca, modelo, imei)")
         .eq("lojista_id", lojistaId!)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
