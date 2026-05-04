@@ -1877,6 +1877,7 @@ export default function Assistencia() {
             cancelBlockedItems={cancelBlockedItems}
             onExportCSV={() => handleExport("csv")}
             onMarcarPagas={() => setPendingBulk({ kind: "marcarPagas" })}
+            onEditarDatas={() => setModalDatasAberto(true)}
             onClear={bulk.clear}
             totais={bulkTotais}
           />
@@ -1890,6 +1891,15 @@ export default function Assistencia() {
             warningMessage={confirmWarning}
             confirmLabel={confirmLabel}
             variant={pendingBulk?.kind === "cancelar" ? "destructive" : "default"}
+          />
+          <EditarDatasMassaModal
+            open={modalDatasAberto}
+            onOpenChange={setModalDatasAberto}
+            osIds={selectedIdsArray}
+            onSucesso={() => {
+              bulk.clear();
+              refetch();
+            }}
           />
         </>
       )}
