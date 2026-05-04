@@ -36,6 +36,7 @@ import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import AceitarConvite from "./pages/AceitarConvite";
 import Onboarding from "./pages/Onboarding";
+import Assistente from "./pages/Assistente";
 import Unsubscribe from "./pages/Unsubscribe";
 
 // Lojista B2B
