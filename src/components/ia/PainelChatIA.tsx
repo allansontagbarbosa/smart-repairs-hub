@@ -48,7 +48,7 @@ export function PainelChatIA({
   promptInicial,
   contextoOrigem,
 }: Props) {
-  const { mensagens, enviando, enviar, novaConversa, carregarHistorico } =
+  const { conversaId, mensagens, enviando, enviar, novaConversa, carregarHistorico } =
     useChatIA(conversaIdInicial);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
