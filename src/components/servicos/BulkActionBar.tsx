@@ -69,6 +69,7 @@ export function BulkActionBar({
   cancelBlockedItems = [],
   onExportCSV,
   onMarcarPagas,
+  onEditarDatas,
   onClear,
   totais,
 }: Props) {
