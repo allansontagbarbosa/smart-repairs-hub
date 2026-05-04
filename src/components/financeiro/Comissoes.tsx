@@ -115,6 +115,16 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <PeriodFilter
+          preset={periodo.preset}
+          onPresetChange={periodo.setPreset}
+          customStart={periodo.customStart}
+          customEnd={periodo.customEnd}
+          onCustomStartChange={periodo.setCustomStart}
+          onCustomEndChange={periodo.setCustomEnd}
+        />
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
           <DollarSign className="h-4 w-4 text-warning mb-2" />
