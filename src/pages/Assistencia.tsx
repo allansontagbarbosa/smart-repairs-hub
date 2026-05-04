@@ -1496,8 +1496,14 @@ export default function Assistencia() {
           </DropdownMenu>
         </td>
 
-        <td className="w-[95px] px-3 py-3 text-[13px] text-muted-foreground">
+        <td className="w-[90px] px-3 py-3 text-[13px] text-muted-foreground">
           {formatDate(order.data_entrada)}
+        </td>
+        <td className="w-[90px] px-3 py-3 text-[13px] text-muted-foreground">
+          {formatDate(order.data_conclusao)}
+        </td>
+        <td className="w-[90px] px-3 py-3 text-[13px] text-muted-foreground">
+          {formatDate(order.data_entrega)}
         </td>
 
         <td className="w-[80px] px-3 py-3 text-right text-[13px] tabular-nums">
