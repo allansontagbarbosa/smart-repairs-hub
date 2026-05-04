@@ -45,6 +45,7 @@ interface Props {
   cancelBlockedItems?: { id: string; numero: string | number; numero_formatado?: string | null; motivo: string }[];
   onExportCSV: () => void;
   onMarcarPagas?: () => void;
+  onEditarDatas?: () => void;
   onClear: () => void;
   /** Totalizadores agregados das OS selecionadas. Quando ausente, a linha de totais não é renderizada. */
   totais?: {
