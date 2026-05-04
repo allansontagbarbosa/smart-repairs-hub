@@ -453,7 +453,7 @@ export default function Dashboard() {
               </p>
               <p className="text-3xl font-bold mt-1 tracking-tight">{brl(kpis.faturamento)}</p>
               <p className="text-[11px] opacity-80 mt-1.5">
-                {kpis.totalFaturadas} OS faturadas · margem {pct(kpis.faturamento > 0 ? (kpis.ll / kpis.faturamento) * 100 : 0)}
+                {kpis.totalFaturadas} OS concluídas no período · margem {pct(kpis.faturamento > 0 ? (kpis.ll / kpis.faturamento) * 100 : 0)}
               </p>
             </CardContent>
           </Card>
