@@ -1,9 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Send, Loader2, X, Plus } from "lucide-react";
+import { Sparkles, Send, Loader2, X, Plus, Copy, MessageCircle } from "lucide-react";
 import { useChatIA, MensagemChat } from "@/hooks/useChatIA";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+function ehExportavel(texto: string): boolean {
+  return texto.length > 200 && /\d|R\$|•|-/.test(texto);
+}
+
+function copiar(texto: string) {
+  navigator.clipboard.writeText(texto);
+  toast.success("Copiado!");
+}
+
+function abrirWhatsApp(texto: string) {
+  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  window.open(url, "_blank");
+}
 
 interface Props {
   open: boolean;
@@ -126,8 +141,8 @@ export function PainelChatIA({
           <div
             key={m.id}
             className={cn(
-              "flex",
-              m.papel === "user" ? "justify-end" : "justify-start",
+              "flex flex-col",
+              m.papel === "user" ? "items-end" : "items-start",
             )}
           >
             <div
@@ -140,6 +155,22 @@ export function PainelChatIA({
             >
               {m.conteudo}
             </div>
+            {m.papel === "assistant" && ehExportavel(m.conteudo) && (
+              <div className="flex gap-2 mt-1 ml-1">
+                <button
+                  onClick={() => copiar(m.conteudo)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <Copy className="h-3 w-3" /> Copiar
+                </button>
+                <button
+                  onClick={() => abrirWhatsApp(m.conteudo)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <MessageCircle className="h-3 w-3" /> WhatsApp
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
