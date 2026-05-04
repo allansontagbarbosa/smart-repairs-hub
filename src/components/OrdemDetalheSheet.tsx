@@ -490,8 +490,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   });
 
   const changeStatus = useMutation({
-    mutationFn: async (newStatus: Status) => {
+    mutationFn: async (
+      input: Status | { status: Status; data?: string },
+    ) => {
       if (!ordem) return;
+      const newStatus: Status = typeof input === "string" ? input : input.status;
+      const dataOverride: string | undefined =
+        typeof input === "string" ? undefined : input.data;
 
       // Bloqueio: só permite "em_reparo" se orçamento aprovado
       const orcStatus = (ordem as any).aprovacao_orcamento;
@@ -503,14 +508,14 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         throw new Error("Orçamento foi recusado pelo cliente. Reabra a aprovação para avançar.");
       }
 
-      const now = new Date().toISOString();
+      const referencia = dataOverride ?? new Date().toISOString();
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
       if (newStatus === "pronto" && !(ordem as any).data_conclusao) {
-        updates.data_conclusao = now;
+        updates.data_conclusao = referencia;
       }
       if (newStatus === "entregue") {
-        if (!(ordem as any).data_entrega) updates.data_entrega = now;
-        if (!(ordem as any).data_conclusao) updates.data_conclusao = (ordem as any).data_entrega || now;
+        if (!(ordem as any).data_entrega) updates.data_entrega = referencia;
+        if (!(ordem as any).data_conclusao) updates.data_conclusao = (ordem as any).data_entrega || referencia;
       }
 
       const { error: e1 } = await supabase.from("ordens_de_servico").update(updates).eq("id", ordem.id);
