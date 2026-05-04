@@ -58,8 +58,8 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const selectedTotal = selectedPayable.reduce((s, c) => s + Number(c.valor), 0);
 
   const totais = useMemo(() => {
-    const ativas = comissoes.filter(c => !c.estornada_em);
-    const estornadas = comissoes.filter(c => c.estornada_em);
+    const ativas = filtered.filter(c => !c.estornada_em);
+    const estornadas = filtered.filter(c => c.estornada_em);
     const inicioMes = startOfMonth(new Date());
     const fimMes = endOfMonth(new Date());
 
@@ -85,10 +85,10 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
       qtdPagasMes: pagasMes.length,
       qtdEstornadasMes: estornadasMes.length,
     };
-  }, [comissoes]);
+  }, [filtered]);
 
   const porFuncionario = useMemo(() => {
-    const ativas = comissoes.filter(c => !c.estornada_em);
+    const ativas = filtered.filter(c => !c.estornada_em);
     const map = new Map<string, { nome: string; pendente: number; liberada: number; paga: number; total: number; qtd: number }>();
     ativas.forEach(c => {
       const id = c.funcionario_id;
@@ -103,7 +103,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
       map.set(id, cur);
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
-  }, [comissoes]);
+  }, [filtered]);
 
   const allPayableSelected = payable.length > 0 && payable.every(c => selected.includes(c.id));
   const toggleAll = (checked: boolean) => setSelected(checked ? payable.map(c => c.id) : []);
