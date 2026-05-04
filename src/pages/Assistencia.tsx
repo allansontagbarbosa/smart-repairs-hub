@@ -1475,12 +1475,13 @@ export default function Assistencia() {
                 <DropdownMenuItem
                   key={s}
                   onClick={() => {
-                    if (s === "entregue") {
+                    if (s === "entregue" || s === "pronto") {
                       pedirConfirmacao({
                         orderId: order.id,
                         numero: order.numero,
                         numero_formatado: order.numero_formatado ?? null,
                         clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                        status: s,
                       });
                     } else {
                       updateStatusMutation.mutate({ id: order.id, status: s });
