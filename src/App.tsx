@@ -38,6 +38,7 @@ import AceitarConvite from "./pages/AceitarConvite";
 import Onboarding from "./pages/Onboarding";
 import Assistente from "./pages/Assistente";
 import Unsubscribe from "./pages/Unsubscribe";
+import DesempenhoTecnicos from "./pages/DesempenhoTecnicos";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -135,6 +136,7 @@ const App = () => (
                     <Route path="/fornecedores" element={<ProtectedRoute permissao="pecas.ver"><Fornecedores /></ProtectedRoute>} />
                     <Route path="/compras" element={<ProtectedRoute permissao="pecas.ver"><Compras /></ProtectedRoute>} />
                     <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
+                    <Route path="/tecnicos/desempenho" element={<ProtectedRoute permissao="relatorios"><DesempenhoTecnicos /></ProtectedRoute>} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />

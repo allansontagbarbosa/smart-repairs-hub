@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -32,6 +32,7 @@ const items = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, badgeKey: "financeiro" as const, permissao: "financeiro" as keyof Permissoes },
   { title: "Faturas B2B", url: "/financeiro/faturas-lojistas", icon: ReceiptText, permissao: "financeiro" as keyof Permissoes },
   { title: "Relatórios", url: "/relatorios", icon: BarChart2, permissao: "relatorios" as keyof Permissoes },
+  { title: "Desempenho técnicos", url: "/tecnicos/desempenho", icon: Trophy, permissao: "relatorios" as keyof Permissoes },
   { title: "Clientes", url: "/clientes", icon: Users, permissao: "clientes" as keyof Permissoes },
   { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
 ];
