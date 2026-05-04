@@ -34,6 +34,7 @@ import { ServicosOSEditor } from "@/components/ordens/ServicosOSEditor";
 import { useOSServicos } from "@/hooks/useOSServicos";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { EditarDatasOS } from "@/components/ordens/EditarDatasOS";
 
 
 
