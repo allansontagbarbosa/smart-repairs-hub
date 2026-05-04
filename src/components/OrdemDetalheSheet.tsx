@@ -1921,8 +1921,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       </SheetContent>
       <ConfirmarEntregaDialog
         entrega={entrega}
-        onConfirm={(id) => {
-          changeStatus.mutate("entregue");
+        onConfirm={(_orderId, status, data) => {
+          changeStatus.mutate({ status, data });
           cancelar();
         }}
         onCancel={cancelar}
