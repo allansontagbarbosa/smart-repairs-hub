@@ -331,6 +331,11 @@ export default function Dashboard() {
       metaPct, reservaPct, nSocios, reservaVal, lucroDistrib, lucroSocio,
       emAtraso, aguardandoEntrega, aguardandoReparo, emReparo,
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
+      // Novos escopos explícitos:
+      // Recebidas no período = OS criadas com data_entrada no range, exceto canceladas.
+      // Concluídas no período = OS com status pronto/entregue e data_conclusao no range.
+      totalRecebidasPeriodo: ordensMes.length,
+      totalConcluidasPeriodo: ordensFaturadas.length,
       iphonesReparados,
     };
   }, [orders, allOrders, contasPeriodo, summary?.comissoes_periodo_total, empresaConfig]);
