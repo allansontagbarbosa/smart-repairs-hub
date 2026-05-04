@@ -1603,7 +1603,9 @@ export default function Assistencia() {
                 <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Cliente / aparelho</th>
                 <th className="w-[110px] px-3 py-2.5"><SortHeader label="Prioridade" k="prioridade" /></th>
                 <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Status</th>
-                <th className="w-[95px] px-3 py-2.5"><SortHeader label="Entrada" k="data_entrada" /></th>
+                <th className="w-[90px] px-3 py-2.5"><SortHeader label="Entrada" k="data_entrada" /></th>
+                <th className="w-[90px] px-3 py-2.5"><SortHeader label="Conclusão" k="data_conclusao" /></th>
+                <th className="w-[90px] px-3 py-2.5"><SortHeader label="Entrega" k="data_entrega" /></th>
                 <th className="w-[80px] px-3 py-2.5"><SortHeader label="Valor" k="valor" className="justify-end" /></th>
                 <th className="w-[42px] px-3 py-2.5" aria-label="Ações" />
               </tr>
