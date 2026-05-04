@@ -906,12 +906,18 @@ export default function Assistencia() {
       const clientPhone = o.aparelhos?.clientes?.telefone ?? "";
       const device = `${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""}`;
       const q = search.toLowerCase();
+      const imei = (o.aparelhos?.imei ?? "").toLowerCase();
+      const numeroFmt = (o.numero_formatado ?? "").toLowerCase();
+      const phoneNorm = (clientPhone ?? "").replace(/\D/g, "");
+      const qNorm = q.replace(/\D/g, "");
       const matchSearch =
         !search ||
         clientName.toLowerCase().includes(q) ||
-        clientPhone.includes(q) ||
+        (qNorm.length >= 4 && phoneNorm.includes(qNorm)) ||
         device.toLowerCase().includes(q) ||
-        String(o.numero).includes(q);
+        String(o.numero).includes(q) ||
+        numeroFmt.includes(q) ||
+        (!!imei && imei.includes(q));
       const matchStatus =
         filterStatus === "todos"
           ? true
