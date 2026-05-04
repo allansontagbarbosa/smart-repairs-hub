@@ -227,6 +227,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         onNewOS={() => setNovaOSOpen(true)}
         onMoreClick={() => setMoreDrawerOpen(true)}
       />
+
+      <BotaoFlutuanteIA />
     </SidebarProvider>
   );
 }
