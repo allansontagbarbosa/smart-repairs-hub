@@ -38,6 +38,7 @@ import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
+import { EditarDatasMassaModal } from "@/components/ordens/EditarDatasMassaModal";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { formatNumeroOS } from "@/lib/numeroOS";
