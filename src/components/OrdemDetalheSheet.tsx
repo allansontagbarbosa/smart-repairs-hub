@@ -894,7 +894,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => changeStatus.mutate("pronto")}
+                    onClick={() => pedirConfirmacao({
+                      orderId: ordem.id,
+                      numero: ordem.numero,
+                      numero_formatado: (ordem as any).numero_formatado ?? null,
+                      clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                      status: "pronto",
+                    })}
                     disabled={changeStatus.isPending}
                   >
                     <Check className="h-3 w-3 mr-1" />Pronto
@@ -907,7 +913,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     onClick={() => pedirConfirmacao({
                       orderId: ordem.id,
                       numero: ordem.numero,
+                      numero_formatado: (ordem as any).numero_formatado ?? null,
                       clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                      status: "entregue",
                     })}
                     disabled={changeStatus.isPending}
                   >
