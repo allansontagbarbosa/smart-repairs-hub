@@ -5,9 +5,22 @@ import { Sparkles, Send, Loader2, X, Plus, Copy, MessageCircle } from "lucide-re
 import { useChatIA, MensagemChat } from "@/hooks/useChatIA";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { CardPropostaIA, type PropostaIA } from "./CardPropostaIA";
 
 function ehExportavel(texto: string): boolean {
   return texto.length > 200 && /\d|R\$|•|-/.test(texto);
+}
+
+function extrairProposta(texto: string): { texto: string; proposta: PropostaIA | null } {
+  const match = texto.match(/\[PROPOSTA\]([\s\S]*?)\[\/PROPOSTA\]/);
+  if (!match) return { texto, proposta: null };
+  const limpo = texto.replace(/\[PROPOSTA\][\s\S]*?\[\/PROPOSTA\]/, "").trim();
+  try {
+    const proposta = JSON.parse(match[1]) as PropostaIA;
+    return { texto: limpo, proposta };
+  } catch {
+    return { texto, proposta: null };
+  }
 }
 
 function copiar(texto: string) {
