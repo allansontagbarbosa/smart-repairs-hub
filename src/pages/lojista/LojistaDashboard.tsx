@@ -53,9 +53,11 @@ export default function LojistaDashboard() {
 
   const emAssistencia = ordens.filter(o => !["entregue"].includes(o.status)).length;
   const prontos = ordens.filter(o => o.status === "pronto");
-  const entreguesMes = ordens.filter(o =>
-    o.status === "entregue" && o.data_entrada?.startsWith(mesAtual)
-  );
+  const entreguesMes = ordens.filter(o => {
+    if (o.status !== "entregue") return false;
+    const ref = (o as any).data_entrega ?? (o as any).data_conclusao;
+    return !!ref && String(ref).startsWith(mesAtual);
+  });
   const gastosMes = entreguesMes.reduce((s, o) => s + (o.valor ?? 0), 0);
 
   const totalPagoMes = entreguesMes.reduce((s, o) => s + (o.valor_pago ?? 0), 0);
