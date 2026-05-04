@@ -137,6 +137,7 @@ const App = () => (
                     <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
+                    <Route path="/assistente" element={<Assistente />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
