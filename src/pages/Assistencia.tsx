@@ -44,7 +44,7 @@ import { formatNumeroOS } from "@/lib/numeroOS";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
-type SortKey = "numero" | "prioridade" | "data_entrada" | "valor";
+type SortKey = "numero" | "prioridade" | "data_entrada" | "data_conclusao" | "data_entrega" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
 type PeriodPreset = "30" | "60" | "90" | "all";
@@ -927,6 +927,16 @@ export default function Assistencia() {
       else if (sortKey === "prioridade") cmp = prioOrder[a.prioridade.nivel] - prioOrder[b.prioridade.nivel];
       else if (sortKey === "data_entrada")
         cmp = new Date(a.data_entrada).getTime() - new Date(b.data_entrada).getTime();
+      else if (sortKey === "data_conclusao") {
+        const da = a.data_conclusao ? new Date(a.data_conclusao).getTime() : Number.POSITIVE_INFINITY;
+        const db = b.data_conclusao ? new Date(b.data_conclusao).getTime() : Number.POSITIVE_INFINITY;
+        cmp = da - db;
+      }
+      else if (sortKey === "data_entrega") {
+        const da = a.data_entrega ? new Date(a.data_entrega).getTime() : Number.POSITIVE_INFINITY;
+        const db = b.data_entrega ? new Date(b.data_entrega).getTime() : Number.POSITIVE_INFINITY;
+        cmp = da - db;
+      }
       else if (sortKey === "valor") {
         cmp = (Number(a.valor) || 0) - (Number(b.valor) || 0);
       }
@@ -1486,8 +1496,14 @@ export default function Assistencia() {
           </DropdownMenu>
         </td>
 
-        <td className="w-[95px] px-3 py-3 text-[13px] text-muted-foreground">
+        <td className="w-[90px] px-3 py-3 text-[13px] text-muted-foreground">
           {formatDate(order.data_entrada)}
+        </td>
+        <td className="w-[90px] px-3 py-3 text-[13px] text-muted-foreground">
+          {formatDate(order.data_conclusao)}
+        </td>
+        <td className="w-[90px] px-3 py-3 text-[13px] text-muted-foreground">
+          {formatDate(order.data_entrega)}
         </td>
 
         <td className="w-[80px] px-3 py-3 text-right text-[13px] tabular-nums">
@@ -1587,7 +1603,9 @@ export default function Assistencia() {
                 <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Cliente / aparelho</th>
                 <th className="w-[110px] px-3 py-2.5"><SortHeader label="Prioridade" k="prioridade" /></th>
                 <th className="px-3 py-2.5 text-[12px] font-medium text-muted-foreground">Status</th>
-                <th className="w-[95px] px-3 py-2.5"><SortHeader label="Entrada" k="data_entrada" /></th>
+                <th className="w-[90px] px-3 py-2.5"><SortHeader label="Entrada" k="data_entrada" /></th>
+                <th className="w-[90px] px-3 py-2.5"><SortHeader label="Conclusão" k="data_conclusao" /></th>
+                <th className="w-[90px] px-3 py-2.5"><SortHeader label="Entrega" k="data_entrega" /></th>
                 <th className="w-[80px] px-3 py-2.5"><SortHeader label="Valor" k="valor" className="justify-end" /></th>
                 <th className="w-[42px] px-3 py-2.5" aria-label="Ações" />
               </tr>
