@@ -1966,11 +1966,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               onClick={() => {
                 if (!pendingStatusChange) return;
                 const novo = pendingStatusChange.novo;
-                if (novo === "entregue" && ordem) {
+                if ((novo === "entregue" || novo === "pronto") && ordem) {
                   pedirConfirmacao({
                     orderId: ordem.id,
                     numero: ordem.numero,
+                    numero_formatado: (ordem as any).numero_formatado ?? null,
                     clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                    status: novo,
                   });
                 } else {
                   changeStatus.mutate(novo);
