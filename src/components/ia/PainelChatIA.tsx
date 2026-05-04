@@ -53,9 +53,10 @@ export function PainelChatIA({
   };
 
   const sugestoes = [
-    "O que esse assistente sabe fazer?",
-    "Como funcionam as comissões no Ditt?",
-    "Como cadastro um técnico?",
+    "Qual meu faturamento esta semana?",
+    "Quais OS estão em risco de atraso?",
+    "Lista de compras de peças que estão acabando",
+    "Por que a margem caiu este mês?",
   ];
 
   return (
