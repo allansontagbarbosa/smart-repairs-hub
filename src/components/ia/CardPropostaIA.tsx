@@ -108,7 +108,7 @@ export function CardPropostaIA({ proposta, conversaId, onConcluido }: Props) {
   if (proposta.tipo === "individual") {
     const executar = async () => {
       setExecutando(true);
-      const updates: Record<string, any> = { status: proposta.status_novo };
+      const updates: any = { status: proposta.status_novo };
       if (proposta.status_novo === "pronto")
         updates.data_conclusao = new Date().toISOString();
       if (proposta.status_novo === "entregue")
