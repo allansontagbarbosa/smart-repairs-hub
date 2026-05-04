@@ -74,7 +74,11 @@ export default function LojistaDashboard() {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = d.toLocaleDateString("pt-BR", { month: "short" });
     const total = ordens
-      .filter(o => o.status === "entregue" && o.data_entrada?.startsWith(key))
+      .filter(o => {
+        if (o.status !== "entregue") return false;
+        const ref = (o as any).data_entrega ?? (o as any).data_conclusao ?? o.data_entrada;
+        return !!ref && String(ref).startsWith(key);
+      })
       .reduce((s, o) => s + (o.valor ?? 0), 0);
     return { name: label, valor: total };
   });
