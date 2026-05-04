@@ -92,6 +92,42 @@ const TOOLS = [
       required: ["p1_inicio", "p1_fim", "p2_inicio", "p2_fim"],
     },
   },
+  {
+    name: "propor_mudar_status",
+    description:
+      "Gera uma PROPOSTA de mudança de status pra UMA OS. Não executa nada — usuário aprova via card. Use quando o usuário pedir explicitamente (ex: 'marca a OS 45 como pronta'). Sempre resolva o número da OS pro UUID antes (use buscar_os).",
+    input_schema: {
+      type: "object",
+      properties: {
+        os_id: { type: "string", description: "UUID da OS" },
+        novo_status: {
+          type: "string",
+          enum: ["recebido","em_analise","em_reparo","aguardando_aprovacao","aguardando_peca","pronto","entregue","cancelado"],
+        },
+      },
+      required: ["os_id", "novo_status"],
+    },
+  },
+  {
+    name: "preview_acao_em_massa",
+    description:
+      "Gera PREVIEW de ação em massa (NÃO executa). Limite 200 registros. Aprovação requer admin + confirmação textual no frontend. Use quando o usuário pedir mudança em várias OS de uma vez.",
+    input_schema: {
+      type: "object",
+      properties: {
+        filtro: {
+          type: "object",
+          properties: {
+            status: { type: "array", items: { type: "string" } },
+            entregue_ha_dias_min: { type: "integer" },
+            tecnico_id: { type: "string" },
+          },
+        },
+        acao: { type: "string", enum: ["marcar_paga", "atribuir_tecnico", "mudar_status"] },
+      },
+      required: ["filtro", "acao"],
+    },
+  },
 ];
 
 const TOOL_TO_RPC: Record<string, string> = {
@@ -102,6 +138,8 @@ const TOOL_TO_RPC: Record<string, string> = {
   historico_servico: "ia_historico_servico",
   detalhar_os: "ia_detalhar_os",
   comparar_periodos: "ia_comparar_periodos",
+  propor_mudar_status: "ia_validar_proposta_status",
+  preview_acao_em_massa: "ia_preview_acao_em_massa",
 };
 
 function buildSystemPrompt() {
