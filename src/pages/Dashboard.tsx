@@ -720,48 +720,100 @@ export default function Dashboard() {
       <div>
         <SectionTitle>Operacional</SectionTitle>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <MetricCard icon={Wrench} label="Assistências no período" value={String(kpis.totalOrdensMes)} iconColor="text-blue-500" />
-          <MetricCard
-            icon={Smartphone}
-            label="iPhones"
-            value={String(kpis.iphonesReparados)}
-            sub={kpis.totalOrdensMes > 0 ? pct((kpis.iphonesReparados / kpis.totalOrdensMes) * 100) : "—"}
-            iconColor="text-gray-600"
-          />
-          <MetricCard
-            icon={Clock}
-            label="Aguardando reparo"
-            value={String(kpis.aguardandoReparo)}
-            color={kpis.aguardandoReparo > 20 ? "text-amber-600" : "text-gray-900"}
-            iconColor={kpis.aguardandoReparo > 20 ? "text-amber-500" : "text-gray-400"}
-          />
-          <MetricCard icon={Wrench} label="Em reparo" value={String(kpis.emReparo)} iconColor="text-blue-400" />
-          <MetricCard icon={CheckCircle} label="Prontos p/ entrega" value={String(kpis.aguardandoEntrega)} iconColor="text-green-500" />
-          <MetricCard
-            icon={AlertTriangle}
-            label="Em atraso"
-            value={String(kpis.emAtraso)}
-            color={kpis.emAtraso > 0 ? "text-red-600" : "text-gray-900"}
-            iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-gray-300"}
-          />
-        </div>
-
-        {/* Lucro por assistência + Custo médio — financeiro */}
-        {can("financeiro", "ver") && (
-          <div className="grid grid-cols-2 gap-3 mt-3">
+        {/* Sub-bloco A — Movimento do período (respeita o filtro) */}
+        <div className="mb-3">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+            Movimento do período
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <MetricCard
-              icon={DollarSign}
-              label="Lucro líq. / assistência"
-              value={brl(kpis.llPorAssist)}
-              color={kpis.llPorAssist >= 0 ? "text-green-600" : "text-red-600"}
-              iconColor={kpis.llPorAssist >= 0 ? "text-green-400" : "text-red-400"}
+              icon={Wrench}
+              label="OS recebidas"
+              value={String(kpis.totalRecebidasPeriodo)}
+              sub="entrada no período"
+              iconColor="text-blue-500"
             />
             <MetricCard
+              icon={CheckCircle}
+              label="OS concluídas"
+              value={String(kpis.totalConcluidasPeriodo)}
+              sub="conclusão no período"
+              iconColor="text-green-500"
+            />
+            <MetricCard
+              icon={Smartphone}
+              label="iPhones recebidos"
+              value={String(kpis.iphonesReparados)}
+              sub={
+                kpis.totalRecebidasPeriodo > 0
+                  ? pct((kpis.iphonesReparados / kpis.totalRecebidasPeriodo) * 100)
+                  : "—"
+              }
+              iconColor="text-gray-600"
+            />
+            {can("financeiro", "ver") && (
+              <MetricCard
+                icon={DollarSign}
+                label="Lucro líq. / OS concluída"
+                value={brl(
+                  kpis.totalConcluidasPeriodo > 0
+                    ? kpis.ll / kpis.totalConcluidasPeriodo
+                    : 0
+                )}
+                color={kpis.ll >= 0 ? "text-green-600" : "text-red-600"}
+                iconColor={kpis.ll >= 0 ? "text-green-400" : "text-red-400"}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Sub-bloco B — Snapshot ao vivo (ignora período, mostra estado atual) */}
+        <div>
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
+            Status atual <span className="text-[10px] normal-case opacity-70">(não depende do período)</span>
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <MetricCard
+              icon={Clock}
+              label="Aguardando reparo"
+              value={String(kpis.aguardandoReparo)}
+              color={kpis.aguardandoReparo > 20 ? "text-amber-600" : "text-gray-900"}
+              iconColor={kpis.aguardandoReparo > 20 ? "text-amber-500" : "text-gray-400"}
+            />
+            <MetricCard
+              icon={Wrench}
+              label="Em reparo"
+              value={String(kpis.emReparo)}
+              iconColor="text-blue-400"
+            />
+            <MetricCard
+              icon={CheckCircle}
+              label="Prontos p/ entrega"
+              value={String(kpis.aguardandoEntrega)}
+              iconColor="text-green-500"
+            />
+            <MetricCard
+              icon={AlertTriangle}
+              label="Em atraso"
+              value={String(kpis.emAtraso)}
+              color={kpis.emAtraso > 0 ? "text-red-600" : "text-gray-900"}
+              iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-gray-300"}
+            />
+          </div>
+        </div>
+
+        {/* Custo médio fica como rodapé do Operacional */}
+        {can("financeiro", "ver") && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <MetricCard
               icon={Package}
-              label="Custo médio / OS"
-              value={brl(kpis.totalOrdensMes > 0 ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalOrdensMes : 0)}
-              sub="peças + fixos"
+              label="Custo médio / OS concluída"
+              value={brl(
+                kpis.totalConcluidasPeriodo > 0
+                  ? (kpis.custosPecasMes + kpis.gastosFixos) / kpis.totalConcluidasPeriodo
+                  : 0
+              )}
+              sub="peças + fixos do período"
               iconColor="text-gray-400"
             />
           </div>
