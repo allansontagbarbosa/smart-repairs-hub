@@ -47,7 +47,7 @@ export function usePeriodFilter(defaultPreset: PeriodPreset = "este_mes") {
 
   const range = useMemo<PeriodRange>(() => {
     if (preset === "personalizado") {
-      return { start: customStart, end: customEnd, preset };
+      return { start: startOfDay(customStart), end: endOfDay(customEnd), preset };
     }
     return { ...getRange(preset), preset };
   }, [preset, customStart, customEnd]);
