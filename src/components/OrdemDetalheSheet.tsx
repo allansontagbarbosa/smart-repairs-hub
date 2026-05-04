@@ -34,6 +34,7 @@ import { ServicosOSEditor } from "@/components/ordens/ServicosOSEditor";
 import { useOSServicos } from "@/hooks/useOSServicos";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { EditarDatasOS } from "@/components/ordens/EditarDatasOS";
 
 
 
@@ -1702,10 +1703,23 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <div className="space-y-2">
                     <InfoRow label="Data entrada" value={fmtDate(ordem.data_entrada)} />
                     <InfoRow label="Previsão entrega" value={fmtDate(ordem.previsao_entrega)} />
-                    <InfoRow label="Conclusão" value={fmtDate(ordem.data_conclusao)} />
-                    <InfoRow label="Entrega" value={fmtDate(ordem.data_entrega)} />
                   </div>
                 </div>
+
+                <EditarDatasOS
+                  ordem={{
+                    id: ordem.id,
+                    status: ordem.status,
+                    data_conclusao: ordem.data_conclusao,
+                    data_entrega: ordem.data_entrega,
+                  }}
+                  onSucesso={() => {
+                    queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
+                    queryClient.invalidateQueries({ queryKey: ["os-servicos", orderId] });
+                    queryClient.invalidateQueries({ queryKey: ["comissoes"] });
+                    invalidateOrdensDependentes(queryClient);
+                  }}
+                />
 
                 {/* Observações */}
                 {ordem.observacoes && (

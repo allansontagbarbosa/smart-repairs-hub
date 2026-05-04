@@ -4589,6 +4589,16 @@ export type Database = {
         Args: { p_peca_utilizada_id: string }
         Returns: undefined
       }
+      editar_datas_os: {
+        Args: {
+          p_data_conclusao?: string
+          p_data_entrega?: string
+          p_limpar_conclusao?: boolean
+          p_limpar_entrega?: boolean
+          p_os_id: string
+        }
+        Returns: Json
+      }
       editar_os_admin: {
         Args: {
           p_dados: Json
