@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { format, startOfMonth, endOfMonth, subDays, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, subDays, subMonths, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export function usePeriodFilter(defaultPreset: PeriodPreset = "este_mes") {
 
   const range = useMemo<PeriodRange>(() => {
     if (preset === "personalizado") {
-      return { start: customStart, end: customEnd, preset };
+      return { start: startOfDay(customStart), end: endOfDay(customEnd), preset };
     }
     return { ...getRange(preset), preset };
   }, [preset, customStart, customEnd]);

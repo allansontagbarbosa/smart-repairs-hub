@@ -9,6 +9,7 @@ import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/h
 import type { Comissao } from "@/hooks/useFinanceiro";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { formatNumeroOS } from "@/lib/numeroOS";
+import { PeriodFilter, usePeriodFilter } from "@/components/PeriodFilter";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d), "dd/MM/yyyy");
@@ -35,6 +36,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const liberarMutation = useLiberarComissao();
   const pagarMutation = usePagarComissao();
   const pagarLoteMutation = usePagarComissoesLote();
+  const periodo = usePeriodFilter("este_mes");
 
   const filtered = useMemo(() => comissoes.filter(c => {
     const q = search.toLowerCase();
@@ -44,16 +46,20 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     const matchSearch = !search || nome.toLowerCase().includes(q) || osNumero.toLowerCase().includes(q) || servico.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
-    return matchSearch && matchStatus && matchFunc;
-  }), [comissoes, filterFunc, filterStatus, search]);
+    const dataRef = c.status === "paga" && c.data_pagamento
+      ? new Date(c.data_pagamento)
+      : new Date(c.created_at);
+    const matchPeriodo = dataRef >= periodo.range.start && dataRef <= periodo.range.end;
+    return matchSearch && matchStatus && matchFunc && matchPeriodo;
+  }), [comissoes, filterFunc, filterStatus, search, periodo.range]);
 
   const payable = filtered.filter(c => c.status === "pendente" || c.status === "liberada");
   const selectedPayable = payable.filter(c => selected.includes(c.id));
   const selectedTotal = selectedPayable.reduce((s, c) => s + Number(c.valor), 0);
 
   const totais = useMemo(() => {
-    const ativas = comissoes.filter(c => !c.estornada_em);
-    const estornadas = comissoes.filter(c => c.estornada_em);
+    const ativas = filtered.filter(c => !c.estornada_em);
+    const estornadas = filtered.filter(c => c.estornada_em);
     const inicioMes = startOfMonth(new Date());
     const fimMes = endOfMonth(new Date());
 
@@ -79,10 +85,10 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
       qtdPagasMes: pagasMes.length,
       qtdEstornadasMes: estornadasMes.length,
     };
-  }, [comissoes]);
+  }, [filtered]);
 
   const porFuncionario = useMemo(() => {
-    const ativas = comissoes.filter(c => !c.estornada_em);
+    const ativas = filtered.filter(c => !c.estornada_em);
     const map = new Map<string, { nome: string; pendente: number; liberada: number; paga: number; total: number; qtd: number }>();
     ativas.forEach(c => {
       const id = c.funcionario_id;
@@ -97,7 +103,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
       map.set(id, cur);
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
-  }, [comissoes]);
+  }, [filtered]);
 
   const allPayableSelected = payable.length > 0 && payable.every(c => selected.includes(c.id));
   const toggleAll = (checked: boolean) => setSelected(checked ? payable.map(c => c.id) : []);
@@ -109,6 +115,16 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <PeriodFilter
+          preset={periodo.preset}
+          onPresetChange={periodo.setPreset}
+          customStart={periodo.customStart}
+          customEnd={periodo.customEnd}
+          onCustomStartChange={periodo.setCustomStart}
+          onCustomEndChange={periodo.setCustomEnd}
+        />
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
           <DollarSign className="h-4 w-4 text-warning mb-2" />

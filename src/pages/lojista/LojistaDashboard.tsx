@@ -24,7 +24,7 @@ export default function LojistaDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, status, valor, valor_pago, data_entrada, previsao_entrega, aparelhos(marca, modelo, imei)")
+        .select("id, numero, status, valor, valor_pago, data_entrada, data_entrega, data_conclusao, previsao_entrega, aparelhos(marca, modelo, imei)")
         .eq("lojista_id", lojistaId!)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
@@ -53,9 +53,11 @@ export default function LojistaDashboard() {
 
   const emAssistencia = ordens.filter(o => !["entregue"].includes(o.status)).length;
   const prontos = ordens.filter(o => o.status === "pronto");
-  const entreguesMes = ordens.filter(o =>
-    o.status === "entregue" && o.data_entrada?.startsWith(mesAtual)
-  );
+  const entreguesMes = ordens.filter(o => {
+    if (o.status !== "entregue") return false;
+    const ref = (o as any).data_entrega ?? (o as any).data_conclusao;
+    return !!ref && String(ref).startsWith(mesAtual);
+  });
   const gastosMes = entreguesMes.reduce((s, o) => s + (o.valor ?? 0), 0);
 
   const totalPagoMes = entreguesMes.reduce((s, o) => s + (o.valor_pago ?? 0), 0);
@@ -72,7 +74,11 @@ export default function LojistaDashboard() {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     const label = d.toLocaleDateString("pt-BR", { month: "short" });
     const total = ordens
-      .filter(o => o.status === "entregue" && o.data_entrada?.startsWith(key))
+      .filter(o => {
+        if (o.status !== "entregue") return false;
+        const ref = (o as any).data_entrega ?? (o as any).data_conclusao ?? o.data_entrada;
+        return !!ref && String(ref).startsWith(key);
+      })
       .reduce((s, o) => s + (o.valor ?? 0), 0);
     return { name: label, valor: total };
   });

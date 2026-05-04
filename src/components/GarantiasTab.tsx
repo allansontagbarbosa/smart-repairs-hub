@@ -47,9 +47,15 @@ export function GarantiasTab() {
 
   const filtered = enriched.filter((g) => {
     const q = search.toLowerCase();
-    const matchSearch = !search || g.clienteNome.toLowerCase().includes(q)
-      || g.aparelhoNome.toLowerCase().includes(q)
-      || String(g.osNumero).includes(q);
+    const clienteNome = (g.clienteNome ?? "").toLowerCase();
+    const aparelhoNome = (g.aparelhoNome ?? "").toLowerCase();
+    const osNumero = String(g.osNumero ?? "");
+    const osNumeroFmt = (g.osNumeroFormatado ?? "").toLowerCase();
+    const matchSearch = !search ||
+      clienteNome.includes(q) ||
+      aparelhoNome.includes(q) ||
+      osNumero.includes(q) ||
+      osNumeroFmt.includes(q);
     const matchFilter = filter === "todas"
       || (filter === "ativas" && g.computed === "ativa")
       || (filter === "vencendo" && g.computed === "vencendo")
