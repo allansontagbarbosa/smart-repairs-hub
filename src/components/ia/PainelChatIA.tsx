@@ -141,8 +141,8 @@ export function PainelChatIA({
           <div
             key={m.id}
             className={cn(
-              "flex",
-              m.papel === "user" ? "justify-end" : "justify-start",
+              "flex flex-col",
+              m.papel === "user" ? "items-end" : "items-start",
             )}
           >
             <div
@@ -155,6 +155,22 @@ export function PainelChatIA({
             >
               {m.conteudo}
             </div>
+            {m.papel === "assistant" && ehExportavel(m.conteudo) && (
+              <div className="flex gap-2 mt-1 ml-1">
+                <button
+                  onClick={() => copiar(m.conteudo)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <Copy className="h-3 w-3" /> Copiar
+                </button>
+                <button
+                  onClick={() => abrirWhatsApp(m.conteudo)}
+                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <MessageCircle className="h-3 w-3" /> WhatsApp
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
