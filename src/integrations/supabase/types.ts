@@ -4698,10 +4698,41 @@ export type Database = {
           ultimo_pagamento_data: string
         }[]
       }
+      ia_buscar_os: {
+        Args: {
+          p_cliente_busca?: string
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_limite?: number
+          p_status?: string[]
+          p_tecnico_id?: string
+        }
+        Returns: Json
+      }
+      ia_comparar_periodos: {
+        Args: {
+          p_p1_fim: string
+          p_p1_inicio: string
+          p_p2_fim: string
+          p_p2_inicio: string
+        }
+        Returns: Json
+      }
       ia_criar_conversa: {
         Args: { p_contexto?: Json; p_titulo?: string }
         Returns: Json
       }
+      ia_detalhar_os: { Args: { p_os_id: string }; Returns: Json }
+      ia_historico_servico: {
+        Args: { p_defeito?: string; p_modelo?: string }
+        Returns: Json
+      }
+      ia_lista_compras_pecas: { Args: never; Returns: Json }
+      ia_metricas_periodo: {
+        Args: { p_fim: string; p_inicio: string }
+        Returns: Json
+      }
+      ia_os_em_risco_atraso: { Args: never; Returns: Json }
       ia_pode_usar: { Args: never; Returns: Json }
       ia_registrar_uso: {
         Args: {
