@@ -439,6 +439,9 @@ export default function Dashboard() {
       {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Financeiro do período</SectionTitle>
+        <p className="text-[11px] text-muted-foreground -mt-1 mb-3">
+          Faturamento e lucro contam OS <strong>concluídas</strong> (status Pronto ou Entregue) com data de conclusão dentro do período selecionado.
+        </p>
 
         {/* ── MOBILE: hierarquia destacada ── */}
         <div className="grid grid-cols-1 gap-3 sm:hidden">
