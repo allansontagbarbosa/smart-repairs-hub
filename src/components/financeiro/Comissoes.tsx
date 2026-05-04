@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { Check, CreditCard, DollarSign, Eye, Search, Users } from "lucide-react";
+import { Check, CreditCard, DollarSign, Eye, Search, Users, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/hooks/useComissoesActions";
 import type { Comissao } from "@/hooks/useFinanceiro";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { formatNumeroOS } from "@/lib/numeroOS";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -49,19 +50,54 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const payable = filtered.filter(c => c.status === "pendente" || c.status === "liberada");
   const selectedPayable = payable.filter(c => selected.includes(c.id));
   const selectedTotal = selectedPayable.reduce((s, c) => s + Number(c.valor), 0);
-  const totalPendente = comissoes.filter(c => c.status === "pendente" || c.status === "liberada").reduce((s, c) => s + Number(c.valor), 0);
-  const countPendente = comissoes.filter(c => c.status === "pendente").length;
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const pagasMes = comissoes
-    .filter(c => {
-      if (c.status !== "paga" || !c.data_pagamento) return false;
-      const d = new Date(c.data_pagamento);
-      // FILTRA por mês E ano — getMonth() sozinho confunde Janeiros de anos diferentes.
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    })
-    .reduce((s, c) => s + Number(c.valor), 0);
+
+  const totais = useMemo(() => {
+    const ativas = comissoes.filter(c => !c.estornada_em);
+    const estornadas = comissoes.filter(c => c.estornada_em);
+    const inicioMes = startOfMonth(new Date());
+    const fimMes = endOfMonth(new Date());
+
+    const pagasMes = ativas.filter(c =>
+      c.status === "paga" &&
+      c.data_pagamento &&
+      new Date(c.data_pagamento) >= inicioMes &&
+      new Date(c.data_pagamento) <= fimMes
+    );
+    const estornadasMes = estornadas.filter(c =>
+      c.estornada_em &&
+      new Date(c.estornada_em) >= inicioMes &&
+      new Date(c.estornada_em) <= fimMes
+    );
+
+    return {
+      pendente: ativas.filter(c => c.status === "pendente").reduce((s, c) => s + Number(c.valor || 0), 0),
+      liberada: ativas.filter(c => c.status === "liberada").reduce((s, c) => s + Number(c.valor || 0), 0),
+      pagaMes: pagasMes.reduce((s, c) => s + Number(c.valor || 0), 0),
+      estornadaMes: estornadasMes.reduce((s, c) => s + Number(c.valor || 0), 0),
+      qtdPendentes: ativas.filter(c => c.status === "pendente").length,
+      qtdLiberadas: ativas.filter(c => c.status === "liberada").length,
+      qtdPagasMes: pagasMes.length,
+      qtdEstornadasMes: estornadasMes.length,
+    };
+  }, [comissoes]);
+
+  const porFuncionario = useMemo(() => {
+    const ativas = comissoes.filter(c => !c.estornada_em);
+    const map = new Map<string, { nome: string; pendente: number; liberada: number; paga: number; total: number; qtd: number }>();
+    ativas.forEach(c => {
+      const id = c.funcionario_id;
+      const nome = c.funcionarios?.nome || "Sem funcionário";
+      const cur = map.get(id) || { nome, pendente: 0, liberada: 0, paga: 0, total: 0, qtd: 0 };
+      const v = Number(c.valor || 0);
+      cur.total += v;
+      cur.qtd += 1;
+      if (c.status === "pendente") cur.pendente += v;
+      if (c.status === "liberada") cur.liberada += v;
+      if (c.status === "paga") cur.paga += v;
+      map.set(id, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [comissoes]);
 
   const allPayableSelected = payable.length > 0 && payable.every(c => selected.includes(c.id));
   const toggleAll = (checked: boolean) => setSelected(checked ? payable.map(c => c.id) : []);
@@ -73,23 +109,68 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">
           <DollarSign className="h-4 w-4 text-warning mb-2" />
-          <p className="stat-value text-lg">{fmtCurrency(totalPendente)}</p>
-          <p className="stat-label">Total a pagar</p>
+          <p className="stat-value text-lg">{fmtCurrency(totais.pendente)}</p>
+          <p className="stat-label">Pendentes</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{totais.qtdPendentes} comissões</p>
         </div>
         <div className="stat-card">
           <Users className="h-4 w-4 text-info mb-2" />
-          <p className="stat-value text-lg">{countPendente}</p>
-          <p className="stat-label">Pendentes</p>
+          <p className="stat-value text-lg">{fmtCurrency(totais.liberada)}</p>
+          <p className="stat-label">Liberadas (a pagar)</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{totais.qtdLiberadas} comissões</p>
         </div>
         <div className="stat-card border-success/20 bg-success-muted">
           <CreditCard className="h-4 w-4 text-success mb-2" />
-          <p className="stat-value text-lg text-success">{fmtCurrency(pagasMes)}</p>
-          <p className="stat-label">Pagas no mês</p>
+          <p className="stat-value text-lg text-success">{fmtCurrency(totais.pagaMes)}</p>
+          <p className="stat-label">Pagas este mês</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{totais.qtdPagasMes} comissões</p>
+        </div>
+        <div className="stat-card border-destructive/20">
+          <RotateCcw className="h-4 w-4 text-destructive mb-2" />
+          <p className="stat-value text-lg text-destructive">{fmtCurrency(totais.estornadaMes)}</p>
+          <p className="stat-label">Estornadas este mês</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{totais.qtdEstornadasMes} comissões</p>
         </div>
       </div>
+
+      {porFuncionario.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Por funcionário</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr>
+                    <th className="text-left py-1">Funcionário</th>
+                    <th className="text-right">Qtd</th>
+                    <th className="text-right">Pendente</th>
+                    <th className="text-right">Liberada</th>
+                    <th className="text-right">Paga</th>
+                    <th className="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porFuncionario.map(f => (
+                    <tr key={f.nome} className="border-t border-border">
+                      <td className="py-1.5">{f.nome}</td>
+                      <td className="text-right tabular-nums">{f.qtd}</td>
+                      <td className="text-right tabular-nums text-warning">{fmtCurrency(f.pendente)}</td>
+                      <td className="text-right tabular-nums text-info">{fmtCurrency(f.liberada)}</td>
+                      <td className="text-right tabular-nums text-success">{fmtCurrency(f.paga)}</td>
+                      <td className="text-right tabular-nums font-semibold">{fmtCurrency(f.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">

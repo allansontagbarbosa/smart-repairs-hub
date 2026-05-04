@@ -70,7 +70,6 @@ async function fetchComissoes() {
       ordens_de_servico ( numero, numero_formatado, aparelhos ( marca, modelo ) ),
       os_servicos ( nome, status )
     `)
-    .is("estornada_em", null)
     .order("created_at", { ascending: false });
   if (error) {
     console.error("ERRO fetchComissoes:", error.code, error.message, error.details);
