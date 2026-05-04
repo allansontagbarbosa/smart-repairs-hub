@@ -2225,6 +2225,214 @@ export type Database = {
           },
         ]
       }
+      ia_acoes_log: {
+        Row: {
+          aprovado_por: string | null
+          argumentos: Json | null
+          conversa_id: string | null
+          criado_em: string
+          empresa_id: string
+          erro_mensagem: string | null
+          id: string
+          ids_afetados: string[] | null
+          resultado: Json | null
+          snapshot_antes: Json | null
+          status: string
+          tool_chamada: string
+          usuario_id: string
+        }
+        Insert: {
+          aprovado_por?: string | null
+          argumentos?: Json | null
+          conversa_id?: string | null
+          criado_em?: string
+          empresa_id: string
+          erro_mensagem?: string | null
+          id?: string
+          ids_afetados?: string[] | null
+          resultado?: Json | null
+          snapshot_antes?: Json | null
+          status?: string
+          tool_chamada: string
+          usuario_id: string
+        }
+        Update: {
+          aprovado_por?: string | null
+          argumentos?: Json | null
+          conversa_id?: string | null
+          criado_em?: string
+          empresa_id?: string
+          erro_mensagem?: string | null
+          id?: string
+          ids_afetados?: string[] | null
+          resultado?: Json | null
+          snapshot_antes?: Json | null
+          status?: string
+          tool_chamada?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_acoes_log_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "ia_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_acoes_log_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_conversas: {
+        Row: {
+          atualizado_em: string
+          contexto_origem: Json | null
+          criado_em: string
+          deleted_at: string | null
+          empresa_id: string
+          id: string
+          titulo: string | null
+          usuario_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          contexto_origem?: Json | null
+          criado_em?: string
+          deleted_at?: string | null
+          empresa_id: string
+          id?: string
+          titulo?: string | null
+          usuario_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          contexto_origem?: Json | null
+          criado_em?: string
+          deleted_at?: string | null
+          empresa_id?: string
+          id?: string
+          titulo?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_conversas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_mensagens: {
+        Row: {
+          conteudo: string | null
+          conversa_id: string
+          criado_em: string
+          empresa_id: string
+          id: string
+          modelo: string | null
+          papel: string
+          tokens_input: number | null
+          tokens_output: number | null
+          tool_input: Json | null
+          tool_name: string | null
+          tool_result: Json | null
+        }
+        Insert: {
+          conteudo?: string | null
+          conversa_id: string
+          criado_em?: string
+          empresa_id: string
+          id?: string
+          modelo?: string | null
+          papel: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_result?: Json | null
+        }
+        Update: {
+          conteudo?: string | null
+          conversa_id?: string
+          criado_em?: string
+          empresa_id?: string
+          id?: string
+          modelo?: string | null
+          papel?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_input?: Json | null
+          tool_name?: string | null
+          tool_result?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "ia_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_mensagens_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ia_uso_tokens: {
+        Row: {
+          atualizado_em: string
+          bloqueado: boolean
+          custo_brl: number
+          empresa_id: string
+          id: string
+          mes_competencia: string
+          teto_brl: number
+          tokens_input: number
+          tokens_output: number
+        }
+        Insert: {
+          atualizado_em?: string
+          bloqueado?: boolean
+          custo_brl?: number
+          empresa_id: string
+          id?: string
+          mes_competencia: string
+          teto_brl?: number
+          tokens_input?: number
+          tokens_output?: number
+        }
+        Update: {
+          atualizado_em?: string
+          bloqueado?: boolean
+          custo_brl?: number
+          empresa_id?: string
+          id?: string
+          mes_competencia?: string
+          teto_brl?: number
+          tokens_input?: number
+          tokens_output?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_uso_tokens_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       imei_device_cache: {
         Row: {
           capacidade: string | null
@@ -4489,6 +4697,20 @@ export type Database = {
           ultima_os_data: string
           ultimo_pagamento_data: string
         }[]
+      }
+      ia_criar_conversa: {
+        Args: { p_contexto?: Json; p_titulo?: string }
+        Returns: Json
+      }
+      ia_pode_usar: { Args: never; Returns: Json }
+      ia_registrar_uso: {
+        Args: {
+          p_empresa_id: string
+          p_modelo: string
+          p_tokens_input: number
+          p_tokens_output: number
+        }
+        Returns: Json
       }
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
