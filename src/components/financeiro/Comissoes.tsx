@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
-import { Check, CreditCard, DollarSign, Eye, Search, Users } from "lucide-react";
+import { Check, CreditCard, DollarSign, Eye, Search, Users, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/hooks/useComissoesActions";
 import type { Comissao } from "@/hooks/useFinanceiro";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { formatNumeroOS } from "@/lib/numeroOS";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
