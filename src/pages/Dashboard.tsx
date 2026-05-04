@@ -521,7 +521,7 @@ export default function Dashboard() {
             iconColor="text-blue-500"
             badge={
               <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                {kpis.totalFaturadas} OS
+                {kpis.totalFaturadas} concluídas
               </span>
             }
           />
