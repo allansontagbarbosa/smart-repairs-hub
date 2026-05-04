@@ -4734,6 +4734,10 @@ export type Database = {
       }
       ia_os_em_risco_atraso: { Args: never; Returns: Json }
       ia_pode_usar: { Args: never; Returns: Json }
+      ia_preview_acao_em_massa: {
+        Args: { p_acao: string; p_filtro: Json }
+        Returns: Json
+      }
       ia_registrar_uso: {
         Args: {
           p_empresa_id: string
@@ -4741,6 +4745,10 @@ export type Database = {
           p_tokens_input: number
           p_tokens_output: number
         }
+        Returns: Json
+      }
+      ia_validar_proposta_status: {
+        Args: { p_novo_status: string; p_os_id: string }
         Returns: Json
       }
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }

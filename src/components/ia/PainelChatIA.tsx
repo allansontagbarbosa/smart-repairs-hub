@@ -5,9 +5,22 @@ import { Sparkles, Send, Loader2, X, Plus, Copy, MessageCircle } from "lucide-re
 import { useChatIA, MensagemChat } from "@/hooks/useChatIA";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { CardPropostaIA, type PropostaIA } from "./CardPropostaIA";
 
 function ehExportavel(texto: string): boolean {
   return texto.length > 200 && /\d|R\$|•|-/.test(texto);
+}
+
+function extrairProposta(texto: string): { texto: string; proposta: PropostaIA | null } {
+  const match = texto.match(/\[PROPOSTA\]([\s\S]*?)\[\/PROPOSTA\]/);
+  if (!match) return { texto, proposta: null };
+  const limpo = texto.replace(/\[PROPOSTA\][\s\S]*?\[\/PROPOSTA\]/, "").trim();
+  try {
+    const proposta = JSON.parse(match[1]) as PropostaIA;
+    return { texto: limpo, proposta };
+  } catch {
+    return { texto, proposta: null };
+  }
 }
 
 function copiar(texto: string) {
@@ -35,7 +48,7 @@ export function PainelChatIA({
   promptInicial,
   contextoOrigem,
 }: Props) {
-  const { mensagens, enviando, enviar, novaConversa, carregarHistorico } =
+  const { conversaId, mensagens, enviando, enviar, novaConversa, carregarHistorico } =
     useChatIA(conversaIdInicial);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -137,42 +150,54 @@ export function PainelChatIA({
           </div>
         )}
 
-        {mensagens.map((m: MensagemChat) => (
-          <div
-            key={m.id}
-            className={cn(
-              "flex flex-col",
-              m.papel === "user" ? "items-end" : "items-start",
-            )}
-          >
-            <div
-              className={cn(
-                "max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words",
-                m.papel === "user"
-                  ? "bg-[#00C896] text-white rounded-br-sm"
-                  : "bg-muted text-foreground rounded-bl-sm",
-              )}
-            >
-              {m.conteudo}
-            </div>
-            {m.papel === "assistant" && ehExportavel(m.conteudo) && (
-              <div className="flex gap-2 mt-1 ml-1">
-                <button
-                  onClick={() => copiar(m.conteudo)}
-                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
-                  <Copy className="h-3 w-3" /> Copiar
-                </button>
-                <button
-                  onClick={() => abrirWhatsApp(m.conteudo)}
-                  className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
-                  <MessageCircle className="h-3 w-3" /> WhatsApp
-                </button>
+        {mensagens.map((m: MensagemChat) => {
+          if (m.papel === "user") {
+            return (
+              <div key={m.id} className="flex flex-col items-end">
+                <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#00C896] text-white px-3 py-2 text-sm whitespace-pre-wrap break-words">
+                  {m.conteudo}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+            );
+          }
+
+          const { texto, proposta } = extrairProposta(m.conteudo);
+          const exportavel = !proposta && ehExportavel(m.conteudo);
+          return (
+            <div key={m.id} className="flex flex-col items-start">
+              {texto && (
+                <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-muted text-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words">
+                  {texto}
+                </div>
+              )}
+              {proposta && conversaId && (
+                <div className="max-w-[85%] w-full">
+                  <CardPropostaIA
+                    proposta={proposta}
+                    conversaId={conversaId}
+                    onConcluido={() => {}}
+                  />
+                </div>
+              )}
+              {exportavel && (
+                <div className="flex gap-2 mt-1 ml-1">
+                  <button
+                    onClick={() => copiar(m.conteudo)}
+                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <Copy className="h-3 w-3" /> Copiar
+                  </button>
+                  <button
+                    onClick={() => abrirWhatsApp(m.conteudo)}
+                    className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <MessageCircle className="h-3 w-3" /> WhatsApp
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {enviando && (
           <div className="flex justify-start">
