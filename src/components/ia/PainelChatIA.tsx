@@ -1,9 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Send, Loader2, X, Plus } from "lucide-react";
+import { Sparkles, Send, Loader2, X, Plus, Copy, MessageCircle } from "lucide-react";
 import { useChatIA, MensagemChat } from "@/hooks/useChatIA";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+function ehExportavel(texto: string): boolean {
+  return texto.length > 200 && /\d|R\$|•|-/.test(texto);
+}
+
+function copiar(texto: string) {
+  navigator.clipboard.writeText(texto);
+  toast.success("Copiado!");
+}
+
+function abrirWhatsApp(texto: string) {
+  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  window.open(url, "_blank");
+}
 
 interface Props {
   open: boolean;
