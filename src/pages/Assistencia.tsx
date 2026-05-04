@@ -835,16 +835,16 @@ export default function Assistencia() {
   const alertas = useAlertas(orders);
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
+    mutationFn: async ({ id, status, data }: { id: string; status: Status; data?: string }) => {
       const ordemAtual = orders.find((order) => order.id === id);
-      const now = new Date().toISOString();
+      const referencia = data ?? new Date().toISOString();
       const updates: any = { status };
       if (status === "pronto" && !ordemAtual?.data_conclusao) {
-        updates.data_conclusao = now;
+        updates.data_conclusao = referencia;
       }
       if (status === "entregue") {
-        if (!ordemAtual?.data_entrega) updates.data_entrega = now;
-        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || now;
+        if (!ordemAtual?.data_entrega) updates.data_entrega = referencia;
+        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || referencia;
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
