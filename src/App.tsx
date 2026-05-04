@@ -36,6 +36,7 @@ import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
 import PortalResetPassword from "./pages/portal/PortalResetPassword";
 import AceitarConvite from "./pages/AceitarConvite";
 import Onboarding from "./pages/Onboarding";
+import Assistente from "./pages/Assistente";
 import Unsubscribe from "./pages/Unsubscribe";
 
 // Lojista B2B
@@ -136,6 +137,7 @@ const App = () => (
                     <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
+                    <Route path="/assistente" element={<Assistente />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
