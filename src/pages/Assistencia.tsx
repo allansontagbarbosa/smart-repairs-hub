@@ -38,6 +38,7 @@ import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { HeaderCheckbox, RowCheckbox } from "@/components/SelectableCheckbox";
 import { BulkActionBar, type TecnicoOption } from "@/components/servicos/BulkActionBar";
+import { EditarDatasMassaModal } from "@/components/ordens/EditarDatasMassaModal";
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { formatNumeroOS } from "@/lib/numeroOS";
@@ -719,6 +720,7 @@ export default function Assistencia() {
     | { kind: "marcarPagas" }
     | null;
   const [pendingBulk, setPendingBulk] = useState<PendingBulk>(null);
+  const [modalDatasAberto, setModalDatasAberto] = useState(false);
 
   const queryClient = useQueryClient();
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
@@ -1876,6 +1878,7 @@ export default function Assistencia() {
             cancelBlockedItems={cancelBlockedItems}
             onExportCSV={() => handleExport("csv")}
             onMarcarPagas={() => setPendingBulk({ kind: "marcarPagas" })}
+            onEditarDatas={() => setModalDatasAberto(true)}
             onClear={bulk.clear}
             totais={bulkTotais}
           />
@@ -1889,6 +1892,15 @@ export default function Assistencia() {
             warningMessage={confirmWarning}
             confirmLabel={confirmLabel}
             variant={pendingBulk?.kind === "cancelar" ? "destructive" : "default"}
+          />
+          <EditarDatasMassaModal
+            open={modalDatasAberto}
+            onOpenChange={setModalDatasAberto}
+            osIds={selectedIdsArray}
+            onSucesso={() => {
+              bulk.clear();
+              refetch();
+            }}
           />
         </>
       )}

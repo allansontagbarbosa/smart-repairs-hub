@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { X, ListChecks, UserCog, Download, ChevronDown, Trash2, AlertTriangle, CheckCircle2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/format";
@@ -45,6 +45,7 @@ interface Props {
   cancelBlockedItems?: { id: string; numero: string | number; numero_formatado?: string | null; motivo: string }[];
   onExportCSV: () => void;
   onMarcarPagas?: () => void;
+  onEditarDatas?: () => void;
   onClear: () => void;
   /** Totalizadores agregados das OS selecionadas. Quando ausente, a linha de totais não é renderizada. */
   totais?: {
@@ -68,6 +69,7 @@ export function BulkActionBar({
   cancelBlockedItems = [],
   onExportCSV,
   onMarcarPagas,
+  onEditarDatas,
   onClear,
   totais,
 }: Props) {
@@ -184,6 +186,14 @@ export function BulkActionBar({
               Marcar pagas
             </Button>
           )}
+
+          {onEditarDatas && (
+            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={onEditarDatas}>
+              <CalendarClock className="h-3.5 w-3.5" />
+              Datas
+            </Button>
+          )}
+
 
           <Button variant="destructive" size="sm" className="h-8 gap-1.5" onClick={onCancelar} disabled={cancelDisabled}>
             <Trash2 className="h-3.5 w-3.5" />

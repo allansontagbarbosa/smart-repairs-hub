@@ -4599,6 +4599,16 @@ export type Database = {
         }
         Returns: Json
       }
+      editar_datas_os_em_massa: {
+        Args: {
+          p_aplicar_conclusao?: boolean
+          p_aplicar_entrega?: boolean
+          p_data_conclusao?: string
+          p_data_entrega?: string
+          p_os_ids: string[]
+        }
+        Returns: Json
+      }
       editar_os_admin: {
         Args: {
           p_dados: Json
