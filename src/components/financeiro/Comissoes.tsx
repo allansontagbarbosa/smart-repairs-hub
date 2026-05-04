@@ -36,6 +36,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const liberarMutation = useLiberarComissao();
   const pagarMutation = usePagarComissao();
   const pagarLoteMutation = usePagarComissoesLote();
+  const periodo = usePeriodFilter("este_mes");
 
   const filtered = useMemo(() => comissoes.filter(c => {
     const q = search.toLowerCase();
@@ -45,8 +46,12 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     const matchSearch = !search || nome.toLowerCase().includes(q) || osNumero.toLowerCase().includes(q) || servico.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
-    return matchSearch && matchStatus && matchFunc;
-  }), [comissoes, filterFunc, filterStatus, search]);
+    const dataRef = c.status === "paga" && c.data_pagamento
+      ? new Date(c.data_pagamento)
+      : new Date(c.created_at);
+    const matchPeriodo = dataRef >= periodo.range.start && dataRef <= periodo.range.end;
+    return matchSearch && matchStatus && matchFunc && matchPeriodo;
+  }), [comissoes, filterFunc, filterStatus, search, periodo.range]);
 
   const payable = filtered.filter(c => c.status === "pendente" || c.status === "liberada");
   const selectedPayable = payable.filter(c => selected.includes(c.id));
