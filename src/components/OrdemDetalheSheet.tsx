@@ -872,11 +872,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     size="sm"
                     className="flex-1"
                     onClick={() => {
-                      if (nextStatus === "entregue") {
+                      if (nextStatus === "entregue" || nextStatus === "pronto") {
                         pedirConfirmacao({
                           orderId: ordem.id,
                           numero: ordem.numero,
+                          numero_formatado: (ordem as any).numero_formatado ?? null,
                           clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                          status: nextStatus,
                         });
                       } else {
                         changeStatus.mutate(nextStatus);
