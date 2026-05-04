@@ -1851,8 +1851,8 @@ export default function Assistencia() {
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       <ConfirmarEntregaDialog
         entrega={entrega}
-        onConfirm={(id) => {
-          updateStatusMutation.mutate({ id, status: "entregue" });
+        onConfirm={(orderId, status, data) => {
+          updateStatusMutation.mutate({ id: orderId, status, data });
           cancelar();
         }}
         onCancel={cancelar}
