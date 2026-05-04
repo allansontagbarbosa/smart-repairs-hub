@@ -1003,8 +1003,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   onValueChange={async (v) => {
                     const novo = v as Status;
                     if (novo === ordem.status) return;
-                    if (novo === "entregue") {
-                      // entrega usa fluxo dedicado
+                    if (novo === "entregue" || novo === "pronto") {
+                      // pronto e entrega usam modal dedicado com data editável
                       const motivos = isAdmin ? await detectarPulosFluxo(ordem.status, novo) : [];
                       if (motivos.length > 0) {
                         setPendingStatusChange({ novo, motivos });
@@ -1013,7 +1013,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       pedirConfirmacao({
                         orderId: ordem.id,
                         numero: ordem.numero,
+                        numero_formatado: (ordem as any).numero_formatado ?? null,
                         clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                        status: novo,
                       });
                       return;
                     }
