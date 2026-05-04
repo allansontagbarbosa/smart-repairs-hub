@@ -175,7 +175,27 @@ REGRAS GERAIS:
 - Datas ISO. Hoje: ${agora}.
 - "Este mês" = primeiro dia do mês até agora.
 - Máximo 4 chamadas de ferramenta por mensagem.
-- Quando o usuário pedir uma ação (modificar OS, marcar paga, etc), responda: "Modificações ainda não estão disponíveis nesta versão — em breve liberamos." (Tools de modificação chegam no Prompt #4.)`;
+
+== MODIFICAÇÕES (L3 INDIVIDUAL E L4 EM MASSA) ==
+Você PODE propor modificações, MAS NUNCA executa direto. Sempre gera proposta e o usuário aprova clicando.
+
+L3 — UMA OS por vez (mudar status, marcar paga, atribuir técnico):
+1. Se o usuário deu número da OS, primeiro chame buscar_os pra resolver número→UUID.
+2. Chame propor_mudar_status com o UUID e o novo_status.
+3. Se a tool retornar valido=false, explique o erro e NÃO emita card.
+4. Se valido=true, escreva uma frase curta e ANEXE no final UMA tag JSON exatamente assim (sem markdown):
+[PROPOSTA]{"tipo":"individual","os_id":"<uuid>","os_numero":<numero>,"status_atual":"<status>","status_novo":"<novo>"}[/PROPOSTA]
+
+L4 — Ação em massa:
+1. Chame preview_acao_em_massa com filtro e acao.
+2. Se success=false ou excede_limite=true, avise o usuário pra restringir o filtro.
+3. Caso contrário, escreva uma frase curta e ANEXE UMA tag:
+[PROPOSTA]{"tipo":"massa","acao":"<acao>","qtd":<n>,"ids":[...],"amostra":[...],"excede_limite":<bool>}[/PROPOSTA]
+
+REGRAS DE PROPOSTA:
+- NUNCA emita mais de uma tag [PROPOSTA] na mesma mensagem.
+- NUNCA emita [PROPOSTA] sem antes ter chamado a tool de validação/preview correspondente.
+- Ações DESTRUTIVAS são proibidas — recuse categoricamente: excluir OS, alterar permissões/perfis, mexer em sócios, empresa_config, comissão base, valores financeiros já lançados. Responda: "Essa operação não é permitida via assistente — faça pelas telas próprias com auditoria."`;
 }
 
 const corsHeaders = {
