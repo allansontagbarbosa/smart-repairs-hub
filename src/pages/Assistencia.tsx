@@ -835,16 +835,16 @@ export default function Assistencia() {
   const alertas = useAlertas(orders);
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
+    mutationFn: async ({ id, status, data }: { id: string; status: Status; data?: string }) => {
       const ordemAtual = orders.find((order) => order.id === id);
-      const now = new Date().toISOString();
+      const referencia = data ?? new Date().toISOString();
       const updates: any = { status };
       if (status === "pronto" && !ordemAtual?.data_conclusao) {
-        updates.data_conclusao = now;
+        updates.data_conclusao = referencia;
       }
       if (status === "entregue") {
-        if (!ordemAtual?.data_entrega) updates.data_entrega = now;
-        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || now;
+        if (!ordemAtual?.data_entrega) updates.data_entrega = referencia;
+        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || referencia;
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
@@ -1475,12 +1475,13 @@ export default function Assistencia() {
                 <DropdownMenuItem
                   key={s}
                   onClick={() => {
-                    if (s === "entregue") {
+                    if (s === "entregue" || s === "pronto") {
                       pedirConfirmacao({
                         orderId: order.id,
                         numero: order.numero,
                         numero_formatado: order.numero_formatado ?? null,
                         clienteNome: order.aparelhos?.clientes?.nome ?? "—",
+                        status: s,
                       });
                     } else {
                       updateStatusMutation.mutate({ id: order.id, status: s });
@@ -1528,12 +1529,12 @@ export default function Assistencia() {
                 <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
               </DropdownMenuItem>
               {!["pronto", "entregue"].includes(order.status) && (
-                <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "pronto" })}>
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—", status: "pronto" })}>
                   <CheckCircle className="mr-2 h-4 w-4" /> Marcar como Pronto
                 </DropdownMenuItem>
               )}
               {order.status === "pronto" && (
-                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—" })}>
+                <DropdownMenuItem onClick={() => pedirConfirmacao({ orderId: order.id, numero: order.numero, numero_formatado: order.numero_formatado ?? null, clienteNome: order.aparelhos?.clientes?.nome ?? "—", status: "entregue" })}>
                   <Truck className="mr-2 h-4 w-4" /> Marcar como Entregue
                 </DropdownMenuItem>
               )}
@@ -1850,8 +1851,8 @@ export default function Assistencia() {
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       <ConfirmarEntregaDialog
         entrega={entrega}
-        onConfirm={(id) => {
-          updateStatusMutation.mutate({ id, status: "entregue" });
+        onConfirm={(orderId, status, data) => {
+          updateStatusMutation.mutate({ id: orderId, status, data });
           cancelar();
         }}
         onCancel={cancelar}

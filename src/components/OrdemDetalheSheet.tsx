@@ -490,8 +490,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   });
 
   const changeStatus = useMutation({
-    mutationFn: async (newStatus: Status) => {
+    mutationFn: async (
+      input: Status | { status: Status; data?: string },
+    ) => {
       if (!ordem) return;
+      const newStatus: Status = typeof input === "string" ? input : input.status;
+      const dataOverride: string | undefined =
+        typeof input === "string" ? undefined : input.data;
 
       // Bloqueio: só permite "em_reparo" se orçamento aprovado
       const orcStatus = (ordem as any).aprovacao_orcamento;
@@ -503,14 +508,14 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         throw new Error("Orçamento foi recusado pelo cliente. Reabra a aprovação para avançar.");
       }
 
-      const now = new Date().toISOString();
+      const referencia = dataOverride ?? new Date().toISOString();
       const updates: { status: Status; data_conclusao?: string; data_entrega?: string } = { status: newStatus };
       if (newStatus === "pronto" && !(ordem as any).data_conclusao) {
-        updates.data_conclusao = now;
+        updates.data_conclusao = referencia;
       }
       if (newStatus === "entregue") {
-        if (!(ordem as any).data_entrega) updates.data_entrega = now;
-        if (!(ordem as any).data_conclusao) updates.data_conclusao = (ordem as any).data_entrega || now;
+        if (!(ordem as any).data_entrega) updates.data_entrega = referencia;
+        if (!(ordem as any).data_conclusao) updates.data_conclusao = (ordem as any).data_entrega || referencia;
       }
 
       const { error: e1 } = await supabase.from("ordens_de_servico").update(updates).eq("id", ordem.id);
@@ -867,11 +872,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     size="sm"
                     className="flex-1"
                     onClick={() => {
-                      if (nextStatus === "entregue") {
+                      if (nextStatus === "entregue" || nextStatus === "pronto") {
                         pedirConfirmacao({
                           orderId: ordem.id,
                           numero: ordem.numero,
+                          numero_formatado: (ordem as any).numero_formatado ?? null,
                           clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                          status: nextStatus,
                         });
                       } else {
                         changeStatus.mutate(nextStatus);
@@ -887,7 +894,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => changeStatus.mutate("pronto")}
+                    onClick={() => pedirConfirmacao({
+                      orderId: ordem.id,
+                      numero: ordem.numero,
+                      numero_formatado: (ordem as any).numero_formatado ?? null,
+                      clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                      status: "pronto",
+                    })}
                     disabled={changeStatus.isPending}
                   >
                     <Check className="h-3 w-3 mr-1" />Pronto
@@ -900,7 +913,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                     onClick={() => pedirConfirmacao({
                       orderId: ordem.id,
                       numero: ordem.numero,
+                      numero_formatado: (ordem as any).numero_formatado ?? null,
                       clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                      status: "entregue",
                     })}
                     disabled={changeStatus.isPending}
                   >
@@ -988,8 +1003,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   onValueChange={async (v) => {
                     const novo = v as Status;
                     if (novo === ordem.status) return;
-                    if (novo === "entregue") {
-                      // entrega usa fluxo dedicado
+                    if (novo === "entregue" || novo === "pronto") {
+                      // pronto e entrega usam modal dedicado com data editável
                       const motivos = isAdmin ? await detectarPulosFluxo(ordem.status, novo) : [];
                       if (motivos.length > 0) {
                         setPendingStatusChange({ novo, motivos });
@@ -998,7 +1013,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                       pedirConfirmacao({
                         orderId: ordem.id,
                         numero: ordem.numero,
+                        numero_formatado: (ordem as any).numero_formatado ?? null,
                         clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                        status: novo,
                       });
                       return;
                     }
@@ -1904,8 +1921,8 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
       </SheetContent>
       <ConfirmarEntregaDialog
         entrega={entrega}
-        onConfirm={(id) => {
-          changeStatus.mutate("entregue");
+        onConfirm={(_orderId, status, data) => {
+          changeStatus.mutate({ status, data });
           cancelar();
         }}
         onCancel={cancelar}
@@ -1949,11 +1966,13 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               onClick={() => {
                 if (!pendingStatusChange) return;
                 const novo = pendingStatusChange.novo;
-                if (novo === "entregue" && ordem) {
+                if ((novo === "entregue" || novo === "pronto") && ordem) {
                   pedirConfirmacao({
                     orderId: ordem.id,
                     numero: ordem.numero,
+                    numero_formatado: (ordem as any).numero_formatado ?? null,
                     clienteNome: ordem.aparelhos?.clientes?.nome ?? "—",
+                    status: novo,
                   });
                 } else {
                   changeStatus.mutate(novo);
