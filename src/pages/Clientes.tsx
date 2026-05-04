@@ -37,11 +37,17 @@ export default function Clientes() {
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
     return clientes
-      .filter((c) =>
-        c.nome.toLowerCase().includes(term) ||
-        c.telefone.includes(search) ||
-        (c.cpf && c.cpf.includes(search))
-      )
+      .filter((c) => {
+        const nome = (c.nome ?? "").toLowerCase();
+        const telefone = (c.telefone ?? "").replace(/\D/g, "");
+        const cpf = (c.cpf ?? "").replace(/\D/g, "");
+        const termNorm = term.replace(/\D/g, "");
+        return (
+          nome.includes(term) ||
+          (termNorm.length >= 4 && telefone.includes(termNorm)) ||
+          (termNorm.length >= 4 && cpf.includes(termNorm))
+        );
+      })
       .sort((a, b) => {
         const diff = Number(a[sortKey] ?? 0) - Number(b[sortKey] ?? 0);
         return sortDirection === "asc" ? diff : -diff;
