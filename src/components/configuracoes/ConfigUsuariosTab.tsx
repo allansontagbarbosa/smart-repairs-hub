@@ -218,6 +218,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     }
 
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    invalidatePermissoesCache();
     toast.success("Usuário atualizado");
   };
 
