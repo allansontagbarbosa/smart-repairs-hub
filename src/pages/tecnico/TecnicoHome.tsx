@@ -38,6 +38,39 @@ export default function TecnicoHome() {
   const { data: emAndamento = [] } = useMeusServicosEmAndamento(identidade?.funcionario_id);
   const servicoAtual: any = emAndamento[0];
 
+  const { data: ranking = [] } = useQuery<Array<{ tecnico_id: string; nome: string; qtd: number }>>({
+    queryKey: ["ranking-equipe-mes", identidade?.empresa_id, now.getFullYear(), now.getMonth() + 1],
+    enabled: !!identidade?.empresa_id,
+    queryFn: async () => {
+      const inicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const fim = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+      const { data } = await supabase
+        .from("os_servicos")
+        .select("tecnico_id, funcionarios!inner(nome)")
+        .eq("empresa_id", identidade!.empresa_id!)
+        .eq("status", "concluido")
+        .not("tecnico_id", "is", null)
+        .gte("concluido_em", inicio)
+        .lt("concluido_em", fim);
+
+      const contagem = new Map<string, { nome: string; qtd: number }>();
+      (data ?? []).forEach((s: any) => {
+        const cur = contagem.get(s.tecnico_id) ?? { nome: s.funcionarios?.nome ?? "—", qtd: 0 };
+        cur.qtd += 1;
+        contagem.set(s.tecnico_id, cur);
+      });
+
+      return Array.from(contagem.entries())
+        .map(([id, v]) => ({ tecnico_id: id, ...v }))
+        .sort((a, b) => b.qtd - a.qtd);
+    },
+  });
+
+  const minhaPosicao = ranking.findIndex(r => r.tecnico_id === identidade?.funcionario_id) + 1;
+  const proximoNaFrente = minhaPosicao > 1 ? ranking[minhaPosicao - 2] : null;
+  const minhaQtd = ranking.find(r => r.tecnico_id === identidade?.funcionario_id)?.qtd ?? 0;
+
   const proximas = ordens
     .filter(o => !["entregue", "cancelado"].includes(o.status))
     .slice(0, 5);
