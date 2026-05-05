@@ -381,6 +381,38 @@ export default function TecnicoOrdemDetalhe() {
         </TabsContent>
       </Tabs>
 
+      {historicoCliente.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico deste cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {historicoCliente.map((h: any) => (
+              <Link key={h.id} to={`/tecnico/ordens/${h.id}`} className="block">
+                <div className="rounded-md border p-2 hover:bg-accent/40 transition-colors space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      #{h.numero_formatado || h.numero}
+                    </span>
+                    <Badge variant="outline" className="text-[10px]">
+                      {statusLabels[h.status as keyof typeof statusLabels] ?? h.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium truncate">
+                    {h.aparelhos?.marca} {h.aparelhos?.modelo}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {h.defeito_relatado || "Sem defeito relatado"} · {new Date(h.data_entrada).toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Link to="/tecnico/transferencias">
         <Button variant="outline" className="w-full">
           <Wrench className="h-4 w-4 mr-2" /> Pedir transferência desta OS
