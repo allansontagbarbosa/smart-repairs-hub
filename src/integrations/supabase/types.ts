@@ -4858,6 +4858,7 @@ export type Database = {
       }
       saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      unaccent: { Args: { "": string }; Returns: string }
       verificar_lojista_por_email: {
         Args: { email_input: string }
         Returns: {
