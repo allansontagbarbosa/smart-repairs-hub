@@ -13,12 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, Smartphone } from "lucide-react";
+import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, Smartphone, MessageCircle, History } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
 import { statusLabels } from "@/lib/status";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 
 const DEFAULT_CHECKLIST = [
   { key: "touch", label: "Touch responde corretamente" },
@@ -49,7 +50,7 @@ export default function TecnicoOrdemDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ordens_de_servico")
-        .select(`*, aparelhos ( marca, modelo, cor, imei, clientes ( nome, telefone, whatsapp ) )`)
+        .select(`*, aparelhos ( marca, modelo, cor, imei, cliente_id, clientes ( id, nome, telefone, whatsapp ) )`)
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
