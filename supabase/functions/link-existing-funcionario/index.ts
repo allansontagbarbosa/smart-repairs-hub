@@ -12,10 +12,11 @@ type ErrorCode =
   | "USER_CREATE_FAILED"
   | "INTERNAL_ERROR";
 
+let _currentCors: Record<string, string> = {};
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ..._currentCors, "Content-Type": "application/json" },
   });
 }
 
@@ -35,6 +36,7 @@ function normalizeEmail(value: unknown): string | null {
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  _currentCors = corsHeaders;
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
