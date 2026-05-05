@@ -4793,6 +4793,7 @@ export type Database = {
         Returns: Json
       }
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      is_admin_ou_gerente: { Args: never; Returns: boolean }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       kpi_tecnicos: { Args: { p_fim: string; p_inicio: string }; Returns: Json }
