@@ -710,25 +710,22 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Remover usuário</DialogTitle>
+            <DialogTitle>Revogar acesso?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            Tem certeza que deseja remover{" "}
+            O usuário{" "}
             <strong>
               {userProfiles.find((u) => u.id === confirmDeleteId)?.nome_exibicao}
             </strong>{" "}
-            do sistema? O usuário perderá acesso imediatamente mas seu
-            histórico será preservado.
+            não conseguirá mais entrar no sistema. A sessão ativa será encerrada
+            imediatamente. O cadastro fica preservado para reativação futura.
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => confirmDeleteId && handleDeleteUser(confirmDeleteId)}
-            >
-              Remover acesso
+            <Button variant="destructive" onClick={confirmarRevogar}>
+              Revogar acesso
             </Button>
           </div>
         </DialogContent>
