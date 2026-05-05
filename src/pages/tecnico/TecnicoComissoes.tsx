@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, Clock, DollarSign, ListChecks, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,9 +23,6 @@ function toMes(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function addMonths(date: Date, delta: number) {
-  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
-}
 
 function fmtMoney(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
