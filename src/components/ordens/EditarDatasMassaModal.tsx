@@ -102,6 +102,7 @@ export function EditarDatasMassaModal({ open, onOpenChange, osIds, onSucesso }: 
           </div>
 
           <p className="text-xs text-muted-foreground">
+            Status será atualizado automaticamente conforme as datas.
             OS canceladas e OS com data de conclusão anterior à entrada serão ignoradas.
           </p>
         </div>
