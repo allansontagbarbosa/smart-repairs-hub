@@ -276,12 +276,12 @@ export default function AceitarConviteLojista() {
                     <Input
                       id="senha"
                       type={showSenha ? "text" : "password"}
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder="Mínimo 10 caracteres"
                       value={senha}
                       onChange={(e) => setSenha(e.target.value)}
                       autoComplete="new-password"
                       required
-                      minLength={8}
+                      minLength={10}
                       disabled={estado === "processando"}
                     />
                     <button
@@ -308,6 +308,14 @@ export default function AceitarConviteLojista() {
                       <p className="text-xs text-muted-foreground">Força: {forca.label}</p>
                     </div>
                   )}
+                  <ul className="space-y-1 pt-1">
+                    {regrasSenha(senha).map((r, i) => (
+                      <li key={i} className={`flex items-center gap-2 text-xs ${r.ok ? "text-success" : "text-muted-foreground"}`}>
+                        {r.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                        {r.label}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <div className="space-y-2">
@@ -320,7 +328,7 @@ export default function AceitarConviteLojista() {
                     onChange={(e) => setConfirmar(e.target.value)}
                     autoComplete="new-password"
                     required
-                    minLength={8}
+                    minLength={10}
                     disabled={estado === "processando"}
                   />
                   {confirmar && senha !== confirmar && (
