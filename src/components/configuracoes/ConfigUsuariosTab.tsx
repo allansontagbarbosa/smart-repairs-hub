@@ -154,6 +154,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
       registrar("Perfil criado", "configuracoes", null, null, { nome: perfilForm.nome_perfil });
     }
     qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
+    invalidatePermissoesCache();
     toast.success("Perfil salvo");
     setOpenPerfil(false);
     resetForm();
