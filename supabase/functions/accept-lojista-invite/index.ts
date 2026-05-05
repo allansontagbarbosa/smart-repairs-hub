@@ -6,14 +6,13 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 // body em respostas não-2xx, então usamos códigos no corpo).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const json = (payload: unknown) =>
-  new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const json = (payload: unknown) =>
+    new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
