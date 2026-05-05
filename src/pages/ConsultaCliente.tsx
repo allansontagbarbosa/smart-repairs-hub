@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { Search, Smartphone, Clock, DollarSign, FileText, ChevronRight, ArrowLeft } from "lucide-react";
+import { Search, Smartphone, Clock, DollarSign, FileText, ArrowLeft, ShieldCheck } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import type { Database } from "@/integrations/supabase/types";
 
 import { statusLabelsCliente as statusLabels, type Status } from "@/lib/status";
 import { formatNumeroOS } from "@/lib/numeroOS";
-
 
 const statusDescriptions: Record<Status, string> = {
   recebido: "Seu aparelho foi recebido e está na fila de atendimento.",
@@ -47,90 +45,53 @@ type OrderResult = {
   valor: number | null;
   previsao_entrega: string | null;
   data_entrada: string;
-  observacoes: string | null;
-  aparelhos: {
-    marca: string;
-    modelo: string;
-    clientes: { nome: string } | null;
-  } | null;
-  historico: { status_novo: string; created_at: string }[];
+  data_conclusao: string | null;
+  data_entrega: string | null;
+  aparelho: { marca: string; modelo: string };
+  cliente_nome: string;
 };
 
 export default function ConsultaCliente() {
-  const [search, setSearch] = useState("");
+  const [numero, setNumero] = useState("");
+  const [telefone4, setTelefone4] = useState("");
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<OrderResult | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const buscar = async (e: React.FormEvent) => {
     e.preventDefault();
-    const q = search.trim();
-    if (!q) return;
-
-    setLoading(true);
-    setNotFound(false);
-    setOrder(null);
-
-    let osData: any = null;
-
-    // Try by OS number (digits only)
-    const num = q.replace(/\D/g, "");
-    if (num && num.length <= 10) {
-      const { data } = await supabase
-        .from("ordens_de_servico")
-        .select(`id, numero, numero_formatado, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
-        .eq("numero", parseInt(num))
-        .maybeSingle();
-      osData = data;
-    }
-
-    // If not found and looks like IMEI (15 digits), search by IMEI
-    if (!osData && num.length >= 14) {
-      const { data: aparelhos } = await supabase
-        .from("aparelhos")
-        .select("id")
-        .eq("imei", num)
-        .limit(1);
-
-      if (aparelhos && aparelhos.length > 0) {
-        const { data } = await supabase
-          .from("ordens_de_servico")
-          .select(`id, numero, numero_formatado, status, defeito_relatado, valor, previsao_entrega, data_entrada, observacoes, aparelhos ( marca, modelo, imei, clientes ( nome ) )`)
-          .eq("aparelho_id", aparelhos[0].id)
-          .is("deleted_at", null)
-          .order("data_entrada", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        osData = data;
-      }
-    }
-
-    if (!osData) {
-      setNotFound(true);
-      setLoading(false);
+    if (!numero || telefone4.length < 4) {
+      setErro("Preencha número da OS e os 4 últimos dígitos do telefone");
       return;
     }
+    setLoading(true);
+    setErro(null);
+    setOrder(null);
 
-    // Fetch history
-    let historico: { status_novo: string; created_at: string }[] = [];
-    const { data: h } = await supabase
-      .from("historico_ordens")
-      .select("status_novo, created_at")
-      .eq("ordem_id", osData.id)
-      .order("created_at", { ascending: true });
-    historico = h ?? [];
+    const { data, error } = await supabase.rpc("consultar_os_publica", {
+      p_numero: numero,
+      p_telefone_4digitos: telefone4,
+    });
 
-    setOrder({ ...osData, historico });
     setLoading(false);
+
+    if (error) {
+      setErro("Erro ao consultar. Tente novamente.");
+      return;
+    }
+    const payload = data as any;
+    if (!payload?.success) {
+      setErro(payload?.error || "OS não encontrada");
+      return;
+    }
+    setOrder(payload.os as OrderResult);
   };
 
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("pt-BR") : null;
-
   const currentStepIdx = order ? steps.indexOf(order.status) : -1;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center gap-2.5">
           <DittLogo size="sm" />
@@ -140,56 +101,73 @@ export default function ConsultaCliente() {
 
       <div className="max-w-xl mx-auto px-4 py-6 md:py-10">
         {!order ? (
-          /* ── Search screen ── */
           <div className="space-y-6">
             <div className="text-center space-y-2">
               <h1 className="text-xl font-semibold tracking-tight">Consultar Ordem de Serviço</h1>
-              <p className="text-sm text-muted-foreground">Digite o número da OS ou o IMEI do aparelho</p>
+              <p className="text-sm text-muted-foreground">
+                Para sua segurança, informe o número da OS e os 4 últimos dígitos do seu telefone.
+              </p>
             </div>
 
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Nº da OS ou IMEI do aparelho"
-                  className="pl-9 h-11 text-base"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  autoFocus
-                />
+            <form onSubmit={buscar} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="numero">Número da OS</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="numero"
+                    placeholder="Ex: 1234"
+                    className="pl-9 h-11 text-base"
+                    value={numero}
+                    onChange={(e) => setNumero(e.target.value)}
+                    maxLength={20}
+                    autoFocus
+                  />
+                </div>
               </div>
-              <Button type="submit" className="h-11 px-5" disabled={loading || !search.trim()}>
-                {loading ? <span className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : "Buscar"}
+
+              <div className="space-y-2">
+                <Label htmlFor="telefone">4 últimos dígitos do telefone</Label>
+                <Input
+                  id="telefone"
+                  inputMode="numeric"
+                  placeholder="0000"
+                  className="h-11 text-base tracking-widest"
+                  value={telefone4}
+                  onChange={(e) => setTelefone4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  maxLength={4}
+                />
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  Confirmamos os 4 últimos dígitos do telefone cadastrado.
+                </p>
+              </div>
+
+              <Button type="submit" className="w-full h-11" disabled={loading || !numero || telefone4.length < 4}>
+                {loading ? "Buscando..." : "Consultar OS"}
               </Button>
+
+              {erro && <p className="text-sm text-destructive text-center">{erro}</p>}
             </form>
 
-            {notFound && (
-              <div className="text-center py-8 space-y-2">
-                <p className="text-sm font-medium">Ordem não encontrada</p>
-                <p className="text-xs text-muted-foreground">Verifique o número e tente novamente</p>
-              </div>
-            )}
-
-            <div className="rounded-xl border bg-card p-5 space-y-3">
+            <div className="rounded-xl border bg-card p-5 space-y-2">
               <p className="text-xs font-medium">Como encontrar o número da OS?</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                O número da ordem de serviço está no comprovante que você recebeu quando deixou o aparelho. 
-                Caso não tenha o comprovante, entre em contato conosco.
+                O número está no comprovante que você recebeu ao deixar o aparelho. Se não tiver o comprovante,
+                entre em contato com a loja.
               </p>
             </div>
           </div>
         ) : (
-          /* ── Result screen ── */
           <div className="space-y-5">
             <button
-              onClick={() => { setOrder(null); setSearch(""); }}
+              onClick={() => { setOrder(null); setNumero(""); setTelefone4(""); setErro(null); }}
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="h-3 w-3" />
               Nova consulta
             </button>
 
-            {/* OS header */}
             <div className="rounded-xl border bg-card p-5">
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -208,7 +186,6 @@ export default function ConsultaCliente() {
               <p className="text-sm">{statusDescriptions[order.status]}</p>
             </div>
 
-            {/* Progress steps */}
             <div className="rounded-xl border bg-card p-5">
               <p className="text-xs font-medium text-muted-foreground mb-4">Progresso</p>
               <div className="flex items-center justify-between">
@@ -218,9 +195,7 @@ export default function ConsultaCliente() {
                   return (
                     <div key={step} className="flex flex-col items-center flex-1">
                       <div className="flex items-center w-full">
-                        {i > 0 && (
-                          <div className={cn("h-0.5 flex-1", done ? "bg-success" : "bg-border")} />
-                        )}
+                        {i > 0 && <div className={cn("h-0.5 flex-1", done ? "bg-success" : "bg-border")} />}
                         <div className={cn(
                           "h-5 w-5 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold",
                           isCurrent ? "bg-success text-success-foreground ring-2 ring-success/30" :
@@ -245,10 +220,12 @@ export default function ConsultaCliente() {
               </div>
             </div>
 
-            {/* Details */}
             <div className="rounded-xl border bg-card p-5 space-y-4">
-              <DetailRow icon={Smartphone} label="Aparelho" value={`${order.aparelhos?.marca} ${order.aparelhos?.modelo}`} />
-              <DetailRow icon={FileText} label="Problema" value={order.defeito_relatado} />
+              <DetailRow icon={Smartphone} label="Aparelho" value={`${order.aparelho.marca} ${order.aparelho.modelo}`} />
+              <DetailRow icon={FileText} label="Cliente" value={order.cliente_nome} />
+              {order.defeito_relatado && (
+                <DetailRow icon={FileText} label="Problema" value={order.defeito_relatado} />
+              )}
               {order.valor ? (
                 <DetailRow icon={DollarSign} label="Valor" value={`R$ ${Number(order.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
               ) : null}
@@ -257,37 +234,6 @@ export default function ConsultaCliente() {
                 <DetailRow icon={Clock} label="Previsão" value={fmtDate(order.previsao_entrega) ?? "—"} highlight />
               )}
             </div>
-
-            {/* Observações */}
-            {order.observacoes && (
-              <div className="rounded-xl border bg-card p-5">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Observações</p>
-                <p className="text-sm">{order.observacoes}</p>
-              </div>
-            )}
-
-            {/* Histórico */}
-            {order.historico.length > 0 && (
-              <div className="rounded-xl border bg-card p-5">
-                <p className="text-xs font-medium text-muted-foreground mb-3">Histórico</p>
-                <div className="space-y-0">
-                  {order.historico.map((h, i) => (
-                    <div key={i} className="flex gap-3 py-2">
-                      <div className="flex flex-col items-center">
-                        <div className="h-2 w-2 rounded-full bg-border mt-1" />
-                        {i < order.historico.length - 1 && <div className="flex-1 w-px bg-border" />}
-                      </div>
-                      <div className="pb-1">
-                        <p className="text-sm font-medium">{statusLabels[h.status_novo as Status] ?? h.status_novo}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(h.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
