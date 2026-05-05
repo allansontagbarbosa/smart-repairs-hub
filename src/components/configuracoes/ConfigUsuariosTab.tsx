@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePermissoes, invalidatePermissoesCache } from "@/hooks/usePermissoes";
 import { useAuditoria } from "@/hooks/useAuditoria";
 import { format } from "date-fns";
 import { useEmpresa } from "@/contexts/EmpresaContext";
