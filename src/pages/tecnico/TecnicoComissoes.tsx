@@ -23,9 +23,6 @@ function toMes(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function addMonths(date: Date, delta: number) {
-  return new Date(date.getFullYear(), date.getMonth() + delta, 1);
-}
 
 function fmtMoney(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
