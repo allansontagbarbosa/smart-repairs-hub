@@ -211,6 +211,7 @@ function NovaCompraDialog({
   const [observacoes, setObservacoes] = useState("");
   const [linhas, setLinhas] = useState<EntradaItem[]>([]);
   const [selectedPecaId, setSelectedPecaId] = useState("");
+  const [openPecaPopover, setOpenPecaPopover] = useState(false);
   const [desconto, setDesconto] = useState<number>(0);
   const [frete, setFrete] = useState<number>(0);
   const [saving, setSaving] = useState(false);
