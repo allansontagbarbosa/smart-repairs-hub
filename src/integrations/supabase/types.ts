@@ -4541,6 +4541,10 @@ export type Database = {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
       }
+      comissoes_tecnico_periodo: {
+        Args: { p_fim: string; p_funcionario_id: string; p_inicio: string }
+        Returns: Json
+      }
       concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       consumir_estoque_fifo: {
         Args: {

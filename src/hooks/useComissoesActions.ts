@@ -7,6 +7,8 @@ function invalidate(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["minhas-comissoes"] });
   qc.invalidateQueries({ queryKey: ["minhas-comissoes-resumo"] });
   qc.invalidateQueries({ queryKey: ["financeiro"] });
+  qc.invalidateQueries({ queryKey: ["desempenho-tecnicos"] });
+  qc.invalidateQueries({ queryKey: ["comissoes-tecnico-periodo"] });
 }
 
 export function useLiberarComissao() {
