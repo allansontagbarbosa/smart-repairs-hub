@@ -47,7 +47,9 @@ export function EditarDatasMassaModal({ open, onOpenChange, osIds, onSucesso }: 
       return;
     }
     toast.success(
-      `${res.atualizadas} OS atualizadas.${(res.ignoradas ?? 0) > 0 ? ` ${res.ignoradas} ignoradas (canceladas ou data inválida).` : ""}`,
+      `${res.atualizadas} OS atualizadas` +
+      ((res as any).status_mudou > 0 ? ` (${(res as any).status_mudou} mudaram de status)` : "") +
+      ((res.ignoradas ?? 0) > 0 ? `. ${res.ignoradas} ignoradas (canceladas ou data inválida).` : ""),
     );
     onOpenChange(false);
     onSucesso();
