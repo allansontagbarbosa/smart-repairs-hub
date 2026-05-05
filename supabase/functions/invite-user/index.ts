@@ -138,6 +138,24 @@ Deno.serve(async (req) => {
     }
     // === FIM da nova checagem ===
 
+    // Rate-limit: 20 convites por admin em 60min
+    const { data: rateData } = await userClient.rpc("checar_rate_limit", {
+      p_acao: "invite_user",
+      p_identificador: "user=" + user.id,
+      p_max_tentativas: 20,
+      p_janela_segundos: 3600,
+    });
+    const rate = rateData as any;
+    if (rate && !rate.allowed) {
+      return new Response(JSON.stringify({
+        error: `Limite de convites atingido. Aguarde ${rate.retry_after_seconds}s.`,
+        retry_after_seconds: rate.retry_after_seconds,
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (empresa_id !== callerEmpresaId) {
       return new Response(JSON.stringify({ error: "Empresa inválida para este convite" }), {
         status: 403,
