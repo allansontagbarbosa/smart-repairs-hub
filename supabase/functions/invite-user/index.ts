@@ -89,6 +89,58 @@ Deno.serve(async (req) => {
       });
     }
 
+    // === NOVA CHECAGEM: bloquear convites por usuários sem permissão admin ===
+    const { data: callerRoleData, error: roleErr } = await userClient.rpc("get_my_role");
+
+    if (roleErr) {
+      console.error("[invite-user] erro ao validar role:", roleErr);
+      return new Response(JSON.stringify({ error: "Falha ao validar permissão" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const roleNorm = String(callerRoleData ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    const podeConvidar = roleNorm.startsWith("admin") || roleNorm.startsWith("gerente");
+
+    if (!podeConvidar) {
+      console.warn("[invite-user] tentativa de convite por role insuficiente:", callerRoleData);
+      return new Response(JSON.stringify({
+        error: "Apenas administradores e gerentes podem convidar usuários",
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Gerente não pode criar Administrador
+    if (roleNorm.startsWith("gerente") && perfil_id) {
+      const { data: perfilAlvo } = await adminClient
+        .from("perfis_acesso")
+        .select("nome_perfil")
+        .eq("id", perfil_id)
+        .single();
+
+      const perfilAlvoNorm = String(perfilAlvo?.nome_perfil ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+      if (perfilAlvoNorm.startsWith("admin")) {
+        return new Response(JSON.stringify({
+          error: "Gerente não pode convidar Administrador",
+        }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    // === FIM da nova checagem ===
+
     if (empresa_id !== callerEmpresaId) {
       return new Response(JSON.stringify({ error: "Empresa inválida para este convite" }), {
         status: 403,
