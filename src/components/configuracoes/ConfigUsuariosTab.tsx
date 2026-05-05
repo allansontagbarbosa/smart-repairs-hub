@@ -374,24 +374,71 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
         </CardContent>
       </Card>
 
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />Ativos</p>
+            <p className="text-2xl font-semibold mt-1">{kpis.ativos}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><XCircle className="h-3 w-3 text-muted-foreground" />Inativos</p>
+            <p className="text-2xl font-semibold mt-1">{kpis.inativos}</p>
+          </CardContent>
+        </Card>
+        <Card className={kpis.sem_perfil > 0 ? "border-amber-300" : ""}>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-amber-500" />Sem perfil</p>
+            <p className={`text-2xl font-semibold mt-1 ${kpis.sem_perfil > 0 ? "text-amber-600" : ""}`}>{kpis.sem_perfil}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Usuários */}
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium">Usuários do Sistema</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
-            </div>
-          </div>
+          <CardTitle className="text-sm font-medium">Usuários do Sistema</CardTitle>
           {isAdmin && <InviteUserDialog perfisAcesso={perfisAcesso} />}
         </CardHeader>
         <CardContent className="p-0">
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2 px-4 py-3 border-b">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, email, perfil..."
+                className="pl-9 h-9"
+              />
+            </div>
+            <Select value={filtroPerfil} onValueChange={setFiltroPerfil}>
+              <SelectTrigger className="h-9 w-44 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os perfis</SelectItem>
+                {perfisAcesso.filter((p) => p.ativo).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
+              <SelectTrigger className="h-9 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="ativos">Ativos</SelectItem>
+                <SelectItem value="inativos">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-3 font-medium">Nome</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Email</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Perfil</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Funcionário</th>
                   <th className="text-left p-3 font-medium">Status</th>
@@ -400,12 +447,12 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Carregando usuários...
                   </td></tr>
                 )}
                 {!loading && error && (
-                  <tr><td colSpan={5} className="p-6 text-center">
+                  <tr><td colSpan={6} className="p-6 text-center">
                     <p className="text-sm text-destructive mb-2">Não foi possível carregar a lista.</p>
                     <p className="text-xs text-muted-foreground mb-3">{error.message}</p>
                     {onRetry && <Button size="sm" variant="outline" onClick={onRetry}>Tentar novamente</Button>}
@@ -414,6 +461,9 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                 {!loading && !error && filteredProfiles.map((u) => (
                   <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="p-3 font-medium">{u.nome_exibicao || "Sem nome"}</td>
+                    <td className="p-3 hidden md:table-cell text-muted-foreground">
+                      {(u as any).funcionarios?.email || "—"}
+                    </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
                       {(u as any).perfis_acesso?.nome_perfil || "—"}
                     </td>
@@ -430,14 +480,13 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                     <td className="p-3 text-right">
                       <div className="flex gap-1 justify-end">
                         <Select
-                          value={u.perfil_id || "none"}
-                          onValueChange={(v) => handleUpdateUserProfile(u.id, { perfil_id: v === "none" ? null : v })}
+                          value={u.perfil_id || ""}
+                          onValueChange={(v) => handleUpdateUserProfile(u.id, { perfil_id: v })}
                         >
                           <SelectTrigger className="h-7 text-xs w-32">
                             <SelectValue placeholder="Perfil" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Sem perfil</SelectItem>
                             {perfisAcesso.filter((p) => p.ativo).map((p) => (
                               <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
                             ))}
@@ -459,7 +508,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                         <Button
                           variant="ghost" size="icon" className="h-7 w-7"
                           title={u.ativo ? "Desativar acesso" : "Ativar acesso"}
-                          onClick={() => handleUpdateUserProfile(u.id, { ativo: !u.ativo })}
+                          onClick={() => u.ativo ? tentarDesativar(u) : handleUpdateUserProfile(u.id, { ativo: true })}
                         >
                          {u.ativo ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
                         </Button>
@@ -467,7 +516,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Remover usuário"
+                          title="Revogar acesso"
                           onClick={() => setConfirmDeleteId(u.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -477,13 +526,48 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                   </tr>
                 ))}
                 {!loading && !error && filteredProfiles.length === 0 && (
-                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">
                     {search ? "Nenhum usuário encontrado para a busca." : "Nenhum usuário ainda. Convide o primeiro pelo botão acima."}
                   </td></tr>
                 )}
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Matriz de permissões */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Grid3x3 className="h-4 w-4" />Matriz de permissões
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left p-2 font-medium">Módulo</th>
+                {perfisAcesso.filter((p) => p.ativo).map((p) => (
+                  <th key={p.id} className="text-center p-2 font-medium">{p.nome_perfil}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {["dashboard", "assistencia", "financeiro", "pecas", "clientes", "relatorios", "configuracoes", "fila_ia"].map((modulo) => (
+                <tr key={modulo} className="border-b last:border-0">
+                  <td className="p-2 capitalize">{modulo.replace("_", " ")}</td>
+                  {perfisAcesso.filter((p) => p.ativo).map((p) => {
+                    const perm = (p.permissoes as any)?.[modulo];
+                    const tem = typeof perm === "boolean" ? perm : (perm?.ver ?? false);
+                    return (
+                      <td key={p.id} className="p-2 text-center">{tem ? "✅" : "—"}</td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 
