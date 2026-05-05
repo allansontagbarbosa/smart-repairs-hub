@@ -134,6 +134,27 @@ export default function TecnicoHome() {
         </Link>
       </div>
 
+      {minhaPosicao > 0 && ranking.length > 1 && (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-md bg-warning/20 text-warning grid place-items-center shrink-0">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Ranking do mês</p>
+              <p className="text-sm font-semibold">Você está em {minhaPosicao}º lugar</p>
+              <p className="text-xs text-muted-foreground">
+                {minhaPosicao === 1
+                  ? `Liderando com ${minhaQtd} serviços!`
+                  : proximoNaFrente
+                  ? `Faltam ${proximoNaFrente.qtd - minhaQtd + 1} serviços para passar ${proximoNaFrente.nome.split(" ")[0]}`
+                  : `${minhaQtd} serviços concluídos`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Próximas OS</h2>
