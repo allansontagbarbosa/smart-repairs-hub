@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useTecnicoIdentidade, useTecnicoMetricas } from "@/hooks/useTecnico";
-import { Target, TrendingUp, Award } from "lucide-react";
+import { Target, TrendingUp, Award, Info } from "lucide-react";
 
 export default function TecnicoMetas() {
   const { data: identidade } = useTecnicoIdentidade();
@@ -14,7 +14,7 @@ export default function TecnicoMetas() {
   const { data: metricas } = useTecnicoMetricas(identidade?.funcionario_id, ano, mes);
 
   const { data: meta } = useQuery({
-    queryKey: ["tecnico-meta", identidade?.funcionario_id, ano, mes],
+    queryKey: ["tecnico-meta", identidade?.empresa_id, identidade?.funcionario_id, ano, mes],
     enabled: !!identidade?.funcionario_id,
     queryFn: async () => {
       const { data } = await supabase
@@ -29,23 +29,49 @@ export default function TecnicoMetas() {
   });
 
   const { data: equipe } = useQuery({
-    queryKey: ["equipe-meta", ano, mes],
+    queryKey: ["equipe-meta", identidade?.empresa_id, ano, mes],
+    enabled: !!identidade?.empresa_id,
     queryFn: async () => {
       const { data } = await supabase
-        .from("equipe_metas").select("*").eq("ano", ano).eq("mes", mes).maybeSingle();
+        .from("equipe_metas")
+        .select("*")
+        .eq("empresa_id", identidade!.empresa_id!)
+        .eq("ano", ano)
+        .eq("mes", mes)
+        .maybeSingle();
       return data;
     },
   });
 
+  const { data: qtdTecnicos = 1 } = useQuery({
+    queryKey: ["qtd-tecnicos", identidade?.empresa_id],
+    enabled: !!identidade?.empresa_id,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("funcionarios")
+        .select("id", { count: "exact", head: true })
+        .eq("empresa_id", identidade!.empresa_id!)
+        .eq("ativo", true);
+      return Math.max(1, count ?? 1);
+    },
+  });
+
+  const metaQtdEfetiva = meta?.meta_quantidade_os
+    ?? (equipe?.meta_quantidade_os ? Math.ceil(equipe.meta_quantidade_os / qtdTecnicos) : 0);
+  const metaValEfetiva = meta?.meta_valor_servicos
+    ? Number(meta.meta_valor_servicos)
+    : (equipe?.meta_faturamento ? Number(equipe.meta_faturamento) / qtdTecnicos : 0);
+  const usandoFallback = !meta && !!equipe;
+
   const progressoQtd = useMemo(() => {
-    if (!meta?.meta_quantidade_os) return 0;
-    return Math.min(100, ((metricas?.os_concluidas ?? 0) / meta.meta_quantidade_os) * 100);
-  }, [meta, metricas]);
+    if (!metaQtdEfetiva) return 0;
+    return Math.min(100, ((metricas?.os_concluidas ?? 0) / metaQtdEfetiva) * 100);
+  }, [metaQtdEfetiva, metricas]);
 
   const progressoVal = useMemo(() => {
-    if (!meta?.meta_valor_servicos) return 0;
-    return Math.min(100, ((metricas?.valor_servicos ?? 0) / Number(meta.meta_valor_servicos)) * 100);
-  }, [meta, metricas]);
+    if (!metaValEfetiva) return 0;
+    return Math.min(100, ((metricas?.valor_servicos ?? 0) / metaValEfetiva) * 100);
+  }, [metaValEfetiva, metricas]);
 
   const fmtBrl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -56,7 +82,7 @@ export default function TecnicoMetas() {
         {new Date(ano, mes - 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
       </p>
 
-      {!meta ? (
+      {!meta && !equipe ? (
         <Card><CardContent className="py-6 text-center space-y-2">
           <Target className="h-8 w-8 mx-auto text-muted-foreground" />
           <p className="text-sm">Nenhuma meta definida pelo gestor para este mês.</p>
@@ -64,22 +90,28 @@ export default function TecnicoMetas() {
       ) : (
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2">
-            <Target className="h-4 w-4" /> Meta individual
+            <Target className="h-4 w-4" /> {usandoFallback ? "Sua parte da meta da equipe" : "Meta individual"}
           </CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            {usandoFallback && (
+              <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/40 rounded-md p-2">
+                <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>Meta derivada da equipe (sua parte: {metaQtdEfetiva} OS / {fmtBrl(metaValEfetiva)})</span>
+              </div>
+            )}
             <MetaItem
               label="OS concluídas"
               atual={metricas?.os_concluidas ?? 0}
-              meta={meta.meta_quantidade_os ?? 0}
+              meta={metaQtdEfetiva}
               progresso={progressoQtd}
             />
             <MetaItem
-              label="Valor faturado"
+              label="Receita gerada"
               atual={fmtBrl(metricas?.valor_servicos ?? 0)}
-              meta={fmtBrl(Number(meta.meta_valor_servicos ?? 0))}
+              meta={fmtBrl(metaValEfetiva)}
               progresso={progressoVal}
             />
-            {Number(meta.bonus_meta_batida) > 0 && (
+            {meta && Number(meta.bonus_meta_batida) > 0 && (
               <div className="flex items-center gap-2 text-xs bg-accent/40 rounded-md p-2">
                 <Award className="h-4 w-4 text-primary" />
                 Bônus por meta batida: <strong>{fmtBrl(Number(meta.bonus_meta_batida))}</strong>
