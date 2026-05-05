@@ -122,34 +122,36 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
       const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
       const fimHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + 1).toISOString();
 
-      const { data: servicosMes } = await supabase
-        .from("os_servicos")
-        .select("id, ordem_id, valor, concluido_em")
-        .eq("tecnico_id", funcionarioId!)
-        .eq("status", "concluido")
-        .gte("concluido_em", inicio)
-        .lt("concluido_em", fim);
-
-      const { data: emAndamento } = await supabase
-        .from("os_servicos")
-        .select("ordem_id")
-        .eq("tecnico_id", funcionarioId!)
-        .eq("status", "em_reparo");
-
-      const { data: comissoes } = await supabase
-        .from("comissoes")
-        .select("valor")
-        .eq("funcionario_id", funcionarioId!)
-        .eq("mes_competencia", `${ano}-${String(mes).padStart(2, "0")}`)
-        .is("estornada_em", null);
-
-      const { count: concluidosHoje } = await supabase
-        .from("os_servicos")
-        .select("id", { count: "exact", head: true })
-        .eq("tecnico_id", funcionarioId!)
-        .eq("status", "concluido")
-        .gte("concluido_em", inicioHoje)
-        .lt("concluido_em", fimHoje);
+      const [
+        { data: servicosMes },
+        { data: emAndamento },
+        { data: comissoes },
+        { count: concluidosHoje },
+      ] = await Promise.all([
+        supabase.from("os_servicos")
+          .select("id, ordem_id, valor, concluido_em")
+          .eq("tecnico_id", funcionarioId!)
+          .eq("status", "concluido")
+          .gte("concluido_em", inicio)
+          .lt("concluido_em", fim),
+        supabase.from("os_servicos")
+          .select("ordem_id, ordens_de_servico!inner(status, deleted_at)")
+          .eq("tecnico_id", funcionarioId!)
+          .eq("status", "em_reparo")
+          .not("ordens_de_servico.status", "in", "(entregue,cancelado)")
+          .is("ordens_de_servico.deleted_at", null),
+        supabase.from("comissoes")
+          .select("valor")
+          .eq("funcionario_id", funcionarioId!)
+          .eq("mes_competencia", `${ano}-${String(mes).padStart(2, "0")}`)
+          .is("estornada_em", null),
+        supabase.from("os_servicos")
+          .select("id", { count: "exact", head: true })
+          .eq("tecnico_id", funcionarioId!)
+          .eq("status", "concluido")
+          .gte("concluido_em", inicioHoje)
+          .lt("concluido_em", fimHoje),
+      ]);
 
       const ordensConcluidas = new Set((servicosMes ?? []).map((s: any) => s.ordem_id));
       const ordensEmAndamento = new Set((emAndamento ?? []).map((s: any) => s.ordem_id));

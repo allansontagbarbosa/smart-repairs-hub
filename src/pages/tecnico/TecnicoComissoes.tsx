@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, Clock, DollarSign, ListChecks, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

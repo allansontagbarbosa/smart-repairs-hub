@@ -21,7 +21,7 @@ export default function TecnicoHome() {
     <div className="space-y-5">
       <div>
         <p className="text-sm text-muted-foreground">Olá,</p>
-        <h1 className="text-2xl font-semibold tracking-tight">{identidade?.nome?.split(" ")[0]} 👋</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{identidade?.nome?.split(" ")[0] || "Técnico"} 👋</h1>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

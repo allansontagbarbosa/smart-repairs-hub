@@ -9,6 +9,7 @@ import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { useMeusServicosEmAndamento, useServicosDisponiveis } from "@/hooks/useServicosDisponiveis";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
 import { Clock, ExternalLink, Loader2, Play, RotateCcw, CheckCircle2 } from "lucide-react";
+import { startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const brl = (v: number | null | undefined) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
@@ -21,7 +22,8 @@ function aparelhoLabel(servico: any) {
 function prazoInfo(previsao: string | null | undefined) {
   if (!previsao) return { label: "Sem prazo", late: false };
   const d = new Date(previsao);
-  const late = d.getTime() < new Date(new Date().toDateString()).getTime();
+  const hoje = startOfDay(new Date());
+  const late = d.getTime() < hoje.getTime();
   return { label: d.toLocaleDateString("pt-BR"), late };
 }
 
