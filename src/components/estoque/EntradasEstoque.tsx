@@ -425,13 +425,14 @@ function NovaCompraDialog({
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                       <Command
                         filter={(value, search) => {
+                          if (!search || search.trim().length === 0) return 1;
                           const valNorm = normalizar(value);
                           const searchNorm = normalizar(search);
                           return valNorm.includes(searchNorm) ? 1 : 0;
                         }}
                       >
                         <CommandInput placeholder="Buscar por nome, marca, modelo ou SKU..." />
-                        <CommandList>
+                        <CommandList className="max-h-[400px] overflow-y-auto">
                           <CommandEmpty>Nenhuma peça encontrada.</CommandEmpty>
                           <CommandGroup>
                             {estoqueItens.map((item: any) => {
