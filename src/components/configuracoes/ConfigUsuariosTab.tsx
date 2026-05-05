@@ -249,6 +249,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     registrar("Usuário revogado", "configuracoes", confirmDeleteId, null, { nome: profile?.nome_exibicao });
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     await qc.refetchQueries({ queryKey: ["user_profiles"] });
+    invalidatePermissoesCache();
     toast.success(
       `Acesso de ${r.nome} revogado.` +
       (r.sessoes_revogadas ? " Sessão ativa encerrada." : "") +
