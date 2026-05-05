@@ -134,32 +134,23 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const handleSavePerfil = async () => {
     if (!perfilForm.nome_perfil) { toast.error("Nome é obrigatório"); return; }
 
-    if (perfilEditId && !perfilForm.ativo) {
-      const currentPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
-      if (currentPerfil) {
-        const otherConfigProfiles = perfisAcesso.filter(
-          (p) => p.id !== perfilEditId && p.ativo && (p.permissoes as any)?.configuracoes === true
-        );
-        if ((currentPerfil.permissoes as any)?.configuracoes === true && otherConfigProfiles.length === 0) {
-          toast.error("Não é possível desativar o último perfil com acesso a Configurações");
-          return;
-        }
-      }
-    }
+    const { data, error } = await supabase.rpc("salvar_perfil_acesso", {
+      p_perfil_id: perfilEditId,
+      p_nome_perfil: perfilForm.nome_perfil,
+      p_descricao: perfilForm.descricao || null,
+      p_permissoes: perfilForm.permissoes,
+      p_ativo: perfilForm.ativo,
+    });
 
-    const payload = {
-      nome_perfil: perfilForm.nome_perfil,
-      descricao: perfilForm.descricao,
-      ativo: perfilForm.ativo,
-      permissoes: perfilForm.permissoes,
-    };
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao salvar perfil");
+      return;
+    }
 
     if (perfilEditId) {
       const oldPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
-      await supabase.from("perfis_acesso").update(payload).eq("id", perfilEditId);
       registrar("Perfil alterado", "configuracoes", perfilEditId, { permissoes: oldPerfil?.permissoes }, { permissoes: perfilForm.permissoes });
     } else {
-      await supabase.from("perfis_acesso").insert(payload);
       registrar("Perfil criado", "configuracoes", null, null, { nome: perfilForm.nome_perfil });
     }
     qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
@@ -204,84 +195,64 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     }));
   };
 
-  const handleUpdateUserProfile = async (profileId: string, updates: any) => {
+  const handleUpdateUserProfile = async (profileId: string, updates: { ativo?: boolean; perfil_id?: string | null }) => {
     const profile = userProfiles.find((u) => u.id === profileId);
-    await supabase.from("user_profiles").update(updates).eq("id", profileId);
-    
-    if ("ativo" in updates) {
-      registrar(
-        updates.ativo ? "Usuário ativado" : "Usuário desativado",
-        "configuracoes",
-        profileId,
-        null,
-        { nome: profile?.nome_exibicao }
-      );
+
+    const { data, error } = await supabase.rpc("atualizar_user_profile", {
+      p_user_profile_id: profileId,
+      p_perfil_id: (updates.perfil_id ?? null) as any,
+      p_ativo: updates.ativo ?? null,
+    });
+
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao atualizar usuário");
+      return;
     }
-    
+
+    if ("ativo" in updates) {
+      registrar(updates.ativo ? "Usuário ativado" : "Usuário desativado", "configuracoes", profileId, null, { nome: profile?.nome_exibicao });
+    }
+    if ("perfil_id" in updates) {
+      registrar("Perfil alterado", "configuracoes", profileId, null, { nome: profile?.nome_exibicao });
+    }
+
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     toast.success("Usuário atualizado");
   };
 
-  const handleDeleteUser = async (profileId: string) => {
-    const profile = userProfiles.find((u) => u.id === profileId);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (profile?.user_id === user?.id || profile?.id === user?.id) {
-      toast.error("Você não pode excluir seu próprio usuário");
-      return;
+  const tentarDesativar = (profile: any) => {
+    const perfilNome = normalizar(profile.perfis_acesso?.nome_perfil ?? "");
+    if (perfilNome.startsWith("admin")) {
+      if (!confirm(`Desativar o ADMINISTRADOR "${profile.nome_exibicao}"? Esta ação reduz drasticamente o acesso da empresa. Confirma?`)) {
+        return;
+      }
     }
-
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({ ativo: false })
-      .eq("id", profileId);
-
-    if (error) {
-      toast.error("Erro ao remover usuário: " + error.message);
-      return;
-    }
-
-    registrar("Usuário removido", "configuracoes", profileId, null, {
-      nome: profile?.nome_exibicao,
-    });
-    qc.invalidateQueries({ queryKey: ["user_profiles"] });
-    await qc.refetchQueries({ queryKey: ["user_profiles"] });
-    toast.success("Usuário removido do sistema");
-    setConfirmDeleteId(null);
+    handleUpdateUserProfile(profile.id, { ativo: false });
   };
 
-  const handleResendInvite = async (profile: any) => {
-    const email = profile.funcionarios?.email;
-    if (!email) {
-      toast.error("Email não encontrado para este usuário");
+  const confirmarRevogar = async () => {
+    if (!confirmDeleteId) return;
+    const profile = userProfiles.find((u) => u.id === confirmDeleteId);
+
+    const { data, error } = await supabase.rpc("revogar_usuario", {
+      p_user_profile_id: confirmDeleteId,
+    });
+
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao revogar");
       return;
     }
-    if (!empresaId) return;
 
-    setResendingId(profile.id);
-    try {
-      const res = await supabase.functions.invoke("invite-user", {
-        body: {
-          email,
-          nome: profile.nome_exibicao || profile.funcionarios?.nome || "",
-          perfil_id: profile.perfil_id || null,
-          empresa_id: empresaId,
-        },
-      });
-      const errorMsg = res.error?.message || res.data?.error;
-      if (errorMsg && !errorMsg.includes("already been registered")) {
-        toast.error("Erro ao reenviar: " + errorMsg);
-      } else {
-        toast.success(`Convite reenviado para ${email}`);
-        registrar("Convite reenviado", "configuracoes", profile.id, null, {
-          nome: profile.nome_exibicao,
-          email,
-        });
-      }
-    } catch {
-      toast.error("Erro ao reenviar convite");
-    }
-    setResendingId(null);
+    const r = data as any;
+    registrar("Usuário revogado", "configuracoes", confirmDeleteId, null, { nome: profile?.nome_exibicao });
+    qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    await qc.refetchQueries({ queryKey: ["user_profiles"] });
+    toast.success(
+      `Acesso de ${r.nome} revogado.` +
+      (r.sessoes_revogadas ? " Sessão ativa encerrada." : "") +
+      " (Cadastro preservado para reativação)"
+    );
+    setConfirmDeleteId(null);
   };
 
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
