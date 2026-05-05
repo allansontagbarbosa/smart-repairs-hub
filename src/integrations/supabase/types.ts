@@ -4546,6 +4546,10 @@ export type Database = {
         Returns: Json
       }
       concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      consultar_os_publica: {
+        Args: { p_numero: string; p_telefone_4digitos: string }
+        Returns: Json
+      }
       consumir_estoque_fifo: {
         Args: {
           p_lote_id_especifico?: string
