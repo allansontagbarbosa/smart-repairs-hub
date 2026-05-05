@@ -15,7 +15,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { PecaFormModal } from "@/components/pecas/PecaFormModal";
 import { toast } from "sonner";
-import { Plus, Loader2, CalendarIcon, Trash2, Eye, ShoppingCart, PackagePlus } from "lucide-react";
+import { Plus, Loader2, CalendarIcon, Trash2, Eye, ShoppingCart, PackagePlus, Check, ChevronsUpDown } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+
+const normalizar = (s: string) =>
+  (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
