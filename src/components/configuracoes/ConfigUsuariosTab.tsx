@@ -66,6 +66,8 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const { registrar } = useAuditoria();
   const { empresaId } = useEmpresa();
   const [search, setSearch] = useState("");
+  const [filtroPerfil, setFiltroPerfil] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
   const [openPerfil, setOpenPerfil] = useState(false);
   const [perfilForm, setPerfilForm] = useState<any>({ nome_perfil: "", descricao: "", ativo: true, permissoes: buildDefaultPermissoes() });
   const [perfilEditId, setPerfilEditId] = useState<string | null>(null);
@@ -79,9 +81,30 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
-  const filteredProfiles = userProfiles.filter((u) =>
-    u.nome_exibicao?.toLowerCase().includes(search.toLowerCase())
-  );
+  const normalizar = (s: string) =>
+    (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const filteredProfiles = useMemo(() => {
+    const q = normalizar(search);
+    return userProfiles.filter((u) => {
+      const nome = normalizar(u.nome_exibicao);
+      const email = normalizar((u as any).funcionarios?.email ?? "");
+      const perfilNome = normalizar((u as any).perfis_acesso?.nome_perfil ?? "");
+      const matchSearch = !q || nome.includes(q) || email.includes(q) || perfilNome.includes(q);
+      const matchPerfil = filtroPerfil === "todos" || u.perfil_id === filtroPerfil;
+      const matchStatus =
+        filtroStatus === "todos" ||
+        (filtroStatus === "ativos" && u.ativo) ||
+        (filtroStatus === "inativos" && !u.ativo);
+      return matchSearch && matchPerfil && matchStatus;
+    });
+  }, [userProfiles, search, filtroPerfil, filtroStatus]);
+
+  const kpis = useMemo(() => ({
+    ativos: userProfiles.filter((u) => u.ativo).length,
+    inativos: userProfiles.filter((u) => !u.ativo).length,
+    sem_perfil: userProfiles.filter((u) => !u.perfil_id && u.ativo).length,
+  }), [userProfiles]);
 
   // Fetch audit logs with pagination and filters
   useEffect(() => {
