@@ -33,7 +33,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role for all DB operations (bypasses RLS)
+    // Rate-limit: 1 empresa por usuário a cada 24h
+    const { data: rateData } = await userClient.rpc("checar_rate_limit", {
+      p_acao: "setup_empresa",
+      p_identificador: "user=" + user.id,
+      p_max_tentativas: 1,
+      p_janela_segundos: 86400,
+    });
+    const rate = rateData as any;
+    if (rate && !rate.allowed) {
+      return new Response(JSON.stringify({
+        error: "Limite de criação de empresas atingido. Tente novamente em 24h.",
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();

@@ -29,6 +29,28 @@ Deno.serve(async (req) => {
     if (!token) {
       return json({ ok: false, code: "token_missing", message: "Token ausente." });
     }
+
+    // Rate-limit: 5 tentativas por token em 5 minutos
+    const userClient = createClient(SUPABASE_URL, ANON_KEY);
+    const { data: rateData } = await userClient.rpc("checar_rate_limit", {
+      p_acao: "accept_lojista_invite",
+      p_identificador: "token=" + token,
+      p_max_tentativas: 5,
+      p_janela_segundos: 300,
+    });
+    const rate = rateData as any;
+    if (rate && !rate.allowed) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          code: "rate_limited",
+          message: `Muitas tentativas. Aguarde ${rate.retry_after_seconds}s.`,
+          retry_after_seconds: rate.retry_after_seconds,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const pw = validatePassword(senha);
     if (!pw.valid) {
       return json({
