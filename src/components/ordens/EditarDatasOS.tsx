@@ -59,12 +59,14 @@ export function EditarDatasOS({ ordem, onSucesso }: Props) {
   }
 
   const salvar = async () => {
+    if (!concl && !entr) {
+      toast.error("Informe pelo menos uma data");
+      return;
+    }
     setSalvando(true);
     const args: any = { p_os_id: ordem.id };
     if (concl) args.p_data_conclusao = new Date(concl).toISOString();
-    else if (ordem.data_conclusao) args.p_limpar_conclusao = true;
     if (entr) args.p_data_entrega = new Date(entr).toISOString();
-    else if (ordem.data_entrega) args.p_limpar_entrega = true;
 
     const { data, error } = await supabase.rpc("editar_datas_os" as any, args);
     setSalvando(false);
@@ -73,7 +75,14 @@ export function EditarDatasOS({ ordem, onSucesso }: Props) {
       toast.error(payload?.error ?? error?.message ?? "Erro ao salvar datas");
       return;
     }
-    toast.success("Datas atualizadas");
+    if (payload.status_mudou) {
+      toast.success(
+        `Datas atualizadas. Status alterado para "${payload.status_novo}".`,
+        { duration: 5000 },
+      );
+    } else {
+      toast.success("Datas atualizadas");
+    }
     onSucesso();
   };
 
@@ -106,7 +115,10 @@ export function EditarDatasOS({ ordem, onSucesso }: Props) {
         {salvando ? "Salvando..." : "Salvar datas"}
       </Button>
       <p className="text-[11px] text-muted-foreground">
-        Mudar a conclusão atualiza também os serviços concluídos. Comissões existentes mantêm seu mês de competência original.
+        Status será atualizado automaticamente conforme as datas. Mudar a conclusão atualiza também os serviços concluídos. Comissões existentes mantêm seu mês de competência original.
+      </p>
+      <p className="text-[10px] text-muted-foreground">
+        Para "voltar" o status (ex: de pronto pra em_reparo), use o dropdown de status — ele cuida das datas e comissões automaticamente.
       </p>
     </div>
   );
