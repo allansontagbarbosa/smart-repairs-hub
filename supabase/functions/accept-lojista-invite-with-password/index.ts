@@ -1,23 +1,19 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 // Edge function: accept-lojista-invite-with-password
 // Valida token e cria/atualiza auth user com senha. Retorna sessão pronta
 // para o frontend usar com supabase.auth.setSession().
 // SEMPRE responde 200 com payload { ok, code, message } para evitar que o
 // SDK do Supabase descarte o body em status não-2xx.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const json = (payload: unknown) =>
-  new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+import { validatePassword } from "../_shared/password.ts";
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  const json = (payload: unknown) =>
+    new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -33,11 +29,13 @@ Deno.serve(async (req) => {
     if (!token) {
       return json({ ok: false, code: "token_missing", message: "Token ausente." });
     }
-    if (!senha || senha.length < 8) {
+    const pw = validatePassword(senha);
+    if (!pw.valid) {
       return json({
         ok: false,
         code: "weak_password",
-        message: "A senha deve ter no mínimo 8 caracteres.",
+        message: pw.errors[0],
+        errors: pw.errors,
       });
     }
 

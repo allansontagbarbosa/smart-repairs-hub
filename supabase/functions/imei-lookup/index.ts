@@ -22,7 +22,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { corsHeaders } from 'npm:@supabase/supabase-js/cors';
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from 'npm:@supabase/supabase-js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -342,6 +342,7 @@ function isValidImei(imei: string): boolean {
 // HANDLER PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

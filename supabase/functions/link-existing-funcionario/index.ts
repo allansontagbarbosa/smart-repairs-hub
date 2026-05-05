@@ -1,9 +1,5 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 type ErrorCode =
   | "INVALID_PAYLOAD"
@@ -16,10 +12,11 @@ type ErrorCode =
   | "USER_CREATE_FAILED"
   | "INTERNAL_ERROR";
 
+let _currentCors: Record<string, string> = {};
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ..._currentCors, "Content-Type": "application/json" },
   });
 }
 
@@ -38,6 +35,8 @@ function normalizeEmail(value: unknown): string | null {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  _currentCors = corsHeaders;
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
