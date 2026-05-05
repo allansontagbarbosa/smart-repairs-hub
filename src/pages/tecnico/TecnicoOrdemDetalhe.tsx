@@ -246,7 +246,24 @@ export default function TecnicoOrdemDetalhe() {
       <Card>
         <CardContent className="p-3 space-y-2 text-sm">
           <Row icon={User} label={cliente?.nome || "—"} />
-          <Row icon={Phone} label={cliente?.whatsapp || cliente?.telefone || "—"} />
+          <div className="flex items-center justify-between gap-2">
+            <Row icon={Phone} label={cliente?.whatsapp || cliente?.telefone || "—"} />
+            {(cliente?.whatsapp || cliente?.telefone) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const num = cliente.whatsapp ?? cliente.telefone;
+                  const msg = `Olá! Sobre a OS #${ordem.numero_formatado || ordem.numero} do seu ${aparelho?.marca ?? ""} ${aparelho?.modelo ?? ""}:`;
+                  abrirWhatsApp(num, msg);
+                }}
+                className="gap-1 h-7 px-2"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
+              </Button>
+            )}
+          </div>
           <Row icon={Smartphone} label={`${aparelho?.cor || ""} ${aparelho?.imei ? `· IMEI ${aparelho.imei}` : ""}`} />
           {ordem.defeito_relatado && (
             <p className="pt-2 border-t text-muted-foreground">
