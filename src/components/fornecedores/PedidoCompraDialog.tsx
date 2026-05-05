@@ -147,14 +147,55 @@ export function PedidoCompraDialog({ open, onOpenChange, fornecedorId, preSelect
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>Fornecedor *</Label>
-              <Select value={selectedFornecedor} onValueChange={setSelectedFornecedor}>
-                <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
-                <SelectContent>
-                  {fornecedores.map((f: any) => (
-                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openFornecedor} onOpenChange={setOpenFornecedor}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openFornecedor}
+                    className="w-full justify-between font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedFornecedor
+                        ? (fornecedores.find((f: any) => f.id === selectedFornecedor)?.nome ?? "Selecionar fornecedor")
+                        : "Selecionar fornecedor"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command
+                    filter={(value, search) =>
+                      normalizarTexto(value).includes(normalizarTexto(search)) ? 1 : 0
+                    }
+                  >
+                    <CommandInput placeholder="Buscar fornecedor..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum fornecedor encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {fornecedores.map((f: any) => (
+                          <CommandItem
+                            key={f.id}
+                            value={f.nome}
+                            onSelect={() => {
+                              setSelectedFornecedor(f.id);
+                              setOpenFornecedor(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedFornecedor === f.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {f.nome}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>Previsão de entrega</Label>
