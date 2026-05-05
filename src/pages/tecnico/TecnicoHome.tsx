@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTecnicoIdentidade, useMinhasOS, useTecnicoMetricas } from "@/hooks/useTecnico";
 import { useMinhasComissoesResumo } from "@/hooks/useMinhasComissoes";
 import { useMeusServicosEmAndamento } from "@/hooks/useServicosDisponiveis";
-import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign, Wrench, AlertTriangle } from "lucide-react";
+import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign, Wrench, AlertTriangle, Trophy } from "lucide-react";
 import { statusLabels } from "@/lib/status";
 import { startOfDay, differenceInCalendarDays } from "date-fns";
 
