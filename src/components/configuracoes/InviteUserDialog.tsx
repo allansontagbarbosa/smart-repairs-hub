@@ -18,6 +18,8 @@ interface InviteUserDialogProps {
   title?: string;
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 export function InviteUserDialog({
   perfisAcesso,
   fixedPerfilId,
@@ -30,7 +32,7 @@ export function InviteUserDialog({
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [perfilId, setPerfilId] = useState<string>(fixedPerfilId || "none");
+  const [perfilId, setPerfilId] = useState<string>(fixedPerfilId || "");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -40,12 +42,20 @@ export function InviteUserDialog({
   const reset = () => {
     setNome("");
     setEmail("");
-    setPerfilId(fixedPerfilId || "none");
+    setPerfilId(fixedPerfilId || "");
   };
 
   const handleInviteUser = async () => {
     if (!email || !nome) {
       toast.error("Nome e email são obrigatórios");
+      return;
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      toast.error("Email inválido. Use formato nome@dominio.com");
+      return;
+    }
+    if (!perfilId) {
+      toast.error("Selecione um perfil de acesso");
       return;
     }
 
@@ -58,9 +68,9 @@ export function InviteUserDialog({
     try {
       const res = await supabase.functions.invoke("invite-user", {
         body: {
-          email,
+          email: email.trim(),
           nome,
-          perfil_id: perfilId === "none" ? null : perfilId,
+          perfil_id: perfilId,
           empresa_id: empresaId,
         },
       });
@@ -88,6 +98,8 @@ export function InviteUserDialog({
     setLoading(false);
   };
 
+  const canSubmit = !loading && !!email && !!nome && !!perfilId;
+
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
@@ -99,11 +111,10 @@ export function InviteUserDialog({
           <div><Label>Nome completo *</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do colaborador" /></div>
           <div><Label>Email *</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
           <div>
-            <Label>Perfil de acesso</Label>
+            <Label>Perfil de acesso *</Label>
             <Select value={perfilId} onValueChange={setPerfilId} disabled={!!fixedPerfilId}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecione um perfil *" /></SelectTrigger>
               <SelectContent>
-                {!fixedPerfilId && <SelectItem value="none">Sem perfil</SelectItem>}
                 {perfisAcesso.filter((p) => p.ativo || p.id === fixedPerfilId).map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
                 ))}
@@ -111,7 +122,7 @@ export function InviteUserDialog({
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">O usuário receberá um email com link para definir sua senha e acessar o sistema.</p>
-          <Button onClick={handleInviteUser} className="w-full" disabled={loading}>
+          <Button onClick={handleInviteUser} className="w-full" disabled={!canSubmit}>
             {loading ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
             ) : (

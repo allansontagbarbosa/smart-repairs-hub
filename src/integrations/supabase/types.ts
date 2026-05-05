@@ -4546,6 +4546,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      atualizar_user_profile: {
+        Args: {
+          p_ativo?: boolean
+          p_perfil_id?: string
+          p_user_profile_id: string
+        }
+        Returns: Json
+      }
       bulk_atribuir_tecnico_os: {
         Args: { p_funcionario_id: string; p_ordem_ids: string[] }
         Returns: Json
@@ -4758,6 +4766,7 @@ export type Database = {
       }
       get_my_empresa_id: { Args: never; Returns: string }
       get_my_lojista_id: { Args: never; Returns: string }
+      get_my_permissoes: { Args: never; Returns: Json }
       get_my_role: { Args: never; Returns: string }
       get_saldo_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       get_saldos_clientes_resumo: {
@@ -4871,6 +4880,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reativar_usuario: { Args: { p_user_profile_id: string }; Returns: Json }
       recalcular_custo_medio: {
         Args: {
           p_origem: string
@@ -4892,7 +4902,18 @@ export type Database = {
         }
         Returns: Json
       }
+      revogar_usuario: { Args: { p_user_profile_id: string }; Returns: Json }
       saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
+      salvar_perfil_acesso: {
+        Args: {
+          p_ativo?: boolean
+          p_descricao?: string
+          p_nome_perfil?: string
+          p_perfil_id?: string
+          p_permissoes?: Json
+        }
+        Returns: Json
+      }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
       verificar_lojista_por_email: {

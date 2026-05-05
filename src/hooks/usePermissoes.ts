@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { buildUserProfileLookup } from "@/lib/userProfileLookup";
 
 interface PermissaoModulo {
   ver: boolean;
@@ -45,38 +44,39 @@ const DEFAULT_PERMISSOES: Permissoes = {
   fila_ia: false,
 };
 
+function ensureModulo(m: any): PermissaoModulo {
+  if (typeof m === "boolean") return { ver: m, criar: m, editar: m, excluir: m };
+  if (!m || typeof m !== "object") return EMPTY_MODULO;
+  return { ver: !!m.ver, criar: !!m.criar, editar: !!m.editar, excluir: !!m.excluir };
+}
+
 function parsePermissoes(raw: any): Permissoes {
   if (!raw || typeof raw !== "object") return DEFAULT_PERMISSOES;
-  const p = { ...DEFAULT_PERMISSOES };
-  const modules: (keyof Permissoes)[] = ["dashboard", "assistencia", "financeiro", "pecas", "clientes", "relatorios", "configuracoes", "fila_ia"];
-  for (const key of modules) {
-    const val = raw[key];
-    if (typeof val === "boolean") {
-      (p as any)[key] = val;
-    } else if (typeof val === "object" && val !== null) {
-      (p as any)[key] = {
-        ver: !!val.ver,
-        criar: !!val.criar,
-        editar: !!val.editar,
-        excluir: !!val.excluir,
-      };
-    }
-  }
-  return p;
+  return {
+    dashboard: !!raw.dashboard,
+    assistencia: ensureModulo(raw.assistencia),
+    financeiro: ensureModulo(raw.financeiro),
+    pecas: ensureModulo(raw.pecas),
+    clientes: ensureModulo(raw.clientes),
+    relatorios: !!raw.relatorios,
+    configuracoes: !!raw.configuracoes,
+    fila_ia: !!raw.fila_ia,
+  };
 }
 
 export function usePermissoes() {
   const { user } = useAuth();
-  // SECURITY: fail-closed. Estado inicial é VAZIO; só vira admin após confirmação do backend.
   const [permissoes, setPermissoes] = useState<Permissoes>(DEFAULT_PERMISSOES);
   const [perfil, setPerfil] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isGerente, setIsGerente] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setPermissoes(DEFAULT_PERMISSOES);
       setIsAdmin(false);
+      setIsGerente(false);
       setPerfil("");
       setLoading(false);
       return;
@@ -84,30 +84,29 @@ export function usePermissoes() {
 
     const fetchPermissoes = async () => {
       try {
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("perfil_id, perfis_acesso(nome_perfil, permissoes)")
-          .or(buildUserProfileLookup(user.id))
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (profile?.perfis_acesso) {
-          const pa = profile.perfis_acesso as any;
-          const nome = pa.nome_perfil || "";
-          setPerfil(nome);
-          setIsAdmin(nome === "admin" || nome === "Administrador");
-          setPermissoes(parsePermissoes(pa.permissoes));
-        } else {
-          // Sem perfil atribuído → acesso mínimo, NÃO admin
-          setPerfil("sem_perfil");
-          setIsAdmin(false);
+        const { data, error } = await supabase.rpc("get_my_permissoes");
+        if (error || !data) {
+          console.error("Erro ao carregar permissões:", error);
           setPermissoes(DEFAULT_PERMISSOES);
+          setIsAdmin(false);
+          setIsGerente(false);
+          setPerfil("sem_perfil");
+          return;
+        }
+        const payload = data as any;
+        setIsAdmin(!!payload.is_admin);
+        setIsGerente(!!payload.is_gerente);
+        setPerfil(payload.role || "sem_perfil");
+        if (payload.is_admin) {
+          setPermissoes(ADMIN_PERMISSOES);
+        } else {
+          setPermissoes(parsePermissoes(payload.permissoes));
         }
       } catch (err) {
-        // Erro de rede/RLS → fail-closed, NÃO admin
-        console.error("Erro ao carregar permissões:", err);
+        console.error("Falha em get_my_permissoes:", err);
         setPermissoes(DEFAULT_PERMISSOES);
         setIsAdmin(false);
+        setIsGerente(false);
         setPerfil("sem_perfil");
       } finally {
         setLoading(false);
@@ -118,7 +117,6 @@ export function usePermissoes() {
   }, [user]);
 
   const can = (modulo: keyof Permissoes, acao?: keyof PermissaoModulo): boolean => {
-    // SECURITY: enquanto carrega, nega tudo (fail-closed). Evita flicker de botões admin.
     if (loading) return false;
     const val = permissoes[modulo];
     if (typeof val === "boolean") return val;
@@ -126,8 +124,7 @@ export function usePermissoes() {
     return val[acao];
   };
 
-  // SECURITY: isAdmin efetivo só após loading terminar.
   const effectiveIsAdmin = loading ? false : isAdmin;
 
-  return { permissoes, perfil, isAdmin: effectiveIsAdmin, can, loading };
+  return { permissoes, perfil, isAdmin: effectiveIsAdmin, isGerente, can, loading };
 }

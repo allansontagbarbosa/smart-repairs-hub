@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, ChevronDown, ChevronRight, Filter, Trash2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, ChevronDown, ChevronRight, Filter, Trash2, CheckCircle2, XCircle, AlertTriangle, Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,8 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const { registrar } = useAuditoria();
   const { empresaId } = useEmpresa();
   const [search, setSearch] = useState("");
+  const [filtroPerfil, setFiltroPerfil] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
   const [openPerfil, setOpenPerfil] = useState(false);
   const [perfilForm, setPerfilForm] = useState<any>({ nome_perfil: "", descricao: "", ativo: true, permissoes: buildDefaultPermissoes() });
   const [perfilEditId, setPerfilEditId] = useState<string | null>(null);
@@ -79,9 +81,30 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
 
-  const filteredProfiles = userProfiles.filter((u) =>
-    u.nome_exibicao?.toLowerCase().includes(search.toLowerCase())
-  );
+  const normalizar = (s: string) =>
+    (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const filteredProfiles = useMemo(() => {
+    const q = normalizar(search);
+    return userProfiles.filter((u) => {
+      const nome = normalizar(u.nome_exibicao);
+      const email = normalizar((u as any).funcionarios?.email ?? "");
+      const perfilNome = normalizar((u as any).perfis_acesso?.nome_perfil ?? "");
+      const matchSearch = !q || nome.includes(q) || email.includes(q) || perfilNome.includes(q);
+      const matchPerfil = filtroPerfil === "todos" || u.perfil_id === filtroPerfil;
+      const matchStatus =
+        filtroStatus === "todos" ||
+        (filtroStatus === "ativos" && u.ativo) ||
+        (filtroStatus === "inativos" && !u.ativo);
+      return matchSearch && matchPerfil && matchStatus;
+    });
+  }, [userProfiles, search, filtroPerfil, filtroStatus]);
+
+  const kpis = useMemo(() => ({
+    ativos: userProfiles.filter((u) => u.ativo).length,
+    inativos: userProfiles.filter((u) => !u.ativo).length,
+    sem_perfil: userProfiles.filter((u) => !u.perfil_id && u.ativo).length,
+  }), [userProfiles]);
 
   // Fetch audit logs with pagination and filters
   useEffect(() => {
@@ -111,32 +134,23 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const handleSavePerfil = async () => {
     if (!perfilForm.nome_perfil) { toast.error("Nome é obrigatório"); return; }
 
-    if (perfilEditId && !perfilForm.ativo) {
-      const currentPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
-      if (currentPerfil) {
-        const otherConfigProfiles = perfisAcesso.filter(
-          (p) => p.id !== perfilEditId && p.ativo && (p.permissoes as any)?.configuracoes === true
-        );
-        if ((currentPerfil.permissoes as any)?.configuracoes === true && otherConfigProfiles.length === 0) {
-          toast.error("Não é possível desativar o último perfil com acesso a Configurações");
-          return;
-        }
-      }
-    }
+    const { data, error } = await supabase.rpc("salvar_perfil_acesso", {
+      p_perfil_id: perfilEditId,
+      p_nome_perfil: perfilForm.nome_perfil,
+      p_descricao: perfilForm.descricao || null,
+      p_permissoes: perfilForm.permissoes,
+      p_ativo: perfilForm.ativo,
+    });
 
-    const payload = {
-      nome_perfil: perfilForm.nome_perfil,
-      descricao: perfilForm.descricao,
-      ativo: perfilForm.ativo,
-      permissoes: perfilForm.permissoes,
-    };
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao salvar perfil");
+      return;
+    }
 
     if (perfilEditId) {
       const oldPerfil = perfisAcesso.find((p) => p.id === perfilEditId);
-      await supabase.from("perfis_acesso").update(payload).eq("id", perfilEditId);
       registrar("Perfil alterado", "configuracoes", perfilEditId, { permissoes: oldPerfil?.permissoes }, { permissoes: perfilForm.permissoes });
     } else {
-      await supabase.from("perfis_acesso").insert(payload);
       registrar("Perfil criado", "configuracoes", null, null, { nome: perfilForm.nome_perfil });
     }
     qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
@@ -181,49 +195,63 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     }));
   };
 
-  const handleUpdateUserProfile = async (profileId: string, updates: any) => {
+  const handleUpdateUserProfile = async (profileId: string, updates: { ativo?: boolean; perfil_id?: string | null }) => {
     const profile = userProfiles.find((u) => u.id === profileId);
-    await supabase.from("user_profiles").update(updates).eq("id", profileId);
-    
-    if ("ativo" in updates) {
-      registrar(
-        updates.ativo ? "Usuário ativado" : "Usuário desativado",
-        "configuracoes",
-        profileId,
-        null,
-        { nome: profile?.nome_exibicao }
-      );
+
+    const { data, error } = await supabase.rpc("atualizar_user_profile", {
+      p_user_profile_id: profileId,
+      p_perfil_id: (updates.perfil_id ?? null) as any,
+      p_ativo: updates.ativo ?? null,
+    });
+
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao atualizar usuário");
+      return;
     }
-    
+
+    if ("ativo" in updates) {
+      registrar(updates.ativo ? "Usuário ativado" : "Usuário desativado", "configuracoes", profileId, null, { nome: profile?.nome_exibicao });
+    }
+    if ("perfil_id" in updates) {
+      registrar("Perfil alterado", "configuracoes", profileId, null, { nome: profile?.nome_exibicao });
+    }
+
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     toast.success("Usuário atualizado");
   };
 
-  const handleDeleteUser = async (profileId: string) => {
-    const profile = userProfiles.find((u) => u.id === profileId);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (profile?.user_id === user?.id || profile?.id === user?.id) {
-      toast.error("Você não pode excluir seu próprio usuário");
-      return;
+  const tentarDesativar = (profile: any) => {
+    const perfilNome = normalizar(profile.perfis_acesso?.nome_perfil ?? "");
+    if (perfilNome.startsWith("admin")) {
+      if (!confirm(`Desativar o ADMINISTRADOR "${profile.nome_exibicao}"? Esta ação reduz drasticamente o acesso da empresa. Confirma?`)) {
+        return;
+      }
     }
+    handleUpdateUserProfile(profile.id, { ativo: false });
+  };
 
-    const { error } = await supabase
-      .from("user_profiles")
-      .update({ ativo: false })
-      .eq("id", profileId);
+  const confirmarRevogar = async () => {
+    if (!confirmDeleteId) return;
+    const profile = userProfiles.find((u) => u.id === confirmDeleteId);
 
-    if (error) {
-      toast.error("Erro ao remover usuário: " + error.message);
-      return;
-    }
-
-    registrar("Usuário removido", "configuracoes", profileId, null, {
-      nome: profile?.nome_exibicao,
+    const { data, error } = await supabase.rpc("revogar_usuario", {
+      p_user_profile_id: confirmDeleteId,
     });
+
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao revogar");
+      return;
+    }
+
+    const r = data as any;
+    registrar("Usuário revogado", "configuracoes", confirmDeleteId, null, { nome: profile?.nome_exibicao });
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     await qc.refetchQueries({ queryKey: ["user_profiles"] });
-    toast.success("Usuário removido do sistema");
+    toast.success(
+      `Acesso de ${r.nome} revogado.` +
+      (r.sessoes_revogadas ? " Sessão ativa encerrada." : "") +
+      " (Cadastro preservado para reativação)"
+    );
     setConfirmDeleteId(null);
   };
 
@@ -346,24 +374,71 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
         </CardContent>
       </Card>
 
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-600" />Ativos</p>
+            <p className="text-2xl font-semibold mt-1">{kpis.ativos}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><XCircle className="h-3 w-3 text-muted-foreground" />Inativos</p>
+            <p className="text-2xl font-semibold mt-1">{kpis.inativos}</p>
+          </CardContent>
+        </Card>
+        <Card className={kpis.sem_perfil > 0 ? "border-amber-300" : ""}>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-amber-500" />Sem perfil</p>
+            <p className={`text-2xl font-semibold mt-1 ${kpis.sem_perfil > 0 ? "text-amber-600" : ""}`}>{kpis.sem_perfil}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Usuários */}
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium">Usuários do Sistema</CardTitle>
-            <div className="relative mt-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar usuário..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
-            </div>
-          </div>
+          <CardTitle className="text-sm font-medium">Usuários do Sistema</CardTitle>
           {isAdmin && <InviteUserDialog perfisAcesso={perfisAcesso} />}
         </CardHeader>
         <CardContent className="p-0">
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2 px-4 py-3 border-b">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, email, perfil..."
+                className="pl-9 h-9"
+              />
+            </div>
+            <Select value={filtroPerfil} onValueChange={setFiltroPerfil}>
+              <SelectTrigger className="h-9 w-44 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os perfis</SelectItem>
+                {perfisAcesso.filter((p) => p.ativo).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
+              <SelectTrigger className="h-9 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="ativos">Ativos</SelectItem>
+                <SelectItem value="inativos">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left p-3 font-medium">Nome</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Email</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Perfil</th>
                   <th className="text-left p-3 font-medium hidden md:table-cell">Funcionário</th>
                   <th className="text-left p-3 font-medium">Status</th>
@@ -372,12 +447,12 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               </thead>
               <tbody>
                 {loading && (
-                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Carregando usuários...
                   </td></tr>
                 )}
                 {!loading && error && (
-                  <tr><td colSpan={5} className="p-6 text-center">
+                  <tr><td colSpan={6} className="p-6 text-center">
                     <p className="text-sm text-destructive mb-2">Não foi possível carregar a lista.</p>
                     <p className="text-xs text-muted-foreground mb-3">{error.message}</p>
                     {onRetry && <Button size="sm" variant="outline" onClick={onRetry}>Tentar novamente</Button>}
@@ -386,6 +461,9 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                 {!loading && !error && filteredProfiles.map((u) => (
                   <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="p-3 font-medium">{u.nome_exibicao || "Sem nome"}</td>
+                    <td className="p-3 hidden md:table-cell text-muted-foreground">
+                      {(u as any).funcionarios?.email || "—"}
+                    </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
                       {(u as any).perfis_acesso?.nome_perfil || "—"}
                     </td>
@@ -402,14 +480,13 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                     <td className="p-3 text-right">
                       <div className="flex gap-1 justify-end">
                         <Select
-                          value={u.perfil_id || "none"}
-                          onValueChange={(v) => handleUpdateUserProfile(u.id, { perfil_id: v === "none" ? null : v })}
+                          value={u.perfil_id || ""}
+                          onValueChange={(v) => handleUpdateUserProfile(u.id, { perfil_id: v })}
                         >
                           <SelectTrigger className="h-7 text-xs w-32">
                             <SelectValue placeholder="Perfil" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Sem perfil</SelectItem>
                             {perfisAcesso.filter((p) => p.ativo).map((p) => (
                               <SelectItem key={p.id} value={p.id}>{p.nome_perfil}</SelectItem>
                             ))}
@@ -431,7 +508,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                         <Button
                           variant="ghost" size="icon" className="h-7 w-7"
                           title={u.ativo ? "Desativar acesso" : "Ativar acesso"}
-                          onClick={() => handleUpdateUserProfile(u.id, { ativo: !u.ativo })}
+                          onClick={() => u.ativo ? tentarDesativar(u) : handleUpdateUserProfile(u.id, { ativo: true })}
                         >
                          {u.ativo ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
                         </Button>
@@ -439,7 +516,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="Remover usuário"
+                          title="Revogar acesso"
                           onClick={() => setConfirmDeleteId(u.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -449,13 +526,48 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                   </tr>
                 ))}
                 {!loading && !error && filteredProfiles.length === 0 && (
-                  <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">
+                  <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">
                     {search ? "Nenhum usuário encontrado para a busca." : "Nenhum usuário ainda. Convide o primeiro pelo botão acima."}
                   </td></tr>
                 )}
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Matriz de permissões */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Grid3x3 className="h-4 w-4" />Matriz de permissões
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left p-2 font-medium">Módulo</th>
+                {perfisAcesso.filter((p) => p.ativo).map((p) => (
+                  <th key={p.id} className="text-center p-2 font-medium">{p.nome_perfil}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {["dashboard", "assistencia", "financeiro", "pecas", "clientes", "relatorios", "configuracoes", "fila_ia"].map((modulo) => (
+                <tr key={modulo} className="border-b last:border-0">
+                  <td className="p-2 capitalize">{modulo.replace("_", " ")}</td>
+                  {perfisAcesso.filter((p) => p.ativo).map((p) => {
+                    const perm = (p.permissoes as any)?.[modulo];
+                    const tem = typeof perm === "boolean" ? perm : (perm?.ver ?? false);
+                    return (
+                      <td key={p.id} className="p-2 text-center">{tem ? "✅" : "—"}</td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 
@@ -598,25 +710,22 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Remover usuário</DialogTitle>
+            <DialogTitle>Revogar acesso?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            Tem certeza que deseja remover{" "}
+            O usuário{" "}
             <strong>
               {userProfiles.find((u) => u.id === confirmDeleteId)?.nome_exibicao}
             </strong>{" "}
-            do sistema? O usuário perderá acesso imediatamente mas seu
-            histórico será preservado.
+            não conseguirá mais entrar no sistema. A sessão ativa será encerrada
+            imediatamente. O cadastro fica preservado para reativação futura.
           </p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => confirmDeleteId && handleDeleteUser(confirmDeleteId)}
-            >
-              Remover acesso
+            <Button variant="destructive" onClick={confirmarRevogar}>
+              Revogar acesso
             </Button>
           </div>
         </DialogContent>
