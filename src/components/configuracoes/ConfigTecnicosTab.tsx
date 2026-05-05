@@ -1,15 +1,20 @@
-import { useState, useCallback } from "react";
-import { Pencil, Search, Trash2, User, MapPin, Briefcase, DollarSign } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
+import { Pencil, Search, Trash2, User, MapPin, Briefcase, DollarSign, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MaskedInput } from "@/components/smart-inputs/MaskedInput";
 import { CepLookup, type CepData } from "@/components/smart-inputs/CepLookup";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
@@ -28,6 +33,25 @@ const emptyForm = {
   tipo_comissao: "fixa" as string, valor_comissao: 0, ativo: true, observacoes: "",
 };
 
+function normalizarNome(s: string | null | undefined) {
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function iniciais(nome: string) {
+  return nome
+    .split(" ")
+    .filter((p) => p.length > 1)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join("") || "?";
+}
+
+type SortKey = "nome" | "cargo" | "salario" | "comissao" | "ativo";
+
 export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -35,7 +59,17 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<any>({ ...emptyForm });
   const [tab, setTab] = useState("dados");
-  const tecnicoPerfil = perfisAcesso.find((p) => p.nome_perfil === "Técnico");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [mostrarInativos, setMostrarInativos] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("nome");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const empresaId = funcionarios[0]?.empresa_id ?? null;
+
+  const tecnicoPerfil = perfisAcesso.find((p) => {
+    const nome = normalizarNome(p.nome_perfil);
+    return nome === "tecnico" || nome === "tecnicos" || nome.startsWith("tecnico");
+  });
 
   const { data: tiposServico = [] } = useQuery({
     queryKey: ["tipos_servico"],
@@ -58,7 +92,78 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
       f.nome?.toLowerCase().includes(search.toLowerCase()) ||
       f.cargo?.toLowerCase().includes(search.toLowerCase()) ||
       f.especialidade?.toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
+    const matchAtivo = mostrarInativos || f.ativo !== false;
+    return matchSearch && matchAtivo;
+  });
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(k); setSortDir("asc"); }
+  };
+
+  const sorted = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const get = (x: any) => {
+        switch (sortKey) {
+          case "nome": return (x.nome ?? "").toLowerCase();
+          case "cargo": return (x.cargo ?? "").toLowerCase();
+          case "salario": return Number(x.salario_fixo ?? 0);
+          case "comissao": return Number(x.valor_comissao ?? 0);
+          case "ativo": return x.ativo ? 1 : 0;
+          default: return "";
+        }
+      };
+      const va = get(a); const vb = get(b);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  const tecnicoParaDeletar = sorted.find((f) => f.id === deleteId);
+
+  // Bug 5: count of per-service rules
+  const { data: comissoesServicoCount = {} } = useQuery<Record<string, number>>({
+    queryKey: ["comissoes-servico-count", empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data } = await supabase.from("comissoes_servico").select("funcionario_id");
+      const map: Record<string, number> = {};
+      (data ?? []).forEach((r: any) => {
+        map[r.funcionario_id] = (map[r.funcionario_id] ?? 0) + 1;
+      });
+      return map;
+    },
+  });
+
+  // Bug 8: current load
+  const { data: cargaAtual = {} } = useQuery<Record<string, { servicos: number; os: number }>>({
+    queryKey: ["tecnicos-carga", empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data: emReparo } = await supabase
+        .from("os_servicos")
+        .select("tecnico_id, ordem_id, ordens_de_servico!inner(status, deleted_at)")
+        .eq("empresa_id", empresaId!)
+        .eq("status", "em_reparo")
+        .not("ordens_de_servico.status", "in", "(entregue,cancelado)")
+        .is("ordens_de_servico.deleted_at", null);
+
+      const map: Record<string, { servicos: number; os: Set<string> }> = {};
+      (emReparo ?? []).forEach((s: any) => {
+        if (!s.tecnico_id) return;
+        const cur = map[s.tecnico_id] ?? { servicos: 0, os: new Set<string>() };
+        cur.servicos += 1;
+        cur.os.add(s.ordem_id ?? "");
+        map[s.tecnico_id] = cur;
+      });
+      const result: Record<string, { servicos: number; os: number }> = {};
+      Object.entries(map).forEach(([k, v]) => {
+        result[k] = { servicos: v.servicos, os: v.os.size };
+      });
+      return result;
+    },
   });
 
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
@@ -75,6 +180,8 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
 
   const handleSave = async () => {
     if (!form.nome) { toast.error("Nome é obrigatório"); return; }
+    if (!editId && !empresaId) { toast.error("Sem empresa vinculada ao usuário"); return; }
+
     const payload: any = {
       nome: form.nome,
       cpf: form.cpf || null,
@@ -106,16 +213,17 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
       const { error } = await supabase.from("funcionarios").update(payload).eq("id", editId);
       if (error) { toast.error("Erro ao atualizar"); return; }
     } else {
-      const { data, error } = await supabase.from("funcionarios").insert(payload).select("id").single();
+      const insertPayload = { ...payload, empresa_id: empresaId };
+      const { data, error } = await supabase.from("funcionarios").insert(insertPayload).select("id").single();
       if (error) { toast.error("Erro ao cadastrar"); return; }
       funcId = data.id;
     }
 
     // Save per-service commissions
     if (funcId) {
-      // Delete existing
-      await supabase.from("comissoes_servico").delete().eq("funcionario_id", funcId);
-      // Insert new ones (only where valor > 0)
+      let delQ = supabase.from("comissoes_servico").delete().eq("funcionario_id", funcId);
+      if (empresaId) delQ = delQ.eq("empresa_id", empresaId);
+      await delQ;
       const rows = Object.entries(comissoesPorServico)
         .filter(([, v]) => v.valor > 0)
         .map(([tipoServicoId, v]) => ({
@@ -123,6 +231,7 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
           tipo_servico_id: tipoServicoId,
           tipo_comissao: v.tipo as any,
           valor: v.valor,
+          ...(empresaId ? { empresa_id: empresaId } : {}),
         }));
       if (rows.length > 0) {
         await supabase.from("comissoes_servico").insert(rows);
@@ -130,6 +239,7 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
     }
 
     qc.invalidateQueries({ queryKey: ["funcionarios"] });
+    qc.invalidateQueries({ queryKey: ["comissoes-servico-count"] });
     toast.success(editId ? "Técnico atualizado" : "Técnico cadastrado");
     setOpen(false); setEditId(null); setForm({ ...emptyForm }); setComissoesPorServico({}); setTab("dados");
   };
@@ -148,7 +258,6 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
     });
     setEditId(f.id); setTab("dados"); setOpen(true);
 
-    // Load per-service commissions
     setLoadingComissoes(true);
     const { data: cs } = await supabase
       .from("comissoes_servico")
@@ -160,34 +269,121 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
     setLoadingComissoes(false);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("funcionarios").update({ deleted_at: new Date().toISOString(), ativo: false }).eq("id", id);
+  const confirmarDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase
+      .from("funcionarios")
+      .update({ deleted_at: new Date().toISOString(), ativo: false })
+      .eq("id", deleteId);
     if (error) { toast.error("Erro ao remover"); return; }
     qc.invalidateQueries({ queryKey: ["funcionarios"] });
+    qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    qc.invalidateQueries({ queryKey: ["userProfiles"] });
     toast.success("Técnico removido");
+    setDeleteId(null);
   };
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   const custoTotal = Number(form.salario_fixo || 0) + Number(form.vale_transporte || 0) + Number(form.vale_alimentacao || 0);
 
+  // KPIs
+  const kpis = useMemo(() => {
+    const ativos = tecnicosComLogin.filter((f) => f.ativo !== false);
+    const inativos = tecnicosComLogin.filter((f) => f.ativo === false);
+    const custoMensal = ativos.reduce(
+      (s, f) => s + Number(f.salario_fixo ?? 0) + Number(f.vale_transporte ?? 0) + Number(f.vale_alimentacao ?? 0),
+      0,
+    );
+    return { ativos: ativos.length, inativos: inativos.length, custoMensal };
+  }, [tecnicosComLogin]);
+
+  const exportarCSV = () => {
+    const header = ["Nome", "Cargo", "Especialidade", "Telefone", "Email", "Salário", "Comissão padrão", "Carga atual", "Status"];
+    const rows = sorted.map((f) => {
+      const c = (cargaAtual as any)[f.id];
+      return [
+        `"${(f.nome ?? "").replace(/"/g, '""')}"`,
+        `"${(f.cargo ?? "")}"`,
+        `"${(f.especialidade ?? "")}"`,
+        f.telefone ?? "",
+        f.email ?? "",
+        Number(f.salario_fixo ?? 0).toFixed(2).replace(".", ","),
+        f.tipo_comissao === "percentual" ? `${f.valor_comissao}%` : Number(f.valor_comissao ?? 0).toFixed(2).replace(".", ","),
+        c?.servicos ?? 0,
+        f.ativo ? "Ativo" : "Inativo",
+      ].join(";");
+    });
+    const csv = "\uFEFF" + [header.join(";"), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tecnicos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const SortHeader = ({ k, label }: { k: SortKey; label: string }) => (
+    <button onClick={() => toggleSort(k)} className="flex items-center gap-1 hover:text-foreground">
+      {label} {sortKey === k && (sortDir === "asc" ? "↑" : "↓")}
+    </button>
+  );
+
   return (
     <div className="space-y-4">
+      {!tecnicoPerfil && (
+        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 flex gap-3">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-sm">Perfil "Técnico" não encontrado</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Para listar técnicos aqui, vá em Configurações → Usuários → Perfis e crie um perfil chamado "Técnico".
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Técnicos ativos</p>
+          <p className="text-2xl font-bold">{kpis.ativos}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Inativos</p>
+          <p className="text-2xl font-bold">{kpis.inativos}</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">Custo fixo mensal</p>
+          <p className="text-2xl font-bold">{fmt(kpis.custoMensal)}</p>
+        </CardContent></Card>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="flex flex-1 gap-2 max-w-xl">
+        <div className="flex flex-1 gap-2 max-w-xl items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar por nome, cargo ou especialidade..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+            <Switch checked={mostrarInativos} onCheckedChange={setMostrarInativos} />
+            Mostrar inativos
+          </label>
         </div>
-        {tecnicoPerfil && (
-          <InviteUserDialog
-            perfisAcesso={perfisAcesso}
-            fixedPerfilId={tecnicoPerfil.id}
-            triggerLabel="Convidar Técnico"
-            title="Convidar novo técnico"
-          />
-        )}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportarCSV}>
+            <Download className="h-4 w-4 mr-1" /> Exportar
+          </Button>
+          {tecnicoPerfil && (
+            <InviteUserDialog
+              perfisAcesso={perfisAcesso}
+              fixedPerfilId={tecnicoPerfil.id}
+              triggerLabel="Convidar Técnico"
+              title="Convidar novo técnico"
+            />
+          )}
+        </div>
       </div>
 
       <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
@@ -271,7 +467,7 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
                     <Label>Bairro</Label>
                     <Input value={form.bairro} onChange={(e) => set("bairro", e.target.value)} />
                   </div>
-                  <div className="hidden sm:block" /> {/* spacer */}
+                  <div className="hidden sm:block" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -454,51 +650,82 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3 font-medium">Nome</th>
+                <tr className="border-b bg-muted/50 text-muted-foreground">
+                  <th className="text-left p-3 font-medium"><SortHeader k="nome" label="Nome" /></th>
                   <th className="text-left p-3 font-medium">Função</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Cargo</th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell"><SortHeader k="cargo" label="Cargo" /></th>
                   <th className="text-left p-3 font-medium hidden lg:table-cell">Especialidade</th>
-                  <th className="text-left p-3 font-medium hidden lg:table-cell">Salário</th>
-                  <th className="text-left p-3 font-medium hidden md:table-cell">Comissão</th>
-                  <th className="text-left p-3 font-medium">Status</th>
+                  <th className="text-left p-3 font-medium hidden lg:table-cell"><SortHeader k="salario" label="Salário" /></th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell"><SortHeader k="comissao" label="Comissão" /></th>
+                  <th className="text-left p-3 font-medium hidden md:table-cell">Carga atual</th>
+                  <th className="text-left p-3 font-medium"><SortHeader k="ativo" label="Status" /></th>
                   <th className="p-3 w-20"></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((f) => (
-                  <tr key={f.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">
-                      <div className="font-medium">{f.nome}</div>
-                      <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
-                    </td>
-                    <td className="p-3">
-                      <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
-                    </td>
-                    <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
-                    <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
-                    <td className="p-3 hidden lg:table-cell">{f.salario_fixo > 0 ? fmt(f.salario_fixo) : "—"}</td>
-                    <td className="p-3 hidden md:table-cell">
-                      {f.tipo_comissao === "percentual" ? `${f.valor_comissao}%` : fmt(f.valor_comissao)}
-                    </td>
-                    <td className="p-3">
-                      <Badge variant={f.ativo ? "default" : "secondary"}>{f.ativo ? "Ativo" : "Inativo"}</Badge>
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(f.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
+                {sorted.map((f) => {
+                  const c = (cargaAtual as any)[f.id];
+                  const regras = (comissoesServicoCount as any)[f.id] ?? 0;
+                  return (
+                    <tr key={f.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {iniciais(f.nome ?? "?")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{f.nome}</div>
+                            <div className="text-xs text-muted-foreground md:hidden">{f.cargo || "—"}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/15">Técnico</Badge>
+                      </td>
+                      <td className="p-3 hidden md:table-cell text-muted-foreground">{f.cargo || "—"}</td>
+                      <td className="p-3 hidden lg:table-cell text-muted-foreground">{f.especialidade || f.funcao || "—"}</td>
+                      <td className="p-3 hidden lg:table-cell">{f.salario_fixo > 0 ? fmt(f.salario_fixo) : "—"}</td>
+                      <td className="p-3 hidden md:table-cell">
+                        <div className="space-y-0.5">
+                          <div className="text-xs">
+                            {f.tipo_comissao === "percentual" ? `${f.valor_comissao}%` : fmt(f.valor_comissao)}
+                            <span className="text-muted-foreground ml-1">(padrão)</span>
+                          </div>
+                          {regras > 0 && (
+                            <Badge variant="outline" className="text-[10px]">+{regras} regras por serviço</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 hidden md:table-cell">
+                        {!c || c.servicos === 0 ? (
+                          <span className="text-xs text-muted-foreground">livre</span>
+                        ) : (
+                          <Badge variant={c.servicos > 5 ? "destructive" : "secondary"} className="text-[10px]">
+                            {c.servicos} {c.servicos === 1 ? "serviço" : "serviços"}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant={f.ativo ? "default" : "secondary"}>{f.ativo ? "Ativo" : "Inativo"}</Badge>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteId(f.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {sorted.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       {search ? "Nenhum técnico encontrado para a busca." : "Nenhum técnico com login encontrado. Use 'Convidar Técnico' para adicionar."}
                     </td>
                   </tr>
@@ -508,6 +735,24 @@ export function ConfigTecnicosTab({ funcionarios, userProfiles, perfisAcesso }: 
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover técnico?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tecnicoParaDeletar?.nome ? <>O técnico <strong>{tecnicoParaDeletar.nome}</strong> será marcado como removido.</> : null}
+              {" "}As OS atribuídas a ele continuam no histórico, mas ele não poderá pegar novos serviços.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
