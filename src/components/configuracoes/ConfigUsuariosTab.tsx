@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { usePermissoes } from "@/hooks/usePermissoes";
+import { usePermissoes, invalidatePermissoesCache } from "@/hooks/usePermissoes";
 import { useAuditoria } from "@/hooks/useAuditoria";
 import { format } from "date-fns";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -154,6 +154,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
       registrar("Perfil criado", "configuracoes", null, null, { nome: perfilForm.nome_perfil });
     }
     qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
+    invalidatePermissoesCache();
     toast.success("Perfil salvo");
     setOpenPerfil(false);
     resetForm();
@@ -217,6 +218,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     }
 
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    invalidatePermissoesCache();
     toast.success("Usuário atualizado");
   };
 
@@ -247,6 +249,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     registrar("Usuário revogado", "configuracoes", confirmDeleteId, null, { nome: profile?.nome_exibicao });
     qc.invalidateQueries({ queryKey: ["user_profiles"] });
     await qc.refetchQueries({ queryKey: ["user_profiles"] });
+    invalidatePermissoesCache();
     toast.success(
       `Acesso de ${r.nome} revogado.` +
       (r.sessoes_revogadas ? " Sessão ativa encerrada." : "") +

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -44,14 +44,13 @@ const DEFAULT_PERMISSOES: Permissoes = {
   fila_ia: false,
 };
 
-function ensureModulo(m: any): PermissaoModulo {
-  if (typeof m === "boolean") return { ver: m, criar: m, editar: m, excluir: m };
-  if (!m || typeof m !== "object") return EMPTY_MODULO;
-  return { ver: !!m.ver, criar: !!m.criar, editar: !!m.editar, excluir: !!m.excluir };
-}
-
 function parsePermissoes(raw: any): Permissoes {
   if (!raw || typeof raw !== "object") return DEFAULT_PERMISSOES;
+  const ensureModulo = (m: any): PermissaoModulo => {
+    if (typeof m === "boolean") return { ver: m, criar: m, editar: m, excluir: m };
+    if (!m || typeof m !== "object") return EMPTY_MODULO;
+    return { ver: !!m.ver, criar: !!m.criar, editar: !!m.editar, excluir: !!m.excluir };
+  };
   return {
     dashboard: !!raw.dashboard,
     assistencia: ensureModulo(raw.assistencia),
@@ -64,16 +63,34 @@ function parsePermissoes(raw: any): Permissoes {
   };
 }
 
+type CachedState = {
+  userId: string;
+  permissoes: Permissoes;
+  isAdmin: boolean;
+  isGerente: boolean;
+  perfil: string;
+  loadedAt: number;
+};
+let CACHE: CachedState | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 export function usePermissoes() {
   const { user } = useAuth();
-  const [permissoes, setPermissoes] = useState<Permissoes>(DEFAULT_PERMISSOES);
-  const [perfil, setPerfil] = useState<string>("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isGerente, setIsGerente] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const userId = user?.id ?? null;
+
+  const initial = CACHE && CACHE.userId === userId ? CACHE : null;
+
+  const [permissoes, setPermissoes] = useState<Permissoes>(initial?.permissoes ?? DEFAULT_PERMISSOES);
+  const [perfil, setPerfil] = useState<string>(initial?.perfil ?? "");
+  const [isAdmin, setIsAdmin] = useState(initial?.isAdmin ?? false);
+  const [isGerente, setIsGerente] = useState(initial?.isGerente ?? false);
+  const [loading, setLoading] = useState(!initial);
+
+  const fetchInProgress = useRef(false);
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
+      CACHE = null;
       setPermissoes(DEFAULT_PERMISSOES);
       setIsAdmin(false);
       setIsGerente(false);
@@ -82,39 +99,68 @@ export function usePermissoes() {
       return;
     }
 
+    if (CACHE && CACHE.userId === userId && (Date.now() - CACHE.loadedAt) < CACHE_TTL_MS) {
+      setPermissoes(CACHE.permissoes);
+      setIsAdmin(CACHE.isAdmin);
+      setIsGerente(CACHE.isGerente);
+      setPerfil(CACHE.perfil);
+      setLoading(false);
+      return;
+    }
+
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
+
     const fetchPermissoes = async () => {
       try {
         const { data, error } = await supabase.rpc("get_my_permissoes");
+
         if (error || !data) {
           console.error("Erro ao carregar permissões:", error);
+          if (!CACHE) {
+            setPermissoes(DEFAULT_PERMISSOES);
+            setIsAdmin(false);
+            setIsGerente(false);
+            setPerfil("sem_perfil");
+          }
+          return;
+        }
+
+        const payload = data as any;
+        const newIsAdmin = !!payload.is_admin;
+        const newIsGerente = !!payload.is_gerente;
+        const newPerfil = payload.role || "sem_perfil";
+        const newPermissoes = newIsAdmin ? ADMIN_PERMISSOES : parsePermissoes(payload.permissoes);
+
+        CACHE = {
+          userId,
+          permissoes: newPermissoes,
+          isAdmin: newIsAdmin,
+          isGerente: newIsGerente,
+          perfil: newPerfil,
+          loadedAt: Date.now(),
+        };
+
+        setIsAdmin(newIsAdmin);
+        setIsGerente(newIsGerente);
+        setPerfil(newPerfil);
+        setPermissoes(newPermissoes);
+      } catch (err) {
+        console.error("Falha em get_my_permissoes:", err);
+        if (!CACHE) {
           setPermissoes(DEFAULT_PERMISSOES);
           setIsAdmin(false);
           setIsGerente(false);
           setPerfil("sem_perfil");
-          return;
         }
-        const payload = data as any;
-        setIsAdmin(!!payload.is_admin);
-        setIsGerente(!!payload.is_gerente);
-        setPerfil(payload.role || "sem_perfil");
-        if (payload.is_admin) {
-          setPermissoes(ADMIN_PERMISSOES);
-        } else {
-          setPermissoes(parsePermissoes(payload.permissoes));
-        }
-      } catch (err) {
-        console.error("Falha em get_my_permissoes:", err);
-        setPermissoes(DEFAULT_PERMISSOES);
-        setIsAdmin(false);
-        setIsGerente(false);
-        setPerfil("sem_perfil");
       } finally {
         setLoading(false);
+        fetchInProgress.current = false;
       }
     };
 
     fetchPermissoes();
-  }, [user]);
+  }, [userId]);
 
   const can = (modulo: keyof Permissoes, acao?: keyof PermissaoModulo): boolean => {
     if (loading) return false;
@@ -124,7 +170,9 @@ export function usePermissoes() {
     return val[acao];
   };
 
-  const effectiveIsAdmin = loading ? false : isAdmin;
+  return { permissoes, perfil, isAdmin, isGerente, can, loading };
+}
 
-  return { permissoes, perfil, isAdmin: effectiveIsAdmin, isGerente, can, loading };
+export function invalidatePermissoesCache() {
+  CACHE = null;
 }
