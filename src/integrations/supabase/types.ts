@@ -4040,6 +4040,27 @@ export type Database = {
           },
         ]
       }
+      rate_limit_tentativas: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          identificador: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          id?: string
+          identificador: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          identificador?: string
+        }
+        Relationships: []
+      }
       recebimentos: {
         Row: {
           cliente_id: string | null
@@ -4541,6 +4562,15 @@ export type Database = {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
       }
+      checar_rate_limit: {
+        Args: {
+          p_acao: string
+          p_identificador: string
+          p_janela_segundos?: number
+          p_max_tentativas?: number
+        }
+        Returns: Json
+      }
       comissoes_tecnico_periodo: {
         Args: { p_fim: string; p_funcionario_id: string; p_inicio: string }
         Returns: Json
@@ -4802,6 +4832,7 @@ export type Database = {
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       kpi_tecnicos: { Args: { p_fim: string; p_inicio: string }; Returns: Json }
       liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
+      limpar_rate_limit_antigos: { Args: never; Returns: number }
       lojista_verificar_acesso: {
         Args: { email_input: string }
         Returns: {
