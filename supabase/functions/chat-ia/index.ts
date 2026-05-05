@@ -1,3 +1,4 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 // supabase/functions/chat-ia/index.ts
 // Edge Function do assistente IA do Ditt — Anthropic Claude com tool use.
 // Cada tool é uma RPC SECURITY DEFINER que valida empresa_id internamente.
@@ -198,13 +199,8 @@ REGRAS DE PROPOSTA:
 - Ações DESTRUTIVAS são proibidas — recuse categoricamente: excluir OS, alterar permissões/perfis, mexer em sócios, empresa_config, comissão base, valores financeiros já lançados. Responda: "Essa operação não é permitida via assistente — faça pelas telas próprias com auditoria."`;
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

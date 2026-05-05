@@ -1,15 +1,10 @@
+import { getCorsHeaders } from "../_shared/cors.ts";
 // Edge function: accept-lojista-invite
 // Valida token de convite e gera magic link de 1 clique para o lojista.
 // Retorna SEMPRE status 200 com payload estruturado { ok, code, message } para
 // que o frontend possa exibir mensagens amigáveis (o Supabase SDK descarta o
 // body em respostas não-2xx, então usamos códigos no corpo).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const json = (payload: unknown) =>
   new Response(JSON.stringify(payload), {
@@ -18,6 +13,7 @@ const json = (payload: unknown) =>
   });
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
