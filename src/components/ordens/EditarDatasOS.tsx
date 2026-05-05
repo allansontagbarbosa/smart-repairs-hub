@@ -59,12 +59,14 @@ export function EditarDatasOS({ ordem, onSucesso }: Props) {
   }
 
   const salvar = async () => {
+    if (!concl && !entr) {
+      toast.error("Informe pelo menos uma data");
+      return;
+    }
     setSalvando(true);
     const args: any = { p_os_id: ordem.id };
     if (concl) args.p_data_conclusao = new Date(concl).toISOString();
-    else if (ordem.data_conclusao) args.p_limpar_conclusao = true;
     if (entr) args.p_data_entrega = new Date(entr).toISOString();
-    else if (ordem.data_entrega) args.p_limpar_entrega = true;
 
     const { data, error } = await supabase.rpc("editar_datas_os" as any, args);
     setSalvando(false);
@@ -73,7 +75,14 @@ export function EditarDatasOS({ ordem, onSucesso }: Props) {
       toast.error(payload?.error ?? error?.message ?? "Erro ao salvar datas");
       return;
     }
-    toast.success("Datas atualizadas");
+    if (payload.status_mudou) {
+      toast.success(
+        `Datas atualizadas. Status alterado para "${payload.status_novo}".`,
+        { duration: 5000 },
+      );
+    } else {
+      toast.success("Datas atualizadas");
+    }
     onSucesso();
   };
 
