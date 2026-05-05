@@ -401,15 +401,83 @@ function NovaCompraDialog({
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens da Compra</p>
             <div className="flex gap-2">
-              <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder="Buscar peça..." /></SelectTrigger>
-                <SelectContent>
-                  {estoqueItens.map((item) => {
-                    const nome = item.nome_personalizado || [item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" ") || item.sku || "Peça";
-                    return <SelectItem key={item.id} value={item.id}>{nome} (Qtd: {item.quantidade})</SelectItem>;
-                  })}
-                </SelectContent>
-              </Select>
+              {(() => {
+                const itemSelecionado = estoqueItens.find((i: any) => i.id === selectedPecaId);
+                const nomeSelecionado = itemSelecionado
+                  ? (itemSelecionado.nome_personalizado || [itemSelecionado.marcas?.nome, itemSelecionado.modelos?.nome].filter(Boolean).join(" ") || itemSelecionado.sku || "Peça")
+                  : null;
+                return (
+                  <Popover open={openPecaPopover} onOpenChange={setOpenPecaPopover}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openPecaPopover}
+                        className="flex-1 justify-between font-normal"
+                      >
+                        <span className="truncate">
+                          {nomeSelecionado ?? <span className="text-muted-foreground">Buscar peça...</span>}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command
+                        filter={(value, search) => {
+                          const valNorm = normalizar(value);
+                          const searchNorm = normalizar(search);
+                          return valNorm.includes(searchNorm) ? 1 : 0;
+                        }}
+                      >
+                        <CommandInput placeholder="Buscar por nome, marca, modelo ou SKU..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma peça encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {estoqueItens.map((item: any) => {
+                              const nome = item.nome_personalizado
+                                || [item.marcas?.nome, item.modelos?.nome].filter(Boolean).join(" ")
+                                || item.sku
+                                || "Peça";
+                              const valorBuscavel = [
+                                item.nome_personalizado,
+                                item.marcas?.nome,
+                                item.modelos?.nome,
+                                item.sku,
+                              ].filter(Boolean).join(" ");
+                              return (
+                                <CommandItem
+                                  key={item.id}
+                                  value={`${valorBuscavel} ${item.id}`}
+                                  onSelect={() => {
+                                    setSelectedPecaId(item.id);
+                                    setOpenPecaPopover(false);
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Check className={cn("h-4 w-4 shrink-0", selectedPecaId === item.id ? "opacity-100" : "opacity-0")} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="truncate text-sm">{nome}</p>
+                                    {item.sku && (
+                                      <p className="truncate text-xs text-muted-foreground">SKU: {item.sku}</p>
+                                    )}
+                                  </div>
+                                  <Badge
+                                    variant={item.quantidade > 0 ? "secondary" : "destructive"}
+                                    className="text-[10px] shrink-0"
+                                  >
+                                    Qtd: {item.quantidade}
+                                  </Badge>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
               <Button type="button" size="sm" variant="outline" onClick={addItem} disabled={!selectedPecaId}>
                 Adicionar
               </Button>
