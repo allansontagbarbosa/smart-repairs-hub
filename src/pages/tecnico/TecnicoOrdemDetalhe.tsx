@@ -114,6 +114,24 @@ export default function TecnicoOrdemDetalhe() {
     },
   });
 
+  const clienteId = (ordem as any)?.aparelhos?.cliente_id ?? (ordem as any)?.aparelhos?.clientes?.id ?? null;
+
+  const { data: historicoCliente = [] } = useQuery({
+    queryKey: ["tecnico-historico-cliente", clienteId, id],
+    enabled: !!clienteId && !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ordens_de_servico")
+        .select("id, numero, numero_formatado, status, defeito_relatado, data_entrada, aparelhos!inner(marca, modelo, cliente_id)")
+        .eq("aparelhos.cliente_id", clienteId!)
+        .neq("id", id!)
+        .is("deleted_at", null)
+        .order("data_entrada", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+
   // Inicializa checklist se vazio
   useEffect(() => {
     if (!id || !ordem || checklist.length > 0) return;
