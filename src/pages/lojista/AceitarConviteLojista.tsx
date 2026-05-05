@@ -6,7 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, CheckCircle2, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { Building2, CheckCircle2, XCircle, Loader2, Eye, EyeOff, Check, X } from "lucide-react";
+
+function regrasSenha(s: string) {
+  return [
+    { ok: s.length >= 10, label: "Pelo menos 10 caracteres" },
+    { ok: /[A-Z]/.test(s), label: "Uma letra maiúscula" },
+    { ok: /[a-z]/.test(s), label: "Uma letra minúscula" },
+    { ok: /[0-9]/.test(s), label: "Um número" },
+  ];
+}
+
+function senhaAtendePolitica(s: string) {
+  return regrasSenha(s).every((r) => r.ok);
+}
 
 type ConviteInfo = {
   lojistaId: string;
@@ -117,8 +130,8 @@ export default function AceitarConviteLojista() {
   async function handleAceitar(e: React.FormEvent) {
     e.preventDefault();
     if (!convite) return;
-    if (senha.length < 8) {
-      toast({ title: "Senha muito curta", description: "Mínimo 8 caracteres.", variant: "destructive" });
+    if (!senhaAtendePolitica(senha)) {
+      toast({ title: "Senha não atende aos requisitos", description: "Confira a lista abaixo do campo de senha.", variant: "destructive" });
       return;
     }
     if (senha !== confirmar) {
