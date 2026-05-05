@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, ChevronDown, ChevronRight, Filter, Trash2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, ChevronDown, ChevronRight, Filter, Trash2, CheckCircle2, XCircle, AlertTriangle, Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
