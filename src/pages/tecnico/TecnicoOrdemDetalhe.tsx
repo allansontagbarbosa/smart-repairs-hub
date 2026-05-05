@@ -13,12 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, Smartphone } from "lucide-react";
+import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, Smartphone, MessageCircle, History } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
 import { statusLabels } from "@/lib/status";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
+import { abrirWhatsApp } from "@/lib/whatsapp";
 
 const DEFAULT_CHECKLIST = [
   { key: "touch", label: "Touch responde corretamente" },
@@ -49,7 +50,7 @@ export default function TecnicoOrdemDetalhe() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ordens_de_servico")
-        .select(`*, aparelhos ( marca, modelo, cor, imei, clientes ( nome, telefone, whatsapp ) )`)
+        .select(`*, aparelhos ( marca, modelo, cor, imei, cliente_id, clientes ( id, nome, telefone, whatsapp ) )`)
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
@@ -109,6 +110,24 @@ export default function TecnicoOrdemDetalhe() {
         .eq("ordem_id", id!)
         .order("created_at", { ascending: true });
       if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const clienteId = (ordem as any)?.aparelhos?.cliente_id ?? (ordem as any)?.aparelhos?.clientes?.id ?? null;
+
+  const { data: historicoCliente = [] } = useQuery({
+    queryKey: ["tecnico-historico-cliente", clienteId, id],
+    enabled: !!clienteId && !!id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ordens_de_servico")
+        .select("id, numero, numero_formatado, status, defeito_relatado, data_entrada, aparelhos!inner(marca, modelo, cliente_id)")
+        .eq("aparelhos.cliente_id", clienteId!)
+        .neq("id", id!)
+        .is("deleted_at", null)
+        .order("data_entrada", { ascending: false })
+        .limit(5);
       return data ?? [];
     },
   });
@@ -227,7 +246,24 @@ export default function TecnicoOrdemDetalhe() {
       <Card>
         <CardContent className="p-3 space-y-2 text-sm">
           <Row icon={User} label={cliente?.nome || "—"} />
-          <Row icon={Phone} label={cliente?.whatsapp || cliente?.telefone || "—"} />
+          <div className="flex items-center justify-between gap-2">
+            <Row icon={Phone} label={cliente?.whatsapp || cliente?.telefone || "—"} />
+            {(cliente?.whatsapp || cliente?.telefone) && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const num = cliente.whatsapp ?? cliente.telefone;
+                  const msg = `Olá! Sobre a OS #${ordem.numero_formatado || ordem.numero} do seu ${aparelho?.marca ?? ""} ${aparelho?.modelo ?? ""}:`;
+                  abrirWhatsApp(num, msg);
+                }}
+                className="gap-1 h-7 px-2"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
+              </Button>
+            )}
+          </div>
           <Row icon={Smartphone} label={`${aparelho?.cor || ""} ${aparelho?.imei ? `· IMEI ${aparelho.imei}` : ""}`} />
           {ordem.defeito_relatado && (
             <p className="pt-2 border-t text-muted-foreground">
@@ -344,6 +380,38 @@ export default function TecnicoOrdemDetalhe() {
           />
         </TabsContent>
       </Tabs>
+
+      {historicoCliente.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico deste cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {historicoCliente.map((h: any) => (
+              <Link key={h.id} to={`/tecnico/ordens/${h.id}`} className="block">
+                <div className="rounded-md border p-2 hover:bg-accent/40 transition-colors space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      #{h.numero_formatado || h.numero}
+                    </span>
+                    <Badge variant="outline" className="text-[10px]">
+                      {statusLabels[h.status as keyof typeof statusLabels] ?? h.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium truncate">
+                    {h.aparelhos?.marca} {h.aparelhos?.modelo}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {h.defeito_relatado || "Sem defeito relatado"} · {new Date(h.data_entrada).toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Link to="/tecnico/transferencias">
         <Button variant="outline" className="w-full">

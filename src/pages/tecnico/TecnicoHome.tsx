@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTecnicoIdentidade, useMinhasOS, useTecnicoMetricas } from "@/hooks/useTecnico";
 import { useMinhasComissoesResumo } from "@/hooks/useMinhasComissoes";
 import { useMeusServicosEmAndamento } from "@/hooks/useServicosDisponiveis";
-import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign, Wrench, AlertTriangle } from "lucide-react";
+import { ChevronRight, ClipboardList, CheckCircle2, Clock, DollarSign, Wrench, AlertTriangle, Trophy } from "lucide-react";
 import { statusLabels } from "@/lib/status";
 import { startOfDay, differenceInCalendarDays } from "date-fns";
 
@@ -35,6 +37,39 @@ export default function TecnicoHome() {
   const { data: comissoesResumo } = useMinhasComissoesResumo(identidade?.funcionario_id);
   const { data: emAndamento = [] } = useMeusServicosEmAndamento(identidade?.funcionario_id);
   const servicoAtual: any = emAndamento[0];
+
+  const { data: ranking = [] } = useQuery<Array<{ tecnico_id: string; nome: string; qtd: number }>>({
+    queryKey: ["ranking-equipe-mes", identidade?.empresa_id, now.getFullYear(), now.getMonth() + 1],
+    enabled: !!identidade?.empresa_id,
+    queryFn: async () => {
+      const inicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const fim = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+      const { data } = await supabase
+        .from("os_servicos")
+        .select("tecnico_id, funcionarios!inner(nome)")
+        .eq("empresa_id", identidade!.empresa_id!)
+        .eq("status", "concluido")
+        .not("tecnico_id", "is", null)
+        .gte("concluido_em", inicio)
+        .lt("concluido_em", fim);
+
+      const contagem = new Map<string, { nome: string; qtd: number }>();
+      (data ?? []).forEach((s: any) => {
+        const cur = contagem.get(s.tecnico_id) ?? { nome: s.funcionarios?.nome ?? "—", qtd: 0 };
+        cur.qtd += 1;
+        contagem.set(s.tecnico_id, cur);
+      });
+
+      return Array.from(contagem.entries())
+        .map(([id, v]) => ({ tecnico_id: id, ...v }))
+        .sort((a, b) => b.qtd - a.qtd);
+    },
+  });
+
+  const minhaPosicao = ranking.findIndex(r => r.tecnico_id === identidade?.funcionario_id) + 1;
+  const proximoNaFrente = minhaPosicao > 1 ? ranking[minhaPosicao - 2] : null;
+  const minhaQtd = ranking.find(r => r.tecnico_id === identidade?.funcionario_id)?.qtd ?? 0;
 
   const proximas = ordens
     .filter(o => !["entregue", "cancelado"].includes(o.status))
@@ -98,6 +133,27 @@ export default function TecnicoHome() {
           />
         </Link>
       </div>
+
+      {minhaPosicao > 0 && ranking.length > 1 && (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-md bg-warning/20 text-warning grid place-items-center shrink-0">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Ranking do mês</p>
+              <p className="text-sm font-semibold">Você está em {minhaPosicao}º lugar</p>
+              <p className="text-xs text-muted-foreground">
+                {minhaPosicao === 1
+                  ? `Liderando com ${minhaQtd} serviços!`
+                  : proximoNaFrente
+                  ? `Faltam ${proximoNaFrente.qtd - minhaQtd + 1} serviços para passar ${proximoNaFrente.nome.split(" ")[0]}`
+                  : `${minhaQtd} serviços concluídos`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">

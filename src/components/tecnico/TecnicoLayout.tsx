@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
+import { useMinhasComissoesResumo } from "@/hooks/useMinhasComissoes";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -74,6 +76,8 @@ const NAV = [
 export function TecnicoLayout({ children }: { children: ReactNode }) {
   const { signOut } = useAuth();
   const { data: identidade } = useTecnicoIdentidade();
+  const { data: comissoesResumo } = useMinhasComissoesResumo(identidade?.funcionario_id);
+  const liberadasNaoPagas = comissoesResumo?.countLiberada ?? 0;
   const { isAdmin } = usePermissoes();
   const location = useLocation();
   const isVisualizacaoAdmin = isAdmin && !identidade?.funcionario_id;
@@ -154,7 +158,12 @@ export function TecnicoLayout({ children }: { children: ReactNode }) {
                   }
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.to === "/tecnico/comissoes" && liberadasNaoPagas > 0 && (
+                    <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] bg-primary text-primary-foreground">
+                      {liberadasNaoPagas}
+                    </Badge>
+                  )}
                 </NavLink>
               );
             })}
@@ -191,13 +200,18 @@ export function TecnicoLayout({ children }: { children: ReactNode }) {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] transition-colors",
+                    "relative flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   )
                 }
               >
                 <Icon className="h-5 w-5" />
                 <span>{item.label}</span>
+                {item.to === "/tecnico/comissoes" && liberadasNaoPagas > 0 && (
+                  <span className="absolute top-1 right-1/2 translate-x-3 h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold grid place-items-center">
+                    {liberadasNaoPagas}
+                  </span>
+                )}
               </NavLink>
             );
           })}
