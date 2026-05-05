@@ -34,6 +34,7 @@ interface ItemLine {
 export function PedidoCompraDialog({ open, onOpenChange, fornecedorId, preSelectedItem }: Props) {
   const qc = useQueryClient();
   const [selectedFornecedor, setSelectedFornecedor] = useState("");
+  const [openFornecedor, setOpenFornecedor] = useState(false);
   const [dataPrevisao, setDataPrevisao] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<ItemLine[]>([]);
