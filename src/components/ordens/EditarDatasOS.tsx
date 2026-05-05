@@ -115,7 +115,10 @@ export function EditarDatasOS({ ordem, onSucesso }: Props) {
         {salvando ? "Salvando..." : "Salvar datas"}
       </Button>
       <p className="text-[11px] text-muted-foreground">
-        Mudar a conclusão atualiza também os serviços concluídos. Comissões existentes mantêm seu mês de competência original.
+        Status será atualizado automaticamente conforme as datas. Mudar a conclusão atualiza também os serviços concluídos. Comissões existentes mantêm seu mês de competência original.
+      </p>
+      <p className="text-[10px] text-muted-foreground">
+        Para "voltar" o status (ex: de pronto pra em_reparo), use o dropdown de status — ele cuida das datas e comissões automaticamente.
       </p>
     </div>
   );
