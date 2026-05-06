@@ -110,6 +110,37 @@ const TOOLS = [
     },
   },
   {
+    name: "agregar_aparelhos_periodo",
+    description:
+      "Conta OS agrupadas por marca + modelo do aparelho. Use pra perguntas tipo 'quantos iPhone 14 foram enviados em abril', 'qual modelo o cliente X mais envia', 'top aparelhos do mês'. Pode filtrar por cliente, período, marca ou modelo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        data_inicio: { type: "string", description: "ISO timestamp do início do período" },
+        data_fim: { type: "string", description: "ISO timestamp do fim do período" },
+        cliente_busca: { type: "string", description: "Busca parcial pelo nome do cliente" },
+        marca_busca: { type: "string", description: "Busca parcial pela marca (ex: Apple, Samsung)" },
+        modelo_busca: { type: "string", description: "Busca parcial pelo modelo (ex: iPhone 14, S21)" },
+        limite: { type: "integer", default: 50, maximum: 100 },
+      },
+    },
+  },
+  {
+    name: "top_defeitos_periodo",
+    description:
+      "Retorna os defeitos mais relatados em um período (agrupados por similaridade nas primeiras palavras). Use pra perguntas tipo 'top 10 defeitos do mês', 'quais problemas mais aparecem em iPhone'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        data_inicio: { type: "string", description: "ISO timestamp" },
+        data_fim: { type: "string", description: "ISO timestamp" },
+        marca_busca: { type: "string" },
+        modelo_busca: { type: "string" },
+        limite: { type: "integer", default: 10, maximum: 50 },
+      },
+    },
+  },
+  {
     name: "preview_acao_em_massa",
     description:
       "Gera PREVIEW de ação em massa (NÃO executa). Limite 200 registros. Aprovação requer admin + confirmação textual no frontend. Use quando o usuário pedir mudança em várias OS de uma vez.",
