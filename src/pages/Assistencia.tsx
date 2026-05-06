@@ -1858,7 +1858,7 @@ export default function Assistencia() {
                 <DropdownMenuItem asChild>
                   <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="sm:hidden">
                   <Link to="/assistencia/fluxo"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
