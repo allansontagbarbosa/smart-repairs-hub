@@ -376,3 +376,30 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     </div>
   );
 }
+
+function SortableHeader({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  dir: "asc" | "desc";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${
+        active ? "text-foreground font-medium" : "text-muted-foreground"
+      }`}
+    >
+      {label}
+      <span className="text-[9px] tabular-nums">
+        {active ? (dir === "asc" ? "▲" : "▼") : "↕"}
+      </span>
+    </button>
+  );
+}
