@@ -248,7 +248,11 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
 
           <div>
             <Label>Mês de competência *</Label>
-            <Input type="month" {...register("mes_competencia", { required: true })} />
+            <Input
+              type="month"
+              {...register("mes_competencia", { required: true })}
+              onInput={() => { competenciaTouchedRef.current = true; }}
+            />
             <p className="mt-1 text-xs text-muted-foreground">
               Mês em que a despesa é considerada para o cálculo do lucro. Para contas pagas com 1 mês de atraso (ex: salário pago no dia 5 do mês seguinte), use o mês trabalhado.
             </p>
