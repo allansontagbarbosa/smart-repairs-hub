@@ -293,11 +293,7 @@ export default function Dashboard() {
     const now = new Date();
 
     const ordensMes = orders;
-    const ordensFaturadas = allOrders.filter(o => {
-      if (!isFaturado(o.status) || !o.data_conclusao) return false;
-      const d = new Date(o.data_conclusao);
-      return d >= range.start && d <= range.end;
-    });
+    const ordensFaturadas = orders.filter(o => isFaturado(o.status));
     // Faturamento usa valor_total (cobrado real), com fallback p/ valor em OS antigas.
     const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     // Custo de peças DEVE seguir o mesmo período da receita (data_conclusao das OS faturadas)
