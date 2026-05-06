@@ -189,7 +189,7 @@ export default function DesempenhoTecnicos() {
     };
   }
 
-  const lider = tecnicosFiltrados[0];
+  
 
   const dadosGrafico = useMemo(() => {
     return tecnicosFiltrados
