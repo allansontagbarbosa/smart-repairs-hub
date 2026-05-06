@@ -203,7 +203,7 @@ export function RelExportacao() {
               <p className="font-medium">DRE do Mês</p>
               <p className="text-xs text-muted-foreground">Imprimir demonstrativo como PDF</p>
             </div>
-            <Button onClick={() => window.print()} variant="outline">
+            <Button onClick={() => { window.location.href = "/relatorios?tab=dre&print=1"; }} variant="outline">
               <Printer className="h-4 w-4 mr-1" /> PDF
             </Button>
           </CardContent>
