@@ -5,8 +5,8 @@ import {
 import { TrendingUp, TrendingDown, ArrowUpDown, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  startOfDay, endOfDay, subDays, differenceInCalendarWeeks,
-  startOfWeek, endOfWeek, format, isWithinInterval,
+  startOfDay, endOfDay, subDays,
+  endOfWeek, format, isWithinInterval,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { ContaPagar, Comissao } from "@/hooks/useFinanceiro";
@@ -45,38 +45,8 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens }: Props) {
     const periodStart = startOfDay(subDays(now, days));
     const periodEnd = endOfDay(now);
 
-    // Group by week
-    const weekCount = Math.max(1, differenceInCalendarWeeks(periodEnd, periodStart, { locale: ptBR }) + 1);
-
-    const weeks: { start: Date; end: Date; label: string }[] = [];
-    for (let i = 0; i < weekCount; i++) {
-      const ws = i === 0 ? periodStart : startOfWeek(subDays(now, days - i * 7), { locale: ptBR });
-      const actualStart = i === 0 ? periodStart : ws;
-      const actualEnd = i === weekCount - 1 ? periodEnd : endOfWeek(actualStart, { locale: ptBR });
-      weeks.push({
-        start: actualStart,
-        end: actualEnd,
-        label: `${format(actualStart, "dd/MM")}`,
-      });
-    }
-
-    // Deduplicate overlapping weeks
-    const dedupedWeeks: typeof weeks = [];
-    for (let i = 0; i < weekCount; i++) {
-      const ws = startOfWeek(subDays(now, days - (days / weekCount) * i), { locale: ptBR });
-      const we = endOfWeek(ws, { locale: ptBR });
-      const clampedStart = ws < periodStart ? periodStart : ws;
-      const clampedEnd = we > periodEnd ? periodEnd : we;
-      if (clampedStart <= clampedEnd) {
-        const label = `${format(clampedStart, "dd/MM")}`;
-        // Avoid duplicates
-        if (!dedupedWeeks.find(w => w.label === label)) {
-          dedupedWeeks.push({ start: clampedStart, end: clampedEnd, label });
-        }
-      }
-    }
-
-    // Simpler approach: generate weeks from periodStart
+    // Gera buckets semanais a partir de periodStart, parando em periodEnd.
+    // Para períodos de 7 dias, usa label diário (Seg, Ter…); senão "Sem N".
     const finalWeeks: { start: Date; end: Date; label: string }[] = [];
     let cursor = periodStart;
     let weekIdx = 1;
