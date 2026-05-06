@@ -42,6 +42,8 @@ import { EditarDatasMassaModal } from "@/components/ordens/EditarDatasMassaModal
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { formatNumeroOS } from "@/lib/numeroOS";
+import { useServerSearch } from "./assistencia/useServerSearch";
+import { highlight } from "./assistencia/highlight";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -161,7 +163,8 @@ function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
 }
 
-async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchOrders({ page, filterStatus, dateRange, filters, matchingIds }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return [];
   const start = page * LIST_PAGE_SIZE;
   const end = start + LIST_PAGE_SIZE - 1;
 
@@ -177,13 +180,17 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
   }
+  if (matchingIds && matchingIds.length > 0) {
+    query = query.in("id", matchingIds);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchOrdersCount({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return 0;
   let query = supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos!inner(cliente_id, marca, modelo), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`, { count: "exact", head: true });
@@ -194,13 +201,17 @@ async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterSt
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
   }
+  if (matchingIds && matchingIds.length > 0) {
+    query = query.in("id", matchingIds);
+  }
 
   const { count, error } = await query;
   if (error) throw error;
   return count ?? 0;
 }
 
-async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return [];
   // Pagina em lotes de 1000 (limite default do PostgREST). Sem isso, filtros com >1000 OS retornavam só os primeiros 1000 IDs.
   const batchSize = 1000;
   let start = 0;
@@ -218,6 +229,9 @@ async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters }: 
 
     if (filterStatus !== "todos") {
       query = query.eq("status", filterStatus);
+    }
+    if (matchingIds && matchingIds.length > 0) {
+      query = query.in("id", matchingIds);
     }
 
     const { data, error } = await query;
@@ -255,7 +269,8 @@ async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) 
   return counts;
 }
 
-async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchOrdersForExport({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return [];
   const batchSize = 1000;
   let start = 0;
   const rows: any[] = [];
@@ -272,6 +287,9 @@ async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filt
 
     if (filterStatus !== "todos") {
       query = query.eq("status", filterStatus);
+    }
+    if (matchingIds && matchingIds.length > 0) {
+      query = query.in("id", matchingIds);
     }
 
     const { data, error } = await query;
@@ -726,6 +744,7 @@ export default function Assistencia() {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
   const { empresaId } = useEmpresa();
+  const serverSearch = useServerSearch(search, empresaId ?? undefined);
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
   const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
   const filtersKey = useMemo(() => filterHash(filters), [filters]);
@@ -740,15 +759,19 @@ export default function Assistencia() {
     return () => window.clearTimeout(timer);
   }, [clienteSearch]);
 
+  const searchEnabled = serverSearch.isEmpty || !serverSearch.isLoading;
+
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
-    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters }),
+    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey, "match", serverSearch.matchingIds],
+    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds }),
     placeholderData: (previousData) => previousData,
+    enabled: searchEnabled,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
-    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange, filters }),
+    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key, "filtros", filtersKey, "match", serverSearch.matchingIds],
+    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds }),
+    enabled: searchEnabled,
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
@@ -902,31 +925,11 @@ export default function Assistencia() {
 
   const filtered = useMemo(() => {
     return enriched.filter((o) => {
-      const clientName = o.aparelhos?.clientes?.nome ?? "";
-      const clientPhone = o.aparelhos?.clientes?.telefone ?? "";
-      const device = `${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""}`;
-      const q = search.toLowerCase();
-      const imei = (o.aparelhos?.imei ?? "").toLowerCase();
-      const numeroFmt = (o.numero_formatado ?? "").toLowerCase();
-      const phoneNorm = (clientPhone ?? "").replace(/\D/g, "");
-      const qNorm = q.replace(/\D/g, "");
-      const matchSearch =
-        !search ||
-        clientName.toLowerCase().includes(q) ||
-        (qNorm.length >= 4 && phoneNorm.includes(qNorm)) ||
-        device.toLowerCase().includes(q) ||
-        String(o.numero).includes(q) ||
-        numeroFmt.includes(q) ||
-        (!!imei && imei.includes(q));
-      const matchStatus =
-        filterStatus === "todos"
-          ? true
-          : o.status === filterStatus;
-      const matchPrioridade =
-        filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
-      return matchSearch && matchStatus && matchPrioridade;
+      const matchStatus = filterStatus === "todos" ? true : o.status === filterStatus;
+      const matchPrioridade = filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
+      return matchStatus && matchPrioridade;
     });
-  }, [enriched, search, filterStatus, filterPrioridade]);
+  }, [enriched, filterStatus, filterPrioridade]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -980,7 +983,7 @@ export default function Assistencia() {
   const handleSelectAllAcrossPages = useCallback(async () => {
     try {
       setSelectingAll(true);
-      const allOrders = await fetchAllOrdersForSelection({ filterStatus, dateRange: period.dateRange, filters });
+      const allOrders = await fetchAllOrdersForSelection({ filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds });
       bulk.selectItems(allOrders, { replace: true });
       toast.success(`${allOrders.length} ordens selecionadas`);
     } catch (e: any) {
@@ -988,7 +991,7 @@ export default function Assistencia() {
     } finally {
       setSelectingAll(false);
     }
-  }, [filterStatus, period.dateRange, filters, bulk]);
+  }, [filterStatus, period.dateRange, filters, bulk, serverSearch.matchingIds]);
 
   const allFilteredSelected = isAdmin && totalOrders > 0 && bulk.count >= totalOrders;
   const someFilteredSelected = isAdmin && bulk.count > 0 && !allFilteredSelected;
@@ -1247,7 +1250,7 @@ export default function Assistencia() {
   const handleExport = async (format: "csv" | "xlsx") => {
     setIsExporting(true);
     try {
-      const exportData = await fetchOrdersForExport({ filterStatus, dateRange: period.dateRange, filters });
+      const exportData = await fetchOrdersForExport({ filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds });
       if (exportData.length === 0) {
         toast.error("Nenhuma OS encontrada para exportar");
         return;
@@ -1440,7 +1443,7 @@ export default function Assistencia() {
         <td className="w-[70px] px-3 py-3 font-mono text-[13px] font-medium text-info cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
-          #{formatNumeroOS(order.numero, order.numero_formatado)}
+          #{highlight(formatNumeroOS(order.numero, order.numero_formatado), serverSearch.parsed)}
           {isCancelada && (
             <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-medium">
               <XCircle className="h-2.5 w-2.5" /> Cancelada
@@ -1449,8 +1452,8 @@ export default function Assistencia() {
         </td>
 
         <td className="px-3 py-3 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
-          <p className="text-[13px] font-medium truncate max-w-[260px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
-          <p className="text-[12px] text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
+          <p className="text-[13px] font-medium truncate max-w-[260px]">{highlight(order.aparelhos?.clientes?.nome ?? "—", serverSearch.parsed)}</p>
+          <p className="text-[12px] text-muted-foreground truncate">{highlight(`${order.aparelhos?.marca ?? ""} ${order.aparelhos?.modelo ?? ""}`.trim(), serverSearch.parsed)}</p>
           <div className="flex gap-2 mt-0.5 flex-wrap">
             <PrazoTag previsao={order.previsao_entrega} status={order.status} />
             <PecasPendentesTag temPeca={order.temPecaPendente} />
@@ -1704,11 +1707,17 @@ export default function Assistencia() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por cliente, telefone, IMEI ou nº OS"
-                className="h-9 border-0 bg-transparent pl-9 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder='Cliente, modelo, defeito, IMEI, #1234, imei:359, tel:991, @reparo…'
+                className="h-9 border-0 bg-transparent pl-9 pr-20 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label="Busca avançada de ordens de serviço"
               />
+              {!serverSearch.isEmpty && serverSearch.isLoading && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> buscando…
+                </span>
+              )}
             </div>
 
             <FiltrosAvancados
