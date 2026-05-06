@@ -374,6 +374,113 @@ export default function DesempenhoTecnicos() {
         </div>
       </div>
 
+      <Card>
+        <CardContent className="py-3 flex flex-wrap items-center gap-2">
+          <Select value={preset} onValueChange={(v) => setPreset(v as PresetId)}>
+            <SelectTrigger className="w-[170px] h-9">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRESETS.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {preset === "personalizado" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1">
+                  <CalendarClock className="h-4 w-4" />
+                  {customRange.inicio && customRange.fim
+                    ? `${format(customRange.inicio, "dd/MM/yy")} – ${format(customRange.fim, "dd/MM/yy")}`
+                    : "Escolher datas"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  locale={ptBR}
+                  numberOfMonths={2}
+                  className="p-3 pointer-events-auto"
+                  selected={customRange.inicio && customRange.fim ? { from: customRange.inicio, to: customRange.fim } : undefined}
+                  onSelect={(r) => setCustomRange({ inicio: r?.from ?? null, fim: r?.to ?? null })}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {lojas.length > 0 && (
+            <Select value={lojaId ?? "all"} onValueChange={(v) => setLojaId(v === "all" ? null : v)}>
+              <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Loja" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as lojas</SelectItem>
+                {lojas.map((l) => (
+                  <SelectItem key={l.id} value={l.id}>{l.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1">
+                <Filter className="h-4 w-4" />
+                {selecionados.size === 0
+                  ? "Todos os técnicos"
+                  : `${selecionados.size} técnico${selecionados.size > 1 ? "s" : ""}`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[260px] p-2" align="start">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground px-2 py-1">Filtrar técnicos</div>
+              <div className="max-h-72 overflow-y-auto">
+                {tecnicos.map((t) => {
+                  const ck = selecionados.has(t.funcionario_id);
+                  return (
+                    <label key={t.funcionario_id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted/50 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={ck}
+                        onChange={() => {
+                          const n = new Set(selecionados);
+                          if (ck) n.delete(t.funcionario_id); else n.add(t.funcionario_id);
+                          setSelecionados(n);
+                        }}
+                      />
+                      <span>{t.nome}</span>
+                    </label>
+                  );
+                })}
+                {tecnicos.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-2 py-1">Nenhum técnico no período</p>
+                )}
+              </div>
+              {selecionados.size > 0 && (
+                <Button variant="ghost" size="sm" className="w-full mt-1" onClick={() => setSelecionados(new Set())}>
+                  Limpar seleção
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar técnico..."
+              className="pl-8 h-9 w-[180px] text-sm"
+            />
+          </div>
+
+          {algumFiltroAtivo && (
+            <Button variant="ghost" size="sm" onClick={limparFiltros}>
+              <X className="h-3.5 w-3.5 mr-1" />Limpar filtros
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <CardKpiVar
           icon={Wrench}
@@ -458,17 +565,8 @@ export default function DesempenhoTecnicos() {
       )}
 
       <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm">Detalhe por técnico</CardTitle>
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Filtrar técnico..."
-              className="pl-8 h-8 text-sm"
-            />
-          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
