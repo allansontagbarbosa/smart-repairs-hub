@@ -565,17 +565,8 @@ export default function DesempenhoTecnicos() {
       )}
 
       <Card>
-        <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3">
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm">Detalhe por técnico</CardTitle>
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Filtrar técnico..."
-              className="pl-8 h-8 text-sm"
-            />
-          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
