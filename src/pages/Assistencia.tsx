@@ -1452,8 +1452,8 @@ export default function Assistencia() {
         </td>
 
         <td className="px-3 py-3 cursor-pointer" onClick={() => setSelectedOrderId(order.id)}>
-          <p className="text-[13px] font-medium truncate max-w-[260px]">{order.aparelhos?.clientes?.nome ?? "—"}</p>
-          <p className="text-[12px] text-muted-foreground truncate">{order.aparelhos?.marca} {order.aparelhos?.modelo}</p>
+          <p className="text-[13px] font-medium truncate max-w-[260px]">{highlight(order.aparelhos?.clientes?.nome ?? "—", serverSearch.parsed)}</p>
+          <p className="text-[12px] text-muted-foreground truncate">{highlight(`${order.aparelhos?.marca ?? ""} ${order.aparelhos?.modelo ?? ""}`.trim(), serverSearch.parsed)}</p>
           <div className="flex gap-2 mt-0.5 flex-wrap">
             <PrazoTag previsao={order.previsao_entrega} status={order.status} />
             <PecasPendentesTag temPeca={order.temPecaPendente} />
