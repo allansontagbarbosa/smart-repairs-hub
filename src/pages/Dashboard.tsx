@@ -586,8 +586,8 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Linha 2: Peças, Fixos, Variáveis, Depreciação, Impostos, Ticket — só desktop */}
-        <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
+        {/* Linha 2: Peças, Fixos, Variáveis, Comissões, Impostos, Ticket — só desktop */}
+        <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
           <MetricCard
             icon={Package}
             label="Custo de peças"
