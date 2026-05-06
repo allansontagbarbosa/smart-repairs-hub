@@ -306,20 +306,16 @@ export default function DesempenhoTecnicos() {
         />
       </div>
 
-      {lider && lider.comissao_total_a_receber > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex items-center gap-4 py-5">
-            <div className="rounded-full bg-primary/10 p-3">
-              <Trophy className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Líder do período
-              </p>
-              <p className="text-lg font-semibold">{lider.nome}</p>
-              <p className="text-sm text-muted-foreground">
-                {lider.qtd_servicos} serviços · {brl(lider.comissao_total_a_receber)} a receber
-              </p>
+      {tecnicosFiltrados.length > 0 && tecnicosFiltrados.some(t => t.comissao_total_a_receber > 0) && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Pódio do período</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-3 items-end">
+              <PodiumSlot rank={2} tecnico={tecnicosFiltrados[1]} />
+              <PodiumSlot rank={1} tecnico={tecnicosFiltrados[0]} />
+              <PodiumSlot rank={3} tecnico={tecnicosFiltrados[2]} />
             </div>
           </CardContent>
         </Card>
