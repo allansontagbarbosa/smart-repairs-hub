@@ -267,7 +267,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar técnico, OS ou serviço..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+          <Input placeholder="Buscar por técnico, cliente, OS, aparelho ou serviço..." className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={filterFunc} onValueChange={setFilterFunc}>
           <SelectTrigger className="w-full sm:w-52 h-9"><SelectValue /></SelectTrigger>
