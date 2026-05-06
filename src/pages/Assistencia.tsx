@@ -28,7 +28,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
-import { differenceInDays, format, isToday, isYesterday, isThisWeek } from "date-fns";
+import { differenceInDays, format, isToday, isYesterday, isThisWeek,
+  startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays, subMonths,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { GarantiasTab } from "@/components/GarantiasTab";
