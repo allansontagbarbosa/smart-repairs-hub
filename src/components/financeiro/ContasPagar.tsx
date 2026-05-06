@@ -46,9 +46,15 @@ interface Props {
   fornecedores: { id: string; nome: string }[];
   lojas: { id: string; nome: string }[];
   ordens: { id: string; numero: number; valor: number | null }[];
+  periodPreset: PeriodPreset;
+  periodRange: PeriodRange;
+  onPeriodChange: (preset: PeriodPreset, range: PeriodRange) => void;
 }
 
-export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, ordens }: Props) {
+export function ContasPagar({
+  contas, categorias, centros, fornecedores, lojas, ordens,
+  periodPreset, periodRange, onPeriodChange,
+}: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterLoja, setFilterLoja] = useState("todas");
