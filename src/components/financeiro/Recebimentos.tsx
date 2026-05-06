@@ -174,6 +174,7 @@ export function Recebimentos({ recebimentos }: Props) {
         )}
       </div>
 
+      <NovoRecebimentoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }
