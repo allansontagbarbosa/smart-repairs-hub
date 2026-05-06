@@ -1443,7 +1443,7 @@ export default function Assistencia() {
         <td className="w-[70px] px-3 py-3 font-mono text-[13px] font-medium text-info cursor-pointer hover:underline"
           onClick={() => setSelectedOrderId(order.id)}
         >
-          #{formatNumeroOS(order.numero, order.numero_formatado)}
+          #{highlight(formatNumeroOS(order.numero, order.numero_formatado), serverSearch.parsed)}
           {isCancelada && (
             <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-destructive/10 text-destructive px-1.5 py-0.5 text-[9px] font-medium">
               <XCircle className="h-2.5 w-2.5" /> Cancelada
