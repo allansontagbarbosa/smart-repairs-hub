@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
 import { addDays, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { PeriodRange } from "@/components/dashboard/period-presets";
 
 export type ContaPagar = {
   id: string;
@@ -174,7 +175,16 @@ async function fetchLojas() {
 const formatCompetencia = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-export function useFinanceiro() {
+interface UseFinanceiroOptions {
+  /**
+   * Range opcional para os KPIs de movimentação no período.
+   * Quando não informado, usa o mês corrente. KPIs de carteira (vencidas,
+   * próximos vencimentos, total pendente) IGNORAM esse range.
+   */
+  periodRange?: PeriodRange;
+}
+
+export function useFinanceiro(options: UseFinanceiroOptions = {}) {
   const contas = useQuery({ queryKey: ["contas_pagar"], queryFn: fetchContas });
   const comissoes = useQuery({ queryKey: ["comissoes"], queryFn: fetchComissoes });
   const categorias = useQuery({ queryKey: ["categorias_financeiras"], queryFn: fetchCategoriasFinanceiras });
@@ -192,9 +202,21 @@ export function useFinanceiro() {
     const todayStart = startOfDay(now);
     const next7DaysEnd = addDays(todayStart, 7);
     const next30DaysEnd = addDays(todayStart, 30);
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    const currentCompetencia = formatCompetencia(now);
+
+    // Range de movimentação: usa o filtro, senão mês corrente.
+    const periodStart = options.periodRange?.from ?? startOfMonth(now);
+    const periodEnd = options.periodRange?.to ?? endOfMonth(now);
+
+    // Lista de meses de competência cobertos pelo range.
+    const competenciasNoRange: string[] = [];
+    {
+      const cursor = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
+      const last = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), 1);
+      while (cursor <= last) {
+        competenciasNoRange.push(formatCompetencia(cursor));
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
 
     const allContas = contas.data ?? [];
     const allComissoes = comissoes.data ?? [];
@@ -233,17 +255,14 @@ export function useFinanceiro() {
     const pagoMes = allContas.filter(c => {
       if (c.status !== "paga" || !c.data_pagamento) return false;
       const d = new Date(c.data_pagamento + "T12:00:00");
-      return d >= monthStart && d <= monthEnd;
+      return d >= periodStart && d <= periodEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
     // Comissões
     const comissoesPendentes = allComissoes.filter(c => c.status === "pendente" || c.status === "liberada");
     const totalComissoesPendentes = comissoesPendentes.reduce((s, c) => s + Number(c.valor), 0);
 
-    // Comissões do mês — REGIME DE COMPETÊNCIA:
-    // pertencem ao mês em que a OS foi CONCLUÍDA (data_conclusao), não em que a comissão entrou no banco.
-    // Mesmo critério que faturamento e custo de peças, garantindo coerência com o Dashboard.
-    // Comissões avulsas (sem ordem_id) e de OS não concluídas não entram aqui.
+    // Comissões do mês — REGIME DE COMPETÊNCIA pela data_conclusao da OS.
     const comissoesMes = allComissoes.filter(c => {
       if (c.status !== "pendente" && c.status !== "liberada" && c.status !== "paga") return false;
       if (c.estornada_em) return false;
@@ -251,41 +270,40 @@ export function useFinanceiro() {
       if (!os || !os.data_conclusao) return false;
       if (os.status !== "pronto" && os.status !== "entregue") return false;
       const d = new Date(os.data_conclusao);
-      return d >= monthStart && d <= monthEnd;
+      return d >= periodStart && d <= periodEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    // Receita REALIZADA no mês: apenas OSs concluídas (pronto/entregue) com data_conclusao no mês
+    // Receita REALIZADA no período
     const ordensConcluidasMes = (allOrdens as any[]).filter(o => {
       if (o.status !== "pronto" && o.status !== "entregue") return false;
       const ref = o.data_conclusao ?? null;
       if (!ref) return false;
       const d = new Date(ref);
-      return d >= monthStart && d <= monthEnd;
+      return d >= periodStart && d <= periodEnd;
     });
-    // valor_total é o snapshot final (com desconto/peças/mão de obra). Fallback p/ valor em OS antigas.
     const receitaMes = ordensConcluidasMes.reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas reais do mês: contas por mês de competência, independente de status
+    // Despesas por competência cobertas pelo range
     const despesasMes = allContas.filter(c => {
-      return c.mes_competencia === currentCompetencia;
+      return c.mes_competencia ? competenciasNoRange.includes(c.mes_competencia) : false;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    // Recebimentos extras do mês: entradas avulsas, sem duplicar receita de OS já contabilizada em receitaMes
+    // Recebimentos extras no período
     const recebimentosMes = allRecebimentos.filter(r => {
       if (r.ordem_servico_id) return false;
       const d = new Date(r.data_recebimento.includes("T") ? r.data_recebimento : r.data_recebimento + "T12:00:00");
-      return d >= monthStart && d <= monthEnd;
+      return d >= periodStart && d <= periodEnd;
     }).reduce((s, r) => s + Number(r.valor), 0);
 
-    // Lucro REAL: receita - custos peças - despesas por competência - comissões + recebimentos extras
+    // Lucro REAL
     const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes;
 
-    // Despesas por categoria — contas por competência, independente de status
+    // Despesas por categoria — competências no range
     const despesasPorCategoria: Record<string, number> = {};
     allContas
       .filter(c => {
-        return c.mes_competencia === currentCompetencia;
+        return c.mes_competencia ? competenciasNoRange.includes(c.mes_competencia) : false;
       })
       .forEach(c => {
         const cat = c.categoria || "Outros";
@@ -339,7 +357,7 @@ export function useFinanceiro() {
       contasVencidas: vencidas.length,
       comissoesPendentesCount: comissoesPendentes.length,
     };
-  }, [contas.data, comissoes.data, ordens.data, recebimentos.data]);
+  }, [contas.data, comissoes.data, ordens.data, recebimentos.data, options.periodRange]);
 
   return {
     contas: contas.data ?? [],

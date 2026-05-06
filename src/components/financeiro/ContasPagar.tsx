@@ -11,6 +11,8 @@ import { ptBR } from "date-fns/locale";
 import { NovaContaDialog } from "./NovaContaDialog";
 import type { ContaPagar } from "@/hooks/useFinanceiro";
 import { dateOnlyLocal } from "@/lib/dateUtils";
+import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
+import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-presets";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
@@ -44,9 +46,15 @@ interface Props {
   fornecedores: { id: string; nome: string }[];
   lojas: { id: string; nome: string }[];
   ordens: { id: string; numero: number; valor: number | null }[];
+  periodPreset: PeriodPreset;
+  periodRange: PeriodRange;
+  onPeriodChange: (preset: PeriodPreset, range: PeriodRange) => void;
 }
 
-export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, ordens }: Props) {
+export function ContasPagar({
+  contas, categorias, centros, fornecedores, lojas, ordens,
+  periodPreset, periodRange, onPeriodChange,
+}: Props) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterLoja, setFilterLoja] = useState("todas");
@@ -75,7 +83,12 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
     const matchSearch = !search || c.descricao.toLowerCase().includes(q) || fornNome.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.smartStatus.key === filterStatus;
     const matchLoja = filterLoja === "todas" || c.loja_id === filterLoja;
-    return matchSearch && matchStatus && matchLoja;
+
+    // Filtro de período: data_vencimento dentro do range escolhido.
+    const venc = new Date(c.data_vencimento + "T12:00:00");
+    const matchPeriodo = venc >= periodRange.from && venc <= periodRange.to;
+
+    return matchSearch && matchStatus && matchLoja && matchPeriodo;
   });
 
   const resolveEmpresaId = async () => {
@@ -248,6 +261,17 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Período de vencimento
+        </h2>
+        <DashboardPeriodFilter
+          preset={periodPreset}
+          range={periodRange}
+          onChange={onPeriodChange}
+        />
+      </div>
+
       {/* Priority alerts */}
       {(atrasadas.length > 0 || hoje.length > 0) && (
         <div className="flex flex-wrap gap-2">
@@ -326,6 +350,10 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
           </table>
         </div>
       </div>
+
+      <p className="text-[11px] text-muted-foreground px-1">
+        Mostrando contas com vencimento em {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")} ({filtered.length} conta{filtered.length === 1 ? "" : "s"}). Atrasadas e vencendo hoje aparecem nos alertas acima independente do filtro.
+      </p>
 
       <NovaContaDialog
         open={dialogOpen}

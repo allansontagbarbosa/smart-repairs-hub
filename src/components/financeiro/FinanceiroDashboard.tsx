@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import type { ReactNode } from "react";
 
 const fmtCurrency = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -44,7 +45,11 @@ interface Props {
   };
 }
 
-export function FinanceiroDashboard({ kpis }: Props) {
+interface PropsExtended extends Props {
+  filterSlot?: ReactNode;
+}
+
+export function FinanceiroDashboard({ kpis, filterSlot }: PropsExtended) {
   const categoriasData = Object.entries(kpis.despesasPorCategoria)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
@@ -56,6 +61,15 @@ export function FinanceiroDashboard({ kpis }: Props) {
 
   return (
     <div className="space-y-5">
+      {filterSlot && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Movimentação no período
+          </h2>
+          {filterSlot}
+        </div>
+      )}
+
       {/* Alerts */}
       {(kpis.contasVencidas > 0 || kpis.comissoesPendentesCount > 0) && (
         <div className="flex flex-wrap gap-2">
