@@ -16,6 +16,7 @@ import {
   subYears,
   format,
   differenceInDays,
+  differenceInMilliseconds,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
