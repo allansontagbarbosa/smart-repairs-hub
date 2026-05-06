@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
-  Plus, Search, Loader2, LayoutGrid, MessageCircle,
+  Plus, Search, Loader2, LayoutGrid, List, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, Printer, Brain, Shield, Trash2, XCircle,
