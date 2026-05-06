@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
-import { Search, Receipt } from "lucide-react";
+import { Search, Receipt, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { NovoRecebimentoDialog } from "./NovoRecebimentoDialog";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const parseDate = (d: string) => new Date(d.includes("T") ? d : `${d}T12:00:00`);
