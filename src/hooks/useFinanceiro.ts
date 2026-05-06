@@ -357,7 +357,7 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
       contasVencidas: vencidas.length,
       comissoesPendentesCount: comissoesPendentes.length,
     };
-  }, [contas.data, comissoes.data, ordens.data, recebimentos.data]);
+  }, [contas.data, comissoes.data, ordens.data, recebimentos.data, options.periodRange]);
 
   return {
     contas: contas.data ?? [],
