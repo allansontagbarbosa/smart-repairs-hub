@@ -42,6 +42,8 @@ import { EditarDatasMassaModal } from "@/components/ordens/EditarDatasMassaModal
 import { BulkActionConfirmDialog, type BulkAffectedItem } from "@/components/BulkActionConfirmDialog";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { formatNumeroOS } from "@/lib/numeroOS";
+import { useServerSearch } from "./assistencia/useServerSearch";
+import { highlight } from "./assistencia/highlight";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -161,7 +163,8 @@ function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
 }
 
-async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchOrders({ page, filterStatus, dateRange, filters, matchingIds }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return [];
   const start = page * LIST_PAGE_SIZE;
   const end = start + LIST_PAGE_SIZE - 1;
 
@@ -177,13 +180,17 @@ async function fetchOrders({ page, filterStatus, dateRange, filters }: { page: n
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
   }
+  if (matchingIds && matchingIds.length > 0) {
+    query = query.in("id", matchingIds);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
 
-async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchOrdersCount({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return 0;
   let query = supabase
     .from("ordens_de_servico")
     .select(`*, aparelhos!inner(cliente_id, marca, modelo), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`, { count: "exact", head: true });
@@ -194,13 +201,17 @@ async function fetchOrdersCount({ filterStatus, dateRange, filters }: { filterSt
   if (filterStatus !== "todos") {
     query = query.eq("status", filterStatus);
   }
+  if (matchingIds && matchingIds.length > 0) {
+    query = query.in("id", matchingIds);
+  }
 
   const { count, error } = await query;
   if (error) throw error;
   return count ?? 0;
 }
 
-async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return [];
   // Pagina em lotes de 1000 (limite default do PostgREST). Sem isso, filtros com >1000 OS retornavam só os primeiros 1000 IDs.
   const batchSize = 1000;
   let start = 0;
