@@ -195,22 +195,19 @@ export default function DesempenhoTecnicos() {
 
   const tecnicosFiltrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
-    let lista = q
-      ? tecnicos.filter((t) => (t.nome ?? "").toLowerCase().includes(q))
-      : tecnicos;
-
+    let lista = tecnicos;
+    if (selecionados.size > 0) lista = lista.filter((t) => selecionados.has(t.funcionario_id));
+    if (q) lista = lista.filter((t) => (t.nome ?? "").toLowerCase().includes(q));
     const dir = sortDir === "asc" ? 1 : -1;
     lista = [...lista].sort((a, b) => {
-      const va =
-        sortKey === "nome" ? (a.nome ?? "").toLowerCase() : Number((a as any)[sortKey] ?? 0);
-      const vb =
-        sortKey === "nome" ? (b.nome ?? "").toLowerCase() : Number((b as any)[sortKey] ?? 0);
+      const va = sortKey === "nome" ? (a.nome ?? "").toLowerCase() : Number((a as any)[sortKey] ?? 0);
+      const vb = sortKey === "nome" ? (b.nome ?? "").toLowerCase() : Number((b as any)[sortKey] ?? 0);
       if (va < vb) return -1 * dir;
       if (va > vb) return 1 * dir;
       return 0;
     });
     return lista;
-  }, [tecnicos, busca, sortKey, sortDir]);
+  }, [tecnicos, busca, sortKey, sortDir, selecionados]);
 
   const totais = useMemo(
     () => ({
@@ -228,18 +225,17 @@ export default function DesempenhoTecnicos() {
     [tecnicosFiltrados],
   );
 
-  const totaisAnterior = useMemo(
-    () => ({
-      qtd_servicos: tecnicosAnterior.reduce((s, t) => s + Number(t.qtd_servicos), 0),
-      faturamento: tecnicosAnterior.reduce((s, t) => s + Number(t.faturamento_os), 0),
-      a_receber: tecnicosAnterior.reduce(
-        (s, t) => s + Number(t.comissao_total_a_receber),
-        0,
-      ),
-      paga: tecnicosAnterior.reduce((s, t) => s + Number(t.comissao_paga), 0),
-    }),
-    [tecnicosAnterior],
-  );
+  const totaisAnterior = useMemo(() => {
+    const filtrados = selecionados.size > 0
+      ? tecnicosAnterior.filter((t) => selecionados.has(t.funcionario_id))
+      : tecnicosAnterior;
+    return {
+      qtd_servicos: filtrados.reduce((s, t) => s + Number(t.qtd_servicos), 0),
+      faturamento: filtrados.reduce((s, t) => s + Number(t.faturamento_os), 0),
+      a_receber: filtrados.reduce((s, t) => s + Number(t.comissao_total_a_receber), 0),
+      paga: filtrados.reduce((s, t) => s + Number(t.comissao_paga), 0),
+    };
+  }, [tecnicosAnterior, selecionados]);
 
   const tecnicoAnteriorPorId = useMemo(() => {
     const m = new Map<string, KpiTecnico>();
@@ -403,7 +399,7 @@ export default function DesempenhoTecnicos() {
           label="Comissão paga"
           value={brl(totais.paga)}
           variacao={varPaga}
-          accent
+          accent={totais.paga > 0}
         />
       </div>
 
@@ -504,8 +500,26 @@ export default function DesempenhoTecnicos() {
                 )}
                 {!isLoading && tecnicosFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="py-10 text-center text-muted-foreground">
-                      {busca ? "Nenhum técnico encontrado para a busca." : "Nenhum dado no período."}
+                    <td colSpan={12} className="py-10 text-center">
+                      <p className="text-muted-foreground mb-3">
+                        {algumFiltroAtivo
+                          ? "Nenhum técnico bate com os filtros atuais."
+                          : "Nenhum dado no período."}
+                      </p>
+                      {algumFiltroAtivo ? (
+                        <Button variant="outline" size="sm" onClick={limparFiltros}>
+                          <X className="h-3.5 w-3.5 mr-1" />Limpar filtros
+                        </Button>
+                      ) : (
+                        <div className="inline-flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setPreset("ultimos_30")}>
+                            Ver últimos 30 dias
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setPreset("mes_passado")}>
+                            Ver mês passado
+                          </Button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
