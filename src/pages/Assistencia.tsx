@@ -53,7 +53,17 @@ import { highlight } from "./assistencia/highlight";
 type SortKey = "numero" | "prioridade" | "data_entrada" | "data_conclusao" | "data_entrega" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
-type PeriodPreset = "30" | "60" | "90" | "all";
+type PeriodPreset =
+  | "hoje"
+  | "ontem"
+  | "esta_semana"
+  | "ultimos_7"
+  | "ultimos_30"
+  | "este_mes"
+  | "mes_passado"
+  | "este_trimestre"
+  | "este_ano"
+  | "all";
 type DateRangeFilter = { de?: string; ate?: string } | null;
 type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
 type GarantiaFilter = "em_garantia" | "expirada" | "sem_garantia";
