@@ -586,8 +586,8 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Linha 2: Peças, Fixos, Variáveis, Depreciação, Impostos, Ticket — só desktop */}
-        <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
+        {/* Linha 2: Peças, Fixos, Variáveis, Comissões, Impostos, Ticket — só desktop */}
+        <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3">
           <MetricCard
             icon={Package}
             label="Custo de peças"
@@ -616,6 +616,17 @@ export default function Dashboard() {
                 ? `Mês inteiro de competência (${competenciaInfo.meses.join(", ")})`
                 : `Competência: ${competenciaInfo.meses.join(", ")}`
             }
+          />
+          <MetricCard
+            icon={Users}
+            label="Comissões"
+            value={brl(kpis.totalComissoesPeriodo)}
+            sub={
+              kpis.faturamento > 0
+                ? `${pct((kpis.totalComissoesPeriodo / kpis.faturamento) * 100)} do fat.`
+                : undefined
+            }
+            iconColor="text-purple-500"
           />
           <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-gray-500" />
           <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-blue-500" />
