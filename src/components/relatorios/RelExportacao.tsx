@@ -324,6 +324,18 @@ export function RelExportacao() {
         <Card>
           <CardContent className="pt-5 flex items-center justify-between">
             <div>
+              <p className="font-medium">Rentabilidade por OS</p>
+              <p className="text-xs text-muted-foreground">Receita − peças − comissão</p>
+            </div>
+            <Button onClick={exportarRentabilidade} disabled={loading === "rent"} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5 flex items-center justify-between">
+            <div>
               <p className="font-medium">DRE do Mês</p>
               <p className="text-xs text-muted-foreground">Imprimir demonstrativo como PDF</p>
             </div>
