@@ -617,6 +617,17 @@ export default function Dashboard() {
                 : `Competência: ${competenciaInfo.meses.join(", ")}`
             }
           />
+          <MetricCard
+            icon={Users}
+            label="Comissões"
+            value={brl(kpis.totalComissoesPeriodo)}
+            sub={
+              kpis.faturamento > 0
+                ? `${pct((kpis.totalComissoesPeriodo / kpis.faturamento) * 100)} do fat.`
+                : undefined
+            }
+            iconColor="text-purple-500"
+          />
           <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-gray-500" />
           <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-blue-500" />
         </div>
