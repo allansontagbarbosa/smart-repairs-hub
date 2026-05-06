@@ -23,7 +23,12 @@ export default function Relatorios() {
           <TabsTrigger value="defeitos">Serviços</TabsTrigger>
           <TabsTrigger value="exportacao">Exportação</TabsTrigger>
         </TabsList>
-        <TabsContent value="dre"><RelDRE /></TabsContent>
+        <TabsContent value="dre">
+          <p className="text-[11px] text-muted-foreground mb-3 px-1">
+            ⓘ A DRE também está disponível dentro de <strong>Financeiro → DRE</strong> pra acesso mais direto.
+          </p>
+          <RelDRE />
+        </TabsContent>
         <TabsContent value="tecnicos"><RelTecnicos /></TabsContent>
         <TabsContent value="defeitos"><RelServicos /></TabsContent>
         <TabsContent value="exportacao"><RelExportacao /></TabsContent>
