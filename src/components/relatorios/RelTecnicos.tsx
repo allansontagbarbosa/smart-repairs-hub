@@ -77,43 +77,49 @@ export function RelTecnicos() {
           <Button variant="outline" size="icon" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          Mesmos números da página <a href="/tecnicos/desempenho" className="underline">Desempenho dos técnicos</a> — regime de competência (data de conclusão).
+        </p>
+
         <div className="grid gap-4 md:grid-cols-2">
-          {tecnicos.map(c => {
-            const extra = porTec.get(c.funcionario_id);
+          {tecnicos.map((t, i) => {
+            const e = porTec.get(t.funcionario_id);
+            const lider = i === 0 && Number(t.comissao_total_a_receber) > 0;
             return (
-              <Card key={c.funcionario_id}>
+              <Card key={t.funcionario_id} className={lider ? "border-primary/40" : ""}>
                 <CardContent className="pt-5 space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="h-4 w-4 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-semibold">{c.nome}</p>
-                    </div>
+                    <p className="font-semibold">{t.nome}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Serviços: <strong>{c.qtd_servicos}</strong></div>
-                    <div>OSs participou: <strong>{c.qtd_os}</strong></div>
-                    <div>Tempo médio: <strong>{fmtT(Number(c.tempo_medio_horas) || 0)}</strong></div>
-                    <div>Ticket médio: <strong>{fmt(Number(c.ticket_medio_os) || 0)}</strong></div>
-                    <div>Valor serviços: <strong>{fmt(Number(c.valor_servicos) || 0)}</strong></div>
+                    <div>Serviços: <strong>{t.qtd_servicos}</strong></div>
+                    <div>OSs: <strong>{t.qtd_os}</strong></div>
+                    <div>Faturamento: <strong>{fmt(Number(t.faturamento_os))}</strong></div>
+                    <div>Ticket médio: <strong>{fmt(Number(t.ticket_medio_os))}</strong></div>
+                    <div>Tempo médio: <strong>{fmtT(Number(t.tempo_medio_horas))}</strong></div>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div>Comissão: <strong>{fmt(Number(c.comissao_paga) + Number(c.comissao_total_a_receber))}</strong></div>
+                        <div>Comissão: <strong>{fmt(Number(t.comissao_total_a_receber) + Number(t.comissao_paga))}</strong></div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Pago: {fmt(Number(c.comissao_paga))}</p>
-                        <p>A receber: {fmt(Number(c.comissao_total_a_receber))}</p>
+                        <p>A receber: {fmt(Number(t.comissao_total_a_receber))}</p>
+                        <p>Paga: {fmt(Number(t.comissao_paga))}</p>
                       </TooltipContent>
                     </Tooltip>
-                    <div>Retrabalho: <strong>{(extra?.retrab ?? 0).toFixed(1)}%</strong></div>
+                    <div className="col-span-2">
+                      Retrabalho: <strong>{e?.retrab.toFixed(1) ?? "0.0"}%</strong>
+                      {e && e.retrab > 5 && <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-500" />}
+                    </div>
                   </div>
-                  {extra && extra.topServ.length > 0 && (
+                  {e && e.topServ.length > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Serviços frequentes:</p>
                       <div className="flex flex-wrap gap-1">
-                        {extra.topServ.map(([nome, count]) => (
-                          <Badge key={nome} variant="secondary" className="text-xs">{nome} ({count})</Badge>
+                        {e.topServ.map(([n, c]) => (
+                          <Badge key={n} variant="secondary" className="text-xs">{n} ({c})</Badge>
                         ))}
                       </div>
                     </div>
