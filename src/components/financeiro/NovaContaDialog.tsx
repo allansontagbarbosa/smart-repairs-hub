@@ -180,9 +180,20 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
   const recorrente = watch("recorrente");
   const dataVencimento = watch("data_vencimento");
 
+  // Auto-preenche mes_competencia APENAS uma vez por abertura do dialog,
+  // quando o usuário ainda não interagiu com o campo. Mudar `recorrente` ou
+  // `data_vencimento` depois disso NÃO sobrescreve o que o usuário escolheu.
+  const competenciaTouchedRef = useRef(false);
   useEffect(() => {
-    if (!open || isEditing || !dataVencimento) return;
+    if (!open) {
+      competenciaTouchedRef.current = false;
+      return;
+    }
+    if (isEditing) return;
+    if (competenciaTouchedRef.current) return;
+    if (!dataVencimento) return;
     setValue("mes_competencia", getDefaultCompetencia(dataVencimento, recorrente));
+    competenciaTouchedRef.current = true;
   }, [open, isEditing, dataVencimento, recorrente, setValue]);
 
   return (
