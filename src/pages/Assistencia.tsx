@@ -1758,6 +1758,18 @@ export default function Assistencia() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="hidden sm:inline-flex items-center rounded-md border bg-card p-0.5">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1 text-[12px] font-medium text-foreground cursor-default">
+              <List className="h-3.5 w-3.5" /> Lista
+            </span>
+            <Link
+              to="/assistencia/fluxo"
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Ver Kanban"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+            </Link>
+          </div>
           {can("assistencia", "criar") && (
             <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova Ordem
