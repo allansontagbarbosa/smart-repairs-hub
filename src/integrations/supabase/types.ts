@@ -4942,6 +4942,24 @@ export type Database = {
         }
         Returns: Json
       }
+      replicar_contas_recorrentes: {
+        Args: { p_destino: string; p_origem: string }
+        Returns: {
+          destino: string
+          inseridas: number
+          origem: string
+          puladas: number
+        }[]
+      }
+      replicar_contas_recorrentes_mes_atual: {
+        Args: never
+        Returns: {
+          destino: string
+          inseridas: number
+          origem: string
+          puladas: number
+        }[]
+      }
       revogar_usuario: { Args: { p_user_profile_id: string }; Returns: Json }
       saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
       salvar_perfil_acesso: {
