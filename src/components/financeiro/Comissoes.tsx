@@ -9,7 +9,12 @@ import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/h
 import type { Comissao } from "@/hooks/useFinanceiro";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { formatNumeroOS } from "@/lib/numeroOS";
-import { PeriodFilter, usePeriodFilter } from "@/components/PeriodFilter";
+import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
+import {
+  type PeriodPreset,
+  type PeriodRange,
+  rangeFromPreset,
+} from "@/components/dashboard/period-presets";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d), "dd/MM/yyyy");
@@ -36,7 +41,15 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const liberarMutation = useLiberarComissao();
   const pagarMutation = usePagarComissao();
   const pagarLoteMutation = usePagarComissoesLote();
-  const periodo = usePeriodFilter("este_mes");
+  // Filtro de período unificado: mesma curadoria de 9 presets do Dashboard e Assistência.
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("este_mes");
+  const [periodRange, setPeriodRange] = useState<PeriodRange>(
+    () => rangeFromPreset("este_mes")!
+  );
+  function handlePeriodChange(preset: PeriodPreset, range: PeriodRange) {
+    setPeriodPreset(preset);
+    setPeriodRange(range);
+  }
 
   const filtered = useMemo(() => comissoes.filter(c => {
     const q = search.toLowerCase();

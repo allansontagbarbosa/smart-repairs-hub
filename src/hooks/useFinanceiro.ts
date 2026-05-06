@@ -127,6 +127,7 @@ async function fetchRecebimentos() {
     .from("movimentacoes_financeiras")
     .select("*")
     .eq("tipo", "entrada")
+    .is("estornada_em", null)
     .order("data", { ascending: false });
   if (error) {
     console.error("ERRO fetchRecebimentos:", error.code, error.message, error.details);
@@ -137,9 +138,12 @@ async function fetchRecebimentos() {
     descricao: m.descricao,
     valor: Number(m.valor ?? 0),
     data_recebimento: m.data,
-    forma_pagamento: m.ordem_id ? "os" : "avulso",
+    // forma_pagamento real (pix, dinheiro, cartao_debito, etc.) vem da coluna do banco.
+    // Origem da entrada (OS vs avulso) fica em `origem`, separada da forma de pagamento.
+    forma_pagamento: m.forma_pagamento ?? null,
+    origem: (m.ordem_id ? "os" : "avulso") as "os" | "avulso",
     ordem_servico_id: m.ordem_id,
-    cliente_id: null,
+    cliente_id: m.cliente_id ?? null,
     loja_id: null,
     observacoes: m.estoque_id ? "Entrada vinculada ao estoque" : null,
     created_at: m.created_at,
