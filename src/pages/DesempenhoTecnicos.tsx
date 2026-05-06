@@ -325,6 +325,25 @@ export default function DesempenhoTecnicos() {
   const varAReceber = variacao(totais.a_receber, totaisAnterior.a_receber);
   const varPaga = variacao(totais.paga, totaisAnterior.paga);
 
+  const [agora, setAgora] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const minDesdeUpdate = dataUpdatedAt
+    ? Math.floor(differenceInMilliseconds(agora, dataUpdatedAt) / 60_000)
+    : null;
+
+  const limparFiltros = () => {
+    setPreset("este_mes");
+    setCustomRange({ inicio: null, fim: null });
+    setLojaId(null);
+    setSelecionados(new Set());
+    setBusca("");
+  };
+  const algumFiltroAtivo =
+    preset !== "este_mes" || lojaId !== null || selecionados.size > 0 || !!busca;
+
   return (
     <div className="space-y-5 md:space-y-6">
       <div className="page-header flex flex-col md:flex-row md:items-end md:justify-between gap-3">
@@ -335,9 +354,23 @@ export default function DesempenhoTecnicos() {
             {format(range.fim, "dd/MM/yyyy", { locale: ptBR })} · vs{" "}
             {format(rangeAnterior.inicio, "dd/MM", { locale: ptBR })}–
             {format(rangeAnterior.fim, "dd/MM", { locale: ptBR })}
+            {minDesdeUpdate !== null && minDesdeUpdate >= 1 && (
+              <span className="ml-2 text-xs text-muted-foreground/70">
+                · atualizado há {minDesdeUpdate} min
+              </span>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            title="Atualizar"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
           <Button size="sm" variant="outline" onClick={exportarCSV}>
             <Download className="h-4 w-4 mr-1" />
             CSV
