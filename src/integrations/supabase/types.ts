@@ -2854,6 +2854,72 @@ export type Database = {
           },
         ]
       }
+      metas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          descricao: string | null
+          empresa_id: string
+          escopo: Database["public"]["Enums"]["escopo_meta"]
+          escopo_id: string | null
+          id: string
+          metrica: Database["public"]["Enums"]["metric_meta"]
+          nome: string
+          periodo_fim: string
+          periodo_inicio: string
+          sentido: string
+          status: Database["public"]["Enums"]["status_meta"]
+          threshold_alerta: number
+          threshold_atencao: number
+          valor_alvo: number
+          valor_atual: number
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          empresa_id: string
+          escopo: Database["public"]["Enums"]["escopo_meta"]
+          escopo_id?: string | null
+          id?: string
+          metrica: Database["public"]["Enums"]["metric_meta"]
+          nome: string
+          periodo_fim: string
+          periodo_inicio: string
+          sentido?: string
+          status?: Database["public"]["Enums"]["status_meta"]
+          threshold_alerta?: number
+          threshold_atencao?: number
+          valor_alvo: number
+          valor_atual?: number
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          escopo?: Database["public"]["Enums"]["escopo_meta"]
+          escopo_id?: string | null
+          id?: string
+          metrica?: Database["public"]["Enums"]["metric_meta"]
+          nome?: string
+          periodo_fim?: string
+          periodo_inicio?: string
+          sentido?: string
+          status?: Database["public"]["Enums"]["status_meta"]
+          threshold_alerta?: number
+          threshold_atencao?: number
+          valor_alvo?: number
+          valor_atual?: number
+        }
+        Relationships: []
+      }
       modelos: {
         Row: {
           ativo: boolean
@@ -4987,6 +5053,18 @@ export type Database = {
       }
     }
     Enums: {
+      escopo_meta: "empresa" | "tecnico" | "loja"
+      metric_meta:
+        | "faturamento"
+        | "qtd_os"
+        | "qtd_servicos"
+        | "ticket_medio"
+        | "comissao_paga"
+        | "margem_os"
+        | "tempo_medio_horas"
+        | "retrabalho_taxa"
+        | "aprovacao_orcamento_taxa"
+        | "retorno_cliente_30d"
       status_comissao: "pendente" | "liberada" | "paga" | "estornada"
       status_conferencia: "em_andamento" | "finalizada"
       status_conta: "pendente" | "paga" | "vencida" | "cancelada"
@@ -4995,6 +5073,7 @@ export type Database = {
         | "em_assistencia"
         | "em_transporte"
         | "vendido"
+      status_meta: "ativa" | "pausada" | "concluida_sucesso" | "concluida_falha"
       status_ordem:
         | "recebido"
         | "em_analise"
@@ -5135,6 +5214,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      escopo_meta: ["empresa", "tecnico", "loja"],
+      metric_meta: [
+        "faturamento",
+        "qtd_os",
+        "qtd_servicos",
+        "ticket_medio",
+        "comissao_paga",
+        "margem_os",
+        "tempo_medio_horas",
+        "retrabalho_taxa",
+        "aprovacao_orcamento_taxa",
+        "retorno_cliente_30d",
+      ],
       status_comissao: ["pendente", "liberada", "paga", "estornada"],
       status_conferencia: ["em_andamento", "finalizada"],
       status_conta: ["pendente", "paga", "vencida", "cancelada"],
@@ -5144,6 +5236,7 @@ export const Constants = {
         "em_transporte",
         "vendido",
       ],
+      status_meta: ["ativa", "pausada", "concluida_sucesso", "concluida_falha"],
       status_ordem: [
         "recebido",
         "em_analise",
