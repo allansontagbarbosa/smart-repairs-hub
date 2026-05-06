@@ -48,7 +48,11 @@ export type Comissao = {
     numero_formatado: string | null;
     status?: string | null;
     data_conclusao?: string | null;
-    aparelhos?: { marca: string; modelo: string } | null;
+    aparelhos?: {
+      marca: string;
+      modelo: string;
+      clientes?: { nome: string } | null;
+    } | null;
   } | null;
   os_servicos?: { nome: string; status: string } | null;
 };
@@ -71,7 +75,7 @@ async function fetchComissoes() {
     .from("comissoes")
     .select(`*,
       funcionarios ( nome ),
-      ordens_de_servico ( numero, numero_formatado, status, data_conclusao, aparelhos ( marca, modelo ) ),
+      ordens_de_servico ( numero, numero_formatado, status, data_conclusao, aparelhos ( marca, modelo, clientes ( nome ) ) ),
       os_servicos ( nome, status )
     `)
     .order("created_at", { ascending: false });
