@@ -303,12 +303,12 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                 <th className="w-10">
                   <Checkbox checked={allPayableSelected} onCheckedChange={v => toggleAll(v === true)} aria-label="Selecionar comissões pagáveis" />
                 </th>
-                <th>Data</th>
-                <th>Técnico</th>
-                <th>OS</th>
+                <th><SortableHeader label="Data" active={sortKey === "data"} dir={sortDir} onClick={() => toggleSort("data")} /></th>
+                <th><SortableHeader label="Técnico" active={sortKey === "tecnico"} dir={sortDir} onClick={() => toggleSort("tecnico")} /></th>
+                <th>OS / Cliente</th>
                 <th>Serviço</th>
-                <th>Valor</th>
-                <th>Status</th>
+                <th><SortableHeader label="Valor" active={sortKey === "valor"} dir={sortDir} onClick={() => toggleSort("valor")} /></th>
+                <th><SortableHeader label="Status" active={sortKey === "status"} dir={sortDir} onClick={() => toggleSort("status")} /></th>
                 <th className="text-right">Ações</th>
               </tr>
             </thead>
