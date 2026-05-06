@@ -11,6 +11,8 @@ import { ptBR } from "date-fns/locale";
 import { NovaContaDialog } from "./NovaContaDialog";
 import type { ContaPagar } from "@/hooks/useFinanceiro";
 import { dateOnlyLocal } from "@/lib/dateUtils";
+import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
+import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-presets";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
