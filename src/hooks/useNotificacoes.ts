@@ -44,7 +44,7 @@ export function useNotificacoes() {
         .lt("previsao_entrega", nowIso)
         .not("status", "in", '("pronto","entregue","cancelado")')
         .is("deleted_at", null),
-      supabase.from("contas_a_pagar").select("id", { count: "exact", head: true }).eq("status", "vencida"),
+      supabase.from("contas_a_pagar").select("id", { count: "exact", head: true }).eq("status", "vencida").is("deleted_at", null),
       supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("status", "pendente"),
       // Estoque baixo: PostgREST não suporta col×col, então buscamos no cliente
       supabase.from("estoque_itens")
