@@ -180,15 +180,57 @@ function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   }
 
   const periodo = params.get("periodo") as PeriodPreset | null;
-  const preset: PeriodPreset = periodo && ["30", "60", "90", "all"].includes(periodo) ? periodo : "90";
+  const validPresets: PeriodPreset[] = [
+    "hoje", "ontem", "esta_semana", "ultimos_7", "ultimos_30",
+    "este_mes", "mes_passado", "este_trimestre", "este_ano", "all",
+  ];
+  const preset: PeriodPreset =
+    periodo && validPresets.includes(periodo) ? periodo : "este_mes";
+
   if (preset === "all") {
     return { preset, key: "all", dateRange: null };
   }
 
-  const from = new Date();
-  from.setDate(from.getDate() - Number(preset));
-  const dePreset = dateOnly(from);
-  return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
+  const now = new Date();
+  let start: Date;
+  let end: Date | undefined;
+  switch (preset) {
+    case "hoje":
+      start = startOfDay(now); end = endOfDay(now); break;
+    case "ontem": {
+      const y = subDays(now, 1);
+      start = startOfDay(y); end = endOfDay(y); break;
+    }
+    case "esta_semana":
+      start = startOfWeek(now, { weekStartsOn: WEEK_STARTS_ON });
+      end = endOfWeek(now, { weekStartsOn: WEEK_STARTS_ON });
+      break;
+    case "ultimos_7":
+      start = startOfDay(subDays(now, 6)); end = endOfDay(now); break;
+    case "ultimos_30":
+      start = startOfDay(subDays(now, 29)); end = endOfDay(now); break;
+    case "este_mes":
+      start = startOfMonth(now); end = endOfMonth(now); break;
+    case "mes_passado": {
+      const m = subMonths(now, 1);
+      start = startOfMonth(m); end = endOfMonth(m); break;
+    }
+    case "este_trimestre":
+      start = startOfQuarter(now); end = endOfQuarter(now); break;
+    case "este_ano":
+      start = startOfYear(now); end = endOfYear(now); break;
+    default:
+      start = startOfMonth(now); end = endOfMonth(now);
+  }
+  const dePreset = dateOnly(start);
+  const atePreset = end ? dateOnly(end) : undefined;
+  return {
+    preset,
+    de: dePreset,
+    ate: atePreset,
+    key: preset,
+    dateRange: { de: dePreset, ate: atePreset },
+  };
 }
 
 async function fetchOrders({ page, filterStatus, dateRange, filters, matchingIds }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
