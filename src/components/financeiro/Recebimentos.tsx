@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
-import { Search, Receipt } from "lucide-react";
+import { Search, Receipt, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { NovoRecebimentoDialog } from "./NovoRecebimentoDialog";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const parseDate = (d: string) => new Date(d.includes("T") ? d : `${d}T12:00:00`);
@@ -53,6 +55,7 @@ export function Recebimentos({ recebimentos }: Props) {
   const [search, setSearch] = useState("");
   const [filterForma, setFilterForma] = useState("todas");
   const [filterOrigem, setFilterOrigem] = useState("todas");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -134,6 +137,10 @@ export function Recebimentos({ recebimentos }: Props) {
             {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button type="button" onClick={() => setDialogOpen(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Novo Recebimento
+        </Button>
       </div>
 
       {/* Lista */}
@@ -141,7 +148,7 @@ export function Recebimentos({ recebimentos }: Props) {
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             {recebimentos.length === 0
-              ? "Nenhum recebimento extra registrado ainda — ao lançar uma entrada manual, ela aparecerá aqui."
+              ? "Nenhum recebimento registrado ainda. Clique em \"Novo Recebimento\" pra criar o primeiro."
               : "Nenhum recebimento encontrado com os filtros atuais."}
           </p>
         ) : (
@@ -167,6 +174,7 @@ export function Recebimentos({ recebimentos }: Props) {
         )}
       </div>
 
+      <NovoRecebimentoDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }
