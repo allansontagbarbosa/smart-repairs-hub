@@ -4879,7 +4879,10 @@ export type Database = {
       is_admin_ou_gerente: { Args: never; Returns: boolean }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
-      kpi_tecnicos: { Args: { p_fim: string; p_inicio: string }; Returns: Json }
+      kpi_tecnicos: {
+        Args: { p_fim: string; p_inicio: string; p_loja_id?: string }
+        Returns: Json
+      }
       liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       limpar_rate_limit_antigos: { Args: never; Returns: number }
       lojista_verificar_acesso: {
