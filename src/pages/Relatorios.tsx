@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { RelDRE } from "@/components/relatorios/RelDRE";
@@ -6,6 +8,18 @@ import { RelServicos } from "@/components/relatorios/RelServicos";
 import { RelExportacao } from "@/components/relatorios/RelExportacao";
 
 export default function Relatorios() {
+  const [sp] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(sp.get("tab") ?? "dre");
+
+  useEffect(() => {
+    const tab = sp.get("tab");
+    if (tab) setActiveTab(tab);
+    if (sp.get("print") === "1" && tab === "dre") {
+      const t = setTimeout(() => window.print(), 800);
+      return () => clearTimeout(t);
+    }
+  }, [sp]);
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 w-full">
       <div className="flex items-center gap-2">
@@ -16,7 +30,7 @@ export default function Relatorios() {
         </div>
       </div>
 
-      <Tabs defaultValue="dre" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="dre">DRE</TabsTrigger>
           <TabsTrigger value="tecnicos">Técnicos</TabsTrigger>
