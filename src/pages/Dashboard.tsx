@@ -99,6 +99,15 @@ const getCompetenciaMonths = (start: Date, end: Date) => {
   return months;
 };
 
+// Detecta se o range cobre meses inteiros (do dia 1 ao último dia)
+const rangeCobreMesesInteiros = (start: Date, end: Date) => {
+  const startEhDia1 = start.getDate() === 1;
+  const endEhUltimoDia =
+    end.getDate() ===
+    new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  return startEhDia1 && endEhUltimoDia;
+};
+
 // ─── COMPONENTES AUXILIARES ───────────────────────────────────────────────────
 
 function MetricCard({
@@ -259,13 +268,24 @@ export default function Dashboard() {
   const allOrders = summary?.ordens ?? [];
 
   // Filter orders by selected period (excludes canceladas — defesa em profundidade)
+  // Filtro base do Dashboard: OS concluídas dentro do range (data_conclusao).
+  // OS canceladas e OS sem data_conclusao ficam de fora.
+  // Operação ao vivo (em reparo, aguardando, em atraso) NÃO usa esse filtro —
+  // continua olhando allOrders (estado atual real, independe do range).
   const orders = useMemo(() => {
     return allOrders.filter(o => {
       if (isCancelada(o.status)) return false;
-      const d = new Date(o.data_entrada);
+      if (!o.data_conclusao) return false;
+      const d = new Date(o.data_conclusao);
       return d >= range.start && d <= range.end;
     });
   }, [allOrders, range]);
+
+  const competenciaInfo = useMemo(() => {
+    const meses = getCompetenciaMonths(range.start, range.end);
+    const fracao = !rangeCobreMesesInteiros(range.start, range.end);
+    return { meses, fracao };
+  }, [range]);
 
   // ── CÁLCULOS ────────────────────────────────────────────────────────────
 
