@@ -1707,11 +1707,17 @@ export default function Assistencia() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por cliente, telefone, IMEI ou nº OS"
-                className="h-9 border-0 bg-transparent pl-9 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder='Cliente, modelo, defeito, IMEI, #1234, imei:359, tel:991, @reparo…'
+                className="h-9 border-0 bg-transparent pl-9 pr-20 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label="Busca avançada de ordens de serviço"
               />
+              {!serverSearch.isEmpty && serverSearch.isLoading && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> buscando…
+                </span>
+              )}
             </div>
 
             <FiltrosAvancados
