@@ -351,6 +351,10 @@ export function ContasPagar({
         </div>
       </div>
 
+      <p className="text-[11px] text-muted-foreground px-1">
+        Mostrando contas com vencimento em {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")} ({filtered.length} conta{filtered.length === 1 ? "" : "s"}). Atrasadas e vencendo hoje aparecem nos alertas acima independente do filtro.
+      </p>
+
       <NovaContaDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
