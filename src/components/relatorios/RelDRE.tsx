@@ -197,7 +197,8 @@ export function RelDRE() {
           supabase
             .from("contas_a_pagar")
             .select("valor")
-            .eq("mes_competencia", competencia),
+            .eq("mes_competencia", competencia)
+            .is("deleted_at", null),
         ]);
 
         const receita = (os ?? []).reduce(
