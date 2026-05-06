@@ -148,7 +148,7 @@ export function Recebimentos({ recebimentos }: Props) {
         {filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             {recebimentos.length === 0
-              ? "Nenhum recebimento extra registrado ainda — ao lançar uma entrada manual, ela aparecerá aqui."
+              ? "Nenhum recebimento registrado ainda. Clique em \"Novo Recebimento\" pra criar o primeiro."
               : "Nenhum recebimento encontrado com os filtros atuais."}
           </p>
         ) : (
