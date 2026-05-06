@@ -99,6 +99,15 @@ const getCompetenciaMonths = (start: Date, end: Date) => {
   return months;
 };
 
+// Detecta se o range cobre meses inteiros (do dia 1 ao último dia)
+const rangeCobreMesesInteiros = (start: Date, end: Date) => {
+  const startEhDia1 = start.getDate() === 1;
+  const endEhUltimoDia =
+    end.getDate() ===
+    new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  return startEhDia1 && endEhUltimoDia;
+};
+
 // ─── COMPONENTES AUXILIARES ───────────────────────────────────────────────────
 
 function MetricCard({
@@ -259,13 +268,24 @@ export default function Dashboard() {
   const allOrders = summary?.ordens ?? [];
 
   // Filter orders by selected period (excludes canceladas — defesa em profundidade)
+  // Filtro base do Dashboard: OS concluídas dentro do range (data_conclusao).
+  // OS canceladas e OS sem data_conclusao ficam de fora.
+  // Operação ao vivo (em reparo, aguardando, em atraso) NÃO usa esse filtro —
+  // continua olhando allOrders (estado atual real, independe do range).
   const orders = useMemo(() => {
     return allOrders.filter(o => {
       if (isCancelada(o.status)) return false;
-      const d = new Date(o.data_entrada);
+      if (!o.data_conclusao) return false;
+      const d = new Date(o.data_conclusao);
       return d >= range.start && d <= range.end;
     });
   }, [allOrders, range]);
+
+  const competenciaInfo = useMemo(() => {
+    const meses = getCompetenciaMonths(range.start, range.end);
+    const fracao = !rangeCobreMesesInteiros(range.start, range.end);
+    return { meses, fracao };
+  }, [range]);
 
   // ── CÁLCULOS ────────────────────────────────────────────────────────────
 
@@ -273,11 +293,7 @@ export default function Dashboard() {
     const now = new Date();
 
     const ordensMes = orders;
-    const ordensFaturadas = allOrders.filter(o => {
-      if (!isFaturado(o.status) || !o.data_conclusao) return false;
-      const d = new Date(o.data_conclusao);
-      return d >= range.start && d <= range.end;
-    });
+    const ordensFaturadas = orders.filter(o => isFaturado(o.status));
     // Faturamento usa valor_total (cobrado real), com fallback p/ valor em OS antigas.
     const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     // Custo de peças DEVE seguir o mesmo período da receita (data_conclusao das OS faturadas)
@@ -579,8 +595,28 @@ export default function Dashboard() {
             sub={kpis.faturamento > 0 ? `${pct((kpis.custosPecasMes / kpis.faturamento) * 100)} do fat.` : undefined}
             iconColor="text-orange-500"
           />
-          <MetricCard icon={Receipt} label="Gastos fixos" value={brl(kpis.gastosFixos)} iconColor="text-gray-500" />
-          <MetricCard icon={Receipt} label="Gastos variáveis" value={brl(kpis.gastosVariaveis)} iconColor="text-orange-500" />
+          <MetricCard
+            icon={Receipt}
+            label="Gastos fixos"
+            value={brl(kpis.gastosFixos)}
+            iconColor="text-gray-500"
+            sub={
+              competenciaInfo.fracao
+                ? `Mês inteiro de competência (${competenciaInfo.meses.join(", ")})`
+                : `Competência: ${competenciaInfo.meses.join(", ")}`
+            }
+          />
+          <MetricCard
+            icon={Receipt}
+            label="Gastos variáveis"
+            value={brl(kpis.gastosVariaveis)}
+            iconColor="text-orange-500"
+            sub={
+              competenciaInfo.fracao
+                ? `Mês inteiro de competência (${competenciaInfo.meses.join(", ")})`
+                : `Competência: ${competenciaInfo.meses.join(", ")}`
+            }
+          />
           <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-gray-500" />
           <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-blue-500" />
         </div>
@@ -598,6 +634,11 @@ export default function Dashboard() {
               EBITDA ({brl(kpis.ebitda)}) − Depreciação ({brl(kpis.depreciacao)}) − Impostos ({brl(kpis.impostos)}) ={" "}
               <strong className={kpis.ll >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ll)}</strong>
             </p>
+            {competenciaInfo.fracao && (
+              <p className="text-xs text-muted-foreground mt-2">
+                ⓘ Faturamento, peças e comissões respeitam o range exato de datas. Gastos fixos e variáveis sempre contam o mês inteiro de competência ({competenciaInfo.meses.join(", ")}) — por isso o EBITDA pode parecer mais negativo em filtros de fração de mês.
+              </p>
+            )}
           </CardContent>
         </Card>
 
