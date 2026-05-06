@@ -73,8 +73,11 @@ const STATUS_COLORS: Record<string, string> = {
 const isCancelada = (s: string) => s === "cancelado";
 const isAtiva = (s: string) => !isCancelada(s) && s !== "entregue";
 const isFaturado = (s: string) => s === "pronto" || s === "entregue";
+// "Aguardando reparo" = OS recebidas mas que ainda não entraram em reparo.
+// Inclui o limbo de aprovação e o aguardo por peças.
+// NÃO inclui em_reparo (esse status tem seu próprio card no Operacional).
 const isAguardando = (s: string) =>
-  ["recebido", "em_analise", "em_reparo"].includes(s);
+  ["recebido", "em_analise", "aguardando_aprovacao", "aprovado", "aguardando_peca"].includes(s);
 
 // ─── FORMATAÇÃO ───────────────────────────────────────────────────────────────
 
@@ -836,34 +839,40 @@ export default function Dashboard() {
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
             Status atual <span className="text-[10px] normal-case opacity-70">(não depende do período)</span>
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <MetricCard
-              icon={Clock}
-              label="Aguardando reparo"
-              value={String(kpis.aguardandoReparo)}
-              color={kpis.aguardandoReparo > 20 ? "text-amber-600" : "text-gray-900"}
-              iconColor={kpis.aguardandoReparo > 20 ? "text-amber-500" : "text-gray-400"}
-            />
-            <MetricCard
-              icon={Wrench}
-              label="Em reparo"
-              value={String(kpis.emReparo)}
-              iconColor="text-blue-400"
-            />
-            <MetricCard
-              icon={CheckCircle}
-              label="Prontos p/ entrega"
-              value={String(kpis.aguardandoEntrega)}
-              iconColor="text-green-500"
-            />
-            <MetricCard
-              icon={AlertTriangle}
-              label="Em atraso"
-              value={String(kpis.emAtraso)}
-              color={kpis.emAtraso > 0 ? "text-red-600" : "text-gray-900"}
-              iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-gray-300"}
-            />
-          </div>
+          {kpis.aguardandoReparo + kpis.emReparo + kpis.aguardandoEntrega + kpis.emAtraso === 0 ? (
+            <div className="rounded-lg border border-dashed border-muted-foreground/30 px-4 py-6 text-center text-sm text-muted-foreground">
+              Nenhuma OS ativa no momento. Tudo em dia. ✅
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <MetricCard
+                icon={Clock}
+                label="Aguardando reparo"
+                value={String(kpis.aguardandoReparo)}
+                color={kpis.aguardandoReparo > 20 ? "text-amber-600" : "text-gray-900"}
+                iconColor={kpis.aguardandoReparo > 20 ? "text-amber-500" : "text-gray-400"}
+              />
+              <MetricCard
+                icon={Wrench}
+                label="Em reparo"
+                value={String(kpis.emReparo)}
+                iconColor="text-blue-400"
+              />
+              <MetricCard
+                icon={CheckCircle}
+                label="Prontos p/ entrega"
+                value={String(kpis.aguardandoEntrega)}
+                iconColor="text-green-500"
+              />
+              <MetricCard
+                icon={AlertTriangle}
+                label="Em atraso"
+                value={String(kpis.emAtraso)}
+                color={kpis.emAtraso > 0 ? "text-red-600" : "text-gray-900"}
+                iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-gray-300"}
+              />
+            </div>
+          )}
         </div>
 
         {/* Custo médio fica como rodapé do Operacional */}
