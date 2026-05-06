@@ -13,6 +13,7 @@ import { CreatableSelect } from "@/components/smart-inputs/CreatableSelect";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ContaPagar } from "@/hooks/useFinanceiro";
+import { dateOnlyLocal } from "@/lib/dateUtils";
 
 interface Props {
   open: boolean;
