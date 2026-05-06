@@ -943,6 +943,7 @@ export type Database = {
           created_by: string | null
           data_pagamento: string | null
           data_vencimento: string
+          deleted_at: string | null
           descricao: string
           empresa_id: string | null
           fornecedor: string | null
@@ -966,6 +967,7 @@ export type Database = {
           created_by?: string | null
           data_pagamento?: string | null
           data_vencimento: string
+          deleted_at?: string | null
           descricao: string
           empresa_id?: string | null
           fornecedor?: string | null
@@ -989,6 +991,7 @@ export type Database = {
           created_by?: string | null
           data_pagamento?: string | null
           data_vencimento?: string
+          deleted_at?: string | null
           descricao?: string
           empresa_id?: string | null
           fornecedor?: string | null

@@ -201,7 +201,8 @@ async function fetchContasPeriodo(rangeStart: Date, rangeEnd: Date) {
   const { data, error } = await supabase
     .from("contas_a_pagar")
     .select("valor, recorrente, mes_competencia")
-    .in("mes_competencia", competencias);
+    .in("mes_competencia", competencias)
+    .is("deleted_at", null);
   if (error) throw error;
   return data ?? [];
 }

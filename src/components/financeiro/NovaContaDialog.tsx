@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import { CreatableSelect } from "@/components/smart-inputs/CreatableSelect";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ContaPagar } from "@/hooks/useFinanceiro";
+import { dateOnlyLocal } from "@/lib/dateUtils";
 
 interface Props {
   open: boolean;
@@ -93,8 +94,8 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
       loja_id: "",
       ordem_servico_id: "",
       valor: "",
-      data_vencimento: new Date().toISOString().split("T")[0],
-      mes_competencia: getDefaultCompetencia(new Date().toISOString().split("T")[0], false),
+      data_vencimento: dateOnlyLocal(),
+      mes_competencia: getDefaultCompetencia(dateOnlyLocal(), false),
       recorrente: false,
       observacoes: "",
     },
@@ -124,8 +125,8 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
         loja_id: "",
         ordem_servico_id: "",
         valor: "",
-        data_vencimento: new Date().toISOString().split("T")[0],
-        mes_competencia: getDefaultCompetencia(new Date().toISOString().split("T")[0], false),
+        data_vencimento: dateOnlyLocal(),
+        mes_competencia: getDefaultCompetencia(dateOnlyLocal(), false),
         recorrente: false,
         observacoes: "",
       });
@@ -179,9 +180,20 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
   const recorrente = watch("recorrente");
   const dataVencimento = watch("data_vencimento");
 
+  // Auto-preenche mes_competencia APENAS uma vez por abertura do dialog,
+  // quando o usuário ainda não interagiu com o campo. Mudar `recorrente` ou
+  // `data_vencimento` depois disso NÃO sobrescreve o que o usuário escolheu.
+  const competenciaTouchedRef = useRef(false);
   useEffect(() => {
-    if (!open || isEditing || !dataVencimento) return;
+    if (!open) {
+      competenciaTouchedRef.current = false;
+      return;
+    }
+    if (isEditing) return;
+    if (competenciaTouchedRef.current) return;
+    if (!dataVencimento) return;
     setValue("mes_competencia", getDefaultCompetencia(dataVencimento, recorrente));
+    competenciaTouchedRef.current = true;
   }, [open, isEditing, dataVencimento, recorrente, setValue]);
 
   return (
@@ -236,7 +248,11 @@ export function NovaContaDialog({ open, onOpenChange, editingConta, categorias, 
 
           <div>
             <Label>Mês de competência *</Label>
-            <Input type="month" {...register("mes_competencia", { required: true })} />
+            <Input
+              type="month"
+              {...register("mes_competencia", { required: true })}
+              onInput={() => { competenciaTouchedRef.current = true; }}
+            />
             <p className="mt-1 text-xs text-muted-foreground">
               Mês em que a despesa é considerada para o cálculo do lucro. Para contas pagas com 1 mês de atraso (ex: salário pago no dia 5 do mês seguinte), use o mês trabalhado.
             </p>

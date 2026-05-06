@@ -10,6 +10,7 @@ import { format, isToday, isBefore, startOfDay, endOfWeek, startOfWeek, isWithin
 import { ptBR } from "date-fns/locale";
 import { NovaContaDialog } from "./NovaContaDialog";
 import type { ContaPagar } from "@/hooks/useFinanceiro";
+import { dateOnlyLocal } from "@/lib/dateUtils";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
@@ -112,7 +113,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
     mutationFn: async (conta: ContaPagar) => {
       const { error } = await supabase
         .from("contas_a_pagar")
-        .update({ status: "paga" as any, data_pagamento: new Date().toISOString().split("T")[0] })
+        .update({ status: "paga" as any, data_pagamento: dateOnlyLocal() })
         .eq("id", conta.id);
       if (error) throw error;
 
@@ -131,7 +132,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
           loja_id: conta.loja_id,
           ordem_servico_id: null,
           valor: conta.valor,
-          data_vencimento: nextDate.toISOString().split("T")[0],
+          data_vencimento: dateOnlyLocal(nextDate),
           mes_competencia: getDefaultCompetencia(nextDate, true),
           recorrente: true,
           observacoes: conta.observacoes,
@@ -149,12 +150,17 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contas_a_pagar").delete().eq("id", id);
+      // Soft delete: marca deleted_at em vez de remover fisicamente.
+      // Mantém histórico pra auditoria. Filtragem fica em fetchContas (is null).
+      const { error } = await supabase
+        .from("contas_a_pagar")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contas_pagar"] });
-      toast.success("Conta removida!");
+      toast.success("Conta removida do painel.");
     },
   });
 
@@ -173,7 +179,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
         loja_id: conta.loja_id,
         ordem_servico_id: conta.ordem_servico_id,
         valor: conta.valor,
-        data_vencimento: nextMonth.toISOString().split("T")[0],
+        data_vencimento: dateOnlyLocal(nextMonth),
         mes_competencia: getDefaultCompetencia(nextMonth, conta.recorrente),
         recorrente: conta.recorrente,
         observacoes: conta.observacoes,

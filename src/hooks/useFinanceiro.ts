@@ -56,6 +56,7 @@ async function fetchContas() {
   const { data, error } = await supabase
     .from("contas_a_pagar")
     .select("*, lojas ( nome ), fornecedores ( nome ), ordens_de_servico ( numero )")
+    .is("deleted_at", null)
     .order("data_vencimento", { ascending: true });
   if (error) {
     console.error("ERRO fetchContas:", error.code, error.message, error.details);
