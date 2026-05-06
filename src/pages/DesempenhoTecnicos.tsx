@@ -195,22 +195,19 @@ export default function DesempenhoTecnicos() {
 
   const tecnicosFiltrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
-    let lista = q
-      ? tecnicos.filter((t) => (t.nome ?? "").toLowerCase().includes(q))
-      : tecnicos;
-
+    let lista = tecnicos;
+    if (selecionados.size > 0) lista = lista.filter((t) => selecionados.has(t.funcionario_id));
+    if (q) lista = lista.filter((t) => (t.nome ?? "").toLowerCase().includes(q));
     const dir = sortDir === "asc" ? 1 : -1;
     lista = [...lista].sort((a, b) => {
-      const va =
-        sortKey === "nome" ? (a.nome ?? "").toLowerCase() : Number((a as any)[sortKey] ?? 0);
-      const vb =
-        sortKey === "nome" ? (b.nome ?? "").toLowerCase() : Number((b as any)[sortKey] ?? 0);
+      const va = sortKey === "nome" ? (a.nome ?? "").toLowerCase() : Number((a as any)[sortKey] ?? 0);
+      const vb = sortKey === "nome" ? (b.nome ?? "").toLowerCase() : Number((b as any)[sortKey] ?? 0);
       if (va < vb) return -1 * dir;
       if (va > vb) return 1 * dir;
       return 0;
     });
     return lista;
-  }, [tecnicos, busca, sortKey, sortDir]);
+  }, [tecnicos, busca, sortKey, sortDir, selecionados]);
 
   const totais = useMemo(
     () => ({
@@ -228,18 +225,17 @@ export default function DesempenhoTecnicos() {
     [tecnicosFiltrados],
   );
 
-  const totaisAnterior = useMemo(
-    () => ({
-      qtd_servicos: tecnicosAnterior.reduce((s, t) => s + Number(t.qtd_servicos), 0),
-      faturamento: tecnicosAnterior.reduce((s, t) => s + Number(t.faturamento_os), 0),
-      a_receber: tecnicosAnterior.reduce(
-        (s, t) => s + Number(t.comissao_total_a_receber),
-        0,
-      ),
-      paga: tecnicosAnterior.reduce((s, t) => s + Number(t.comissao_paga), 0),
-    }),
-    [tecnicosAnterior],
-  );
+  const totaisAnterior = useMemo(() => {
+    const filtrados = selecionados.size > 0
+      ? tecnicosAnterior.filter((t) => selecionados.has(t.funcionario_id))
+      : tecnicosAnterior;
+    return {
+      qtd_servicos: filtrados.reduce((s, t) => s + Number(t.qtd_servicos), 0),
+      faturamento: filtrados.reduce((s, t) => s + Number(t.faturamento_os), 0),
+      a_receber: filtrados.reduce((s, t) => s + Number(t.comissao_total_a_receber), 0),
+      paga: filtrados.reduce((s, t) => s + Number(t.comissao_paga), 0),
+    };
+  }, [tecnicosAnterior, selecionados]);
 
   const tecnicoAnteriorPorId = useMemo(() => {
     const m = new Map<string, KpiTecnico>();
