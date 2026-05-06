@@ -83,7 +83,12 @@ export function ContasPagar({
     const matchSearch = !search || c.descricao.toLowerCase().includes(q) || fornNome.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.smartStatus.key === filterStatus;
     const matchLoja = filterLoja === "todas" || c.loja_id === filterLoja;
-    return matchSearch && matchStatus && matchLoja;
+
+    // Filtro de período: data_vencimento dentro do range escolhido.
+    const venc = new Date(c.data_vencimento + "T12:00:00");
+    const matchPeriodo = venc >= periodRange.from && venc <= periodRange.to;
+
+    return matchSearch && matchStatus && matchLoja && matchPeriodo;
   });
 
   const resolveEmpresaId = async () => {
