@@ -137,6 +137,10 @@ export function Recebimentos({ recebimentos }: Props) {
             {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button type="button" onClick={() => setDialogOpen(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Novo Recebimento
+        </Button>
       </div>
 
       {/* Lista */}
