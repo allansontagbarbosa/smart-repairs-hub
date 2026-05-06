@@ -92,15 +92,18 @@ export function RelDRE() {
   const { data: comissoes } = useQuery({
     queryKey: ["rel-dre-comissoes", inicio],
     queryFn: async () => {
-      // Apenas comissões NÃO estornadas e em status que representa custo real
-      // (pendente, liberada e paga — estornada não conta).
+      // REGIME DE COMPETÊNCIA: comissão pertence ao mês em que a OS foi concluída
+      // (gerou a receita), NÃO ao mês em que o registro foi criado no banco.
+      // Alinhamento com get_dashboard_summary, que faz o mesmo JOIN.
       const { data, error } = await supabase
         .from("comissoes")
-        .select("valor, status, estornada_em")
+        .select("valor, status, estornada_em, ordens_de_servico!inner(status,data_conclusao,deleted_at)")
         .is("estornada_em", null)
         .in("status", ["pendente", "liberada", "paga"])
-        .gte("created_at", inicio)
-        .lt("created_at", fim);
+        .is("ordens_de_servico.deleted_at", null)
+        .in("ordens_de_servico.status", ["pronto", "entregue"])
+        .gte("ordens_de_servico.data_conclusao", inicio)
+        .lt("ordens_de_servico.data_conclusao", fim);
       if (error) {
         console.error("rel-dre-comissoes falhou:", error);
         return [];
