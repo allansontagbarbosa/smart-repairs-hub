@@ -48,7 +48,11 @@ export type Comissao = {
     numero_formatado: string | null;
     status?: string | null;
     data_conclusao?: string | null;
-    aparelhos?: { marca: string; modelo: string } | null;
+    aparelhos?: {
+      marca: string;
+      modelo: string;
+      clientes?: { nome: string } | null;
+    } | null;
   } | null;
   os_servicos?: { nome: string; status: string } | null;
 };
