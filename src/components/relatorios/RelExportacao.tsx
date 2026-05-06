@@ -29,22 +29,23 @@ export function RelExportacao() {
   async function exportarOS() {
     setLoading("os");
     try {
-      const { data } = await supabase
+      const { data, count } = await supabase
         .from("ordens_de_servico")
-        .select("numero, status, data_entrada, data_conclusao, data_entrega, defeito_relatado, diagnostico, servico_realizado, valor, custo_pecas, tecnico, prioridade, observacoes")
+        .select("numero, status, data_entrada, data_conclusao, data_entrega, defeito_relatado, diagnostico, servico_realizado, valor, custo_pecas, tecnico, prioridade, observacoes", { count: "exact" })
         .is("deleted_at", null)
         .gte("data_entrada", dataInicio.toISOString())
         .lte("data_entrada", dataFim.toISOString())
         .order("data_entrada", { ascending: false });
 
       if (!data?.length) { toast.info("Nenhuma OS no período."); return; }
+      if ((count ?? 0) > 500 && !confirm(`Exportar ${count} OSs? Pode levar alguns segundos.`)) return;
 
       downloadCSV(
         `os_${format(dataInicio, "yyyy-MM-dd")}_${format(dataFim, "yyyy-MM-dd")}.csv`,
         ["Número","Status","Data Entrada","Data Conclusão","Data Entrega","Defeito","Diagnóstico","Serviço","Valor","Custo Peças","Técnico","Prioridade","Obs"],
         data.map(o => [o.numero, o.status, o.data_entrada, o.data_conclusao, o.data_entrega, o.defeito_relatado, o.diagnostico, o.servico_realizado, o.valor, o.custo_pecas, o.tecnico, o.prioridade, o.observacoes])
       );
-      toast.success("CSV de OS exportado!");
+      toast.success(`CSV de ${data.length} OSs exportado!`);
     } finally { setLoading(""); }
   }
 
@@ -58,7 +59,7 @@ export function RelExportacao() {
         ["Nome","Telefone","WhatsApp","Email","CPF","Documento","Obs","Criado em"],
         data.map(c => [c.nome, c.telefone, c.whatsapp, c.email, c.cpf, c.documento, c.observacoes, c.created_at])
       );
-      toast.success("CSV de clientes exportado!");
+      toast.success(`CSV de ${data.length} clientes exportado!`);
     } finally { setLoading(""); }
   }
 
@@ -72,7 +73,7 @@ export function RelExportacao() {
         ["SKU","Nome","Tipo","Quantidade","Qtd Mínima","Custo Unit","Local","Fornecedor","Status"],
         data.map(e => [e.sku, e.nome_personalizado, e.tipo_item, e.quantidade, e.quantidade_minima, e.custo_unitario, e.local_estoque, e.fornecedor, e.status])
       );
-      toast.success("CSV de estoque exportado!");
+      toast.success(`CSV de ${data.length} itens exportado!`);
     } finally { setLoading(""); }
   }
 
@@ -81,19 +82,32 @@ export function RelExportacao() {
     try {
       const ini = dataInicio.toISOString();
       const fi = dataFim.toISOString();
-      const { data } = await supabase
-        .from("comissoes")
-        .select("valor, valor_base, tipo, status, observacoes, created_at, funcionarios(nome)")
-        .gte("created_at", ini)
-        .lte("created_at", fi)
-        .order("created_at", { ascending: false });
-      if (!data?.length) { toast.info("Nenhuma comissão no período."); return; }
+      const mesIni = format(dataInicio, "yyyy-MM");
+      const mesFi = format(dataFim, "yyyy-MM");
+      // Pendente/Liberada: por mes_competencia (regime de competência)
+      // Paga: por data_pagamento (regime de caixa)
+      const [pendLib, pagas] = await Promise.all([
+        supabase.from("comissoes")
+          .select("valor, valor_base, tipo, status, mes_competencia, data_pagamento, created_at, observacoes, funcionarios(nome)")
+          .is("estornada_em", null)
+          .in("status", ["pendente", "liberada"])
+          .gte("mes_competencia", mesIni)
+          .lte("mes_competencia", mesFi),
+        supabase.from("comissoes")
+          .select("valor, valor_base, tipo, status, mes_competencia, data_pagamento, created_at, observacoes, funcionarios(nome)")
+          .is("estornada_em", null)
+          .eq("status", "paga")
+          .gte("data_pagamento", ini)
+          .lte("data_pagamento", fi),
+      ]);
+      const data = [...(pendLib.data ?? []), ...(pagas.data ?? [])];
+      if (!data.length) { toast.info("Nenhuma comissão no período."); return; }
       downloadCSV(
         `comissoes_${format(dataInicio, "yyyy-MM-dd")}_${format(dataFim, "yyyy-MM-dd")}.csv`,
-        ["Funcionário","Valor","Valor Base","Tipo","Status","Obs","Data"],
-        data.map((c: any) => [c.funcionarios?.nome, c.valor, c.valor_base, c.tipo, c.status, c.observacoes, c.created_at])
+        ["Funcionário","Valor","Valor Base","Tipo","Status","Mês Competência","Data Pagamento","Obs","Criada em"],
+        data.map((c: any) => [c.funcionarios?.nome, c.valor, c.valor_base, c.tipo, c.status, c.mes_competencia, c.data_pagamento, c.observacoes, c.created_at])
       );
-      toast.success("CSV de comissões exportado!");
+      toast.success(`CSV de ${data.length} comissões exportado!`);
     } finally { setLoading(""); }
   }
 
