@@ -2,7 +2,7 @@ import { useState, useRef, DragEvent } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, Loader2, MessageCircle } from "lucide-react";
+import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, LayoutGrid, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
