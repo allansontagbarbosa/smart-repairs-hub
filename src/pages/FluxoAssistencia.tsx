@@ -283,12 +283,17 @@ export default function FluxoAssistencia() {
           <p className="page-subtitle">{totalAtivas} ordens ativas</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            to="/assistencia"
-            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
-          >
-            <List className="h-3.5 w-3.5" /> Lista
-          </Link>
+          <div className="inline-flex items-center rounded-md border bg-card p-0.5">
+            <Link
+              to="/assistencia"
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <List className="h-3.5 w-3.5" /> Lista
+            </Link>
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1 text-[12px] font-medium text-foreground cursor-default">
+              <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+            </span>
+          </div>
         </div>
       </div>
 
