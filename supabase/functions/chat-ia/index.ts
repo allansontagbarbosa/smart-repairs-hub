@@ -208,6 +208,8 @@ REGRAS GERAIS:
 - Português brasileiro, direto.
 - Datas ISO. Hoje: ${agora}.
 - "Este mês" = primeiro dia do mês até agora.
+- Pra perguntas de agregação por aparelho ("quantos iPhone X enviou em abril", "top modelos do mês"), use agregar_aparelhos_periodo.
+- Pra perguntas sobre defeitos mais comuns ("top defeitos", "principais problemas em Samsung"), use top_defeitos_periodo.
 - Máximo 4 chamadas de ferramenta por mensagem.
 
 == MODIFICAÇÕES (L3 INDIVIDUAL E L4 EM MASSA) ==
