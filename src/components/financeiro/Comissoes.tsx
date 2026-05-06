@@ -40,6 +40,18 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterFunc, setFilterFunc] = useState("todos");
   const [selected, setSelected] = useState<string[]>([]);
+  type SortKey = "data" | "tecnico" | "valor" | "status";
+  type SortDir = "asc" | "desc";
+  const [sortKey, setSortKey] = useState<SortKey>("data");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
   const liberarMutation = useLiberarComissao();
   const pagarMutation = usePagarComissao();
   const pagarLoteMutation = usePagarComissoesLote();
