@@ -110,6 +110,37 @@ const TOOLS = [
     },
   },
   {
+    name: "agregar_aparelhos_periodo",
+    description:
+      "Conta OS agrupadas por marca + modelo do aparelho. Use pra perguntas tipo 'quantos iPhone 14 foram enviados em abril', 'qual modelo o cliente X mais envia', 'top aparelhos do mês'. Pode filtrar por cliente, período, marca ou modelo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        data_inicio: { type: "string", description: "ISO timestamp do início do período" },
+        data_fim: { type: "string", description: "ISO timestamp do fim do período" },
+        cliente_busca: { type: "string", description: "Busca parcial pelo nome do cliente" },
+        marca_busca: { type: "string", description: "Busca parcial pela marca (ex: Apple, Samsung)" },
+        modelo_busca: { type: "string", description: "Busca parcial pelo modelo (ex: iPhone 14, S21)" },
+        limite: { type: "integer", default: 50, maximum: 100 },
+      },
+    },
+  },
+  {
+    name: "top_defeitos_periodo",
+    description:
+      "Retorna os defeitos mais relatados em um período (agrupados por similaridade nas primeiras palavras). Use pra perguntas tipo 'top 10 defeitos do mês', 'quais problemas mais aparecem em iPhone'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        data_inicio: { type: "string", description: "ISO timestamp" },
+        data_fim: { type: "string", description: "ISO timestamp" },
+        marca_busca: { type: "string" },
+        modelo_busca: { type: "string" },
+        limite: { type: "integer", default: 10, maximum: 50 },
+      },
+    },
+  },
+  {
     name: "preview_acao_em_massa",
     description:
       "Gera PREVIEW de ação em massa (NÃO executa). Limite 200 registros. Aprovação requer admin + confirmação textual no frontend. Use quando o usuário pedir mudança em várias OS de uma vez.",
@@ -141,6 +172,8 @@ const TOOL_TO_RPC: Record<string, string> = {
   comparar_periodos: "ia_comparar_periodos",
   propor_mudar_status: "ia_validar_proposta_status",
   preview_acao_em_massa: "ia_preview_acao_em_massa",
+  agregar_aparelhos_periodo: "ia_agregar_aparelhos_periodo",
+  top_defeitos_periodo: "ia_top_defeitos_periodo",
 };
 
 function buildSystemPrompt() {
@@ -175,6 +208,8 @@ REGRAS GERAIS:
 - Português brasileiro, direto.
 - Datas ISO. Hoje: ${agora}.
 - "Este mês" = primeiro dia do mês até agora.
+- Pra perguntas de agregação por aparelho ("quantos iPhone X enviou em abril", "top modelos do mês"), use agregar_aparelhos_periodo.
+- Pra perguntas sobre defeitos mais comuns ("top defeitos", "principais problemas em Samsung"), use top_defeitos_periodo.
 - Máximo 4 chamadas de ferramenta por mensagem.
 
 == MODIFICAÇÕES (L3 INDIVIDUAL E L4 EM MASSA) ==
@@ -201,6 +236,12 @@ REGRAS DE PROPOSTA:
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "content-type": "application/json" },
+    });
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -457,11 +498,4 @@ async function processarChat({
   }
 
   return { resposta: respostaFinal, tokensIn: totalIn, tokensOut: totalOut, iteracoes };
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "content-type": "application/json" },
-  });
 }
