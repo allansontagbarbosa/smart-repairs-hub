@@ -55,6 +55,7 @@ export function Recebimentos({ recebimentos }: Props) {
   const [search, setSearch] = useState("");
   const [filterForma, setFilterForma] = useState("todas");
   const [filterOrigem, setFilterOrigem] = useState("todas");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const now = new Date();
   const monthStart = startOfMonth(now);
