@@ -172,6 +172,8 @@ const TOOL_TO_RPC: Record<string, string> = {
   comparar_periodos: "ia_comparar_periodos",
   propor_mudar_status: "ia_validar_proposta_status",
   preview_acao_em_massa: "ia_preview_acao_em_massa",
+  agregar_aparelhos_periodo: "ia_agregar_aparelhos_periodo",
+  top_defeitos_periodo: "ia_top_defeitos_periodo",
 };
 
 function buildSystemPrompt() {
