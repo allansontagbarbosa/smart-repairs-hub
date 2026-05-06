@@ -163,6 +163,19 @@ export default function DesempenhoTecnicos() {
     [tecnicosAnterior],
   );
 
+  const tecnicoAnteriorPorId = useMemo(() => {
+    const m = new Map<string, KpiTecnico>();
+    for (const t of tecnicosAnterior) m.set(t.funcionario_id, t);
+    return m;
+  }, [tecnicosAnterior]);
+
+  const maxServicos = useMemo(() => {
+    return tecnicosFiltrados.reduce(
+      (max, t) => Math.max(max, Number(t.qtd_servicos) || 0),
+      0,
+    );
+  }, [tecnicosFiltrados]);
+
   function variacao(atual: number, anterior: number): { pct: number; cor: string } {
     if (anterior === 0)
       return {
