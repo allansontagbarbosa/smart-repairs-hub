@@ -595,8 +595,28 @@ export default function Dashboard() {
             sub={kpis.faturamento > 0 ? `${pct((kpis.custosPecasMes / kpis.faturamento) * 100)} do fat.` : undefined}
             iconColor="text-orange-500"
           />
-          <MetricCard icon={Receipt} label="Gastos fixos" value={brl(kpis.gastosFixos)} iconColor="text-gray-500" />
-          <MetricCard icon={Receipt} label="Gastos variáveis" value={brl(kpis.gastosVariaveis)} iconColor="text-orange-500" />
+          <MetricCard
+            icon={Receipt}
+            label="Gastos fixos"
+            value={brl(kpis.gastosFixos)}
+            iconColor="text-gray-500"
+            sub={
+              competenciaInfo.fracao
+                ? `Mês inteiro de competência (${competenciaInfo.meses.join(", ")})`
+                : `Competência: ${competenciaInfo.meses.join(", ")}`
+            }
+          />
+          <MetricCard
+            icon={Receipt}
+            label="Gastos variáveis"
+            value={brl(kpis.gastosVariaveis)}
+            iconColor="text-orange-500"
+            sub={
+              competenciaInfo.fracao
+                ? `Mês inteiro de competência (${competenciaInfo.meses.join(", ")})`
+                : `Competência: ${competenciaInfo.meses.join(", ")}`
+            }
+          />
           <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-gray-500" />
           <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-blue-500" />
         </div>
@@ -614,6 +634,11 @@ export default function Dashboard() {
               EBITDA ({brl(kpis.ebitda)}) − Depreciação ({brl(kpis.depreciacao)}) − Impostos ({brl(kpis.impostos)}) ={" "}
               <strong className={kpis.ll >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ll)}</strong>
             </p>
+            {competenciaInfo.fracao && (
+              <p className="text-xs text-muted-foreground mt-2">
+                ⓘ Faturamento, peças e comissões respeitam o range exato de datas. Gastos fixos e variáveis sempre contam o mês inteiro de competência ({competenciaInfo.meses.join(", ")}) — por isso o EBITDA pode parecer mais negativo em filtros de fração de mês.
+              </p>
+            )}
           </CardContent>
         </Card>
 
