@@ -146,7 +146,18 @@ async function fetchRecebimentos() {
     // forma_pagamento real (pix, dinheiro, cartao_debito, etc.) vem da coluna do banco.
     // Origem da entrada (OS vs avulso) fica em `origem`, separada da forma de pagamento.
     forma_pagamento: m.forma_pagamento ?? null,
-    origem: (m.ordem_id ? "os" : "avulso") as "os" | "avulso",
+    // Origem refinada:
+    // - "os": entrada vinculada a uma OS (ordem_id preenchido).
+    // - "pagamento_cliente": pagamento de saldo devedor (não é receita nova, já
+    //   contabilizada na OS original). Não somar em "Recebimentos extras".
+    // - "avulso": demais entradas (vendas avulsas, devoluções, etc.) — receita
+    //   genuína do período.
+    origem: (m.ordem_id
+      ? "os"
+      : m.categoria === "recebimento_cliente"
+        ? "pagamento_cliente"
+        : "avulso") as "os" | "pagamento_cliente" | "avulso",
+    categoria: m.categoria ?? null,
     ordem_servico_id: m.ordem_id,
     cliente_id: m.cliente_id ?? null,
     loja_id: null,
@@ -293,9 +304,15 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
       return c.mes_competencia ? competenciasNoRange.includes(c.mes_competencia) : false;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
-    // Recebimentos extras no período
+    // Recebimentos extras no período: APENAS entradas avulsas genuínas.
+    // Excluídos:
+    // - r.ordem_servico_id → já contam em receitaMes (regime competência)
+    // - r.origem === "pagamento_cliente" → pagamento de saldo devedor; receita
+    //   já contabilizada quando a OS original foi concluída. Somar aqui inflaria
+    //   o "Lucro estimado" duplicando dinheiro já contado.
     const recebimentosMes = allRecebimentos.filter(r => {
       if (r.ordem_servico_id) return false;
+      if (r.origem === "pagamento_cliente") return false;
       const d = new Date(r.data_recebimento.includes("T") ? r.data_recebimento : r.data_recebimento + "T12:00:00");
       return d >= periodStart && d <= periodEnd;
     }).reduce((s, r) => s + Number(r.valor), 0);

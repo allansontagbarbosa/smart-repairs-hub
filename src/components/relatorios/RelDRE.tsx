@@ -53,14 +53,20 @@ export function RelDRE() {
   const { data: recebimentos } = useQuery({
     queryKey: ["rel-dre-receb", inicio],
     queryFn: async () => {
-      // "Outros recebimentos" = entradas avulsas (sem ordem_id) no período.
-      // Recebimentos de OS já contam em "Serviços faturados" via ordens_de_servico.
+      // "Outros recebimentos" do DRE: entradas que NÃO são receita já contabilizada.
+      // Excluídas:
+      // - ordem_id != null → já contam em "Serviços faturados" via ordens_de_servico
+      // - categoria='recebimento_cliente' → pagamento de saldo devedor; a receita
+      //   correspondente já entrou em "Serviços faturados" no mês de conclusão da OS
+      //   original. DRE é regime de competência, não de caixa, então pagamentos
+      //   ficam fora aqui (vão pra Fluxo de Caixa).
       const { data, error } = await supabase
         .from("movimentacoes_financeiras")
-        .select("valor, ordem_id, data, estornada_em")
+        .select("valor, ordem_id, categoria, data, estornada_em")
         .eq("tipo", "entrada")
         .is("ordem_id", null)
         .is("estornada_em", null)
+        .or("categoria.is.null,categoria.neq.recebimento_cliente")
         .gte("data", inicio)
         .lt("data", fim);
       if (error) {
