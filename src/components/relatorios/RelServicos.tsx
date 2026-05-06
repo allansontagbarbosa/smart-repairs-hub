@@ -221,22 +221,35 @@ export function RelServicos() {
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Indicadores */}
         <Card>
           <CardHeader><CardTitle className="text-base">Indicadores</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {analysis.topPeca && (
-              <div>
-                <p className="text-muted-foreground">Peça mais utilizada:</p>
-                <p className="font-medium">{analysis.topPeca.nome} ({analysis.topPeca.qtd}x)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div><p className="text-muted-foreground text-xs">Faturamento</p><p className="font-semibold">{analysis.faturamento.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p></div>
+              <div><p className="text-muted-foreground text-xs">OSs concluídas</p><p className="font-semibold">{analysis.totalOSs}</p></div>
+              <div><p className="text-muted-foreground text-xs">Ticket médio (OS)</p><p className="font-semibold">{analysis.ticketMedioOs.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p></div>
+              <div><p className="text-muted-foreground text-xs">Ticket médio (serviço)</p><p className="font-semibold">{analysis.ticketMedioServico.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p></div>
+            </div>
+            {analysis.topPecas.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-muted-foreground mb-1 text-xs">Peças mais usadas:</p>
+                <div className="space-y-1">
+                  {analysis.topPecas.map(p => (
+                    <div key={p.nome} className="flex justify-between text-xs">
+                      <span>{p.nome}</span>
+                      <span className="font-medium">{p.qtd}x</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {analysis.tempoMedioPorDefeito.length > 0 && (
-              <div>
-                <p className="text-muted-foreground mb-1">Tempo médio por serviço:</p>
+              <div className="pt-2 border-t">
+                <p className="text-muted-foreground mb-1 text-xs">Tempo médio por serviço:</p>
                 <div className="space-y-1">
                   {analysis.tempoMedioPorDefeito.slice(0, 8).map(t => (
-                    <div key={t.nome} className="flex justify-between">
+                    <div key={t.nome} className="flex justify-between text-xs">
                       <span>{t.nome}</span>
                       <span className="font-medium">{fmtTempo(t.media)}</span>
                     </div>
