@@ -24,10 +24,11 @@ export function RelServicos() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, aparelho_id, data_entrada, data_conclusao, status")
+        .select("id, aparelho_id, data_entrada, data_conclusao, status, valor_total")
         .is("deleted_at", null)
-        .gte("data_entrada", inicio)
-        .lt("data_entrada", fim);
+        .gte("data_conclusao", inicio)
+        .lt("data_conclusao", fim)
+        .not("data_conclusao", "is", null);
       return data ?? [];
     },
   });
@@ -92,7 +93,9 @@ export function RelServicos() {
       .slice(0, 10)
       .map(([nome, count]) => ({ nome, count, pct: total > 0 ? (count / total * 100).toFixed(1) : "0" }));
 
-    const pieData = ranking.map(r => ({ name: r.nome, value: r.count }));
+    const top5 = ranking.slice(0, 5).map(r => ({ name: r.nome, value: r.count }));
+    const outros = ranking.slice(5).reduce((s, r) => s + r.count, 0);
+    const pieData = outros > 0 ? [...top5, { name: "Outros", value: outros }] : top5;
 
     // Defeitos por marca
     const marcaMap: Record<string, Record<string, number>> = {};
@@ -129,7 +132,16 @@ export function RelServicos() {
       .map(([nome, ts]) => ({ nome, media: ts.reduce((a, b) => a + b, 0) / ts.length }))
       .sort((a, b) => a.media - b.media);
 
-    return { ranking, pieData, defeitosPorMarca, topPeca, tempoMedioPorDefeito };
+    const ordensConcluidas = (ordens ?? []).filter(o => o.data_conclusao);
+    const faturamento = ordensConcluidas.reduce((s, o) => s + Number(o.valor_total ?? 0), 0);
+    const ticketMedioOs = ordensConcluidas.length > 0 ? faturamento / ordensConcluidas.length : 0;
+    const ticketMedioServico = total > 0 ? faturamento / total : 0;
+    const topPecas = Object.entries(pecaCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, qtd]) => ({ nome: (pecasNomes ?? []).find(p => p.id === id)?.nome ?? "—", qtd }));
+
+    return { ranking, pieData, defeitosPorMarca, topPeca, tempoMedioPorDefeito, faturamento, ticketMedioOs, ticketMedioServico, topPecas, totalServicos: total, totalOSs: ordensConcluidas.length };
   }, [defeitos, ordens, aparelhos, pecasUsadas, pecasNomes]);
 
   const prev = () => { if (mes === 0) { setMes(11); setAno(ano - 1); } else setMes(mes - 1); };
@@ -150,18 +162,23 @@ export function RelServicos() {
         <Button variant="outline" size="icon" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
       </div>
 
+      <p className="text-xs text-muted-foreground -mt-3">
+        Período: <strong>{meses[mes]} {ano}</strong> — filtrado por data de conclusão da OS (regime de competência, alinhado com DRE).
+      </p>
+
       <div className="grid gap-4 md:grid-cols-2">
         {/* Pie Chart */}
         <Card>
           <CardHeader><CardTitle className="text-base">Distribuição de Serviços</CardTitle></CardHeader>
           <CardContent>
             {analysis.pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
-                  <Pie data={analysis.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={analysis.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}>
                     {analysis.pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(v: any, n: any) => [`${v} serviços`, n]} />
+                  <Legend verticalAlign="bottom" height={36} iconSize={10} formatter={(v) => <span className="text-xs">{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
             ) : <p className="text-center text-muted-foreground py-8">Sem dados no período.</p>}
@@ -204,22 +221,35 @@ export function RelServicos() {
           </CardContent>
         </Card>
 
-        {/* Stats */}
+        {/* Indicadores */}
         <Card>
           <CardHeader><CardTitle className="text-base">Indicadores</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {analysis.topPeca && (
-              <div>
-                <p className="text-muted-foreground">Peça mais utilizada:</p>
-                <p className="font-medium">{analysis.topPeca.nome} ({analysis.topPeca.qtd}x)</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div><p className="text-muted-foreground text-xs">Faturamento</p><p className="font-semibold">{analysis.faturamento.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p></div>
+              <div><p className="text-muted-foreground text-xs">OSs concluídas</p><p className="font-semibold">{analysis.totalOSs}</p></div>
+              <div><p className="text-muted-foreground text-xs">Ticket médio (OS)</p><p className="font-semibold">{analysis.ticketMedioOs.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p></div>
+              <div><p className="text-muted-foreground text-xs">Ticket médio (serviço)</p><p className="font-semibold">{analysis.ticketMedioServico.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p></div>
+            </div>
+            {analysis.topPecas.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-muted-foreground mb-1 text-xs">Peças mais usadas:</p>
+                <div className="space-y-1">
+                  {analysis.topPecas.map(p => (
+                    <div key={p.nome} className="flex justify-between text-xs">
+                      <span>{p.nome}</span>
+                      <span className="font-medium">{p.qtd}x</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {analysis.tempoMedioPorDefeito.length > 0 && (
-              <div>
-                <p className="text-muted-foreground mb-1">Tempo médio por serviço:</p>
+              <div className="pt-2 border-t">
+                <p className="text-muted-foreground mb-1 text-xs">Tempo médio por serviço:</p>
                 <div className="space-y-1">
                   {analysis.tempoMedioPorDefeito.slice(0, 8).map(t => (
-                    <div key={t.nome} className="flex justify-between">
+                    <div key={t.nome} className="flex justify-between text-xs">
                       <span>{t.nome}</span>
                       <span className="font-medium">{fmtTempo(t.media)}</span>
                     </div>
