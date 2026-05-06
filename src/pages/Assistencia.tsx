@@ -86,11 +86,26 @@ const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: an
 const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
 const LIST_PAGE_SIZE = 30;
 const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
-  { value: "30", label: "30 dias" },
-  { value: "60", label: "60 dias" },
-  { value: "90", label: "90 dias" },
-  { value: "all", label: "Todo o período" },
+  { value: "hoje", label: "Hoje" },
+  { value: "ontem", label: "Ontem" },
+  { value: "esta_semana", label: "Esta semana" },
+  { value: "ultimos_7", label: "Últimos 7 dias" },
+  { value: "ultimos_30", label: "Últimos 30 dias" },
+  { value: "este_mes", label: "Este mês" },
+  { value: "mes_passado", label: "Mês passado" },
+  { value: "este_trimestre", label: "Este trimestre" },
+  { value: "este_ano", label: "Este ano" },
+  { value: "all", label: "Todos" },
 ];
+
+const PRESET_GROUPS: PeriodPreset[][] = [
+  ["hoje", "ontem", "esta_semana"],
+  ["ultimos_7", "ultimos_30"],
+  ["este_mes", "mes_passado", "este_trimestre", "este_ano"],
+  ["all"],
+];
+
+const WEEK_STARTS_ON = 0 as const;
 const PRIORIDADE_OPTIONS = ["normal"];
 const APROVACAO_OPTIONS = ["aprovado", "pendente", "aguardando"];
 const GARANTIA_OPTIONS: { value: GarantiaFilter; label: string }[] = [
