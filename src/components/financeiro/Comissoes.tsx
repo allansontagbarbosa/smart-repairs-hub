@@ -15,6 +15,8 @@ import {
   type PeriodRange,
   rangeFromPreset,
 } from "@/components/dashboard/period-presets";
+import { ExportButton } from "@/components/ExportButton";
+import type { ExportRow } from "@/lib/exportData";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d), "dd/MM/yyyy");
@@ -129,14 +131,34 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     pagarLoteMutation.mutate(selectedPayable.map(c => c.id), { onSuccess: () => setSelected([]) });
   };
 
+  const toComissoesRows = (): ExportRow[] => {
+    return filtered.map((c) => ({
+      "Técnico": c.funcionarios?.nome ?? "",
+      "OS": c.ordens_de_servico?.numero
+        ? `#${formatNumeroOS(c.ordens_de_servico.numero, c.ordens_de_servico.numero_formatado)}`
+        : "",
+      "Serviço": c.os_servicos?.nome ?? "",
+      "Conclusão OS": c.ordens_de_servico?.data_conclusao
+        ? fmtDate(c.ordens_de_servico.data_conclusao)
+        : "",
+      "Tipo": (c as any).tipo ?? "",
+      "Valor Base": c.valor_base != null ? Number(c.valor_base) : "",
+      "Valor": Number(c.valor),
+      "Status": statusConfig[c.status]?.label ?? c.status,
+      "Data Pagamento": c.data_pagamento ? fmtDate(c.data_pagamento) : "",
+      "Estornada": c.estornada_em ? "Sim" : "Não",
+    }));
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <DashboardPeriodFilter
           preset={periodPreset}
           range={periodRange}
           onChange={handlePeriodChange}
         />
+        <ExportButton resource="comissoes" sheetName="Comissoes" getRows={toComissoesRows} />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="stat-card">

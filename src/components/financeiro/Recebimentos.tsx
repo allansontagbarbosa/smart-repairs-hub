@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { NovoRecebimentoDialog } from "./NovoRecebimentoDialog";
+import { ExportButton } from "@/components/ExportButton";
+import type { ExportRow } from "@/lib/exportData";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const parseDate = (d: string) => new Date(d.includes("T") ? d : `${d}T12:00:00`);
@@ -95,6 +97,17 @@ export function Recebimentos({ recebimentos }: Props) {
     return FORMAS_PAGAMENTO.find(f => f.value === v)?.label ?? v;
   };
 
+  const toRecebimentosRows = (): ExportRow[] => {
+    return filtered.map((r) => ({
+      "Descrição": r.descricao,
+      "Data": fmtDate(r.data_recebimento),
+      "Origem": r.origem === "os" ? "De OS" : "Avulsa",
+      "Forma de Pagamento": r.forma_pagamento ? formaLabel(r.forma_pagamento) : "",
+      "Valor": Number(r.valor),
+      "Observações": r.observacoes ?? "",
+    }));
+  };
+
   return (
     <div className="space-y-4">
       {/* Totais do mês */}
@@ -137,6 +150,7 @@ export function Recebimentos({ recebimentos }: Props) {
             {FORMAS_PAGAMENTO.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <ExportButton resource="recebimentos" sheetName="Recebimentos" getRows={toRecebimentosRows} />
         <Button type="button" onClick={() => setDialogOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-1.5" />
           Novo Recebimento

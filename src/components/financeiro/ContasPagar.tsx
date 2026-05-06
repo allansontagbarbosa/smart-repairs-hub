@@ -13,6 +13,8 @@ import type { ContaPagar } from "@/hooks/useFinanceiro";
 import { dateOnlyLocal } from "@/lib/dateUtils";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-presets";
+import { ExportButton } from "@/components/ExportButton";
+import type { ExportRow } from "@/lib/exportData";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
@@ -259,6 +261,23 @@ export function ContasPagar({
     );
   };
 
+  const toContasRows = (): ExportRow[] => {
+    return filtered.map((c) => ({
+      "Descrição": c.descricao,
+      "Categoria": c.categoria,
+      "Fornecedor": c.fornecedores?.nome ?? c.fornecedor ?? "",
+      "Loja": c.lojas?.nome ?? "",
+      "OS Vinculada": c.ordens_de_servico?.numero ? `#${c.ordens_de_servico.numero}` : "",
+      "Competência": c.mes_competencia ?? "",
+      "Vencimento": fmtDate(c.data_vencimento),
+      "Data Pagamento": c.data_pagamento ? fmtDate(c.data_pagamento) : "",
+      "Valor": Number(c.valor),
+      "Status": c.smartStatus.label,
+      "Recorrente": c.recorrente ? "Sim" : "Não",
+      "Observações": c.observacoes ?? "",
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -321,6 +340,7 @@ export function ContasPagar({
             </SelectContent>
           </Select>
         )}
+        <ExportButton resource="contas_a_pagar" sheetName="ContasPagar" getRows={toContasRows} />
         <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingConta(null); setDialogOpen(true); }}>
           <Plus className="h-3.5 w-3.5" /> Nova Conta
         </Button>
