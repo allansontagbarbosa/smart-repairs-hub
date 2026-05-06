@@ -500,8 +500,26 @@ export default function DesempenhoTecnicos() {
                 )}
                 {!isLoading && tecnicosFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="py-10 text-center text-muted-foreground">
-                      {busca ? "Nenhum técnico encontrado para a busca." : "Nenhum dado no período."}
+                    <td colSpan={12} className="py-10 text-center">
+                      <p className="text-muted-foreground mb-3">
+                        {algumFiltroAtivo
+                          ? "Nenhum técnico bate com os filtros atuais."
+                          : "Nenhum dado no período."}
+                      </p>
+                      {algumFiltroAtivo ? (
+                        <Button variant="outline" size="sm" onClick={limparFiltros}>
+                          <X className="h-3.5 w-3.5 mr-1" />Limpar filtros
+                        </Button>
+                      ) : (
+                        <div className="inline-flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setPreset("ultimos_30")}>
+                            Ver últimos 30 dias
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => setPreset("mes_passado")}>
+                            Ver mês passado
+                          </Button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
