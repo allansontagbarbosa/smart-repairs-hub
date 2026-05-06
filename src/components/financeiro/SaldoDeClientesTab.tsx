@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowDownUp, CreditCard, FileDown, Loader2, Search, TrendingUp, Users, Wallet } from "lucide-react";
+import { ArrowDownUp, CreditCard, FileDown, Loader2, MessageCircle, Search, TrendingUp, Users, Wallet } from "lucide-react";
 import { useClientesSaldos, type ClienteSaldoResumo } from "@/hooks/useClientesSaldos";
 import { RegistrarPagamentoDialog } from "@/components/ClienteHistoricoSheet";
+import { CobrarClienteDialog } from "./CobrarClienteDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -22,6 +23,7 @@ export function SaldoDeClientesTab() {
   const [sortKey, setSortKey] = useState<SortKey>((searchParams.get("ordem_saldo") as SortKey) || "saldo_devedor");
   const [sortDirection, setSortDirection] = useState<SortDirection>((searchParams.get("dir_saldo") as SortDirection) || "desc");
   const [pagamentoClienteId, setPagamentoClienteId] = useState<string | null>(null);
+  const [cobrarCliente, setCobrarCliente] = useState<ClienteSaldoResumo | null>(null);
   const { data: clientes = [], isLoading } = useClientesSaldos();
 
   const filtered = useMemo(() => {
@@ -130,6 +132,16 @@ export function SaldoDeClientesTab() {
                     <td className="text-muted-foreground">{fmtDate(cliente.ultimo_pagamento_data)}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCobrarCliente(cliente)}
+                          disabled={!cliente.whatsapp && !cliente.telefone}
+                          title={!cliente.whatsapp && !cliente.telefone ? "Sem telefone cadastrado" : "Enviar cobrança via WhatsApp"}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30"
+                        >
+                          <MessageCircle className="h-4 w-4 mr-2" />Cobrar
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => setPagamentoClienteId(cliente.id)}><CreditCard className="h-4 w-4 mr-2" />Registrar</Button>
                         <Button size="sm" variant="outline" onClick={() => navigate(`/financeiro/faturas-lojistas?cliente=${cliente.id}`)}><FileDown className="h-4 w-4 mr-2" />Gerar PDF</Button>
                       </div>
@@ -144,6 +156,7 @@ export function SaldoDeClientesTab() {
       </div>
 
       {pagamentoClienteId ? <RegistrarPagamentoDialog open={!!pagamentoClienteId} onOpenChange={(open) => !open && setPagamentoClienteId(null)} clienteId={pagamentoClienteId} /> : null}
+      <CobrarClienteDialog cliente={cobrarCliente} onClose={() => setCobrarCliente(null)} />
     </div>
   );
 }
