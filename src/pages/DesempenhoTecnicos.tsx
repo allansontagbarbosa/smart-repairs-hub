@@ -1,18 +1,33 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   startOfMonth,
   endOfMonth,
   startOfWeek,
   endOfWeek,
+  startOfQuarter,
+  endOfQuarter,
+  startOfYear,
+  endOfYear,
+  startOfDay,
+  endOfDay,
   subDays,
+  subMonths,
+  subQuarters,
+  subYears,
   format,
   differenceInDays,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useDesempenhoTecnicos, type KpiTecnico } from "@/hooks/useDesempenhoTecnicos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Trophy,
   Wrench,
@@ -27,6 +42,10 @@ import {
   ArrowUp,
   ArrowDown,
   Clock,
+  RefreshCw,
+  CalendarClock,
+  X,
+  Filter,
 } from "lucide-react";
 import {
   BarChart,
