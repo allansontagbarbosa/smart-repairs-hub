@@ -113,7 +113,7 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
     mutationFn: async (conta: ContaPagar) => {
       const { error } = await supabase
         .from("contas_a_pagar")
-        .update({ status: "paga" as any, data_pagamento: new Date().toISOString().split("T")[0] })
+        .update({ status: "paga" as any, data_pagamento: dateOnlyLocal() })
         .eq("id", conta.id);
       if (error) throw error;
 
