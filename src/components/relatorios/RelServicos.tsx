@@ -162,18 +162,23 @@ export function RelServicos() {
         <Button variant="outline" size="icon" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
       </div>
 
+      <p className="text-xs text-muted-foreground -mt-3">
+        Período: <strong>{meses[mes]} {ano}</strong> — filtrado por data de conclusão da OS (regime de competência, alinhado com DRE).
+      </p>
+
       <div className="grid gap-4 md:grid-cols-2">
         {/* Pie Chart */}
         <Card>
           <CardHeader><CardTitle className="text-base">Distribuição de Serviços</CardTitle></CardHeader>
           <CardContent>
             {analysis.pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
-                  <Pie data={analysis.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={analysis.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}>
                     {analysis.pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(v: any, n: any) => [`${v} serviços`, n]} />
+                  <Legend verticalAlign="bottom" height={36} iconSize={10} formatter={(v) => <span className="text-xs">{v}</span>} />
                 </PieChart>
               </ResponsiveContainer>
             ) : <p className="text-center text-muted-foreground py-8">Sem dados no período.</p>}
