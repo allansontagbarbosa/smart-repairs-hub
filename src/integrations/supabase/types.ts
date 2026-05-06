@@ -4790,6 +4790,7 @@ export type Database = {
           p_limite?: number
           p_marca_busca?: string
           p_modelo_busca?: string
+          p_modelo_exato?: boolean
         }
         Returns: Json
       }
