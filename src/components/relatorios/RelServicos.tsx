@@ -132,7 +132,16 @@ export function RelServicos() {
       .map(([nome, ts]) => ({ nome, media: ts.reduce((a, b) => a + b, 0) / ts.length }))
       .sort((a, b) => a.media - b.media);
 
-    return { ranking, pieData, defeitosPorMarca, topPeca, tempoMedioPorDefeito };
+    const ordensConcluidas = (ordens ?? []).filter(o => o.data_conclusao);
+    const faturamento = ordensConcluidas.reduce((s, o) => s + Number(o.valor_total ?? 0), 0);
+    const ticketMedioOs = ordensConcluidas.length > 0 ? faturamento / ordensConcluidas.length : 0;
+    const ticketMedioServico = total > 0 ? faturamento / total : 0;
+    const topPecas = Object.entries(pecaCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, qtd]) => ({ nome: (pecasNomes ?? []).find(p => p.id === id)?.nome ?? "—", qtd }));
+
+    return { ranking, pieData, defeitosPorMarca, topPeca, tempoMedioPorDefeito, faturamento, ticketMedioOs, ticketMedioServico, topPecas, totalServicos: total, totalOSs: ordensConcluidas.length };
   }, [defeitos, ordens, aparelhos, pecasUsadas, pecasNomes]);
 
   const prev = () => { if (mes === 0) { setMes(11); setAno(ano - 1); } else setMes(mes - 1); };
