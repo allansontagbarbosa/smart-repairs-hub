@@ -39,8 +39,12 @@ export type Recebimento = {
   data_recebimento: string;
   // Forma de pagamento real: pix, dinheiro, cartao_debito, etc. Pode ser null em registros antigos.
   forma_pagamento: string | null;
-  // Origem da entrada: "os" se vinculada a uma OS, "avulso" caso contrário.
-  origem: "os" | "avulso";
+  // Origem da entrada:
+  // - "os": vinculada a uma OS
+  // - "pagamento_cliente": pagamento de saldo devedor (categoria='recebimento_cliente')
+  // - "avulso": demais entradas (receita extra genuína)
+  origem: "os" | "pagamento_cliente" | "avulso";
+  categoria: string | null;
   ordem_servico_id: string | null;
   cliente_id: string | null;
   loja_id: string | null;
@@ -68,13 +72,16 @@ export function Recebimentos({ recebimentos }: Props) {
       const d = parseDate(r.data_recebimento);
       return d >= monthStart && d <= monthEnd;
     });
-    const avulsos = noMes
-      .filter(r => r.origem === "avulso")
-      .reduce((s, r) => s + Number(r.valor), 0);
     const deOS = noMes
       .filter(r => r.origem === "os")
       .reduce((s, r) => s + Number(r.valor), 0);
-    return { avulsos, deOS, total: avulsos + deOS };
+    const pagtoCliente = noMes
+      .filter(r => r.origem === "pagamento_cliente")
+      .reduce((s, r) => s + Number(r.valor), 0);
+    const avulsos = noMes
+      .filter(r => r.origem === "avulso")
+      .reduce((s, r) => s + Number(r.valor), 0);
+    return { avulsos, pagtoCliente, deOS, total: avulsos + pagtoCliente + deOS };
   }, [recebimentos, monthStart, monthEnd]);
 
   const filtered = useMemo(() => {
@@ -101,7 +108,7 @@ export function Recebimentos({ recebimentos }: Props) {
     return filtered.map((r) => ({
       "Descrição": r.descricao,
       "Data": fmtDate(r.data_recebimento),
-      "Origem": r.origem === "os" ? "De OS" : "Avulsa",
+      "Origem": r.origem === "os" ? "De OS" : r.origem === "pagamento_cliente" ? "Pagto cliente" : "Avulsa",
       "Forma de Pagamento": r.forma_pagamento ? formaLabel(r.forma_pagamento) : "",
       "Valor": Number(r.valor),
       "Observações": r.observacoes ?? "",
@@ -111,21 +118,26 @@ export function Recebimentos({ recebimentos }: Props) {
   return (
     <div className="space-y-4">
       {/* Totais do mês */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="stat-card border-success/20 bg-success-muted">
-          <Receipt className="h-4 w-4 text-success mb-2" />
-          <p className="stat-value text-success">{fmtCurrency(totaisMes.avulsos)}</p>
-          <p className="stat-label">Recebimentos avulsos no mês</p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="stat-card">
           <Receipt className="h-4 w-4 text-muted-foreground mb-2" />
           <p className="stat-value">{fmtCurrency(totaisMes.deOS)}</p>
-          <p className="stat-label">Recebimentos de OS no mês</p>
+          <p className="stat-label">De OS</p>
+        </div>
+        <div className="stat-card">
+          <Receipt className="h-4 w-4 text-blue-600 mb-2" />
+          <p className="stat-value">{fmtCurrency(totaisMes.pagtoCliente)}</p>
+          <p className="stat-label">Pagto saldo devedor</p>
+        </div>
+        <div className="stat-card border-success/20 bg-success-muted">
+          <Receipt className="h-4 w-4 text-success mb-2" />
+          <p className="stat-value text-success">{fmtCurrency(totaisMes.avulsos)}</p>
+          <p className="stat-label">Avulsos (receita extra)</p>
         </div>
         <div className="stat-card">
           <Receipt className="h-4 w-4 text-muted-foreground mb-2" />
           <p className="stat-value">{fmtCurrency(totaisMes.total)}</p>
-          <p className="stat-label">Total geral no mês</p>
+          <p className="stat-label">Total entradas</p>
         </div>
       </div>
 
@@ -136,10 +148,11 @@ export function Recebimentos({ recebimentos }: Props) {
           <Input placeholder="Buscar recebimento..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filterOrigem} onValueChange={setFilterOrigem}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas origens</SelectItem>
             <SelectItem value="os">De OS</SelectItem>
+            <SelectItem value="pagamento_cliente">Pagto cliente</SelectItem>
             <SelectItem value="avulso">Avulsa</SelectItem>
           </SelectContent>
         </Select>
@@ -173,8 +186,14 @@ export function Recebimentos({ recebimentos }: Props) {
                 <p className="text-xs text-muted-foreground">{fmtDate(r.data_recebimento)}</p>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${r.origem === "os" ? "bg-success-muted text-success" : "bg-muted text-muted-foreground"}`}>
-                  {r.origem === "os" ? "De OS" : "Avulsa"}
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  r.origem === "os"
+                    ? "bg-success-muted text-success"
+                    : r.origem === "pagamento_cliente"
+                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                      : "bg-muted text-muted-foreground"
+                }`}>
+                  {r.origem === "os" ? "De OS" : r.origem === "pagamento_cliente" ? "Pagto cliente" : "Avulsa"}
                 </span>
                 {r.forma_pagamento && (
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${BADGE_COLORS[r.forma_pagamento] ?? "bg-muted text-muted-foreground"}`}>
