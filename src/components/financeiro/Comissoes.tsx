@@ -66,15 +66,23 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   }
 
   const filtered = useMemo(() => comissoes.filter(c => {
-    const q = search.toLowerCase();
-    const nome = c.funcionarios?.nome ?? "";
+    const q = search.toLowerCase().trim();
+    const tecnico = c.funcionarios?.nome ?? "";
     const osNumero = c.ordens_de_servico?.numero_formatado ?? String(c.ordens_de_servico?.numero ?? "");
     const servico = c.os_servicos?.nome ?? "";
-    const matchSearch = !search || nome.toLowerCase().includes(q) || osNumero.toLowerCase().includes(q) || servico.toLowerCase().includes(q);
+    const aparelho = c.ordens_de_servico?.aparelhos
+      ? `${c.ordens_de_servico.aparelhos.marca ?? ""} ${c.ordens_de_servico.aparelhos.modelo ?? ""}`.trim()
+      : "";
+    const cliente = c.ordens_de_servico?.aparelhos?.clientes?.nome ?? "";
+    const matchSearch =
+      !q ||
+      tecnico.toLowerCase().includes(q) ||
+      osNumero.toLowerCase().includes(q) ||
+      servico.toLowerCase().includes(q) ||
+      aparelho.toLowerCase().includes(q) ||
+      cliente.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
-    // Filtro de período usa SEMPRE data_conclusao da OS associada (regime de competência).
-    // Comissão sem OS ou sem data_conclusao fica fora enquanto há filtro de período ativo.
     const os = c.ordens_de_servico;
     const dataRef = os?.data_conclusao ? new Date(os.data_conclusao) : null;
     const matchPeriodo = !dataRef
@@ -82,6 +90,27 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
       : dataRef >= periodRange.from && dataRef <= periodRange.to;
     return matchSearch && matchStatus && matchFunc && matchPeriodo;
   }), [comissoes, filterFunc, filterStatus, search, periodRange]);
+
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "data") {
+        const da = a.data_pagamento ?? a.created_at;
+        const db = b.data_pagamento ?? b.created_at;
+        cmp = String(da).localeCompare(String(db));
+      } else if (sortKey === "tecnico") {
+        cmp = (a.funcionarios?.nome ?? "").localeCompare(b.funcionarios?.nome ?? "");
+      } else if (sortKey === "valor") {
+        cmp = Number(a.valor) - Number(b.valor);
+      } else if (sortKey === "status") {
+        cmp = a.status.localeCompare(b.status);
+      }
+      return cmp * dir;
+    });
+    return list;
+  }, [filtered, sortKey, sortDir]);
 
   const payable = filtered.filter(c => c.status === "pendente" || c.status === "liberada");
   const selectedPayable = payable.filter(c => selected.includes(c.id));
