@@ -399,7 +399,7 @@ export default function DesempenhoTecnicos() {
           label="Comissão paga"
           value={brl(totais.paga)}
           variacao={varPaga}
-          accent
+          accent={totais.paga > 0}
         />
       </div>
 
