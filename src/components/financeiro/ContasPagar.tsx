@@ -261,6 +261,17 @@ export function ContasPagar({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Período de vencimento
+        </h2>
+        <DashboardPeriodFilter
+          preset={periodPreset}
+          range={periodRange}
+          onChange={onPeriodChange}
+        />
+      </div>
+
       {/* Priority alerts */}
       {(atrasadas.length > 0 || hoje.length > 0) && (
         <div className="flex flex-wrap gap-2">
