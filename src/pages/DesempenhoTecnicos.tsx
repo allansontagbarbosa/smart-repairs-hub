@@ -337,16 +337,6 @@ export default function DesempenhoTecnicos() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {PERIODOS.map((p) => (
-            <Button
-              key={p.id}
-              size="sm"
-              variant={periodo === p.id ? "default" : "outline"}
-              onClick={() => setPeriodo(p.id)}
-            >
-              {p.label}
-            </Button>
-          ))}
           <Button size="sm" variant="outline" onClick={exportarCSV}>
             <Download className="h-4 w-4 mr-1" />
             CSV
