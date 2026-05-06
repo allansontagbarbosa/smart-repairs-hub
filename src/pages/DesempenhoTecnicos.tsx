@@ -380,8 +380,10 @@ export default function DesempenhoTecnicos() {
                 <tr>
                   <Th k="nome" label="Técnico" align="left" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <Th k="qtd_servicos" label="Serviços" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                  <th className="py-2 text-right text-[10px] uppercase tracking-wider text-muted-foreground/70">vs ant.</th>
                   <Th k="qtd_os" label="OS" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <Th k="faturamento_os" label="Faturamento" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                  <th className="py-2 text-right text-[10px] uppercase tracking-wider text-muted-foreground/70">vs ant.</th>
                   <Th k="ticket_medio_os" label="Ticket médio" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <Th k="tempo_medio_horas" label="Tempo médio" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
                   <Th k="comissao_pendente" label="Pendente" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
@@ -393,7 +395,7 @@ export default function DesempenhoTecnicos() {
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={10} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={12} className="py-10 text-center text-muted-foreground">
                       <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
                       Carregando...
                     </td>
@@ -401,7 +403,7 @@ export default function DesempenhoTecnicos() {
                 )}
                 {!isLoading && tecnicosFiltrados.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="py-10 text-center text-muted-foreground">
+                    <td colSpan={12} className="py-10 text-center text-muted-foreground">
                       {busca ? "Nenhum técnico encontrado para a busca." : "Nenhum dado no período."}
                     </td>
                   </tr>
@@ -420,9 +422,33 @@ export default function DesempenhoTecnicos() {
                         <span className="font-medium">{t.nome}</span>
                       </div>
                     </td>
-                    <td className="text-right tabular-nums">{t.qtd_servicos}</td>
+                    <td className="text-right tabular-nums relative">
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-y-1 left-0 rounded-sm bg-primary/15 pointer-events-none"
+                        style={{
+                          width:
+                            maxServicos > 0
+                              ? `${Math.max(2, (Number(t.qtd_servicos) / maxServicos) * 100)}%`
+                              : "0%",
+                        }}
+                      />
+                      <span className="relative">{t.qtd_servicos}</span>
+                    </td>
+                    <td className="text-right">
+                      <TrendPill
+                        atual={Number(t.qtd_servicos)}
+                        anterior={Number(tecnicoAnteriorPorId.get(t.funcionario_id)?.qtd_servicos ?? 0)}
+                      />
+                    </td>
                     <td className="text-right tabular-nums">{t.qtd_os}</td>
                     <td className="text-right tabular-nums">{brl(Number(t.faturamento_os))}</td>
+                    <td className="text-right">
+                      <TrendPill
+                        atual={Number(t.faturamento_os)}
+                        anterior={Number(tecnicoAnteriorPorId.get(t.funcionario_id)?.faturamento_os ?? 0)}
+                      />
+                    </td>
                     <td className="text-right tabular-nums">{brl(Number(t.ticket_medio_os))}</td>
                     <td className="text-right tabular-nums">
                       <span className="inline-flex items-center gap-1">
@@ -450,8 +476,10 @@ export default function DesempenhoTecnicos() {
                   <tr className="border-t-2 border-border font-semibold bg-muted/30">
                     <td className="py-2">TOTAL ({tecnicosFiltrados.length})</td>
                     <td className="text-right tabular-nums">{totais.qtd_servicos}</td>
+                    <td className="text-right text-muted-foreground">—</td>
                     <td className="text-right tabular-nums">{totais.qtd_os}</td>
                     <td className="text-right tabular-nums">{brl(totais.faturamento)}</td>
+                    <td className="text-right text-muted-foreground">—</td>
                     <td className="text-right text-muted-foreground">—</td>
                     <td className="text-right text-muted-foreground">—</td>
                     <td className="text-right tabular-nums text-amber-700">{brl(totais.pendente)}</td>
@@ -569,5 +597,108 @@ function Th({
         )}
       </button>
     </th>
+  );
+}
+
+function PodiumSlot({
+  rank,
+  tecnico,
+}: {
+  rank: 1 | 2 | 3;
+  tecnico?: KpiTecnico;
+}) {
+  if (!tecnico) {
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-muted/20 py-6 text-center">
+        <p className="text-xs text-muted-foreground">{rank}º lugar</p>
+        <p className="text-sm text-muted-foreground mt-1">—</p>
+      </div>
+    );
+  }
+
+  const isLider = rank === 1;
+  const medalBg =
+    rank === 1
+      ? "bg-primary text-primary-foreground"
+      : rank === 2
+      ? "bg-muted-foreground/70 text-background"
+      : "bg-orange-500/80 text-white";
+
+  return (
+    <div
+      className={[
+        "rounded-lg border bg-card flex flex-col items-center px-3 py-4 relative",
+        isLider
+          ? "border-2 border-primary bg-primary/5 -translate-y-2 shadow-sm"
+          : "border-border",
+      ].join(" ")}
+    >
+      {isLider && (
+        <span className="absolute -top-2.5 right-2 bg-primary text-primary-foreground text-[10px] font-medium px-2 py-0.5 rounded-full tracking-wider">
+          LÍDER
+        </span>
+      )}
+      <div
+        className={`w-9 h-9 rounded-full flex items-center justify-center font-medium text-base mb-2 ${medalBg}`}
+      >
+        {isLider ? <Trophy className="h-4 w-4" /> : `${rank}º`}
+      </div>
+      <p className={`font-medium ${isLider ? "text-base" : "text-sm"}`}>
+        {tecnico.nome}
+      </p>
+      <p className="text-xs text-muted-foreground mt-0.5">
+        {tecnico.qtd_os} OS · {tecnico.qtd_servicos} serviços
+      </p>
+      <p
+        className={`font-medium mt-2 leading-none ${
+          isLider ? "text-2xl text-primary" : "text-xl"
+        }`}
+      >
+        {brl(Number(tecnico.comissao_total_a_receber))}
+      </p>
+      <p className="text-[11px] text-muted-foreground mt-1">a receber</p>
+    </div>
+  );
+}
+
+function TrendPill({
+  atual,
+  anterior,
+}: {
+  atual: number;
+  anterior: number;
+}) {
+  if (anterior === 0 && atual === 0) {
+    return <span className="text-[11px] text-muted-foreground">—</span>;
+  }
+  if (anterior === 0 && atual > 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium">
+        <TrendingUp className="h-3 w-3" />
+        novo
+      </span>
+    );
+  }
+  const pct = ((atual - anterior) / anterior) * 100;
+  if (Math.abs(pct) < 1) {
+    return <span className="text-[11px] text-muted-foreground">—</span>;
+  }
+  const isUp = pct > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium ${
+        isUp
+          ? "bg-emerald-50 text-emerald-700"
+          : "bg-red-50 text-red-700"
+      }`}
+    >
+      {isUp ? (
+        <TrendingUp className="h-3 w-3" />
+      ) : (
+        <TrendingDown className="h-3 w-3" />
+      )}
+      {isUp ? "+" : ""}
+      {pct.toFixed(0)}%
+    </span>
   );
 }
