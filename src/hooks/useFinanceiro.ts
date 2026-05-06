@@ -175,7 +175,16 @@ async function fetchLojas() {
 const formatCompetencia = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-export function useFinanceiro() {
+interface UseFinanceiroOptions {
+  /**
+   * Range opcional para os KPIs de movimentação no período.
+   * Quando não informado, usa o mês corrente. KPIs de carteira (vencidas,
+   * próximos vencimentos, total pendente) IGNORAM esse range.
+   */
+  periodRange?: PeriodRange;
+}
+
+export function useFinanceiro(options: UseFinanceiroOptions = {}) {
   const contas = useQuery({ queryKey: ["contas_pagar"], queryFn: fetchContas });
   const comissoes = useQuery({ queryKey: ["comissoes"], queryFn: fetchComissoes });
   const categorias = useQuery({ queryKey: ["categorias_financeiras"], queryFn: fetchCategoriasFinanceiras });
@@ -193,9 +202,21 @@ export function useFinanceiro() {
     const todayStart = startOfDay(now);
     const next7DaysEnd = addDays(todayStart, 7);
     const next30DaysEnd = addDays(todayStart, 30);
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    const currentCompetencia = formatCompetencia(now);
+
+    // Range de movimentação: usa o filtro, senão mês corrente.
+    const periodStart = options.periodRange?.from ?? startOfMonth(now);
+    const periodEnd = options.periodRange?.to ?? endOfMonth(now);
+
+    // Lista de meses de competência cobertos pelo range.
+    const competenciasNoRange: string[] = [];
+    {
+      const cursor = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
+      const last = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), 1);
+      while (cursor <= last) {
+        competenciasNoRange.push(formatCompetencia(cursor));
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
 
     const allContas = contas.data ?? [];
     const allComissoes = comissoes.data ?? [];
