@@ -230,6 +230,9 @@ async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters, ma
     if (filterStatus !== "todos") {
       query = query.eq("status", filterStatus);
     }
+    if (matchingIds && matchingIds.length > 0) {
+      query = query.in("id", matchingIds);
+    }
 
     const { data, error } = await query;
     if (error) throw error;
@@ -266,7 +269,8 @@ async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) 
   return counts;
 }
 
-async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters }) {
+async function fetchOrdersForExport({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return [];
   const batchSize = 1000;
   let start = 0;
   const rows: any[] = [];
@@ -283,6 +287,9 @@ async function fetchOrdersForExport({ filterStatus, dateRange, filters }: { filt
 
     if (filterStatus !== "todos") {
       query = query.eq("status", filterStatus);
+    }
+    if (matchingIds && matchingIds.length > 0) {
+      query = query.in("id", matchingIds);
     }
 
     const { data, error } = await query;
