@@ -65,9 +65,9 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     const dataRef = os?.data_conclusao ? new Date(os.data_conclusao) : null;
     const matchPeriodo = !dataRef
       ? false
-      : dataRef >= periodo.range.start && dataRef <= periodo.range.end;
+      : dataRef >= periodRange.from && dataRef <= periodRange.to;
     return matchSearch && matchStatus && matchFunc && matchPeriodo;
-  }), [comissoes, filterFunc, filterStatus, search, periodo.range]);
+  }), [comissoes, filterFunc, filterStatus, search, periodRange]);
 
   const payable = filtered.filter(c => c.status === "pendente" || c.status === "liberada");
   const selectedPayable = payable.filter(c => selected.includes(c.id));
@@ -132,13 +132,10 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <PeriodFilter
-          preset={periodo.preset}
-          onPresetChange={periodo.setPreset}
-          customStart={periodo.customStart}
-          customEnd={periodo.customEnd}
-          onCustomStartChange={periodo.setCustomStart}
-          onCustomEndChange={periodo.setCustomEnd}
+        <DashboardPeriodFilter
+          preset={periodPreset}
+          range={periodRange}
+          onChange={handlePeriodChange}
         />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
