@@ -77,7 +77,8 @@ export function RelDRE() {
       const { data } = await supabase
         .from("contas_a_pagar")
         .select("valor, recorrente, mes_competencia")
-        .eq("mes_competencia", competencia);
+        .eq("mes_competencia", competencia)
+        .is("deleted_at", null);
       return data ?? [];
     },
   });
