@@ -93,7 +93,9 @@ export function RelServicos() {
       .slice(0, 10)
       .map(([nome, count]) => ({ nome, count, pct: total > 0 ? (count / total * 100).toFixed(1) : "0" }));
 
-    const pieData = ranking.map(r => ({ name: r.nome, value: r.count }));
+    const top5 = ranking.slice(0, 5).map(r => ({ name: r.nome, value: r.count }));
+    const outros = ranking.slice(5).reduce((s, r) => s + r.count, 0);
+    const pieData = outros > 0 ? [...top5, { name: "Outros", value: outros }] : top5;
 
     // Defeitos por marca
     const marcaMap: Record<string, Record<string, number>> = {};
