@@ -169,6 +169,48 @@ export function RelExportacao() {
     } finally { setLoading(""); }
   }
 
+  async function exportarRentabilidade() {
+    setLoading("rent");
+    try {
+      const { data } = await supabase
+        .from("ordens_de_servico")
+        .select("id, numero, data_conclusao, valor, custo_pecas, tecnico, status")
+        .is("deleted_at", null)
+        .not("data_conclusao", "is", null)
+        .gte("data_conclusao", dataInicio.toISOString())
+        .lte("data_conclusao", dataFim.toISOString())
+        .order("data_conclusao", { ascending: false });
+      if (!data?.length) { toast.info("Nenhuma OS concluída no período."); return; }
+
+      const ordemIds = data.map(o => o.id);
+      const { data: coms } = await supabase
+        .from("comissoes")
+        .select("ordem_id, valor")
+        .is("estornada_em", null)
+        .in("ordem_id", ordemIds);
+
+      const comPorOrdem: Record<string, number> = {};
+      for (const c of (coms ?? []) as any[]) {
+        if (!c.ordem_id) continue;
+        comPorOrdem[c.ordem_id] = (comPorOrdem[c.ordem_id] ?? 0) + Number(c.valor);
+      }
+
+      downloadCSV(
+        `rentabilidade_${format(dataInicio,"yyyy-MM-dd")}_${format(dataFim,"yyyy-MM-dd")}.csv`,
+        ["OS","Data Conclusão","Receita (R$)","Custo Peças (R$)","Comissão (R$)","Margem (R$)","Margem (%)","Técnico","Status"],
+        data.map(o => {
+          const receita = Number(o.valor ?? 0);
+          const custo = Number(o.custo_pecas ?? 0);
+          const com = comPorOrdem[o.id] ?? 0;
+          const margem = receita - custo - com;
+          const margemPct = receita > 0 ? (margem / receita * 100).toFixed(1) : "0";
+          return [o.numero, o.data_conclusao, receita.toFixed(2), custo.toFixed(2), com.toFixed(2), margem.toFixed(2), margemPct, o.tecnico ?? "", o.status];
+        })
+      );
+      toast.success(`CSV de ${data.length} OSs com rentabilidade exportado!`);
+    } finally { setLoading(""); }
+  }
+
   return (
     <div className="space-y-6 mt-4">
       {/* Period filter */}
