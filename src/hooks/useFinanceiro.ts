@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
 import { addDays, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { PeriodRange } from "@/components/dashboard/period-presets";
 
 export type ContaPagar = {
   id: string;
