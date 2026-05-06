@@ -4649,6 +4649,51 @@ export type Database = {
           id: string
         }[]
       }
+      calc_meta_comissao_paga: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_faturamento: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_qtd_os: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_qtd_servicos: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_ticket_medio: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
