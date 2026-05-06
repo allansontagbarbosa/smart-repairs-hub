@@ -46,7 +46,7 @@ interface Props {
 }
 
 interface PropsExtended extends Props {
-  filterSlot?: React.ReactNode;
+  filterSlot?: ReactNode;
 }
 
 export function FinanceiroDashboard({ kpis, filterSlot }: PropsExtended) {
