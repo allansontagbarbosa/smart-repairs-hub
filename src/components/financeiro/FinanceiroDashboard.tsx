@@ -1,10 +1,10 @@
 import {
-  TrendingUp, AlertTriangle, Info,
+  TrendingUp, AlertTriangle,
   Calendar, CalendarDays, CalendarRange, CreditCard, Users, Wallet, Package, Receipt, CircleDollarSign,
 } from "lucide-react";
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import type { ReactNode } from "react";
+import { RegimeBadge } from "./RegimeBadge";
 
 const fmtCurrency = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -129,38 +129,38 @@ export function FinanceiroDashboard({ kpis, filterSlot }: PropsExtended) {
           <Wallet className="h-4 w-4 text-success mb-3" />
           <p className="stat-value text-success">{fmtCurrency(kpis.receitaMes)}</p>
           <div className="flex items-center gap-1">
-            <p className="stat-label">Receita realizada no mês</p>
-            <TooltipProvider>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="text-xs">Soma do valor das OSs concluídas (pronto/entregue) com data de conclusão no mês atual. OSs ainda em andamento não entram aqui.</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
+            <p className="stat-label">Receita realizada</p>
+            <RegimeBadge regime="competencia_os" />
           </div>
         </div>
         <div className="stat-card border-success/20 bg-success-muted">
           <Receipt className="h-4 w-4 text-success mb-3" />
           <p className="stat-value text-success">{fmtCurrency(kpis.recebimentosMes)}</p>
-          <p className="stat-label">Recebimentos extras</p>
+          <div className="flex items-center gap-1">
+            <p className="stat-label">Recebimentos extras</p>
+            <RegimeBadge regime="caixa" />
+          </div>
         </div>
         <div className="stat-card">
           <Package className="h-4 w-4 text-warning mb-3" />
           <p className="stat-value">{fmtCurrency(kpis.custosPecasMes)}</p>
-          <p className="stat-label">Custo peças</p>
+          <div className="flex items-center gap-1">
+            <p className="stat-label">Custo peças</p>
+            <RegimeBadge regime="competencia_os" />
+          </div>
         </div>
         <div className="stat-card">
           <Receipt className="h-4 w-4 text-destructive mb-3" />
           <p className="stat-value">{fmtCurrency(kpis.despesasPagasMes)}</p>
-          <p className="stat-label">Despesas do mês</p>
+          <div className="flex items-center gap-1">
+            <p className="stat-label">Despesas (competência)</p>
+            <RegimeBadge regime="competencia_mensal" />
+          </div>
         </div>
         <div className={`stat-card ${kpis.lucroReal >= 0 ? "border-success/20 bg-success-muted" : "border-destructive/20 bg-destructive/5"}`}>
           <TrendingUp className={`h-4 w-4 mb-3 ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`} />
           <p className={`stat-value ${kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}`}>{fmtCurrency(kpis.lucroReal)}</p>
-          <p className="stat-label">Lucro real do mês</p>
+          <p className="stat-label">Lucro estimado</p>
         </div>
       </div>
 
@@ -169,7 +169,10 @@ export function FinanceiroDashboard({ kpis, filterSlot }: PropsExtended) {
         <div className="stat-card border-success/20 bg-success-muted">
           <CreditCard className="h-4 w-4 text-success mb-3" />
           <p className="stat-value text-success">{fmtCurrency(kpis.pagoMes)}</p>
-          <p className="stat-label">Total pago no mês</p>
+          <div className="flex items-center gap-1">
+            <p className="stat-label">Total pago</p>
+            <RegimeBadge regime="caixa" />
+          </div>
         </div>
         <div className="stat-card">
           <Users className="h-4 w-4 text-warning mb-3" />
@@ -180,9 +183,16 @@ export function FinanceiroDashboard({ kpis, filterSlot }: PropsExtended) {
 
       {/* Profit formula explanation */}
       <div className="section-card">
-        <div className="p-4">
+        <div className="p-4 space-y-2">
           <p className="text-xs text-muted-foreground">
-            <strong>Fórmula do lucro real:</strong> Receita OS ({fmtCurrency(kpis.receitaMes)}) + Recebimentos ({fmtCurrency(kpis.recebimentosMes)}) − Peças ({fmtCurrency(kpis.custosPecasMes)}) − Despesas ({fmtCurrency(kpis.despesasPagasMes)}) − Comissões ({fmtCurrency(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmtCurrency(kpis.lucroReal)}</strong>
+            <strong>Fórmula do lucro estimado:</strong> Receita ({fmtCurrency(kpis.receitaMes)}) + Recebimentos ({fmtCurrency(kpis.recebimentosMes)}) − Peças ({fmtCurrency(kpis.custosPecasMes)}) − Despesas ({fmtCurrency(kpis.despesasPagasMes)}) − Comissões ({fmtCurrency(kpis.comissoesMes)}) = <strong className={kpis.lucroReal >= 0 ? "text-success" : "text-destructive"}>{fmtCurrency(kpis.lucroReal)}</strong>
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            ⓘ Esta fórmula combina três regimes contábeis distintos:{" "}
+            <span className="text-blue-500 font-medium">Receita, Peças e Comissões</span> usam <span className="text-blue-500 font-medium">competência da OS</span> (mês da conclusão);{" "}
+            <span className="text-emerald-500 font-medium">Recebimentos extras e Total pago</span> usam <span className="text-emerald-500 font-medium">caixa</span> (dia da movimentação);{" "}
+            <span className="text-amber-500 font-medium">Despesas</span> usam <span className="text-amber-500 font-medium">competência mensal</span> (mes_competencia da conta).
+            Ideal pra ter visão rápida do lucro, mas <strong>pode divergir do DRE</strong> quando há pagamentos atrasados ou descasamento entre conclusão e recebimento. Pra fechamento contábil formal, use o relatório DRE.
           </p>
         </div>
       </div>
