@@ -11,9 +11,24 @@ import { Recebimentos } from "@/components/financeiro/Recebimentos";
 import { FluxoCaixa } from "@/components/financeiro/FluxoCaixa";
 import { SaldoDeClientesTab } from "@/components/financeiro/SaldoDeClientesTab";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
+import {
+  type PeriodPreset,
+  type PeriodRange,
+  rangeFromPreset,
+} from "@/components/dashboard/period-presets";
 
 export default function Financeiro() {
-  const { contas, comissoes, recebimentos, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro();
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("este_mes");
+  const [periodRange, setPeriodRange] = useState<PeriodRange>(
+    () => rangeFromPreset("este_mes")!
+  );
+  function handlePeriodChange(preset: PeriodPreset, range: PeriodRange) {
+    setPeriodPreset(preset);
+    setPeriodRange(range);
+  }
+
+  const { contas, comissoes, recebimentos, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro({ periodRange });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const { data: tiposServico = [] } = useQuery({
