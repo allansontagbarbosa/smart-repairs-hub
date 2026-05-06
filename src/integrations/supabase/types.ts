@@ -4782,6 +4782,17 @@ export type Database = {
           ultimo_pagamento_data: string
         }[]
       }
+      ia_agregar_aparelhos_periodo: {
+        Args: {
+          p_cliente_busca?: string
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_limite?: number
+          p_marca_busca?: string
+          p_modelo_busca?: string
+        }
+        Returns: Json
+      }
       ia_buscar_os: {
         Args: {
           p_cliente_busca?: string
@@ -4828,6 +4839,16 @@ export type Database = {
           p_modelo: string
           p_tokens_input: number
           p_tokens_output: number
+        }
+        Returns: Json
+      }
+      ia_top_defeitos_periodo: {
+        Args: {
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_limite?: number
+          p_marca_busca?: string
+          p_modelo_busca?: string
         }
         Returns: Json
       }
