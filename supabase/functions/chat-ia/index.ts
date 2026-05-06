@@ -112,7 +112,9 @@ const TOOLS = [
   {
     name: "agregar_aparelhos_periodo",
     description:
-      "Conta OS agrupadas por marca + modelo do aparelho. Use pra perguntas tipo 'quantos iPhone 14 foram enviados em abril', 'qual modelo o cliente X mais envia', 'top aparelhos do mês'. Pode filtrar por cliente, período, marca ou modelo.",
+      "Conta OS agrupadas por marca + modelo. Use pra 'quantos iPhone 14 cliente X enviou em abril' ou 'qual modelo o cliente Y mais envia'. " +
+      "IMPORTANTE: quando o usuário diz 'iPhone 14 normal', 'iPhone 14 simples' ou 'só iPhone 14' (não Pro, não Plus), use modelo_exato=true. " +
+      "Quando diz 'iPhone 14' querendo todas as variantes (Pro, Plus, etc), use modelo_exato=false (default).",
     input_schema: {
       type: "object",
       properties: {
@@ -120,7 +122,12 @@ const TOOLS = [
         data_fim: { type: "string", description: "ISO timestamp do fim do período" },
         cliente_busca: { type: "string", description: "Busca parcial pelo nome do cliente" },
         marca_busca: { type: "string", description: "Busca parcial pela marca (ex: Apple, Samsung)" },
-        modelo_busca: { type: "string", description: "Busca parcial pelo modelo (ex: iPhone 14, S21)" },
+        modelo_busca: { type: "string", description: "Modelo do aparelho" },
+        modelo_exato: {
+          type: "boolean",
+          default: false,
+          description: "Se true, busca match EXATO (ignorando case/acento). Use quando o usuário pede 'modelo X normal' ou 'só X'.",
+        },
         limite: { type: "integer", default: 50, maximum: 100 },
       },
     },
@@ -128,7 +135,9 @@ const TOOLS = [
   {
     name: "top_defeitos_periodo",
     description:
-      "Retorna os defeitos mais relatados em um período (agrupados por similaridade nas primeiras palavras). Use pra perguntas tipo 'top 10 defeitos do mês', 'quais problemas mais aparecem em iPhone'.",
+      "Retorna os defeitos mais relatados em um período, agrupados em CATEGORIAS MACRO (BATERIA, TELA, CÂMERA, etc) via heurística de palavras-chave. " +
+      "ATENÇÃO: o campo é texto livre e muitas vezes guarda a SOLUÇÃO (peça trocada) em vez do PROBLEMA do cliente. " +
+      "Sempre alerte o usuário sobre essa limitação ao apresentar resultados. NÃO invente categorias que não estão na resposta.",
     input_schema: {
       type: "object",
       properties: {
