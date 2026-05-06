@@ -79,7 +79,16 @@ export default function Financeiro() {
         </TabsContent>
 
         <TabsContent value="dashboard">
-          <FinanceiroDashboard kpis={kpis} />
+          <FinanceiroDashboard
+            kpis={kpis}
+            filterSlot={
+              <DashboardPeriodFilter
+                preset={periodPreset}
+                range={periodRange}
+                onChange={handlePeriodChange}
+              />
+            }
+          />
         </TabsContent>
 
         <TabsContent value="contas">
@@ -90,6 +99,9 @@ export default function Financeiro() {
             fornecedores={fornecedores}
             lojas={lojas}
             ordens={ordens}
+            periodPreset={periodPreset}
+            periodRange={periodRange}
+            onPeriodChange={handlePeriodChange}
           />
         </TabsContent>
 
