@@ -173,7 +173,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   };
 
   const toComissoesRows = (): ExportRow[] => {
-    return filtered.map((c) => ({
+    return sorted.map((c) => ({
       "Técnico": c.funcionarios?.nome ?? "",
       "OS": c.ordens_de_servico?.numero
         ? `#${formatNumeroOS(c.ordens_de_servico.numero, c.ordens_de_servico.numero_formatado)}`
