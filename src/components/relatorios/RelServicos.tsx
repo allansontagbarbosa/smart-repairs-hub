@@ -24,10 +24,11 @@ export function RelServicos() {
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, aparelho_id, data_entrada, data_conclusao, status")
+        .select("id, aparelho_id, data_entrada, data_conclusao, status, valor_total")
         .is("deleted_at", null)
-        .gte("data_entrada", inicio)
-        .lt("data_entrada", fim);
+        .gte("data_conclusao", inicio)
+        .lt("data_conclusao", fim)
+        .not("data_conclusao", "is", null);
       return data ?? [];
     },
   });
