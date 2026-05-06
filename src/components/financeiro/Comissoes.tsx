@@ -46,10 +46,13 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     const matchSearch = !search || nome.toLowerCase().includes(q) || osNumero.toLowerCase().includes(q) || servico.toLowerCase().includes(q);
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
-    const dataRef = c.status === "paga" && c.data_pagamento
-      ? new Date(c.data_pagamento)
-      : new Date(c.created_at);
-    const matchPeriodo = dataRef >= periodo.range.start && dataRef <= periodo.range.end;
+    // Filtro de período usa SEMPRE data_conclusao da OS associada (regime de competência).
+    // Comissão sem OS ou sem data_conclusao fica fora enquanto há filtro de período ativo.
+    const os = c.ordens_de_servico;
+    const dataRef = os?.data_conclusao ? new Date(os.data_conclusao) : null;
+    const matchPeriodo = !dataRef
+      ? false
+      : dataRef >= periodo.range.start && dataRef <= periodo.range.end;
     return matchSearch && matchStatus && matchFunc && matchPeriodo;
   }), [comissoes, filterFunc, filterStatus, search, periodo.range]);
 

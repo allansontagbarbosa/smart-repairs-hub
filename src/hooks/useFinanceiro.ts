@@ -45,6 +45,8 @@ export type Comissao = {
   ordens_de_servico?: {
     numero: number;
     numero_formatado: string | null;
+    status?: string | null;
+    data_conclusao?: string | null;
     aparelhos?: { marca: string; modelo: string } | null;
   } | null;
   os_servicos?: { nome: string; status: string } | null;
@@ -67,7 +69,7 @@ async function fetchComissoes() {
     .from("comissoes")
     .select(`*,
       funcionarios ( nome ),
-      ordens_de_servico ( numero, numero_formatado, aparelhos ( marca, modelo ) ),
+      ordens_de_servico ( numero, numero_formatado, status, data_conclusao, aparelhos ( marca, modelo ) ),
       os_servicos ( nome, status )
     `)
     .order("created_at", { ascending: false });
@@ -111,7 +113,7 @@ async function fetchFuncionarios() {
 async function fetchOrdens() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select("id, numero, valor, custo_pecas, status, data_entrada, data_conclusao, aparelhos ( marca, modelo, clientes ( nome ) )")
+    .select("id, numero, valor, valor_total, custo_pecas, status, data_entrada, data_conclusao, aparelhos ( marca, modelo, clientes ( nome ) )")
     .neq("status", "cancelado")
     .is("deleted_at", null)
     .order("data_entrada", { ascending: false });
@@ -233,11 +235,17 @@ export function useFinanceiro() {
     const comissoesPendentes = allComissoes.filter(c => c.status === "pendente" || c.status === "liberada");
     const totalComissoesPendentes = comissoesPendentes.reduce((s, c) => s + Number(c.valor), 0);
 
-    // Comissões provisionadas no mês: pendentes, liberadas e pagas, exceto estornadas
+    // Comissões do mês — REGIME DE COMPETÊNCIA:
+    // pertencem ao mês em que a OS foi CONCLUÍDA (data_conclusao), não em que a comissão entrou no banco.
+    // Mesmo critério que faturamento e custo de peças, garantindo coerência com o Dashboard.
+    // Comissões avulsas (sem ordem_id) e de OS não concluídas não entram aqui.
     const comissoesMes = allComissoes.filter(c => {
       if (c.status !== "pendente" && c.status !== "liberada" && c.status !== "paga") return false;
       if (c.estornada_em) return false;
-      const d = new Date(c.created_at);
+      const os = c.ordens_de_servico;
+      if (!os || !os.data_conclusao) return false;
+      if (os.status !== "pronto" && os.status !== "entregue") return false;
+      const d = new Date(os.data_conclusao);
       return d >= monthStart && d <= monthEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
 
@@ -249,7 +257,8 @@ export function useFinanceiro() {
       const d = new Date(ref);
       return d >= monthStart && d <= monthEnd;
     });
-    const receitaMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.valor ?? 0), 0);
+    // valor_total é o snapshot final (com desconto/peças/mão de obra). Fallback p/ valor em OS antigas.
+    const receitaMes = ordensConcluidasMes.reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     // Despesas reais do mês: contas por mês de competência, independente de status
@@ -301,7 +310,7 @@ export function useFinanceiro() {
           const dd = new Date(ref);
           return dd >= ms && dd <= me;
         })
-        .reduce((s, o) => s + Number(o.valor ?? 0), 0);
+        .reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
 
       evolucaoMensal.push({ mes: label, despesas: desp, receita: rec });
     }
