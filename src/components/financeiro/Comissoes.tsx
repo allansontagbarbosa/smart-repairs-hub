@@ -313,7 +313,7 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(c => {
+              {sorted.map(c => {
                 const cfg = statusConfig[c.status] ?? statusConfig.pendente;
                 const canPay = c.status === "pendente" || c.status === "liberada";
                 const canRelease = c.status === "pendente";
@@ -325,7 +325,14 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                     </td>
                     <td className="text-sm text-muted-foreground">{fmtDate(c.data_pagamento ?? c.created_at)}</td>
                     <td className="text-sm font-medium">{c.funcionarios?.nome ?? "—"}</td>
-                    <td className="text-sm">{osLabel}</td>
+                    <td className="text-sm">
+                      <p>{osLabel}</p>
+                      {c.ordens_de_servico?.aparelhos?.clientes?.nome && (
+                        <p className="text-[11px] text-muted-foreground truncate max-w-[180px]">
+                          {c.ordens_de_servico.aparelhos.clientes.nome}
+                        </p>
+                      )}
+                    </td>
                     <td>
                       <p className="text-sm font-medium">{c.os_servicos?.nome ?? "—"}</p>
                       {c.os_servicos?.status && <p className="text-xs text-muted-foreground">{c.os_servicos.status}</p>}
