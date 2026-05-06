@@ -111,6 +111,64 @@ export function RelExportacao() {
     } finally { setLoading(""); }
   }
 
+  async function exportarTecnicos() {
+    setLoading("tecnicos");
+    try {
+      const { data } = await supabase.rpc("kpi_tecnicos" as any, {
+        p_inicio: dataInicio.toISOString(),
+        p_fim: dataFim.toISOString(),
+      });
+      const lista = (data as any)?.tecnicos ?? [];
+      if (!lista.length) { toast.info("Nenhum técnico no período."); return; }
+      downloadCSV(
+        `tecnicos_${format(dataInicio,"yyyy-MM-dd")}_${format(dataFim,"yyyy-MM-dd")}.csv`,
+        ["Técnico","Serviços","OSs","Faturamento (R$)","Ticket médio (R$)","Tempo médio (h)","Pendente (R$)","Liberada (R$)","Paga (R$)","A receber (R$)"],
+        lista.map((t: any) => [
+          t.nome, t.qtd_servicos, t.qtd_os,
+          Number(t.faturamento_os).toFixed(2),
+          Number(t.ticket_medio_os).toFixed(2),
+          Number(t.tempo_medio_horas).toFixed(1),
+          Number(t.comissao_pendente).toFixed(2),
+          Number(t.comissao_liberada).toFixed(2),
+          Number(t.comissao_paga).toFixed(2),
+          Number(t.comissao_total_a_receber).toFixed(2),
+        ])
+      );
+      toast.success(`CSV de ${lista.length} técnicos exportado!`);
+    } finally { setLoading(""); }
+  }
+
+  async function exportarSaldoB2B() {
+    setLoading("saldo");
+    try {
+      const { data: clientes } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .not("lojista_id", "is", null)
+        .is("deleted_at", null);
+      if (!clientes?.length) { toast.info("Nenhum cliente B2B."); return; }
+      const linhas = await Promise.all(clientes.map(async (c) => {
+        const { data: saldo } = await supabase.rpc("get_saldo_cliente" as any, { p_cliente_id: c.id });
+        const s = saldo as any;
+        return [
+          c.nome, c.telefone ?? "",
+          Number(s?.total_faturado ?? 0).toFixed(2),
+          Number(s?.total_recebido ?? 0).toFixed(2),
+          Number(s?.saldo_devedor ?? 0).toFixed(2),
+          s?.qtd_oss ?? 0,
+          s?.ultima_os_data ?? "",
+          s?.ultimo_pagamento_data ?? "",
+        ];
+      }));
+      downloadCSV(
+        `saldo_b2b_${format(new Date(),"yyyy-MM-dd")}.csv`,
+        ["Cliente","Telefone","Total Faturado (R$)","Total Recebido (R$)","Saldo Devedor (R$)","Qtd OSs","Última OS","Último Pagamento"],
+        linhas
+      );
+      toast.success(`CSV de ${linhas.length} clientes B2B exportado!`);
+    } finally { setLoading(""); }
+  }
+
   return (
     <div className="space-y-6 mt-4">
       {/* Period filter */}
@@ -192,6 +250,30 @@ export function RelExportacao() {
               <p className="text-xs text-muted-foreground">Comissões do período para folha de pagamento</p>
             </div>
             <Button onClick={exportarComissoes} disabled={loading === "comissoes"} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Técnicos</p>
+              <p className="text-xs text-muted-foreground">Desempenho consolidado por técnico</p>
+            </div>
+            <Button onClick={exportarTecnicos} disabled={loading === "tecnicos"} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-5 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Saldo B2B</p>
+              <p className="text-xs text-muted-foreground">Saldo devedor por cliente lojista</p>
+            </div>
+            <Button onClick={exportarSaldoB2B} disabled={loading === "saldo"} variant="outline">
               <Download className="h-4 w-4 mr-1" /> CSV
             </Button>
           </CardContent>
