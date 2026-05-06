@@ -30,13 +30,14 @@ export interface ComissaoDetalhe {
   cliente_nome: string | null;
 }
 
-export function useDesempenhoTecnicos(inicio: Date, fim: Date) {
+export function useDesempenhoTecnicos(inicio: Date, fim: Date, lojaId?: string | null) {
   return useQuery({
-    queryKey: ["desempenho-tecnicos", inicio.toISOString(), fim.toISOString()],
+    queryKey: ["desempenho-tecnicos", inicio.toISOString(), fim.toISOString(), lojaId ?? null],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("kpi_tecnicos" as any, {
         p_inicio: inicio.toISOString(),
         p_fim: fim.toISOString(),
+        p_loja_id: lojaId ?? null,
       });
       if (error) throw error;
       const payload = data as any;
