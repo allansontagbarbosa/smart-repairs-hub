@@ -20,7 +20,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { PeriodFilter, usePeriodFilter } from "@/components/PeriodFilter";
+import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
+import {
+  type PeriodPreset,
+  type PeriodRange,
+  rangeFromPreset,
+} from "@/components/dashboard/period-presets";
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 
@@ -217,7 +222,13 @@ async function fetchSocios() {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { can } = usePermissoes();
-  const { range, preset, setPreset, customStart, setCustomStart, customEnd, setCustomEnd } = usePeriodFilter("este_mes");
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("este_mes");
+  const [periodRange, setPeriodRange] = useState<PeriodRange>(() => rangeFromPreset("este_mes")!);
+  const range = useMemo(() => ({ start: periodRange.from, end: periodRange.to }), [periodRange]);
+  function handlePeriodChange(p: PeriodPreset, r: PeriodRange) {
+    setPeriodPreset(p);
+    setPeriodRange(r);
+  }
 
   // ── QUERIES ──────────────────────────────────────────────────────────────
 
@@ -421,13 +432,10 @@ export default function Dashboard() {
       {/* ── HEADER + PERIOD FILTER ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h1 className="text-xl font-bold">Dashboard</h1>
-        <PeriodFilter
-          preset={preset}
-          onPresetChange={setPreset}
-          customStart={customStart}
-          customEnd={customEnd}
-          onCustomStartChange={setCustomStart}
-          onCustomEndChange={setCustomEnd}
+        <DashboardPeriodFilter
+          preset={periodPreset}
+          range={periodRange}
+          onChange={handlePeriodChange}
         />
       </div>
 
@@ -439,8 +447,11 @@ export default function Dashboard() {
       {can("financeiro", "ver") && (
       <div>
         <SectionTitle>Financeiro do período</SectionTitle>
-        <p className="text-[11px] text-muted-foreground -mt-1 mb-3">
+        <p className="text-[11px] text-muted-foreground -mt-1">
           Faturamento e lucro contam OS <strong>concluídas</strong> (status Pronto ou Entregue) com data de conclusão dentro do período selecionado.
+        </p>
+        <p className="text-xs text-muted-foreground mb-3">
+          Período: {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")}
         </p>
 
         {/* ── MOBILE: hierarquia destacada ── */}
