@@ -11,6 +11,7 @@ import { Recebimentos } from "@/components/financeiro/Recebimentos";
 import { FluxoCaixa } from "@/components/financeiro/FluxoCaixa";
 import { SaldoDeClientesTab } from "@/components/financeiro/SaldoDeClientesTab";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { RelDRE } from "@/components/relatorios/RelDRE";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import {
   type PeriodPreset,
@@ -47,11 +48,11 @@ export default function Financeiro() {
     <div className="space-y-5 md:space-y-6">
       <div className="page-header">
         <h1 className="page-title">Financeiro</h1>
-        <p className="page-subtitle">Fluxo de caixa, contas, recebimentos e comissões</p>
+        <p className="page-subtitle">Fluxo de caixa, contas, recebimentos, comissões e DRE</p>
       </div>
 
       <Tabs defaultValue="fluxo" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 lg:max-w-4xl h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 lg:max-w-5xl h-auto">
           <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="contas">
@@ -72,6 +73,7 @@ export default function Financeiro() {
             )}
           </TabsTrigger>
           <TabsTrigger value="saldo-clientes">Saldo de Clientes</TabsTrigger>
+          <TabsTrigger value="dre">DRE</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fluxo">
@@ -115,6 +117,10 @@ export default function Financeiro() {
 
         <TabsContent value="saldo-clientes">
           <SaldoDeClientesTab />
+        </TabsContent>
+
+        <TabsContent value="dre">
+          <RelDRE />
         </TabsContent>
       </Tabs>
 
