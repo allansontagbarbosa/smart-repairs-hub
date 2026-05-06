@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
-  Plus, Search, Loader2, LayoutGrid, MessageCircle,
+  Plus, Search, Loader2, LayoutGrid, List, MessageCircle,
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, Printer, Brain, Shield, Trash2, XCircle,
@@ -28,7 +28,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { calcularPrioridade, type Prioridade } from "@/lib/prioridade";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
-import { differenceInDays, format, isToday, isYesterday, isThisWeek } from "date-fns";
+import { differenceInDays, format, isToday, isYesterday, isThisWeek,
+  startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  startOfQuarter, endOfQuarter, startOfYear, endOfYear, subDays, subMonths,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { GarantiasTab } from "@/components/GarantiasTab";
@@ -50,7 +53,17 @@ import { highlight } from "./assistencia/highlight";
 type SortKey = "numero" | "prioridade" | "data_entrada" | "data_conclusao" | "data_entrega" | "valor";
 type SortDir = "asc" | "desc";
 type StatusFilter = Status | "todos";
-type PeriodPreset = "30" | "60" | "90" | "all";
+type PeriodPreset =
+  | "hoje"
+  | "ontem"
+  | "esta_semana"
+  | "ultimos_7"
+  | "ultimos_30"
+  | "este_mes"
+  | "mes_passado"
+  | "este_trimestre"
+  | "este_ano"
+  | "all";
 type DateRangeFilter = { de?: string; ate?: string } | null;
 type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
 type GarantiaFilter = "em_garantia" | "expirada" | "sem_garantia";
@@ -73,11 +86,26 @@ const prioridadeConfig: Record<Prioridade, { color: string; bg: string; icon: an
 const prioOrder: Record<Prioridade, number> = { critica: 0, atencao: 1, normal: 2 };
 const LIST_PAGE_SIZE = 30;
 const PERIOD_PRESETS: { value: PeriodPreset; label: string }[] = [
-  { value: "30", label: "30 dias" },
-  { value: "60", label: "60 dias" },
-  { value: "90", label: "90 dias" },
-  { value: "all", label: "Todo o período" },
+  { value: "hoje", label: "Hoje" },
+  { value: "ontem", label: "Ontem" },
+  { value: "esta_semana", label: "Esta semana" },
+  { value: "ultimos_7", label: "Últimos 7 dias" },
+  { value: "ultimos_30", label: "Últimos 30 dias" },
+  { value: "este_mes", label: "Este mês" },
+  { value: "mes_passado", label: "Mês passado" },
+  { value: "este_trimestre", label: "Este trimestre" },
+  { value: "este_ano", label: "Este ano" },
+  { value: "all", label: "Todos" },
 ];
+
+const PRESET_GROUPS: PeriodPreset[][] = [
+  ["hoje", "ontem", "esta_semana"],
+  ["ultimos_7", "ultimos_30"],
+  ["este_mes", "mes_passado", "este_trimestre", "este_ano"],
+  ["all"],
+];
+
+const WEEK_STARTS_ON = 0 as const;
 const PRIORIDADE_OPTIONS = ["normal"];
 const APROVACAO_OPTIONS = ["aprovado", "pendente", "aguardando"];
 const GARANTIA_OPTIONS: { value: GarantiaFilter; label: string }[] = [
@@ -152,15 +180,57 @@ function getPeriodFromParams(params: URLSearchParams): PeriodFilterState {
   }
 
   const periodo = params.get("periodo") as PeriodPreset | null;
-  const preset: PeriodPreset = periodo && ["30", "60", "90", "all"].includes(periodo) ? periodo : "90";
+  const validPresets: PeriodPreset[] = [
+    "hoje", "ontem", "esta_semana", "ultimos_7", "ultimos_30",
+    "este_mes", "mes_passado", "este_trimestre", "este_ano", "all",
+  ];
+  const preset: PeriodPreset =
+    periodo && validPresets.includes(periodo) ? periodo : "este_mes";
+
   if (preset === "all") {
     return { preset, key: "all", dateRange: null };
   }
 
-  const from = new Date();
-  from.setDate(from.getDate() - Number(preset));
-  const dePreset = dateOnly(from);
-  return { preset, de: dePreset, key: preset, dateRange: { de: dePreset } };
+  const now = new Date();
+  let start: Date;
+  let end: Date | undefined;
+  switch (preset) {
+    case "hoje":
+      start = startOfDay(now); end = endOfDay(now); break;
+    case "ontem": {
+      const y = subDays(now, 1);
+      start = startOfDay(y); end = endOfDay(y); break;
+    }
+    case "esta_semana":
+      start = startOfWeek(now, { weekStartsOn: WEEK_STARTS_ON });
+      end = endOfWeek(now, { weekStartsOn: WEEK_STARTS_ON });
+      break;
+    case "ultimos_7":
+      start = startOfDay(subDays(now, 6)); end = endOfDay(now); break;
+    case "ultimos_30":
+      start = startOfDay(subDays(now, 29)); end = endOfDay(now); break;
+    case "este_mes":
+      start = startOfMonth(now); end = endOfMonth(now); break;
+    case "mes_passado": {
+      const m = subMonths(now, 1);
+      start = startOfMonth(m); end = endOfMonth(m); break;
+    }
+    case "este_trimestre":
+      start = startOfQuarter(now); end = endOfQuarter(now); break;
+    case "este_ano":
+      start = startOfYear(now); end = endOfYear(now); break;
+    default:
+      start = startOfMonth(now); end = endOfMonth(now);
+  }
+  const dePreset = dateOnly(start);
+  const atePreset = end ? dateOnly(end) : undefined;
+  return {
+    preset,
+    de: dePreset,
+    ate: atePreset,
+    key: preset,
+    dateRange: { de: dePreset, ate: atePreset },
+  };
 }
 
 async function fetchOrders({ page, filterStatus, dateRange, filters, matchingIds }: { page: number; filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
@@ -520,27 +590,33 @@ function FiltroPeriodo({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-        {PERIOD_PRESETS.map((preset) => {
-          const isActive = period.preset === preset.value;
-          return (
-            <button
-              key={preset.value}
-              onClick={() => onPresetChange(preset.value)}
-              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:bg-muted"
-              }`}
-            >
-              {preset.label}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 w-[340px]">
+      <div className="space-y-2">
+        {PRESET_GROUPS.map((group, gi) => (
+          <div key={gi} className="flex flex-wrap gap-1.5">
+            {group.map((p) => {
+              const label = PERIOD_PRESETS.find((x) => x.value === p)?.label ?? p;
+              const isActive = period.preset === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPresetChange(p)}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="border-t pt-2 flex items-center gap-2 flex-wrap">
+
         <Input
           type="date"
           aria-label="De"
@@ -1682,6 +1758,18 @@ export default function Assistencia() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="hidden sm:inline-flex items-center rounded-md border bg-card p-0.5">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1 text-[12px] font-medium text-foreground cursor-default">
+              <List className="h-3.5 w-3.5" /> Lista
+            </span>
+            <Link
+              to="/assistencia/fluxo"
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Ver Kanban"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+            </Link>
+          </div>
           {can("assistencia", "criar") && (
             <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nova Ordem
@@ -1770,7 +1858,7 @@ export default function Assistencia() {
                 <DropdownMenuItem asChild>
                   <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="sm:hidden">
                   <Link to="/assistencia/fluxo"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
