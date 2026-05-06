@@ -590,27 +590,33 @@ function FiltroPeriodo({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-        {PERIOD_PRESETS.map((preset) => {
-          const isActive = period.preset === preset.value;
-          return (
-            <button
-              key={preset.value}
-              onClick={() => onPresetChange(preset.value)}
-              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:bg-muted"
-              }`}
-            >
-              {preset.label}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 w-[340px]">
+      <div className="space-y-2">
+        {PRESET_GROUPS.map((group, gi) => (
+          <div key={gi} className="flex flex-wrap gap-1.5">
+            {group.map((p) => {
+              const label = PERIOD_PRESETS.find((x) => x.value === p)?.label ?? p;
+              const isActive = period.preset === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPresetChange(p)}
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="border-t pt-2 flex items-center gap-2 flex-wrap">
+
         <Input
           type="date"
           aria-label="De"
