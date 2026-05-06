@@ -67,26 +67,34 @@ const fmtHoras = (h: number) => {
   return `${(h / 24).toFixed(1)}d`;
 };
 
-const PERIODOS = [
-  {
-    id: "semana",
-    label: "Esta semana",
-    range: () => ({
-      inicio: startOfWeek(new Date(), { locale: ptBR }),
-      fim: endOfWeek(new Date(), { locale: ptBR }),
-    }),
-  },
-  {
-    id: "mes",
-    label: "Este mês",
-    range: () => ({ inicio: startOfMonth(new Date()), fim: endOfMonth(new Date()) }),
-  },
-  {
-    id: "30d",
-    label: "Últimos 30 dias",
-    range: () => ({ inicio: subDays(new Date(), 30), fim: new Date() }),
-  },
-] as const;
+type PresetId =
+  | "hoje"
+  | "ontem"
+  | "esta_semana"
+  | "ultimos_7"
+  | "ultimos_30"
+  | "este_mes"
+  | "mes_passado"
+  | "este_trimestre"
+  | "este_ano"
+  | "personalizado";
+
+const N = () => new Date();
+const D = (d: Date) => ({ inicio: startOfDay(d), fim: endOfDay(d) });
+const M = (d: Date) => ({ inicio: startOfMonth(d), fim: endOfMonth(d) });
+
+const PRESETS: { id: PresetId; label: string; range: () => { inicio: Date; fim: Date } | null }[] = [
+  { id: "hoje", label: "Hoje", range: () => D(N()) },
+  { id: "ontem", label: "Ontem", range: () => D(subDays(N(), 1)) },
+  { id: "esta_semana", label: "Esta semana", range: () => ({ inicio: startOfWeek(N(), { locale: ptBR }), fim: endOfWeek(N(), { locale: ptBR }) }) },
+  { id: "ultimos_7", label: "Últimos 7 dias", range: () => ({ inicio: startOfDay(subDays(N(), 6)), fim: endOfDay(N()) }) },
+  { id: "ultimos_30", label: "Últimos 30 dias", range: () => ({ inicio: startOfDay(subDays(N(), 29)), fim: endOfDay(N()) }) },
+  { id: "este_mes", label: "Este mês", range: () => M(N()) },
+  { id: "mes_passado", label: "Mês passado", range: () => M(subMonths(N(), 1)) },
+  { id: "este_trimestre", label: "Este trimestre", range: () => ({ inicio: startOfQuarter(N()), fim: endOfQuarter(N()) }) },
+  { id: "este_ano", label: "Este ano", range: () => ({ inicio: startOfYear(N()), fim: endOfYear(N()) }) },
+  { id: "personalizado", label: "Personalizado", range: () => null },
+];
 
 type SortKey =
   | "nome"
@@ -101,27 +109,76 @@ type SortKey =
   | "comissao_total_a_receber";
 
 export default function DesempenhoTecnicos() {
-  const [periodo, setPeriodo] = useState("mes");
-  const range = useMemo(
-    () => PERIODOS.find((p) => p.id === periodo)!.range(),
-    [periodo],
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [preset, setPreset] = useState<PresetId>(
+    (searchParams.get("preset") as PresetId) || "este_mes",
   );
+  const [customRange, setCustomRange] = useState<{ inicio: Date | null; fim: Date | null }>({
+    inicio: searchParams.get("de") ? new Date(searchParams.get("de") + "T00:00:00") : null,
+    fim: searchParams.get("ate") ? new Date(searchParams.get("ate") + "T00:00:00") : null,
+  });
+  const [lojaId, setLojaId] = useState<string | null>(searchParams.get("loja"));
+  const [selecionados, setSelecionados] = useState<Set<string>>(
+    new Set((searchParams.get("tecs") || "").split(",").filter(Boolean)),
+  );
+  const [busca, setBusca] = useState(searchParams.get("q") || "");
+
+  useEffect(() => {
+    const sp = new URLSearchParams();
+    sp.set("preset", preset);
+    if (preset === "personalizado" && customRange.inicio && customRange.fim) {
+      sp.set("de", format(customRange.inicio, "yyyy-MM-dd"));
+      sp.set("ate", format(customRange.fim, "yyyy-MM-dd"));
+    }
+    if (lojaId) sp.set("loja", lojaId);
+    if (selecionados.size > 0) sp.set("tecs", [...selecionados].join(","));
+    if (busca) sp.set("q", busca);
+    setSearchParams(sp, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset, customRange.inicio, customRange.fim, lojaId, selecionados, busca]);
+
+  const range = useMemo(() => {
+    if (preset === "personalizado") {
+      return customRange.inicio && customRange.fim
+        ? { inicio: startOfDay(customRange.inicio), fim: endOfDay(customRange.fim) }
+        : { inicio: startOfMonth(N()), fim: endOfMonth(N()) };
+    }
+    return PRESETS.find((p) => p.id === preset)!.range()!;
+  }, [preset, customRange]);
 
   const rangeAnterior = useMemo(() => {
+    const hoje = endOfDay(N());
+    const fimEf = range.fim > hoje ? hoje : range.fim;
+    if (preset === "este_mes")
+      return { inicio: startOfMonth(subMonths(N(), 1)), fim: subMonths(fimEf, 1) };
+    if (preset === "este_trimestre")
+      return { inicio: startOfQuarter(subQuarters(N(), 1)), fim: subQuarters(fimEf, 1) };
+    if (preset === "este_ano")
+      return { inicio: startOfYear(subYears(N(), 1)), fim: subYears(fimEf, 1) };
     const dias = Math.max(1, differenceInDays(range.fim, range.inicio) + 1);
-    return {
-      inicio: subDays(range.inicio, dias),
-      fim: subDays(range.fim, dias),
-    };
-  }, [range]);
+    return { inicio: subDays(range.inicio, dias), fim: subDays(range.fim, dias) };
+  }, [range, preset]);
 
-  const { data: tecnicos = [], isLoading } = useDesempenhoTecnicos(range.inicio, range.fim);
+  const { data: lojas = [] } = useQuery({
+    queryKey: ["lojas-ativas-desempenho"],
+    queryFn: async () =>
+      (await supabase.from("lojas").select("id,nome").eq("ativo", true).order("nome")).data ?? [],
+    staleTime: 300_000,
+  });
+
+  const {
+    data: tecnicos = [],
+    isLoading,
+    isFetching,
+    dataUpdatedAt,
+    refetch,
+  } = useDesempenhoTecnicos(range.inicio, range.fim, lojaId);
   const { data: tecnicosAnterior = [] } = useDesempenhoTecnicos(
     rangeAnterior.inicio,
     rangeAnterior.fim,
+    lojaId,
   );
 
-  const [busca, setBusca] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("comissao_total_a_receber");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [drilldownTec, setDrilldownTec] = useState<{ id: string; nome: string } | null>(null);
@@ -133,6 +190,7 @@ export default function DesempenhoTecnicos() {
       setSortDir("desc");
     }
   };
+
 
   const tecnicosFiltrados = useMemo(() => {
     const q = busca.toLowerCase().trim();
