@@ -744,6 +744,7 @@ export default function Assistencia() {
   const { entrega, pedirConfirmacao, cancelar } = useConfirmarEntrega();
   const { can, isAdmin } = usePermissoes();
   const { empresaId } = useEmpresa();
+  const serverSearch = useServerSearch(search, empresaId ?? undefined);
   const period = useMemo(() => getPeriodFromParams(searchParams), [searchParams]);
   const filters = useMemo(() => getFiltersFromParams(searchParams), [searchParams]);
   const filtersKey = useMemo(() => filterHash(filters), [filters]);
@@ -758,15 +759,19 @@ export default function Assistencia() {
     return () => window.clearTimeout(timer);
   }, [clienteSearch]);
 
+  const searchEnabled = serverSearch.isEmpty || !serverSearch.isLoading;
+
   const { data: recentResult, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
-    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters }),
+    queryKey: ["ordens", "page", page, "status", filterStatus, "periodo", period.key, "filtros", filtersKey, "match", serverSearch.matchingIds],
+    queryFn: () => fetchOrders({ page, filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds }),
     placeholderData: (previousData) => previousData,
+    enabled: searchEnabled,
   });
 
   const { data: totalOrders = 0 } = useQuery({
-    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key, "filtros", filtersKey],
-    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange, filters }),
+    queryKey: ["ordens-count", "status", filterStatus, "periodo", period.key, "filtros", filtersKey, "match", serverSearch.matchingIds],
+    queryFn: () => fetchOrdersCount({ filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds }),
+    enabled: searchEnabled,
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
