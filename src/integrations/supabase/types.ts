@@ -4649,6 +4649,15 @@ export type Database = {
           id: string
         }[]
       }
+      calc_meta_aprovacao_orcamento: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
       calc_meta_comissao_paga: {
         Args: {
           p_escopo: string
@@ -4667,6 +4676,15 @@ export type Database = {
         }
         Returns: number
       }
+      calc_meta_margem_os: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
       calc_meta_qtd_os: {
         Args: {
           p_escopo: string
@@ -4677,6 +4695,33 @@ export type Database = {
         Returns: number
       }
       calc_meta_qtd_servicos: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_retorno_cliente: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_retrabalho: {
+        Args: {
+          p_escopo: string
+          p_escopo_id: string
+          p_fim: string
+          p_inicio: string
+        }
+        Returns: number
+      }
+      calc_meta_tempo_medio: {
         Args: {
           p_escopo: string
           p_escopo_id: string
