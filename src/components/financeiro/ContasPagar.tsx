@@ -150,12 +150,17 @@ export function ContasPagar({ contas, categorias, centros, fornecedores, lojas, 
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("contas_a_pagar").delete().eq("id", id);
+      // Soft delete: marca deleted_at em vez de remover fisicamente.
+      // Mantém histórico pra auditoria. Filtragem fica em fetchContas (is null).
+      const { error } = await supabase
+        .from("contas_a_pagar")
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contas_pagar"] });
-      toast.success("Conta removida!");
+      toast.success("Conta removida do painel.");
     },
   });
 
