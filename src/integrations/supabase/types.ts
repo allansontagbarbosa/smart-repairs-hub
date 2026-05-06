@@ -4565,6 +4565,21 @@ export type Database = {
         }
         Returns: Json
       }
+      buscar_ordens_servico: {
+        Args: {
+          p_cliente_prefix?: string
+          p_empresa_id: string
+          p_imei_prefix?: string
+          p_limit?: number
+          p_os_prefix?: string
+          p_status?: string
+          p_tel_prefix?: string
+          p_tokens?: string[]
+        }
+        Returns: {
+          id: string
+        }[]
+      }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
@@ -4938,6 +4953,7 @@ export type Database = {
       }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
+      unaccent_lower: { Args: { txt: string }; Returns: string }
       verificar_lojista_por_email: {
         Args: { email_input: string }
         Returns: {
