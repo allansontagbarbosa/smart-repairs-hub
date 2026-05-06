@@ -925,31 +925,11 @@ export default function Assistencia() {
 
   const filtered = useMemo(() => {
     return enriched.filter((o) => {
-      const clientName = o.aparelhos?.clientes?.nome ?? "";
-      const clientPhone = o.aparelhos?.clientes?.telefone ?? "";
-      const device = `${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""}`;
-      const q = search.toLowerCase();
-      const imei = (o.aparelhos?.imei ?? "").toLowerCase();
-      const numeroFmt = (o.numero_formatado ?? "").toLowerCase();
-      const phoneNorm = (clientPhone ?? "").replace(/\D/g, "");
-      const qNorm = q.replace(/\D/g, "");
-      const matchSearch =
-        !search ||
-        clientName.toLowerCase().includes(q) ||
-        (qNorm.length >= 4 && phoneNorm.includes(qNorm)) ||
-        device.toLowerCase().includes(q) ||
-        String(o.numero).includes(q) ||
-        numeroFmt.includes(q) ||
-        (!!imei && imei.includes(q));
-      const matchStatus =
-        filterStatus === "todos"
-          ? true
-          : o.status === filterStatus;
-      const matchPrioridade =
-        filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
-      return matchSearch && matchStatus && matchPrioridade;
+      const matchStatus = filterStatus === "todos" ? true : o.status === filterStatus;
+      const matchPrioridade = filterPrioridade === "todas" || o.prioridade.nivel === filterPrioridade;
+      return matchStatus && matchPrioridade;
     });
-  }, [enriched, search, filterStatus, filterPrioridade]);
+  }, [enriched, filterStatus, filterPrioridade]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -1003,7 +983,7 @@ export default function Assistencia() {
   const handleSelectAllAcrossPages = useCallback(async () => {
     try {
       setSelectingAll(true);
-      const allOrders = await fetchAllOrdersForSelection({ filterStatus, dateRange: period.dateRange, filters });
+      const allOrders = await fetchAllOrdersForSelection({ filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds });
       bulk.selectItems(allOrders, { replace: true });
       toast.success(`${allOrders.length} ordens selecionadas`);
     } catch (e: any) {
@@ -1011,7 +991,7 @@ export default function Assistencia() {
     } finally {
       setSelectingAll(false);
     }
-  }, [filterStatus, period.dateRange, filters, bulk]);
+  }, [filterStatus, period.dateRange, filters, bulk, serverSearch.matchingIds]);
 
   const allFilteredSelected = isAdmin && totalOrders > 0 && bulk.count >= totalOrders;
   const someFilteredSelected = isAdmin && bulk.count > 0 && !allFilteredSelected;
@@ -1270,7 +1250,7 @@ export default function Assistencia() {
   const handleExport = async (format: "csv" | "xlsx") => {
     setIsExporting(true);
     try {
-      const exportData = await fetchOrdersForExport({ filterStatus, dateRange: period.dateRange, filters });
+      const exportData = await fetchOrdersForExport({ filterStatus, dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds });
       if (exportData.length === 0) {
         toast.error("Nenhuma OS encontrada para exportar");
         return;
