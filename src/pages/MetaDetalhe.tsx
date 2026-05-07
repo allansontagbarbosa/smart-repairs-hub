@@ -18,6 +18,24 @@ export default function MetaDetalhe() {
   const { data: metas = [] } = useMetas("todas");
   const meta = metas.find(m => m.id === id);
 
+  const serie = useMemo(() => {
+    if (!meta) return [];
+    const ini = new Date(meta.periodo_inicio + "T00:00:00").getTime();
+    const fim = new Date(meta.periodo_fim + "T23:59:59").getTime();
+    const totalDias = Math.max(1, Math.ceil((fim - ini) / 86400000));
+    const hojeIdx = Math.min(totalDias, Math.max(0, Math.ceil((Date.now() - ini) / 86400000)));
+    const pts: { data: string; ideal: number; real: number | null }[] = [];
+    for (let i = 0; i <= Math.min(totalDias, 90); i++) {
+      const d = new Date(ini + i * 86400000);
+      pts.push({
+        data: d.toISOString().slice(5, 10),
+        ideal: (meta.valor_alvo * (i + 1)) / totalDias,
+        real: i === hojeIdx ? meta.valor_atual : null,
+      });
+    }
+    return pts;
+  }, [meta]);
+
   if (!meta) {
     return (
       <div className="p-6 space-y-3">
