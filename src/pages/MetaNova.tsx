@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, ArrowRight, X, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, X, Check, Building, User, Store, TrendingUp, ClipboardList, Wrench, DollarSign, Trophy, Receipt, Clock, Repeat, FileCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCriarMeta, METRICAS_LABEL, MetricaMeta, EscopoMeta } from "@/hooks/useMetas";
