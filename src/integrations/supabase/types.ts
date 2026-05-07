@@ -1288,6 +1288,7 @@ export type Database = {
       }
       empresas: {
         Row: {
+          assinatura_id: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -1310,6 +1311,7 @@ export type Database = {
           trial_expira_em: string | null
         }
         Insert: {
+          assinatura_id?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -1332,6 +1334,7 @@ export type Database = {
           trial_expira_em?: string | null
         }
         Update: {
+          assinatura_id?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
