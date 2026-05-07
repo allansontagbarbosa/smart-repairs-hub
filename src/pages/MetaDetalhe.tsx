@@ -108,6 +108,25 @@ export default function MetaDetalhe() {
         </div>
       </div>
 
+      {serie.length > 0 && (
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Trajetória até o alvo</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={serie}>
+              <XAxis dataKey="data" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <RTooltip />
+              <ReferenceLine y={meta.valor_alvo} stroke="hsl(var(--primary))" strokeDasharray="3 3" label={{ value: "Alvo", fontSize: 10, fill: "hsl(var(--primary))" }} />
+              <Line type="monotone" dataKey="ideal" stroke="hsl(var(--muted-foreground))" strokeDasharray="2 2" dot={false} name="Ritmo ideal" />
+              <Line type="monotone" dataKey="real" stroke="hsl(var(--primary))" strokeWidth={2} name="Atual" connectNulls={false} />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Tracejada cinza = ritmo necessário pra bater no fim. Sólida verde = valor atual da métrica.
+          </p>
+        </div>
+      )}
+
       <div className="rounded-lg border border-border bg-card p-4 space-y-2">
         <h2 className="text-sm font-medium mb-2">Configuração</h2>
         <Linha label="Período" valor={`${new Date(meta.periodo_inicio + "T00:00:00").toLocaleDateString("pt-BR")} → ${new Date(meta.periodo_fim + "T00:00:00").toLocaleDateString("pt-BR")}`} />
