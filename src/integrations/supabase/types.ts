@@ -4740,6 +4740,7 @@ export type Database = {
         Returns: number
       }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
+      calcular_progresso_meta: { Args: { p_meta_id: string }; Returns: Json }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
@@ -5041,6 +5042,7 @@ export type Database = {
       }
       liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       limpar_rate_limit_antigos: { Args: never; Returns: number }
+      listar_metas_com_progresso: { Args: { p_status?: string }; Returns: Json }
       lojista_verificar_acesso: {
         Args: { email_input: string }
         Returns: {
