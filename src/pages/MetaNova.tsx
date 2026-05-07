@@ -20,6 +20,25 @@ export interface FormState {
   threshold_alerta: number;
 }
 
+const ICN: Record<MetricaMeta, any> = {
+  faturamento: TrendingUp, qtd_os: ClipboardList, qtd_servicos: Wrench, ticket_medio: Receipt,
+  comissao_paga: DollarSign, margem_os: Trophy, tempo_medio_horas: Clock,
+  retrabalho_taxa: Repeat, aprovacao_orcamento_taxa: FileCheck, retorno_cliente_30d: Users,
+};
+
+const DESC: Record<MetricaMeta, string> = {
+  faturamento: "Soma do valor das OSs concluídas",
+  qtd_os: "Quantidade de OSs concluídas",
+  qtd_servicos: "Quantidade de serviços concluídos",
+  ticket_medio: "Valor médio por OS",
+  comissao_paga: "Comissão paga aos técnicos",
+  margem_os: "Receita menos custo de peças",
+  tempo_medio_horas: "Tempo médio do reparo",
+  retrabalho_taxa: "% de OSs que retornaram em 30 dias",
+  aprovacao_orcamento_taxa: "% de orçamentos aprovados",
+  retorno_cliente_30d: "% de clientes que voltaram",
+};
+
 export default function MetaNova() {
   const navigate = useNavigate();
   const criar = useCriarMeta();
