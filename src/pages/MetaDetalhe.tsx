@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Trash2, Building, User, Store, Check, AlertTriangle, Flame, Clock } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip } from "recharts";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMetas, useExcluirMeta, METRICAS_LABEL, StatusVisual } from "@/hooks/useMetas";
