@@ -243,9 +243,86 @@ function StepEscopo({ form, setForm, tecnicos = [], lojas = [] }: StepProps) {
     </div>
   );
 }
-function StepPeriodo(_: StepProps) {
-  return <p className="text-sm text-muted-foreground">PROMPT 10.</p>;
+function StepPeriodo({ form, setForm }: StepProps) {
+  const ap = (i: Date, f: Date) => setForm({ ...form, periodo_inicio: i.toISOString().slice(0, 10), periodo_fim: f.toISOString().slice(0, 10) });
+  const d = new Date();
+  const presets = [
+    { l: "Este mês", fn: () => ap(new Date(d.getFullYear(), d.getMonth(), 1), new Date(d.getFullYear(), d.getMonth() + 1, 0)) },
+    { l: "Próximo mês", fn: () => ap(new Date(d.getFullYear(), d.getMonth() + 1, 1), new Date(d.getFullYear(), d.getMonth() + 2, 0)) },
+    { l: "Trimestre", fn: () => { const q = Math.floor(d.getMonth() / 3); ap(new Date(d.getFullYear(), q * 3, 1), new Date(d.getFullYear(), q * 3 + 3, 0)); } },
+    { l: "Este ano", fn: () => ap(new Date(d.getFullYear(), 0, 1), new Date(d.getFullYear(), 11, 31)) },
+  ];
+  return (
+    <div>
+      <h3 className="text-sm font-medium mb-3">Qual o período da meta?</h3>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {presets.map((p, i) => (
+          <button key={i} onClick={p.fn} className="px-3 py-1 rounded-full border border-border hover:bg-muted text-xs">
+            {p.l}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Início</label>
+          <input type="date" value={form.periodo_inicio} onChange={e => setForm({ ...form, periodo_inicio: e.target.value })} className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Fim</label>
+          <input type="date" value={form.periodo_fim} onChange={e => setForm({ ...form, periodo_fim: e.target.value })} className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm" />
+        </div>
+      </div>
+      {form.periodo_inicio > form.periodo_fim && <p className="text-xs text-red-600 mt-2">Fim deve ser posterior ao início.</p>}
+    </div>
+  );
 }
-function StepAlvo(_: StepProps) {
-  return <p className="text-sm text-muted-foreground">PROMPT 10.</p>;
+
+function StepAlvo({ form, setForm }: StepProps) {
+  const info = form.metrica ? METRICAS_LABEL[form.metrica] : null;
+  const isPct = info?.unidade === "percentual";
+  const isMo = info?.unidade === "moeda";
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Nome da meta</label>
+          <input type="text" value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={info ? `${info.label} — ${form.escopo}` : ""} className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Valor alvo {isMo ? "(R$)" : isPct ? "(%)" : ""}</label>
+          <input type="number" step="0.01" value={form.valor_alvo} onChange={e => setForm({ ...form, valor_alvo: e.target.value })} placeholder="0" className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm" />
+          <p className="text-[11px] text-muted-foreground mt-1">{info?.sentido === "maior" ? "Bater = sucesso" : "Manter abaixo = sucesso"}</p>
+        </div>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground mb-2 block">Thresholds de cor</label>
+        <div className="space-y-2">
+          <Thr label="Verde" cor="bg-primary" valor={100} disabled />
+          <Thr label="Amarelo" cor="bg-amber-500" valor={form.threshold_alerta} onChange={(v: number) => setForm({ ...form, threshold_alerta: Math.max(form.threshold_atencao, v) })} />
+          <Thr label="Cinza" cor="bg-muted-foreground" valor={form.threshold_atencao} onChange={(v: number) => setForm({ ...form, threshold_atencao: Math.min(form.threshold_alerta, v) })} />
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-2">Vermelho = terminou abaixo dos thresholds.</p>
+      </div>
+    </div>
+  );
+}
+
+function Thr({ label, cor, valor, onChange, disabled }: { label: string; cor: string; valor: number; onChange?: (v: number) => void; disabled?: boolean }) {
+  return (
+    <div className="grid grid-cols-[80px_1fr_60px] gap-2 items-center text-sm">
+      <div className="flex items-center gap-1.5">
+        <span className={`w-2.5 h-2.5 rounded-full ${cor}`} />
+        <span>{label}</span>
+      </div>
+      <span className="text-xs text-muted-foreground">progresso ≥</span>
+      {disabled ? (
+        <span className="text-xs text-right text-muted-foreground pr-2">{valor}%</span>
+      ) : (
+        <div className="relative">
+          <input type="number" min={0} max={100} value={valor} onChange={e => onChange?.(Number(e.target.value))} className="w-full h-7 rounded-md border border-border bg-background pr-5 pl-2 text-sm text-right" />
+          <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">%</span>
+        </div>
+      )}
+    </div>
+  );
 }
