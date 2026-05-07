@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, ArrowRight, X, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, X, Check, Building, User, Store, TrendingUp, ClipboardList, Wrench, DollarSign, Trophy, Receipt, Clock, Repeat, FileCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCriarMeta, METRICAS_LABEL, MetricaMeta, EscopoMeta } from "@/hooks/useMetas";
@@ -19,6 +19,25 @@ export interface FormState {
   threshold_atencao: number;
   threshold_alerta: number;
 }
+
+const ICN: Record<MetricaMeta, any> = {
+  faturamento: TrendingUp, qtd_os: ClipboardList, qtd_servicos: Wrench, ticket_medio: Receipt,
+  comissao_paga: DollarSign, margem_os: Trophy, tempo_medio_horas: Clock,
+  retrabalho_taxa: Repeat, aprovacao_orcamento_taxa: FileCheck, retorno_cliente_30d: Users,
+};
+
+const DESC: Record<MetricaMeta, string> = {
+  faturamento: "Soma do valor das OSs concluídas",
+  qtd_os: "Quantidade de OSs concluídas",
+  qtd_servicos: "Quantidade de serviços concluídos",
+  ticket_medio: "Valor médio por OS",
+  comissao_paga: "Comissão paga aos técnicos",
+  margem_os: "Receita menos custo de peças",
+  tempo_medio_horas: "Tempo médio do reparo",
+  retrabalho_taxa: "% de OSs que retornaram em 30 dias",
+  aprovacao_orcamento_taxa: "% de orçamentos aprovados",
+  retorno_cliente_30d: "% de clientes que voltaram",
+};
 
 export default function MetaNova() {
   const navigate = useNavigate();
@@ -151,11 +170,78 @@ interface StepProps {
   lojas?: { id: string; nome: string }[];
 }
 
-function StepMetrica(_: StepProps) {
-  return <p className="text-sm text-muted-foreground">PROMPT 9.</p>;
+function StepMetrica({ form, setForm }: StepProps) {
+  const todas = Object.entries(METRICAS_LABEL) as [MetricaMeta, any][];
+  return (
+    <div>
+      <h3 className="text-sm font-medium mb-3">Qual métrica você quer acompanhar?</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {todas.map(([id, info]) => {
+          const Icon = ICN[id];
+          const sel = form.metrica === id;
+          return (
+            <button key={id} onClick={() => setForm({ ...form, metrica: id })}
+              className={`text-left rounded-md border p-3 transition-all ${sel ? "border-primary border-2 bg-primary/5" : "border-border hover:border-foreground/20"}`}>
+              <div className="flex items-start gap-2">
+                <Icon className={`h-4 w-4 mt-0.5 ${sel ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{info.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{DESC[id]}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
-function StepEscopo(_: StepProps) {
-  return <p className="text-sm text-muted-foreground">PROMPT 9.</p>;
+
+function StepEscopo({ form, setForm, tecnicos = [], lojas = [] }: StepProps) {
+  const opts: { id: EscopoMeta; icon: any; label: string; desc: string }[] = [
+    { id: "empresa", icon: Building, label: "Empresa toda", desc: "Soma de todos os técnicos e lojas" },
+    { id: "tecnico", icon: User, label: "Por técnico", desc: "Apenas 1 técnico específico" },
+    { id: "loja", icon: Store, label: "Por loja", desc: "Apenas 1 loja específica" },
+  ];
+  return (
+    <div>
+      <h3 className="text-sm font-medium mb-3">Qual o escopo da meta?</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+        {opts.map(o => {
+          const Icon = o.icon;
+          const sel = form.escopo === o.id;
+          return (
+            <button key={o.id} onClick={() => setForm({ ...form, escopo: o.id, escopo_id: null })}
+              className={`text-left rounded-md border p-3 transition-all ${sel ? "border-primary border-2 bg-primary/5" : "border-border hover:border-foreground/20"}`}>
+              <Icon className={`h-4 w-4 mb-2 ${sel ? "text-primary" : "text-muted-foreground"}`} />
+              <p className="font-medium text-sm">{o.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{o.desc}</p>
+            </button>
+          );
+        })}
+      </div>
+      {form.escopo === "tecnico" && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Selecione o técnico</label>
+          <select value={form.escopo_id ?? ""} onChange={e => setForm({ ...form, escopo_id: e.target.value || null })}
+            className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm">
+            <option value="">— escolher —</option>
+            {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+          </select>
+        </div>
+      )}
+      {form.escopo === "loja" && (
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Selecione a loja</label>
+          <select value={form.escopo_id ?? ""} onChange={e => setForm({ ...form, escopo_id: e.target.value || null })}
+            className="w-full h-9 rounded-md border border-border bg-background px-2 text-sm">
+            <option value="">— escolher —</option>
+            {lojas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
+  );
 }
 function StepPeriodo(_: StepProps) {
   return <p className="text-sm text-muted-foreground">PROMPT 10.</p>;
