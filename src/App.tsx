@@ -141,6 +141,10 @@ const App = () => (
                     <Route path="/compras" element={<ProtectedRoute permissao="pecas.ver"><Compras /></ProtectedRoute>} />
                     <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
                     <Route path="/tecnicos/desempenho" element={<ProtectedRoute permissao="relatorios"><DesempenhoTecnicos /></ProtectedRoute>} />
+                    <Route path="/metas" element={<ProtectedRoute permissao="relatorios"><Metas /></ProtectedRoute>} />
+                    <Route path="/metas/nova" element={<ProtectedRoute permissao="relatorios"><MetaNova /></ProtectedRoute>} />
+                    <Route path="/metas/historico" element={<ProtectedRoute permissao="relatorios"><MetasHistorico /></ProtectedRoute>} />
+                    <Route path="/metas/:id" element={<ProtectedRoute permissao="relatorios"><MetaDetalhe /></ProtectedRoute>} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
