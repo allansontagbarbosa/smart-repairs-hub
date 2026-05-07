@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Trash2, Building, User, Store, Check, AlertTriangle, Flame, Clock } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip as RTooltip } from "recharts";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useMetas, useExcluirMeta, METRICAS_LABEL, StatusVisual } from "@/hooks/useMetas";
@@ -15,6 +17,24 @@ export default function MetaDetalhe() {
   const excluir = useExcluirMeta();
   const { data: metas = [] } = useMetas("todas");
   const meta = metas.find(m => m.id === id);
+
+  const serie = useMemo(() => {
+    if (!meta) return [];
+    const ini = new Date(meta.periodo_inicio + "T00:00:00").getTime();
+    const fim = new Date(meta.periodo_fim + "T23:59:59").getTime();
+    const totalDias = Math.max(1, Math.ceil((fim - ini) / 86400000));
+    const hojeIdx = Math.min(totalDias, Math.max(0, Math.ceil((Date.now() - ini) / 86400000)));
+    const pts: { data: string; ideal: number; real: number | null }[] = [];
+    for (let i = 0; i <= Math.min(totalDias, 90); i++) {
+      const d = new Date(ini + i * 86400000);
+      pts.push({
+        data: d.toISOString().slice(5, 10),
+        ideal: (meta.valor_alvo * (i + 1)) / totalDias,
+        real: i === hojeIdx ? meta.valor_atual : null,
+      });
+    }
+    return pts;
+  }, [meta]);
 
   if (!meta) {
     return (
@@ -87,6 +107,25 @@ export default function MetaDetalhe() {
           <div className={`h-full ${cores.bar} transition-all`} style={{ width: `${pct}%` }} />
         </div>
       </div>
+
+      {serie.length > 0 && (
+        <div className="rounded-lg border bg-card p-4">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Trajetória até o alvo</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={serie}>
+              <XAxis dataKey="data" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <RTooltip />
+              <ReferenceLine y={meta.valor_alvo} stroke="hsl(var(--primary))" strokeDasharray="3 3" label={{ value: "Alvo", fontSize: 10, fill: "hsl(var(--primary))" }} />
+              <Line type="monotone" dataKey="ideal" stroke="hsl(var(--muted-foreground))" strokeDasharray="2 2" dot={false} name="Ritmo ideal" />
+              <Line type="monotone" dataKey="real" stroke="hsl(var(--primary))" strokeWidth={2} name="Atual" connectNulls={false} />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Tracejada cinza = ritmo necessário pra bater no fim. Sólida verde = valor atual da métrica.
+          </p>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card p-4 space-y-2">
         <h2 className="text-sm font-medium mb-2">Configuração</h2>
