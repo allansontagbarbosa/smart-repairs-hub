@@ -12,6 +12,7 @@ import { FluxoCaixa } from "@/components/financeiro/FluxoCaixa";
 import { SaldoDeClientesTab } from "@/components/financeiro/SaldoDeClientesTab";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { RelDRE } from "@/components/relatorios/RelDRE";
+import PrejuizosTab from "@/components/financeiro/prejuizos/PrejuizosTab";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import {
   type PeriodPreset,
