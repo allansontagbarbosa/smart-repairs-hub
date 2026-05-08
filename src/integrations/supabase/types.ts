@@ -4032,6 +4032,92 @@ export type Database = {
           },
         ]
       }
+      prejuizos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_evento: string
+          deleted_at: string | null
+          descricao: string | null
+          empresa_id: string
+          id: string
+          movimentacao_financeira_id: string | null
+          observacoes: string | null
+          origem: string
+          os_origem_id: string | null
+          os_retrabalho_id: string | null
+          tipo: Database["public"]["Enums"]["tipo_prejuizo"]
+          updated_at: string
+          updated_by: string | null
+          valor_centavos: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_evento?: string
+          deleted_at?: string | null
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          movimentacao_financeira_id?: string | null
+          observacoes?: string | null
+          origem?: string
+          os_origem_id?: string | null
+          os_retrabalho_id?: string | null
+          tipo: Database["public"]["Enums"]["tipo_prejuizo"]
+          updated_at?: string
+          updated_by?: string | null
+          valor_centavos: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_evento?: string
+          deleted_at?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          movimentacao_financeira_id?: string | null
+          observacoes?: string | null
+          origem?: string
+          os_origem_id?: string | null
+          os_retrabalho_id?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_prejuizo"]
+          updated_at?: string
+          updated_by?: string | null
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prejuizos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prejuizos_movimentacao_financeira_id_fkey"
+            columns: ["movimentacao_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_financeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prejuizos_os_origem_id_fkey"
+            columns: ["os_origem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prejuizos_os_retrabalho_id_fkey"
+            columns: ["os_retrabalho_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos_base: {
         Row: {
           ativo: boolean
@@ -5181,7 +5267,15 @@ export type Database = {
         | "cancelado"
       status_servico: "pendente" | "em_reparo" | "concluido" | "cancelado"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
-      tipo_movimentacao: "entrada" | "saida"
+      tipo_movimentacao: "entrada" | "saida" | "prejuizo"
+      tipo_prejuizo:
+        | "garantia"
+        | "peca_danificada"
+        | "cliente_sumiu"
+        | "fraude_chargeback"
+        | "furto_extravio"
+        | "cancelamento_com_peca"
+        | "outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5345,7 +5439,16 @@ export const Constants = {
       ],
       status_servico: ["pendente", "em_reparo", "concluido", "cancelado"],
       tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
-      tipo_movimentacao: ["entrada", "saida"],
+      tipo_movimentacao: ["entrada", "saida", "prejuizo"],
+      tipo_prejuizo: [
+        "garantia",
+        "peca_danificada",
+        "cliente_sumiu",
+        "fraude_chargeback",
+        "furto_extravio",
+        "cancelamento_com_peca",
+        "outro",
+      ],
     },
   },
 } as const
