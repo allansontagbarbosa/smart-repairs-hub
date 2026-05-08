@@ -53,7 +53,7 @@ export default function Financeiro() {
       </div>
 
       <Tabs defaultValue="fluxo" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 lg:max-w-5xl h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 lg:max-w-6xl h-auto">
           <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
           <TabsTrigger value="contas">
@@ -75,6 +75,7 @@ export default function Financeiro() {
           </TabsTrigger>
           <TabsTrigger value="saldo-clientes">Saldo de Clientes</TabsTrigger>
           <TabsTrigger value="dre">DRE</TabsTrigger>
+          <TabsTrigger value="prejuizos">Prejuízos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fluxo">
