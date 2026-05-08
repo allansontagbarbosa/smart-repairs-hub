@@ -5145,6 +5145,17 @@ export type Database = {
       liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       limpar_rate_limit_antigos: { Args: never; Returns: number }
       listar_metas_com_progresso: { Args: { p_status?: string }; Returns: Json }
+      listar_prejuizos: {
+        Args: {
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_limit?: number
+          p_offset?: number
+          p_origem?: string
+          p_tipo?: Database["public"]["Enums"]["tipo_prejuizo"]
+        }
+        Returns: Json
+      }
       lojista_verificar_acesso: {
         Args: { email_input: string }
         Returns: {
@@ -5168,6 +5179,14 @@ export type Database = {
       pagar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       pagar_comissoes_em_lote: {
         Args: { p_comissao_ids: string[] }
+        Returns: Json
+      }
+      prejuizos_por_tipo: {
+        Args: { p_data_fim?: string; p_data_inicio?: string }
+        Returns: Json
+      }
+      prejuizos_resumo_periodo: {
+        Args: { p_data_fim?: string; p_data_inicio?: string }
         Returns: Json
       }
       preview_cancelamento_os: { Args: { p_ordem_id: string }; Returns: Json }
