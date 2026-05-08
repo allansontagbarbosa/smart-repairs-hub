@@ -124,6 +124,10 @@ export default function Financeiro() {
         <TabsContent value="dre">
           <RelDRE />
         </TabsContent>
+
+        <TabsContent value="prejuizos">
+          <PrejuizosTab />
+        </TabsContent>
       </Tabs>
 
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
