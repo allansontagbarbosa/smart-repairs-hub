@@ -17,3 +17,5 @@ project_id = "cgsdnvuigolxwzfmnykk"
     verify_jwt = false
   [functions.accept-lojista-invite-with-password]
     verify_jwt = false
+  [functions.criar-checkout-session]
+    verify_jwt = true
