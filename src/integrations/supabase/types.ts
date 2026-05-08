@@ -14,24 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _rls_attack_results: {
-        Row: {
-          ordem: number | null
-          resultado: string | null
-          teste: string | null
-        }
-        Insert: {
-          ordem?: number | null
-          resultado?: string | null
-          teste?: string | null
-        }
-        Update: {
-          ordem?: number | null
-          resultado?: string | null
-          teste?: string | null
-        }
-        Relationships: []
-      }
       ajustes_mensais: {
         Row: {
           ano_mes: string
