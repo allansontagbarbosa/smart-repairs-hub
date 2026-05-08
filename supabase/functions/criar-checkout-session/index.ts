@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const ALLOWED_ORIGINS = [
   "https://admin.ditt.com",
@@ -8,6 +7,9 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
 ];
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function corsHeaders(origin: string | null) {
   const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -17,6 +19,42 @@ function corsHeaders(origin: string | null) {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
+}
+
+// Helper pra fetch direto no PostgREST com schema admin
+async function fetchAdmin(path: string, opts: RequestInit = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+    ...opts,
+    headers: {
+      ...(opts.headers || {}),
+      "apikey": SUPABASE_SERVICE_KEY,
+      "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`,
+      "Accept-Profile": "admin",
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`PostgREST admin error ${res.status}: ${txt}`);
+  }
+  return res.json();
+}
+
+// Helper pra fetch direto no PostgREST schema public
+async function fetchPublic(path: string, opts: RequestInit = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1${path}`, {
+    ...opts,
+    headers: {
+      ...(opts.headers || {}),
+      "apikey": SUPABASE_SERVICE_KEY,
+      "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`,
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`PostgREST public error ${res.status}: ${txt}`);
+  }
+  return res.json();
 }
 
 serve(async (req) => {
@@ -33,79 +71,64 @@ serve(async (req) => {
       return json({ success: false, error: "empresa_id e plano_tier são obrigatórios" }, 400, headers);
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, { 
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       apiVersion: "2024-11-20.acacia",
       httpClient: Stripe.createFetchHttpClient(),
     });
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
-    // 1. Busca o plano e o stripe_price_id
-    const { data: plano, error: planoError } = await supabase
-      .schema("admin")
-      .from("planos")
-      .select("id, nome, stripe_price_id, tier")
-      .eq("tier", plano_tier)
-      .eq("ativo", true)
-      .maybeSingle();
-    
-    if (planoError || !plano?.stripe_price_id) {
+    // 1. Busca plano em admin.planos
+    const planos = await fetchAdmin(`/planos?tier=eq.${encodeURIComponent(plano_tier)}&ativo=eq.true&select=id,nome,stripe_price_id,tier`);
+    if (!Array.isArray(planos) || planos.length === 0 || !planos[0].stripe_price_id) {
       return json({ success: false, error: "Plano não encontrado ou sem stripe_price_id" }, 400, headers);
     }
+    const plano = planos[0];
 
-    // 2. Busca a empresa
-    const { data: empresa, error: empresaError } = await supabase
-      .from("empresas")
-      .select("id, nome")
-      .eq("id", empresa_id)
-      .maybeSingle();
-    
-    if (empresaError || !empresa) {
+    // 2. Busca empresa em public.empresas
+    const empresas = await fetchPublic(`/empresas?id=eq.${empresa_id}&select=id,nome`);
+    if (!Array.isArray(empresas) || empresas.length === 0) {
       return json({ success: false, error: "Empresa não encontrada" }, 404, headers);
     }
+    const empresa = empresas[0];
 
-    // 3. Tenta achar email do dono da empresa
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("user_id")
-      .eq("empresa_id", empresa_id)
-      .limit(1)
-      .maybeSingle();
-    
+    // 3. Busca email do dono da empresa via user_profiles + auth.users
+    const profiles = await fetchPublic(`/user_profiles?empresa_id=eq.${empresa_id}&select=user_id&limit=1`);
     let userEmail: string | undefined;
-    if (profile?.user_id) {
-      const { data: { user } } = await supabase.auth.admin.getUserById(profile.user_id);
-      userEmail = user?.email;
+    if (Array.isArray(profiles) && profiles.length > 0 && profiles[0].user_id) {
+      // auth.users via Admin API
+      const userRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${profiles[0].user_id}`, {
+        headers: {
+          "apikey": SUPABASE_SERVICE_KEY,
+          "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`,
+        }
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        userEmail = userData.email;
+      }
     }
 
-    // 4. Verifica se já existe assinatura com customer_id (pra reutilizar)
-    const { data: assinaturaExistente } = await supabase
-      .schema("admin")
-      .from("assinaturas")
-      .select("stripe_customer_id")
-      .eq("empresa_id", empresa_id)
-      .maybeSingle();
+    // 4. Verifica se já existe assinatura com customer_id
+    const assinaturas = await fetchAdmin(`/assinaturas?empresa_id=eq.${empresa_id}&select=stripe_customer_id&limit=1`);
+    const customerExistente = (Array.isArray(assinaturas) && assinaturas[0]?.stripe_customer_id) || undefined;
 
     // 5. Cria sessão de checkout
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [{ price: plano.stripe_price_id, quantity: 1 }],
-      customer: assinaturaExistente?.stripe_customer_id ?? undefined,
-      customer_email: !assinaturaExistente?.stripe_customer_id ? userEmail : undefined,
+      customer: customerExistente,
+      customer_email: !customerExistente ? userEmail : undefined,
       subscription_data: {
         trial_period_days: 7,
-        metadata: { 
-          empresa_id, 
-          plano_tier, 
+        metadata: {
+          empresa_id,
+          plano_tier,
           plano_id: plano.id,
           empresa_nome: empresa.nome,
         },
       },
-      metadata: { 
-        empresa_id, 
+      metadata: {
+        empresa_id,
         plano_tier,
         empresa_nome: empresa.nome,
       },
@@ -116,17 +139,17 @@ serve(async (req) => {
       billing_address_collection: "required",
     });
 
-    return json({ 
-      success: true, 
-      url: session.url, 
-      session_id: session.id 
+    return json({
+      success: true,
+      url: session.url,
+      session_id: session.id,
     }, 200, headers);
 
   } catch (err: any) {
     console.error("[criar-checkout-session] erro:", err);
-    return json({ 
-      success: false, 
-      error: err.message ?? "Erro interno" 
+    return json({
+      success: false,
+      error: err.message ?? "Erro interno",
     }, 500, headers);
   }
 });
