@@ -4891,6 +4891,19 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_prejuizo: {
+        Args: {
+          p_data_evento?: string
+          p_descricao?: string
+          p_observacoes?: string
+          p_origem?: string
+          p_os_origem_id?: string
+          p_os_retrabalho_id?: string
+          p_tipo: Database["public"]["Enums"]["tipo_prejuizo"]
+          p_valor_centavos: number
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
