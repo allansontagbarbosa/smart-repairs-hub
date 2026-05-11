@@ -420,8 +420,11 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
       evolucaoMensal,
       contasVencidas: vencidas.length,
       comissoesPendentesCount: comissoesPendentes.length,
+      prejuizosOpMes,
+      prejuizosNaoOpMes,
+      totalPrejuizosMes,
     };
-  }, [contas.data, comissoes.data, ordens.data, recebimentos.data, options.periodRange]);
+  }, [contas.data, comissoes.data, ordens.data, recebimentos.data, prejuizos.data, options.periodRange]);
 
   return {
     contas: contas.data ?? [],
