@@ -989,10 +989,19 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
             {/* Botão imprimir para OS já entregue */}
             {ordem.status === "entregue" && (
-              <div className="flex gap-2 mb-5">
+              <div className="flex flex-wrap gap-2 mb-5">
                 <Button size="sm" variant="outline" onClick={() => handlePrint()}>
                   <FileText className="h-3.5 w-3.5 mr-1" />
                   Imprimir / PDF da OS
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPrejuizoOpen(true)}
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                  Registrar prejuízo
                 </Button>
               </div>
             )}
