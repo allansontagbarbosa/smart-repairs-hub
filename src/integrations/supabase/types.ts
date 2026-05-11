@@ -5155,6 +5155,23 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_funcionario_rh: {
+        Args: {
+          p_carga_horaria_semanal?: number
+          p_cargo?: string
+          p_cpf?: string
+          p_data_admissao?: string
+          p_email?: string
+          p_nome: string
+          p_salario_centavos?: number
+          p_telefone?: string
+          p_tipo_vinculo?: string
+          p_va_centavos?: number
+          p_valor_diaria_centavos?: number
+          p_vt_centavos?: number
+        }
+        Returns: Json
+      }
       criar_lote_compra: {
         Args: {
           p_custo_unitario: number

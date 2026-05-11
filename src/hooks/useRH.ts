@@ -187,6 +187,48 @@ export function usePagarMovimentacoes() {
   });
 }
 
+export function useCriarFuncionarioRH() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      nome: string;
+      cpf?: string;
+      email?: string;
+      telefone?: string;
+      cargo?: string;
+      tipo_vinculo?: string;
+      salario_centavos?: number;
+      vt_centavos?: number;
+      va_centavos?: number;
+      carga_horaria_semanal?: number;
+      data_admissao?: string;
+      valor_diaria_centavos?: number;
+    }) => {
+      const { data, error } = await (supabase as any).rpc("criar_funcionario_rh", {
+        p_nome: input.nome,
+        p_cpf: input.cpf || null,
+        p_email: input.email || null,
+        p_telefone: input.telefone || null,
+        p_cargo: input.cargo || null,
+        p_tipo_vinculo: input.tipo_vinculo || "clt",
+        p_salario_centavos: input.salario_centavos ?? null,
+        p_vt_centavos: input.vt_centavos ?? 0,
+        p_va_centavos: input.va_centavos ?? 0,
+        p_carga_horaria_semanal: input.carga_horaria_semanal ?? null,
+        p_data_admissao: input.data_admissao || null,
+        p_valor_diaria_centavos: input.valor_diaria_centavos ?? null,
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? "Erro ao criar");
+      return data as { success: boolean; funcionario_id: string; message: string };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh"] });
+      qc.invalidateQueries({ queryKey: ["funcionarios"] });
+    },
+  });
+}
+
 export function useAplicarAcaoBancoHoras() {
   const qc = useQueryClient();
   return useMutation({

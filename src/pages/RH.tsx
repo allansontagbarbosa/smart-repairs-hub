@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck } from "lucide-react";
+import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck, UserPlus } from "lucide-react";
 import { useListarFuncionariosRH, useGerarFolhaMensal } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS } from "@/types/rh";
 import { toast } from "sonner";
+import { NovoFuncionarioDialog } from "@/components/rh/NovoFuncionarioDialog";
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -16,6 +17,7 @@ export default function RH() {
   const { data: funcionarios = [], isLoading } = useListarFuncionariosRH();
   const gerarFolha = useGerarFolhaMensal();
   const [busca, setBusca] = useState("");
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const hoje = new Date();
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
@@ -50,6 +52,10 @@ export default function RH() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setNovoOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-1" />
+            Novo funcionário
+          </Button>
           <Button variant="outline" onClick={() => navigate("/rh/gerenciar")}>
             <UserCheck className="h-4 w-4 mr-2" />
             Gerenciar
@@ -147,6 +153,13 @@ export default function RH() {
             <p className="text-center text-muted-foreground py-12 text-sm">Nenhum funcionário encontrado.</p>
           )}
         </div>
+      )}
+
+      {novoOpen && (
+        <NovoFuncionarioDialog
+          open={novoOpen}
+          onOpenChange={setNovoOpen}
+        />
       )}
     </div>
   );
