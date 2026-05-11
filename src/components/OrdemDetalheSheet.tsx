@@ -1967,6 +1967,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
         />
       )}
 
+      {ordem && (
+        <RegistrarPrejuizoOSDialog
+          open={prejuizoOpen}
+          onOpenChange={setPrejuizoOpen}
+          osId={ordem.id}
+          osNumero={Number((ordem as any).numero ?? 0)}
+          custoPecasOS={Number((ordem as any).custo_pecas ?? 0)}
+        />
+      )}
+
       {/* Warning de pulo de fluxo */}
       <AlertDialog open={!!pendingStatusChange} onOpenChange={(o) => { if (!o) setPendingStatusChange(null); }}>
         <AlertDialogContent>
