@@ -1006,6 +1006,21 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             )}
 
+            {/* Botão de prejuízo — disponível em qualquer OS */}
+            {ordem.status !== "entregue" && (
+              <div className="flex flex-wrap gap-2 mb-5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPrejuizoOpen(true)}
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Registrar prejuízo
+                </Button>
+              </div>
+            )}
+
             {/* Status change dropdown (sem 'cancelado'; cancelamento é via botão dedicado) */}
             {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
               <div className="mb-5">
