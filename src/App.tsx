@@ -43,6 +43,8 @@ import Metas from "./pages/Metas";
 import MetaNova from "./pages/MetaNova";
 import MetaDetalhe from "./pages/MetaDetalhe";
 import MetasHistorico from "./pages/MetasHistorico";
+import RH from "./pages/RH";
+import RHFuncionario from "./pages/RHFuncionario";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
