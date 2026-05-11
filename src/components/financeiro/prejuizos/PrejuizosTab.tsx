@@ -11,6 +11,16 @@ import { ModalCriarPrejuizo } from "./ModalCriarPrejuizo";
 import { ModalDetalhePrejuizo } from "./ModalDetalhePrejuizo";
 import { cn } from "@/lib/utils";
 
+const TODOS_TIPOS: TipoPrejuizo[] = [
+  "garantia",
+  "peca_danificada",
+  "cliente_sumiu",
+  "fraude_chargeback",
+  "furto_extravio",
+  "cancelamento_com_peca",
+  "outro",
+];
+
 const fmtBRL = (c: number) =>
   (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtData = (s: string) => new Date(s).toLocaleDateString("pt-BR");
