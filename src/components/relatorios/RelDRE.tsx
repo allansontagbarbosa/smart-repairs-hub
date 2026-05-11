@@ -224,7 +224,7 @@ export function RelDRE() {
 
         // MESMA REGRA da receita do mês: status pronto+entregue, filtra por data_conclusao,
         // usa valor_total (com fallback p/ valor em OS antigas).
-        const [{ data: os }, { data: cp }] = await Promise.all([
+        const [{ data: os }, { data: cp }, { data: prej }] = await Promise.all([
           supabase
             .from("ordens_de_servico")
             .select("valor, valor_total, custo_pecas")
@@ -237,23 +237,31 @@ export function RelDRE() {
             .select("valor")
             .eq("mes_competencia", competencia)
             .is("deleted_at", null),
+          (supabase as any)
+            .from("prejuizos")
+            .select("valor_centavos")
+            .is("deleted_at", null)
+            .gte("data_evento", ini)
+            .lt("data_evento", fi),
         ]);
 
         const receita = (os ?? []).reduce(
           (s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0),
           0
         );
-        // Custo de peças do mês = peças usadas nas OS faturadas no mês (mesmo período da receita)
         const custoPecas = (os ?? []).reduce(
           (s, o: any) => s + Number(o.custo_pecas ?? 0),
           0
         );
-        // Despesas do mês = contas com competência do mês (independente de status)
         const despesasMes = (cp ?? []).reduce(
           (s, c: any) => s + Number(c.valor ?? 0),
           0
         );
-        const gastos = custoPecas + despesasMes;
+        const prejuizosMesChart = (prej ?? []).reduce(
+          (s: number, p: any) => s + Number(p.valor_centavos ?? 0) / 100,
+          0
+        );
+        const gastos = custoPecas + despesasMes + prejuizosMesChart;
 
         results.push({
           mes: meses[m].substring(0, 3),
