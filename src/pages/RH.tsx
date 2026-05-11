@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck } from "lucide-react";
+import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck, UserPlus } from "lucide-react";
 import { useListarFuncionariosRH, useGerarFolhaMensal } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS } from "@/types/rh";
 import { toast } from "sonner";
+import { NovoFuncionarioDialog } from "@/components/rh/NovoFuncionarioDialog";
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
