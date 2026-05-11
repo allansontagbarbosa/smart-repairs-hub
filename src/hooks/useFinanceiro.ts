@@ -260,6 +260,26 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     const allComissoes = comissoes.data ?? [];
     const allOrdens = ordens.data ?? [];
     const allRecebimentos = recebimentos.data ?? [];
+    const allPrejuizos = prejuizos.data ?? [];
+
+    const TIPOS_OPERACIONAIS = ["garantia", "peca_danificada", "cancelamento_com_peca"];
+    const TIPOS_NAO_OPERACIONAIS = ["cliente_sumiu", "fraude_chargeback", "furto_extravio", "outro"];
+
+    const prejuizosOpMes = allPrejuizos
+      .filter(p => {
+        const d = new Date(p.data_evento + "T12:00:00");
+        return d >= periodStart && d <= periodEnd && TIPOS_OPERACIONAIS.includes(p.tipo);
+      })
+      .reduce((s, p) => s + (p.valor_centavos / 100), 0);
+
+    const prejuizosNaoOpMes = allPrejuizos
+      .filter(p => {
+        const d = new Date(p.data_evento + "T12:00:00");
+        return d >= periodStart && d <= periodEnd && TIPOS_NAO_OPERACIONAIS.includes(p.tipo);
+      })
+      .reduce((s, p) => s + (p.valor_centavos / 100), 0);
+
+    const totalPrejuizosMes = prejuizosOpMes + prejuizosNaoOpMes;
 
     // Contas a pagar — buckets DISJUNTOS pra UI não confundir
     const contasPendentes = allContas.filter(c => c.status === "pendente" || c.status === "vencida");
