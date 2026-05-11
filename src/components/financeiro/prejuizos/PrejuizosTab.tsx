@@ -143,20 +143,25 @@ export default function PrejuizosTab() {
         >
           Todos {lista?.total ? `(${lista.total})` : ""}
         </button>
-        {porTipo.map((t) => (
-          <button
-            key={t.tipo}
-            onClick={() => setFiltroTipo(t.tipo)}
-            className={cn(
-              "px-3 py-1 rounded-full border text-xs transition-colors",
-              filtroTipo === t.tipo
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border hover:bg-muted"
-            )}
-          >
-            {t.tipo_label} ({t.qtd})
-          </button>
-        ))}
+        {TODOS_TIPOS.map((tipo) => {
+          const qtd = porTipo.find((t) => t.tipo === tipo)?.qtd ?? 0;
+          return (
+            <button
+              key={tipo}
+              onClick={() => setFiltroTipo(tipo)}
+              className={cn(
+                "px-3 py-1 rounded-full border text-xs transition-colors",
+                filtroTipo === tipo
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : qtd > 0
+                  ? "border-border hover:bg-muted"
+                  : "border-border/50 text-muted-foreground hover:bg-muted/50"
+              )}
+            >
+              {TIPO_PREJUIZO_LABELS[tipo]} ({qtd})
+            </button>
+          );
+        })}
       </div>
 
       {/* Tabela */}
