@@ -52,6 +52,10 @@ export default function RH() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setNovoOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-1" />
+            Novo funcionário
+          </Button>
           <Button variant="outline" onClick={() => navigate("/rh/gerenciar")}>
             <UserCheck className="h-4 w-4 mr-2" />
             Gerenciar
