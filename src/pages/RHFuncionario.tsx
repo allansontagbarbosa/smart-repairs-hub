@@ -40,6 +40,17 @@ export default function RHFuncionario() {
   const { data: bancoHoras } = useBancoHoras(id || null, competencia);
   const pagar = usePagarMovimentacoes();
   const aplicarAcao = useAplicarAcaoBancoHoras();
+  const toggleRH = useToggleFuncionarioRH();
+
+  const handleToggleRH = async (checked: boolean) => {
+    if (!checked && !confirm(`Remover ${func?.nome ?? "funcionário"} do RH? Ele(a) continuará com acesso ao sistema, mas não aparecerá em folhas/holerites.`)) return;
+    try {
+      await toggleRH.mutateAsync({ id: id!, eh_funcionario_rh: checked });
+      toast.success(checked ? "Marcado como funcionário RH" : "Removido do RH");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const pendentes = (extrato?.movimentacoes ?? []).filter((m: any) => m.status === "pendente");
 
