@@ -8,9 +8,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Edit3, CalendarOff, CheckCircle2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
-  useListarFuncionariosRH, useExtratoFuncionario, useHolerite, useBancoHoras,
-  usePagarMovimentacoes, useAplicarAcaoBancoHoras,
+  useListarTodosFuncionarios, useExtratoFuncionario, useHolerite, useBancoHoras,
+  usePagarMovimentacoes, useAplicarAcaoBancoHoras, useToggleFuncionarioRH,
 } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS, TIPO_MOV_LABELS } from "@/types/rh";
 import { EditarFuncionarioDialog } from "@/components/rh/EditarFuncionarioDialog";
