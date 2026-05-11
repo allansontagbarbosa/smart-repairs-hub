@@ -46,6 +46,7 @@ export interface FuncionarioRH {
   data_admissao: string | null;
   data_demissao: string | null;
   ativo: boolean;
+  eh_funcionario_rh: boolean;
   pendente_pagamento_centavos: number;
 }
 

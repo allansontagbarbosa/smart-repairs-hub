@@ -8,9 +8,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Edit3, CalendarOff, CheckCircle2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   useListarFuncionariosRH, useExtratoFuncionario, useHolerite, useBancoHoras,
-  usePagarMovimentacoes, useAplicarAcaoBancoHoras,
+  usePagarMovimentacoes, useAplicarAcaoBancoHoras, useToggleFuncionarioRH,
 } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS, TIPO_MOV_LABELS } from "@/types/rh";
 import { EditarFuncionarioDialog } from "@/components/rh/EditarFuncionarioDialog";
@@ -39,6 +40,17 @@ export default function RHFuncionario() {
   const { data: bancoHoras } = useBancoHoras(id || null, competencia);
   const pagar = usePagarMovimentacoes();
   const aplicarAcao = useAplicarAcaoBancoHoras();
+  const toggleRH = useToggleFuncionarioRH();
+
+  const handleToggleRH = async (checked: boolean) => {
+    if (!checked && !confirm(`Remover ${func?.nome ?? "funcionário"} do RH? Ele(a) continuará com acesso ao sistema, mas não aparecerá em folhas/holerites.`)) return;
+    try {
+      await toggleRH.mutateAsync({ id: id!, eh_funcionario_rh: checked });
+      toast.success(checked ? "Marcado como funcionário RH" : "Removido do RH");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const pendentes = (extrato?.movimentacoes ?? []).filter((m: any) => m.status === "pendente");
 
@@ -100,9 +112,19 @@ export default function RHFuncionario() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditarOpen(true)}>
-          <Edit3 className="h-4 w-4 mr-2" /> Editar
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card">
+            <Switch
+              checked={func.eh_funcionario_rh}
+              onCheckedChange={handleToggleRH}
+              disabled={toggleRH.isPending}
+            />
+            <span className="text-xs text-muted-foreground">Funcionário RH</span>
+          </div>
+          <Button variant="outline" onClick={() => setEditarOpen(true)}>
+            <Edit3 className="h-4 w-4 mr-2" /> Editar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

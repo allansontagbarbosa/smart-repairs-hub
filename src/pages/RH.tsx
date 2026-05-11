@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload } from "lucide-react";
+import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck } from "lucide-react";
 import { useListarFuncionariosRH, useGerarFolhaMensal } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS } from "@/types/rh";
 import { toast } from "sonner";
@@ -50,6 +50,10 @@ export default function RH() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => navigate("/rh/gerenciar")}>
+            <UserCheck className="h-4 w-4 mr-2" />
+            Gerenciar
+          </Button>
           <Button variant="outline" onClick={() => navigate("/rh/folha-mensal")}>
             <FileText className="h-4 w-4 mr-2" />
             Folha do mês
