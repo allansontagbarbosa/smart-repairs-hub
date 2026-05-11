@@ -22,6 +22,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { CancelarOSDialog } from "@/components/CancelarOSDialog";
+import { RegistrarPrejuizoOSDialog } from "@/components/ordens/RegistrarPrejuizoOSDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { cn } from "@/lib/utils";
 import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
