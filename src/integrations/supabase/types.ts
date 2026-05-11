@@ -1978,18 +1978,264 @@ export type Database = {
           },
         ]
       }
+      funcionario_importacoes_ponto: {
+        Row: {
+          arquivo_nome: string
+          concluido_at: string | null
+          created_at: string | null
+          created_by: string | null
+          empresa_id: string
+          erros: Json | null
+          id: string
+          linhas_erro: number | null
+          linhas_processadas: number | null
+          linhas_total: number | null
+          mes_referencia: string | null
+          status: string
+        }
+        Insert: {
+          arquivo_nome: string
+          concluido_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          empresa_id: string
+          erros?: Json | null
+          id?: string
+          linhas_erro?: number | null
+          linhas_processadas?: number | null
+          linhas_total?: number | null
+          mes_referencia?: string | null
+          status?: string
+        }
+        Update: {
+          arquivo_nome?: string
+          concluido_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          empresa_id?: string
+          erros?: Json | null
+          id?: string
+          linhas_erro?: number | null
+          linhas_processadas?: number | null
+          linhas_total?: number | null
+          mes_referencia?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_importacoes_ponto_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionario_movimentacoes: {
+        Row: {
+          comissao_id: string | null
+          competencia_ano_mes: string
+          conta_pagar_id: string | null
+          created_at: string | null
+          created_by: string | null
+          data: string
+          data_pagamento: string | null
+          descricao: string | null
+          empresa_id: string
+          estornada_em: string | null
+          forma_pagamento: string | null
+          funcionario_id: string
+          id: string
+          motivo_estorno: string | null
+          observacoes: string | null
+          ponto_entrada_id: string | null
+          status: Database["public"]["Enums"]["status_movimentacao_func"] | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao_func"]
+          valor_centavos: number
+        }
+        Insert: {
+          comissao_id?: string | null
+          competencia_ano_mes: string
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data?: string
+          data_pagamento?: string | null
+          descricao?: string | null
+          empresa_id: string
+          estornada_em?: string | null
+          forma_pagamento?: string | null
+          funcionario_id: string
+          id?: string
+          motivo_estorno?: string | null
+          observacoes?: string | null
+          ponto_entrada_id?: string | null
+          status?:
+            | Database["public"]["Enums"]["status_movimentacao_func"]
+            | null
+          tipo: Database["public"]["Enums"]["tipo_movimentacao_func"]
+          valor_centavos: number
+        }
+        Update: {
+          comissao_id?: string | null
+          competencia_ano_mes?: string
+          conta_pagar_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data?: string
+          data_pagamento?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          estornada_em?: string | null
+          forma_pagamento?: string | null
+          funcionario_id?: string
+          id?: string
+          motivo_estorno?: string | null
+          observacoes?: string | null
+          ponto_entrada_id?: string | null
+          status?:
+            | Database["public"]["Enums"]["status_movimentacao_func"]
+            | null
+          tipo?: Database["public"]["Enums"]["tipo_movimentacao_func"]
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_movimentacoes_comissao_id_fkey"
+            columns: ["comissao_id"]
+            isOneToOne: false
+            referencedRelation: "comissoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_movimentacoes_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_a_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_movimentacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_movimentacoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_movimentacoes_ponto_entrada_id_fkey"
+            columns: ["ponto_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "funcionario_ponto_entradas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionario_ponto_entradas: {
+        Row: {
+          abonada: boolean | null
+          atestado_medico: boolean | null
+          created_at: string | null
+          created_by: string | null
+          data: string
+          empresa_id: string
+          falta: boolean | null
+          falta_justificada: boolean | null
+          funcionario_id: string
+          hora_entrada: string | null
+          hora_saida: string | null
+          hora_saida_almoco: string | null
+          hora_volta_almoco: string | null
+          horas_trabalhadas: number | null
+          id: string
+          importacao_id: string | null
+          justificativa: string | null
+          observacoes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          abonada?: boolean | null
+          atestado_medico?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          data: string
+          empresa_id: string
+          falta?: boolean | null
+          falta_justificada?: boolean | null
+          funcionario_id: string
+          hora_entrada?: string | null
+          hora_saida?: string | null
+          hora_saida_almoco?: string | null
+          hora_volta_almoco?: string | null
+          horas_trabalhadas?: number | null
+          id?: string
+          importacao_id?: string | null
+          justificativa?: string | null
+          observacoes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          abonada?: boolean | null
+          atestado_medico?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          data?: string
+          empresa_id?: string
+          falta?: boolean | null
+          falta_justificada?: boolean | null
+          funcionario_id?: string
+          hora_entrada?: string | null
+          hora_saida?: string | null
+          hora_saida_almoco?: string | null
+          hora_volta_almoco?: string | null
+          horas_trabalhadas?: number | null
+          id?: string
+          importacao_id?: string | null
+          justificativa?: string | null
+          observacoes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_ponto_entradas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_ponto_entradas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionarios: {
         Row: {
+          agencia: string | null
           ativo: boolean
           bairro: string | null
+          banco: string | null
           carga_horaria: string | null
+          carga_horaria_semanal: number | null
           cargo: string | null
           cep: string | null
+          chave_pix: string | null
           cidade: string | null
           complemento: string | null
+          conta_bancaria: string | null
           cpf: string | null
           created_at: string
           data_admissao: string | null
+          data_demissao: string | null
           deleted_at: string | null
           email: string | null
           empresa_id: string | null
@@ -2001,24 +2247,37 @@ export type Database = {
           nome: string
           numero: string | null
           observacoes: string | null
+          observacoes_rh: string | null
+          rg: string | null
+          salario_centavos: number | null
           salario_fixo: number | null
           telefone: string | null
           tipo_comissao: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_vinculo: Database["public"]["Enums"]["tipo_vinculo_rh"] | null
+          va_centavos: number | null
           vale_alimentacao: number | null
           vale_transporte: number | null
           valor_comissao: number
+          valor_diaria_centavos: number | null
+          vt_centavos: number | null
         }
         Insert: {
+          agencia?: string | null
           ativo?: boolean
           bairro?: string | null
+          banco?: string | null
           carga_horaria?: string | null
+          carga_horaria_semanal?: number | null
           cargo?: string | null
           cep?: string | null
+          chave_pix?: string | null
           cidade?: string | null
           complemento?: string | null
+          conta_bancaria?: string | null
           cpf?: string | null
           created_at?: string
           data_admissao?: string | null
+          data_demissao?: string | null
           deleted_at?: string | null
           email?: string | null
           empresa_id?: string | null
@@ -2030,24 +2289,37 @@ export type Database = {
           nome: string
           numero?: string | null
           observacoes?: string | null
+          observacoes_rh?: string | null
+          rg?: string | null
+          salario_centavos?: number | null
           salario_fixo?: number | null
           telefone?: string | null
           tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_rh"] | null
+          va_centavos?: number | null
           vale_alimentacao?: number | null
           vale_transporte?: number | null
           valor_comissao?: number
+          valor_diaria_centavos?: number | null
+          vt_centavos?: number | null
         }
         Update: {
+          agencia?: string | null
           ativo?: boolean
           bairro?: string | null
+          banco?: string | null
           carga_horaria?: string | null
+          carga_horaria_semanal?: number | null
           cargo?: string | null
           cep?: string | null
+          chave_pix?: string | null
           cidade?: string | null
           complemento?: string | null
+          conta_bancaria?: string | null
           cpf?: string | null
           created_at?: string
           data_admissao?: string | null
+          data_demissao?: string | null
           deleted_at?: string | null
           email?: string | null
           empresa_id?: string | null
@@ -2059,12 +2331,19 @@ export type Database = {
           nome?: string
           numero?: string | null
           observacoes?: string | null
+          observacoes_rh?: string | null
+          rg?: string | null
+          salario_centavos?: number | null
           salario_fixo?: number | null
           telefone?: string | null
           tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_rh"] | null
+          va_centavos?: number | null
           vale_alimentacao?: number | null
           vale_transporte?: number | null
           valor_comissao?: number
+          valor_diaria_centavos?: number | null
+          vt_centavos?: number | null
         }
         Relationships: [
           {
@@ -4704,6 +4983,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aplicar_acao_banco_horas: {
+        Args: {
+          p_acao: string
+          p_competencia: string
+          p_funcionario_id: string
+          p_horas: number
+        }
+        Returns: Json
+      }
       atualizar_user_profile: {
         Args: {
           p_ativo?: boolean
@@ -4827,6 +5115,10 @@ export type Database = {
           p_inicio: string
         }
         Returns: number
+      }
+      calcular_banco_horas: {
+        Args: { p_competencia: string; p_funcionario_id: string }
+        Returns: Json
       }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       calcular_progresso_meta: { Args: { p_meta_id: string }; Returns: Json }
@@ -4998,6 +5290,15 @@ export type Database = {
           valor: number
         }[]
       }
+      extrato_funcionario: {
+        Args: {
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_funcionario_id: string
+        }
+        Returns: Json
+      }
+      gerar_folha_mensal: { Args: { p_competencia: string }; Returns: Json }
       gerar_movimentacao_entrada_os: {
         Args: { p_ordem_id: string }
         Returns: undefined
@@ -5058,6 +5359,10 @@ export type Database = {
           ultima_os_data: string
           ultimo_pagamento_data: string
         }[]
+      }
+      holerite_funcionario: {
+        Args: { p_competencia: string; p_funcionario_id: string }
+        Returns: Json
       }
       ia_agregar_aparelhos_periodo: {
         Args: {
@@ -5134,6 +5439,14 @@ export type Database = {
         Args: { p_novo_status: string; p_os_id: string }
         Returns: Json
       }
+      importar_ponto_planilha: {
+        Args: {
+          p_arquivo_nome: string
+          p_entradas: Json
+          p_mes_referencia: string
+        }
+        Returns: Json
+      }
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       is_admin_ou_gerente: { Args: never; Returns: boolean }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
@@ -5144,6 +5457,7 @@ export type Database = {
       }
       liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       limpar_rate_limit_antigos: { Args: never; Returns: number }
+      listar_funcionarios_rh: { Args: never; Returns: Json }
       listar_metas_com_progresso: { Args: { p_status?: string }; Returns: Json }
       listar_prejuizos: {
         Args: {
@@ -5179,6 +5493,14 @@ export type Database = {
       pagar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       pagar_comissoes_em_lote: {
         Args: { p_comissao_ids: string[] }
+        Returns: Json
+      }
+      pagar_movimentacoes: {
+        Args: {
+          p_criar_conta_pagar?: boolean
+          p_forma_pagamento?: string
+          p_movimentacao_ids: string[]
+        }
         Returns: Json
       }
       prejuizos_evolucao_mensal: { Args: { p_meses?: number }; Returns: Json }
@@ -5219,6 +5541,17 @@ export type Database = {
         Returns: number
       }
       recalcular_totais_os: { Args: { p_ordem_id: string }; Returns: undefined }
+      registrar_falta: {
+        Args: {
+          p_abonada?: boolean
+          p_atestado_medico?: boolean
+          p_data: string
+          p_falta_justificada?: boolean
+          p_funcionario_id: string
+          p_justificativa?: string
+        }
+        Returns: Json
+      }
       registrar_recebimento_cliente: {
         Args: {
           p_cliente_id: string
@@ -5271,6 +5604,11 @@ export type Database = {
       }
     }
     Enums: {
+      acao_hora_excedente:
+        | "pendente_decisao"
+        | "pago_como_extra"
+        | "mantido_em_banco"
+        | "compensado"
       escopo_meta: "empresa" | "tecnico" | "loja"
       metric_meta:
         | "faturamento"
@@ -5292,6 +5630,7 @@ export type Database = {
         | "em_transporte"
         | "vendido"
       status_meta: "ativa" | "pausada" | "concluida_sucesso" | "concluida_falha"
+      status_movimentacao_func: "pendente" | "pago" | "estornado"
       status_ordem:
         | "recebido"
         | "em_analise"
@@ -5305,6 +5644,18 @@ export type Database = {
       status_servico: "pendente" | "em_reparo" | "concluido" | "cancelado"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
       tipo_movimentacao: "entrada" | "saida" | "prejuizo"
+      tipo_movimentacao_func:
+        | "salario"
+        | "comissao"
+        | "vale_transporte"
+        | "vale_alimentacao"
+        | "hora_extra"
+        | "falta_descontada"
+        | "bonus"
+        | "adiantamento"
+        | "reembolso"
+        | "desconto_diverso"
+        | "outro"
       tipo_prejuizo:
         | "garantia"
         | "peca_danificada"
@@ -5312,6 +5663,14 @@ export type Database = {
         | "fraude_chargeback"
         | "furto_extravio"
         | "cancelamento_com_peca"
+        | "outro"
+      tipo_vinculo_rh:
+        | "clt"
+        | "pj"
+        | "mei"
+        | "diarista"
+        | "freelancer"
+        | "estagiario"
         | "outro"
     }
     CompositeTypes: {
@@ -5440,6 +5799,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      acao_hora_excedente: [
+        "pendente_decisao",
+        "pago_como_extra",
+        "mantido_em_banco",
+        "compensado",
+      ],
       escopo_meta: ["empresa", "tecnico", "loja"],
       metric_meta: [
         "faturamento",
@@ -5463,6 +5828,7 @@ export const Constants = {
         "vendido",
       ],
       status_meta: ["ativa", "pausada", "concluida_sucesso", "concluida_falha"],
+      status_movimentacao_func: ["pendente", "pago", "estornado"],
       status_ordem: [
         "recebido",
         "em_analise",
@@ -5477,6 +5843,19 @@ export const Constants = {
       status_servico: ["pendente", "em_reparo", "concluido", "cancelado"],
       tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
       tipo_movimentacao: ["entrada", "saida", "prejuizo"],
+      tipo_movimentacao_func: [
+        "salario",
+        "comissao",
+        "vale_transporte",
+        "vale_alimentacao",
+        "hora_extra",
+        "falta_descontada",
+        "bonus",
+        "adiantamento",
+        "reembolso",
+        "desconto_diverso",
+        "outro",
+      ],
       tipo_prejuizo: [
         "garantia",
         "peca_danificada",
@@ -5484,6 +5863,15 @@ export const Constants = {
         "fraude_chargeback",
         "furto_extravio",
         "cancelamento_com_peca",
+        "outro",
+      ],
+      tipo_vinculo_rh: [
+        "clt",
+        "pj",
+        "mei",
+        "diarista",
+        "freelancer",
+        "estagiario",
         "outro",
       ],
     },
