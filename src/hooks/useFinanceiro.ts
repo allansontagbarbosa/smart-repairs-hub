@@ -57,6 +57,28 @@ export type Comissao = {
   os_servicos?: { nome: string; status: string } | null;
 };
 
+export type PrejuizoFinanceiro = {
+  id: string;
+  tipo: string;
+  valor_centavos: number;
+  data_evento: string;
+  origem: string;
+  movimentacao_financeira_id: string | null;
+};
+
+async function fetchPrejuizos() {
+  const { data, error } = await supabase
+    .from("prejuizos")
+    .select("id, tipo, valor_centavos, data_evento, origem, movimentacao_financeira_id")
+    .is("deleted_at", null)
+    .order("data_evento", { ascending: false });
+  if (error) {
+    console.error("ERRO fetchPrejuizos:", error.code, error.message);
+    throw error;
+  }
+  return (data ?? []) as PrejuizoFinanceiro[];
+}
+
 async function fetchContas() {
   const { data, error } = await supabase
     .from("contas_a_pagar")
