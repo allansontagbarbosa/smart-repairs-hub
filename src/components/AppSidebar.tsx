@@ -35,6 +35,7 @@ const items = [
  { title: "Desempenho técnicos", url: "/tecnicos/desempenho", icon: Trophy, permissao: "relatorios" as keyof Permissoes },
  { title: "Metas", url: "/metas", icon: Target, permissao: "relatorios" as keyof Permissoes },
   { title: "Clientes", url: "/clientes", icon: Users, permissao: "clientes" as keyof Permissoes },
+  { title: "RH", url: "/rh", icon: UserCog, permissao: "configuracoes" as keyof Permissoes },
   { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
 ];
 
