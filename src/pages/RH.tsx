@@ -17,6 +17,7 @@ export default function RH() {
   const { data: funcionarios = [], isLoading } = useListarFuncionariosRH();
   const gerarFolha = useGerarFolhaMensal();
   const [busca, setBusca] = useState("");
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const hoje = new Date();
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
