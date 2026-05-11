@@ -29,6 +29,7 @@ interface Props {
   comissoes: Comissao[];
   recebimentos: Recebimento[];
   ordens: OrdemFinanceiro[];
+  prejuizos: import("@/hooks/useFinanceiro").PrejuizoFinanceiro[];
 }
 
 const PERIODS = [
