@@ -308,6 +308,9 @@ export function RelDRE() {
             <p className="font-bold text-muted-foreground mb-1">CUSTOS</p>
             <LinhaItem label="Peças utilizadas" valor={dre.custoPecas} negativo />
             <LinhaItem label="Comissões" valor={dre.comissoesPagas} negativo />
+            {dre.prejuizosOpTotal > 0 && (
+              <LinhaItem label="Prejuízos operacionais (garantia, peça danificada, etc)" valor={dre.prejuizosOpTotal} negativo />
+            )}
             <LinhaItem label="= Lucro Bruto" valor={dre.lucroBruto} bold />
           </div>
           <div>
@@ -319,6 +322,9 @@ export function RelDRE() {
           <div className="border-t pt-3">
             <p className="font-bold text-muted-foreground mb-1">RESULTADO</p>
             <LinhaItem label="Depreciação estimada" valor={dre.depreciacao} negativo />
+            {dre.prejuizosNaoOpTotal > 0 && (
+              <LinhaItem label="Prejuízos não-operacionais (fraude, furto, cliente sumiu)" valor={dre.prejuizosNaoOpTotal} negativo />
+            )}
             <LinhaItem label="= Lucro Líquido" valor={dre.lucroLiquido} bold />
             <div className="flex justify-between py-0.5 font-bold">
               <span>= Margem Líquida</span>
