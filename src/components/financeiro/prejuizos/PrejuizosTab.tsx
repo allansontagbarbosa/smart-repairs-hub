@@ -6,7 +6,7 @@ import {
   usePrejuizosPorTipo,
   useListarPrejuizos,
 } from "@/hooks/usePrejuizos";
-import { TipoPrejuizo, TIPO_PREJUIZO_COR } from "@/types/prejuizo";
+import { TipoPrejuizo, TIPO_PREJUIZO_COR, TIPO_PREJUIZO_LABELS } from "@/types/prejuizo";
 import { ModalCriarPrejuizo } from "./ModalCriarPrejuizo";
 import { ModalDetalhePrejuizo } from "./ModalDetalhePrejuizo";
 import { cn } from "@/lib/utils";
