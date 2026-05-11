@@ -140,8 +140,35 @@ export function RelDRE() {
     },
   });
 
+  const { data: prejuizosMes } = useQuery({
+    queryKey: ["rel-dre-prejuizos", inicio],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("prejuizos")
+        .select("tipo, valor_centavos, data_evento, origem")
+        .is("deleted_at", null)
+        .gte("data_evento", inicio)
+        .lt("data_evento", fim);
+      if (error) {
+        console.error("rel-dre-prejuizos falhou:", error);
+        return [];
+      }
+      return data ?? [];
+    },
+  });
+
   // Calculate DRE
   const dre = useMemo(() => {
+    const TIPOS_OPERACIONAIS = ["garantia", "peca_danificada", "cancelamento_com_peca"];
+    const TIPOS_NAO_OPERACIONAIS = ["cliente_sumiu", "fraude_chargeback", "furto_extravio", "outro"];
+
+    const prejuizosOpTotal = (prejuizosMes ?? [])
+      .filter((p: any) => TIPOS_OPERACIONAIS.includes(p.tipo))
+      .reduce((s: number, p: any) => s + Number(p.valor_centavos ?? 0) / 100, 0);
+    const prejuizosNaoOpTotal = (prejuizosMes ?? [])
+      .filter((p: any) => TIPOS_NAO_OPERACIONAIS.includes(p.tipo))
+      .reduce((s: number, p: any) => s + Number(p.valor_centavos ?? 0) / 100, 0);
+
     const servicosFaturados = (ordens ?? [])
       .reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     const outrosReceb = (recebimentos ?? []).reduce((s, r: any) => s + Number(r.valor ?? 0), 0);
@@ -153,14 +180,15 @@ export function RelDRE() {
     const custoPecas = (ordens ?? [])
       .reduce((s, o) => s + (o.custo_pecas ?? 0), 0);
     const comissoesPagas = (comissoes ?? []).reduce((s, c) => s + c.valor, 0);
-    const lucroBruto = receitaLiquida - custoPecas - comissoesPagas;
+    const lucroBruto = receitaLiquida - custoPecas - comissoesPagas - prejuizosOpTotal;
 
     const gastosFixos = (contas ?? []).filter(c => c.recorrente === true).reduce((s, c) => s + c.valor, 0);
     const depreciacao = (ajustes ?? []).filter(a => a.tipo === "depreciacao").reduce((s, a) => s + a.valor, 0);
     const outrosGastos = (contas ?? []).filter(c => c.recorrente === false).reduce((s, c) => s + c.valor, 0);
     const ebitda = lucroBruto - gastosFixos - outrosGastos;
 
-    const lucroLiquido = ebitda - depreciacao;
+    const resultadoNaoOperacional = -prejuizosNaoOpTotal;
+    const lucroLiquido = ebitda - depreciacao + resultadoNaoOperacional;
     const margem = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
 
     const reservaPct = empresaConfig?.percentual_reserva_empresa ?? 10;
@@ -171,12 +199,13 @@ export function RelDRE() {
     return {
       servicosFaturados, outrosReceb, receitaBruta,
       impostos, receitaLiquida,
-      custoPecas, comissoesPagas, lucroBruto,
+      custoPecas, comissoesPagas, prejuizosOpTotal, lucroBruto,
       gastosFixos, depreciacao, outrosGastos, ebitda,
+      prejuizosNaoOpTotal, resultadoNaoOperacional,
       lucroLiquido, margem,
       reservaPct, reserva, porSocio,
     };
-  }, [ordens, recebimentos, contas, comissoes, ajustes, socios, empresaConfig]);
+  }, [ordens, recebimentos, contas, comissoes, ajustes, socios, empresaConfig, prejuizosMes]);
 
   // Last 6 months chart
   const { data: chartData } = useQuery({
