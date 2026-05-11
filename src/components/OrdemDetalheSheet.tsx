@@ -22,6 +22,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import { CancelarOSDialog } from "@/components/CancelarOSDialog";
+import { RegistrarPrejuizoOSDialog } from "@/components/ordens/RegistrarPrejuizoOSDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
 import { cn } from "@/lib/utils";
 import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
@@ -55,6 +56,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [editingServico, setEditingServico] = useState(false);
   const [servicoValue, setServicoValue] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [prejuizoOpen, setPrejuizoOpen] = useState(false);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
@@ -987,10 +989,19 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
             {/* Botão imprimir para OS já entregue */}
             {ordem.status === "entregue" && (
-              <div className="flex gap-2 mb-5">
+              <div className="flex flex-wrap gap-2 mb-5">
                 <Button size="sm" variant="outline" onClick={() => handlePrint()}>
                   <FileText className="h-3.5 w-3.5 mr-1" />
                   Imprimir / PDF da OS
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPrejuizoOpen(true)}
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                  Registrar prejuízo
                 </Button>
               </div>
             )}
@@ -1953,6 +1964,16 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             invalidateOrdensDependentes(queryClient);
             setCancelOpen(false);
           }}
+        />
+      )}
+
+      {ordem && (
+        <RegistrarPrejuizoOSDialog
+          open={prejuizoOpen}
+          onOpenChange={setPrejuizoOpen}
+          osId={ordem.id}
+          osNumero={Number((ordem as any).numero ?? 0)}
+          custoPecasOS={Number((ordem as any).custo_pecas ?? 0)}
         />
       )}
 
