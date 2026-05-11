@@ -231,6 +231,7 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
   const fornecedores = useQuery({ queryKey: ["fornecedores_fin"], queryFn: fetchFornecedores });
   const lojas = useQuery({ queryKey: ["lojas_fin"], queryFn: fetchLojas });
   const recebimentos = useQuery({ queryKey: ["recebimentos"], queryFn: fetchRecebimentos });
+  const prejuizos = useQuery({ queryKey: ["prejuizos_fin"], queryFn: fetchPrejuizos });
 
   const isLoading = contas.isLoading || comissoes.isLoading || ordens.isLoading;
 
