@@ -38,7 +38,7 @@ const PERIODS = [
   { label: "90 dias", days: 90 },
 ] as const;
 
-export function FluxoCaixa({ contas, comissoes, recebimentos, ordens }: Props) {
+export function FluxoCaixa({ contas, comissoes, recebimentos, ordens, prejuizos }: Props) {
   const [days, setDays] = useState<number>(30);
 
   const { chartData, totalEntradas, totalSaidas, saldo, mediaSemanal } = useMemo(() => {
