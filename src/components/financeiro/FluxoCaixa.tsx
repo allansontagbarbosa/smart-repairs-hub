@@ -114,7 +114,7 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens, prejuizos 
       saldo: totalEnt - totalSai,
       mediaSemanal: finalWeeks.length > 0 ? (totalEnt - totalSai) / finalWeeks.length : 0,
     };
-  }, [contas, comissoes, recebimentos, ordens, days]);
+  }, [contas, comissoes, recebimentos, ordens, prejuizos, days]);
 
   return (
     <div className="space-y-5">
