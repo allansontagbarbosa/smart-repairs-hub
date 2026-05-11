@@ -16,7 +16,15 @@ interface FiltrosPrejuizo {
 
 export function useListarPrejuizos(filtros: FiltrosPrejuizo, page: number = 0) {
   return useQuery({
-    queryKey: ["prejuizos", "list", filtros, page],
+    queryKey: [
+      "prejuizos",
+      "list",
+      filtros.data_inicio ?? null,
+      filtros.data_fim ?? null,
+      filtros.tipo ?? null,
+      filtros.origem ?? null,
+      page,
+    ],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("listar_prejuizos" as any, {
         p_data_inicio: filtros.data_inicio || null,
@@ -34,13 +42,13 @@ export function useListarPrejuizos(filtros: FiltrosPrejuizo, page: number = 0) {
         prejuizos: (r.prejuizos ?? []) as Prejuizo[],
       };
     },
-    staleTime: 30000,
+    staleTime: 0,
   });
 }
 
 export function useResumoPrejuizos(data_inicio?: string, data_fim?: string) {
   return useQuery({
-    queryKey: ["prejuizos", "resumo", data_inicio, data_fim],
+    queryKey: ["prejuizos", "resumo", data_inicio ?? null, data_fim ?? null],
     queryFn: async () => {
       const { data, error } = await supabase.rpc(
         "prejuizos_resumo_periodo" as any,
@@ -54,13 +62,13 @@ export function useResumoPrejuizos(data_inicio?: string, data_fim?: string) {
       if (!r?.success) throw new Error(r?.error ?? "Erro");
       return r as PrejuizoResumoPeriodo & { success: boolean };
     },
-    staleTime: 30000,
+    staleTime: 0,
   });
 }
 
 export function usePrejuizosPorTipo(data_inicio?: string, data_fim?: string) {
   return useQuery({
-    queryKey: ["prejuizos", "por-tipo", data_inicio, data_fim],
+    queryKey: ["prejuizos", "por-tipo", data_inicio ?? null, data_fim ?? null],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("prejuizos_por_tipo" as any, {
         p_data_inicio: data_inicio || null,
@@ -71,7 +79,7 @@ export function usePrejuizosPorTipo(data_inicio?: string, data_fim?: string) {
       if (!r?.success) throw new Error(r?.error ?? "Erro");
       return (r.tipos ?? []) as PrejuizoTipoAgrupado[];
     },
-    staleTime: 30000,
+    staleTime: 0,
   });
 }
 
