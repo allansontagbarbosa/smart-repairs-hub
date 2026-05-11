@@ -361,7 +361,7 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     }).reduce((s, r) => s + Number(r.valor), 0);
 
     // Lucro REAL
-    const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes;
+    const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes - totalPrejuizosMes;
 
     // Despesas por categoria — competências no range
     const despesasPorCategoria: Record<string, number> = {};
