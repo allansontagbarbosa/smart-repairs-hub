@@ -89,7 +89,11 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens, prejuizos 
         .filter(c => c.status === "paga" && c.data_pagamento && inRange(c.data_pagamento, w.start, w.end))
         .reduce((s, c) => s + Number(c.valor), 0);
 
-      const saidas = contasPagas + comissoesPagas;
+      const prejuizosSemana = prejuizos
+        .filter(p => inRange(p.data_evento, w.start, w.end))
+        .reduce((s, p) => s + (p.valor_centavos / 100), 0);
+
+      const saidas = contasPagas + comissoesPagas + prejuizosSemana;
 
       acumulado += entradas - saidas;
       totalEnt += entradas;
