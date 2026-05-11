@@ -56,6 +56,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [editingServico, setEditingServico] = useState(false);
   const [servicoValue, setServicoValue] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [prejuizoOpen, setPrejuizoOpen] = useState(false);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
