@@ -6,6 +6,7 @@ import { RelDRE } from "@/components/relatorios/RelDRE";
 import { RelTecnicos } from "@/components/relatorios/RelTecnicos";
 import { RelServicos } from "@/components/relatorios/RelServicos";
 import { RelExportacao } from "@/components/relatorios/RelExportacao";
+import { RelPrejuizos } from "@/components/relatorios/RelPrejuizos";
 
 export default function Relatorios() {
   const [sp] = useSearchParams();
@@ -31,10 +32,11 @@ export default function Relatorios() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="dre">DRE</TabsTrigger>
           <TabsTrigger value="tecnicos">Técnicos</TabsTrigger>
           <TabsTrigger value="defeitos">Serviços</TabsTrigger>
+          <TabsTrigger value="prejuizos">Prejuízos</TabsTrigger>
           <TabsTrigger value="exportacao">Exportação</TabsTrigger>
         </TabsList>
         <TabsContent value="dre">
@@ -45,6 +47,7 @@ export default function Relatorios() {
         </TabsContent>
         <TabsContent value="tecnicos"><RelTecnicos /></TabsContent>
         <TabsContent value="defeitos"><RelServicos /></TabsContent>
+        <TabsContent value="prejuizos"><RelPrejuizos /></TabsContent>
         <TabsContent value="exportacao"><RelExportacao /></TabsContent>
       </Tabs>
     </div>
