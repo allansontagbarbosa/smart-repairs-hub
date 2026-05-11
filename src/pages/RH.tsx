@@ -154,6 +154,13 @@ export default function RH() {
           )}
         </div>
       )}
+
+      {novoOpen && (
+        <NovoFuncionarioDialog
+          open={novoOpen}
+          onOpenChange={setNovoOpen}
+        />
+      )}
     </div>
   );
 }
