@@ -29,6 +29,7 @@ interface Props {
   comissoes: Comissao[];
   recebimentos: Recebimento[];
   ordens: OrdemFinanceiro[];
+  prejuizos: import("@/hooks/useFinanceiro").PrejuizoFinanceiro[];
 }
 
 const PERIODS = [
@@ -37,7 +38,7 @@ const PERIODS = [
   { label: "90 dias", days: 90 },
 ] as const;
 
-export function FluxoCaixa({ contas, comissoes, recebimentos, ordens }: Props) {
+export function FluxoCaixa({ contas, comissoes, recebimentos, ordens, prejuizos }: Props) {
   const [days, setDays] = useState<number>(30);
 
   const { chartData, totalEntradas, totalSaidas, saldo, mediaSemanal } = useMemo(() => {
@@ -88,7 +89,11 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens }: Props) {
         .filter(c => c.status === "paga" && c.data_pagamento && inRange(c.data_pagamento, w.start, w.end))
         .reduce((s, c) => s + Number(c.valor), 0);
 
-      const saidas = contasPagas + comissoesPagas;
+      const prejuizosSemana = prejuizos
+        .filter(p => inRange(p.data_evento, w.start, w.end))
+        .reduce((s, p) => s + (p.valor_centavos / 100), 0);
+
+      const saidas = contasPagas + comissoesPagas + prejuizosSemana;
 
       acumulado += entradas - saidas;
       totalEnt += entradas;
@@ -109,7 +114,7 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens }: Props) {
       saldo: totalEnt - totalSai,
       mediaSemanal: finalWeeks.length > 0 ? (totalEnt - totalSai) / finalWeeks.length : 0,
     };
-  }, [contas, comissoes, recebimentos, ordens, days]);
+  }, [contas, comissoes, recebimentos, ordens, prejuizos, days]);
 
   return (
     <div className="space-y-5">

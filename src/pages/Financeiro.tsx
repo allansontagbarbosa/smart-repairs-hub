@@ -30,7 +30,7 @@ export default function Financeiro() {
     setPeriodRange(range);
   }
 
-  const { contas, comissoes, recebimentos, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro({ periodRange });
+  const { contas, comissoes, recebimentos, prejuizos, categorias, centros, funcionarios, fornecedores, lojas, ordens, isLoading, kpis } = useFinanceiro({ periodRange });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   const { data: tiposServico = [] } = useQuery({
@@ -79,7 +79,7 @@ export default function Financeiro() {
         </TabsList>
 
         <TabsContent value="fluxo">
-          <FluxoCaixa contas={contas} comissoes={comissoes} recebimentos={recebimentos} ordens={ordens} />
+          <FluxoCaixa contas={contas} comissoes={comissoes} recebimentos={recebimentos} ordens={ordens} prejuizos={prejuizos} />
         </TabsContent>
 
         <TabsContent value="dashboard">

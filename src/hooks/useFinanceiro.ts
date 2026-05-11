@@ -57,6 +57,28 @@ export type Comissao = {
   os_servicos?: { nome: string; status: string } | null;
 };
 
+export type PrejuizoFinanceiro = {
+  id: string;
+  tipo: string;
+  valor_centavos: number;
+  data_evento: string;
+  origem: string;
+  movimentacao_financeira_id: string | null;
+};
+
+async function fetchPrejuizos() {
+  const { data, error } = await supabase
+    .from("prejuizos")
+    .select("id, tipo, valor_centavos, data_evento, origem, movimentacao_financeira_id")
+    .is("deleted_at", null)
+    .order("data_evento", { ascending: false });
+  if (error) {
+    console.error("ERRO fetchPrejuizos:", error.code, error.message);
+    throw error;
+  }
+  return (data ?? []) as PrejuizoFinanceiro[];
+}
+
 async function fetchContas() {
   const { data, error } = await supabase
     .from("contas_a_pagar")
@@ -209,6 +231,7 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
   const fornecedores = useQuery({ queryKey: ["fornecedores_fin"], queryFn: fetchFornecedores });
   const lojas = useQuery({ queryKey: ["lojas_fin"], queryFn: fetchLojas });
   const recebimentos = useQuery({ queryKey: ["recebimentos"], queryFn: fetchRecebimentos });
+  const prejuizos = useQuery({ queryKey: ["prejuizos_fin"], queryFn: fetchPrejuizos });
 
   const isLoading = contas.isLoading || comissoes.isLoading || ordens.isLoading;
 
@@ -237,6 +260,26 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     const allComissoes = comissoes.data ?? [];
     const allOrdens = ordens.data ?? [];
     const allRecebimentos = recebimentos.data ?? [];
+    const allPrejuizos = prejuizos.data ?? [];
+
+    const TIPOS_OPERACIONAIS = ["garantia", "peca_danificada", "cancelamento_com_peca"];
+    const TIPOS_NAO_OPERACIONAIS = ["cliente_sumiu", "fraude_chargeback", "furto_extravio", "outro"];
+
+    const prejuizosOpMes = allPrejuizos
+      .filter(p => {
+        const d = new Date(p.data_evento + "T12:00:00");
+        return d >= periodStart && d <= periodEnd && TIPOS_OPERACIONAIS.includes(p.tipo);
+      })
+      .reduce((s, p) => s + (p.valor_centavos / 100), 0);
+
+    const prejuizosNaoOpMes = allPrejuizos
+      .filter(p => {
+        const d = new Date(p.data_evento + "T12:00:00");
+        return d >= periodStart && d <= periodEnd && TIPOS_NAO_OPERACIONAIS.includes(p.tipo);
+      })
+      .reduce((s, p) => s + (p.valor_centavos / 100), 0);
+
+    const totalPrejuizosMes = prejuizosOpMes + prejuizosNaoOpMes;
 
     // Contas a pagar — buckets DISJUNTOS pra UI não confundir
     const contasPendentes = allContas.filter(c => c.status === "pendente" || c.status === "vencida");
@@ -318,7 +361,7 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     }).reduce((s, r) => s + Number(r.valor), 0);
 
     // Lucro REAL
-    const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes;
+    const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes - totalPrejuizosMes;
 
     // Despesas por categoria — competências no range
     const despesasPorCategoria: Record<string, number> = {};
@@ -377,13 +420,17 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
       evolucaoMensal,
       contasVencidas: vencidas.length,
       comissoesPendentesCount: comissoesPendentes.length,
+      prejuizosOpMes,
+      prejuizosNaoOpMes,
+      totalPrejuizosMes,
     };
-  }, [contas.data, comissoes.data, ordens.data, recebimentos.data, options.periodRange]);
+  }, [contas.data, comissoes.data, ordens.data, recebimentos.data, prejuizos.data, options.periodRange]);
 
   return {
     contas: contas.data ?? [],
     comissoes: comissoes.data ?? [],
     recebimentos: recebimentos.data ?? [],
+    prejuizos: prejuizos.data ?? [],
     categorias: categorias.data ?? [],
     centros: centros.data ?? [],
     funcionarios: funcionarios.data ?? [],
