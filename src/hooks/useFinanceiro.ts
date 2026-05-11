@@ -430,6 +430,7 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     contas: contas.data ?? [],
     comissoes: comissoes.data ?? [],
     recebimentos: recebimentos.data ?? [],
+    prejuizos: prejuizos.data ?? [],
     categorias: categorias.data ?? [],
     centros: centros.data ?? [],
     funcionarios: funcionarios.data ?? [],
