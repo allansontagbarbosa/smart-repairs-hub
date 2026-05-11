@@ -5181,6 +5181,11 @@ export type Database = {
         Args: { p_comissao_ids: string[] }
         Returns: Json
       }
+      prejuizos_evolucao_mensal: { Args: { p_meses?: number }; Returns: Json }
+      prejuizos_por_tecnico: {
+        Args: { p_data_fim?: string; p_data_inicio?: string }
+        Returns: Json
+      }
       prejuizos_por_tipo: {
         Args: { p_data_fim?: string; p_data_inicio?: string }
         Returns: Json
