@@ -43,6 +43,8 @@ import Metas from "./pages/Metas";
 import MetaNova from "./pages/MetaNova";
 import MetaDetalhe from "./pages/MetaDetalhe";
 import MetasHistorico from "./pages/MetasHistorico";
+import RH from "./pages/RH";
+import RHFuncionario from "./pages/RHFuncionario";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -145,6 +147,8 @@ const App = () => (
                     <Route path="/metas/nova" element={<ProtectedRoute permissao="relatorios"><MetaNova /></ProtectedRoute>} />
                     <Route path="/metas/historico" element={<ProtectedRoute permissao="relatorios"><MetasHistorico /></ProtectedRoute>} />
                     <Route path="/metas/:id" element={<ProtectedRoute permissao="relatorios"><MetaDetalhe /></ProtectedRoute>} />
+                    <Route path="/rh" element={<RH />} />
+                    <Route path="/rh/:id" element={<RHFuncionario />} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
