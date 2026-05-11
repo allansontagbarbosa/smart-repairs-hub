@@ -15,6 +15,43 @@ export function useListarFuncionariosRH() {
   });
 }
 
+export function useListarTodosFuncionarios() {
+  return useQuery({
+    queryKey: ["rh", "todos-funcionarios"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("listar_todos_funcionarios");
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? "Erro");
+      return (data.funcionarios ?? []) as Array<{
+        id: string;
+        nome: string;
+        email: string | null;
+        cargo: string | null;
+        tipo_vinculo: string;
+        ativo: boolean;
+        eh_funcionario_rh: boolean;
+      }>;
+    },
+    staleTime: 0,
+  });
+}
+
+export function useToggleFuncionarioRH() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; eh_funcionario_rh: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("funcionarios")
+        .update({ eh_funcionario_rh: input.eh_funcionario_rh } as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh"] });
+    },
+  });
+}
+
 export function useExtratoFuncionario(funcionarioId: string | null, dataInicio?: string, dataFim?: string) {
   return useQuery({
     queryKey: ["rh", "extrato", funcionarioId, dataInicio ?? null, dataFim ?? null],
