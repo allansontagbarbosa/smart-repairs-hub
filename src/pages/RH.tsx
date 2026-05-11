@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search } from "lucide-react";
+import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload } from "lucide-react";
 import { useListarFuncionariosRH, useGerarFolhaMensal } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS } from "@/types/rh";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function RH() {
+  const navigate = useNavigate();
   const { data: funcionarios = [], isLoading } = useListarFuncionariosRH();
   const gerarFolha = useGerarFolhaMensal();
   const [busca, setBusca] = useState("");
@@ -48,10 +49,16 @@ export default function RH() {
             Funcionários, salários, banco de horas, ponto e holerite
           </p>
         </div>
-        <Button onClick={handleGerarFolha} disabled={gerarFolha.isPending}>
-          {gerarFolha.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-          Gerar folha de {competenciaAtual}
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => navigate("/rh/importar-ponto")}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar ponto
+          </Button>
+          <Button onClick={handleGerarFolha} disabled={gerarFolha.isPending}>
+            {gerarFolha.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+            Gerar folha de {competenciaAtual}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
