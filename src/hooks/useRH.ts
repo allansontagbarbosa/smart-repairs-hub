@@ -70,10 +70,10 @@ export function useBancoHoras(funcionarioId: string | null, competencia: string)
 export function useAtualizarFuncionario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; campos: Partial<FuncionarioRH> }) => {
+    mutationFn: async (input: { id: string; campos: Record<string, any> }) => {
       const { error } = await (supabase as any)
         .from("funcionarios")
-        .update(input.campos)
+        .update(input.campos as any)
         .eq("id", input.id);
       if (error) throw error;
     },
