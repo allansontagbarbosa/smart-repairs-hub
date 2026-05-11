@@ -135,7 +135,7 @@ export function RegistrarPrejuizoOSDialog({ open, onOpenChange, osId, osNumero, 
             />
             {custoPecasOS > 0 && (
               <p className="text-xs text-muted-foreground">
-                Sugerido: R$ {(custoPecasOS / 100).toFixed(2).replace(".", ",")} (custo das peças desta OS)
+                Sugerido: R$ {custoPecasOS.toFixed(2).replace(".", ",")} (custo das peças desta OS)
               </p>
             )}
           </div>
