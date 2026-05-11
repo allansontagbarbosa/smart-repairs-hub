@@ -112,9 +112,19 @@ export default function RHFuncionario() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditarOpen(true)}>
-          <Edit3 className="h-4 w-4 mr-2" /> Editar
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-card">
+            <Switch
+              checked={func.eh_funcionario_rh}
+              onCheckedChange={handleToggleRH}
+              disabled={toggleRH.isPending}
+            />
+            <span className="text-xs text-muted-foreground">Funcionário RH</span>
+          </div>
+          <Button variant="outline" onClick={() => setEditarOpen(true)}>
+            <Edit3 className="h-4 w-4 mr-2" /> Editar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
