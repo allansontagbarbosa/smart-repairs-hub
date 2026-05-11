@@ -48,7 +48,7 @@ export function RegistrarPrejuizoOSDialog({ open, onOpenChange, osId, osNumero, 
 
   useEffect(() => {
     if (open) {
-      const valorSugerido = (custoPecasOS / 100).toFixed(2).replace(".", ",");
+      const valorSugerido = custoPecasOS.toFixed(2).replace(".", ",");
       setValorReais(valorSugerido);
       setTipo("garantia");
       setDescricao(`Prejuízo na OS #${osNumero}`);
