@@ -46,6 +46,7 @@ import MetasHistorico from "./pages/MetasHistorico";
 import RH from "./pages/RH";
 import RHFuncionario from "./pages/RHFuncionario";
 import RHImportPonto from "./pages/RHImportPonto";
+import RHFolhaMensal from "./pages/RHFolhaMensal";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -150,6 +151,7 @@ const App = () => (
                     <Route path="/metas/:id" element={<ProtectedRoute permissao="relatorios"><MetaDetalhe /></ProtectedRoute>} />
                     <Route path="/rh" element={<RH />} />
                     <Route path="/rh/importar-ponto" element={<RHImportPonto />} />
+                    <Route path="/rh/folha-mensal" element={<RHFolhaMensal />} />
                     <Route path="/rh/:id" element={<RHFuncionario />} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
