@@ -2237,6 +2237,7 @@ export type Database = {
           data_admissao: string | null
           data_demissao: string | null
           deleted_at: string | null
+          eh_funcionario_rh: boolean
           email: string | null
           empresa_id: string | null
           endereco: string | null
@@ -2279,6 +2280,7 @@ export type Database = {
           data_admissao?: string | null
           data_demissao?: string | null
           deleted_at?: string | null
+          eh_funcionario_rh?: boolean
           email?: string | null
           empresa_id?: string | null
           endereco?: string | null
@@ -2321,6 +2323,7 @@ export type Database = {
           data_admissao?: string | null
           data_demissao?: string | null
           deleted_at?: string | null
+          eh_funcionario_rh?: boolean
           email?: string | null
           empresa_id?: string | null
           endereco?: string | null
@@ -5470,6 +5473,7 @@ export type Database = {
         }
         Returns: Json
       }
+      listar_todos_funcionarios: { Args: never; Returns: Json }
       lojista_verificar_acesso: {
         Args: { email_input: string }
         Returns: {
