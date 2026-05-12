@@ -155,8 +155,9 @@ export function useGerarFolhaMensal() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (competencia: string) => {
-      const { data, error } = await (supabase as any).rpc("gerar_folha_mensal", {
+      const { data, error } = await (supabase as any).rpc("gerar_folha_mensal_completa", {
         p_competencia: competencia,
+        p_dia_vencimento: 5,
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error ?? "Erro");
@@ -164,6 +165,8 @@ export function useGerarFolhaMensal() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rh"] });
+      qc.invalidateQueries({ queryKey: ["contas-a-pagar"] });
+      qc.invalidateQueries({ queryKey: ["financeiro"] });
     },
   });
 }
