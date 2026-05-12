@@ -5363,6 +5363,10 @@ export type Database = {
         Args: { p_email: string; p_user_id: string }
         Returns: undefined
       }
+      estornar_pagamento_conta: {
+        Args: { p_pagamento_id: string }
+        Returns: Json
+      }
       estornar_recebimento_cliente: {
         Args: { p_recebimento_id: string }
         Returns: Json
@@ -5460,6 +5464,10 @@ export type Database = {
           ultima_os_data: string
           ultimo_pagamento_data: string
         }[]
+      }
+      historico_pagamentos_conta: {
+        Args: { p_conta_pagar_id: string }
+        Returns: Json
       }
       holerite_funcionario: {
         Args: { p_competencia: string; p_funcionario_id: string }
@@ -5651,6 +5659,16 @@ export type Database = {
           p_falta_justificada?: boolean
           p_funcionario_id: string
           p_justificativa?: string
+        }
+        Returns: Json
+      }
+      registrar_pagamento_conta: {
+        Args: {
+          p_conta_pagar_id: string
+          p_data_pagamento?: string
+          p_forma_pagamento: string
+          p_observacao?: string
+          p_valor_centavos: number
         }
         Returns: Json
       }
