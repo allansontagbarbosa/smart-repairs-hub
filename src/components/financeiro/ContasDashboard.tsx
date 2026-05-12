@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Clock, CheckCircle2, Wallet } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle2, Wallet, DollarSign } from "lucide-react";
 
 interface ContaItem {
   id: string;
@@ -81,6 +81,7 @@ export function ContasDashboard({ contas }: Props) {
       totalEstaSemana, qtdEstaSemana,
       totalPagas, qtdPagas,
       totalPendente, qtdPendente,
+      qtdTotal: contas.length,
       categoriasOrdenadas,
       totalGeral,
     };
@@ -123,7 +124,7 @@ export function ContasDashboard({ contas }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {kpis.map((k) => {
           const Icon = k.icon;
           return (
@@ -145,6 +146,22 @@ export function ContasDashboard({ contas }: Props) {
             </Card>
           );
         })}
+        <Card className="border-l-4 border-l-foreground bg-foreground/5">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                Total do período
+              </span>
+              <DollarSign className="h-4 w-4 text-foreground" />
+            </div>
+            <div className="text-lg font-bold tabular-nums text-foreground">
+              {fmt(stats.totalGeral)}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {stats.qtdTotal} conta{stats.qtdTotal !== 1 ? "s" : ""} no total
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {stats.categoriasOrdenadas.length > 0 && (
