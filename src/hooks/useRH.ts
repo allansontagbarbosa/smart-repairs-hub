@@ -157,7 +157,7 @@ export function useGerarFolhaMensal() {
     mutationFn: async (competencia: string) => {
       const { data, error } = await (supabase as any).rpc("gerar_folha_mensal_completa", {
         p_competencia: competencia,
-        p_dia_vencimento: 5,
+        p_dia_vencimento: null,
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error ?? "Erro");
