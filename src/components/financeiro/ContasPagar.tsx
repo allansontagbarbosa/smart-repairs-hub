@@ -368,6 +368,16 @@ export function ContasPagar({
           </Select>
         )}
         <ExportButton resource="contas_a_pagar" sheetName="ContasPagar" getRows={toContasRows} />
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 h-9"
+          onClick={handleSincronizar}
+          disabled={sincronizar.isPending}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${sincronizar.isPending ? "animate-spin" : ""}`} />
+          Sincronizar comissões
+        </Button>
         <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingConta(null); setDialogOpen(true); }}>
           <Plus className="h-3.5 w-3.5" /> Nova Conta
         </Button>
