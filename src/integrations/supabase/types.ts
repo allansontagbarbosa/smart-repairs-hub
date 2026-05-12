@@ -584,6 +584,7 @@ export type Database = {
           rua: string | null
           status: string
           telefone: string
+          tipo_cliente: Database["public"]["Enums"]["tipo_cliente"]
           updated_at: string
           user_id: string | null
           whatsapp: string | null
@@ -610,6 +611,7 @@ export type Database = {
           rua?: string | null
           status?: string
           telefone: string
+          tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
@@ -636,6 +638,7 @@ export type Database = {
           rua?: string | null
           status?: string
           telefone?: string
+          tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
@@ -4986,6 +4989,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alterar_tipo_cliente: {
+        Args: { p_cliente_id: string; p_novo_tipo: string }
+        Returns: Json
+      }
       aplicar_acao_banco_horas: {
         Args: {
           p_acao: string
@@ -5663,6 +5670,7 @@ export type Database = {
         | "entregue"
         | "cancelado"
       status_servico: "pendente" | "em_reparo" | "concluido" | "cancelado"
+      tipo_cliente: "lojista_b2b" | "consumidor_b2c"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
       tipo_movimentacao: "entrada" | "saida" | "prejuizo"
       tipo_movimentacao_func:
@@ -5862,6 +5870,7 @@ export const Constants = {
         "cancelado",
       ],
       status_servico: ["pendente", "em_reparo", "concluido", "cancelado"],
+      tipo_cliente: ["lojista_b2b", "consumidor_b2c"],
       tipo_comissao: ["fixa", "percentual", "fixo_por_os", "percentual_lucro"],
       tipo_movimentacao: ["entrada", "saida", "prejuizo"],
       tipo_movimentacao_func: [

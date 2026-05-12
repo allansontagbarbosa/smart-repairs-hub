@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TipoClienteSwitch } from "@/components/clientes/TipoClienteSwitch";
 
 type Periodo = "mes" | "3m" | "6m" | "custom";
 
@@ -150,6 +151,8 @@ export default function ClientePerfil() {
         </div>
         <Button onClick={() => setNovaOsOpen(true)} className="gap-2"><Plus className="h-4 w-4" />Nova OS</Button>
       </div>
+
+      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={(cliente as any).tipo_cliente ?? "consumidor_b2c"} />
 
       <div className={`rounded-lg border p-5 ${saldoBgClass}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
