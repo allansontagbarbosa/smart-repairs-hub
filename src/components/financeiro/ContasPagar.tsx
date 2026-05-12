@@ -35,6 +35,7 @@ const getDefaultCompetencia = (date: Date, recorrente: boolean) => {
 
 function getSmartStatus(c: ContaPagar): { key: string; label: string; color: string } {
   if (c.status === "paga") return { key: "paga", label: "Pago", color: "bg-success text-success-foreground" };
+  if (c.status === "parcial") return { key: "parcial", label: "Parcial", color: "bg-warning/20 text-warning border border-warning/30" };
   if (c.status === "cancelada") return { key: "cancelada", label: "Cancelada", color: "bg-muted text-muted-foreground" };
   const venc = new Date(c.data_vencimento + "T23:59:59");
   const now = new Date();
