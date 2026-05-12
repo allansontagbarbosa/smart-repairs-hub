@@ -16,6 +16,7 @@ import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-pr
 import { ExportButton } from "@/components/ExportButton";
 import type { ExportRow } from "@/lib/exportData";
 import { ContasDashboard } from "./ContasDashboard";
+import { RegistrarPagamentoDialog } from "./RegistrarPagamentoDialog";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
