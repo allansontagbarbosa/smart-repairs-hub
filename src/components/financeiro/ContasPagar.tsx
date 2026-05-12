@@ -399,6 +399,12 @@ export function ContasPagar({
         lojas={lojas}
         ordens={ordens as any}
       />
+
+      <RegistrarPagamentoDialog
+        open={!!contaPagar}
+        onOpenChange={(o) => !o && setContaPagar(null)}
+        conta={contaPagar}
+      />
     </div>
   );
 }
