@@ -15,6 +15,7 @@ import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFil
 import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-presets";
 import { ExportButton } from "@/components/ExportButton";
 import type { ExportRow } from "@/lib/exportData";
+import { ContasDashboard } from "./ContasDashboard";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
@@ -314,6 +315,8 @@ export function ContasPagar({
           )}
         </div>
       )}
+
+      <ContasDashboard contas={filtered} />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
