@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { format, isToday, isBefore, startOfDay, endOfWeek, startOfWeek, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { NovaContaDialog } from "./NovaContaDialog";
-import type { ContaPagar } from "@/hooks/useFinanceiro";
+import { useSincronizarComissoesEmContas, type ContaPagar } from "@/hooks/useFinanceiro";
 import { dateOnlyLocal } from "@/lib/dateUtils";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-presets";
