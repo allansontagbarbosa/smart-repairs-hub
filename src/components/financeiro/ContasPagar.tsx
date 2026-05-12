@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Check, Copy, Trash2, Edit2, RotateCcw, AlertTriangle, Clock, CalendarDays } from "lucide-react";
+import { Plus, Search, Check, Copy, Trash2, Edit2, RotateCcw, AlertTriangle, Clock, CalendarDays, RefreshCw } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { format, isToday, isBefore, startOfDay, endOfWeek, startOfWeek, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { NovaContaDialog } from "./NovaContaDialog";
-import type { ContaPagar } from "@/hooks/useFinanceiro";
+import { useSincronizarComissoesEmContas, type ContaPagar } from "@/hooks/useFinanceiro";
 import { dateOnlyLocal } from "@/lib/dateUtils";
 import { DashboardPeriodFilter } from "@/components/dashboard/DashboardPeriodFilter";
 import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-presets";
@@ -67,6 +67,19 @@ export function ContasPagar({
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
   const [contaPagar, setContaPagar] = useState<ContaPagar | null>(null);
   const queryClient = useQueryClient();
+  const sincronizar = useSincronizarComissoesEmContas();
+
+  const handleSincronizar = async () => {
+    const competencia = new Date().toISOString().slice(0, 7);
+    try {
+      const r = await sincronizar.mutateAsync(competencia);
+      toast.success(
+        `Comissões sincronizadas: ${r.contas_novas} novas + ${r.contas_atualizadas} atualizadas — Total R$ ${r.total_reais.toFixed(2)}`
+      );
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const contasComStatus = useMemo(() =>
     contas.map(c => ({ ...c, smartStatus: getSmartStatus(c) })),
@@ -355,6 +368,16 @@ export function ContasPagar({
           </Select>
         )}
         <ExportButton resource="contas_a_pagar" sheetName="ContasPagar" getRows={toContasRows} />
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 h-9"
+          onClick={handleSincronizar}
+          disabled={sincronizar.isPending}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${sincronizar.isPending ? "animate-spin" : ""}`} />
+          Sincronizar comissões
+        </Button>
         <Button size="sm" className="gap-1.5 h-9" onClick={() => { setEditingConta(null); setDialogOpen(true); }}>
           <Plus className="h-3.5 w-3.5" /> Nova Conta
         </Button>

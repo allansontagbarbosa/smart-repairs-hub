@@ -1,5 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+export function useSincronizarComissoesEmContas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (competencia: string) => {
+      const { data, error } = await (supabase as any).rpc(
+        "consolidar_comissoes_em_contas_pagar",
+        { p_competencia: competencia }
+      );
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? "Erro");
+      return data as {
+        success: boolean;
+        contas_novas: number;
+        contas_atualizadas: number;
+        total_reais: number;
+      };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contas-a-pagar"] });
+      qc.invalidateQueries({ queryKey: ["financeiro"] });
+    },
+  });
+}
 import { useMemo } from "react";
 import { addDays, startOfDay, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
