@@ -5232,6 +5232,10 @@ export type Database = {
         Returns: Json
       }
       concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      consolidar_comissoes_em_contas_pagar: {
+        Args: { p_competencia: string }
+        Returns: Json
+      }
       consultar_os_publica: {
         Args: { p_numero: string; p_telefone_4digitos: string }
         Returns: Json
