@@ -11,6 +11,7 @@ export type ClienteSaldoResumo = {
   cpf: string | null;
   observacoes: string | null;
   created_at: string | null;
+  tipo_cliente: "lojista_b2b" | "consumidor_b2c";
   total_faturado: number;
   total_recebido: number;
   saldo_devedor: number;
@@ -34,12 +35,13 @@ export function useClientesSaldos() {
         cpf: string | null;
         observacoes: string | null;
         created_at: string | null;
+        tipo_cliente: "lojista_b2b" | "consumidor_b2c" | null;
       }>();
 
       if (ids.length > 0) {
         const { data: detalhes, error: detalhesError } = await supabase
           .from("clientes")
-          .select("id, telefone, whatsapp, email, cpf, observacoes, created_at")
+          .select("id, telefone, whatsapp, email, cpf, observacoes, created_at, tipo_cliente")
           .in("id", ids);
         if (detalhesError) throw detalhesError;
         (detalhes ?? []).forEach((cliente) => detalhesPorId.set(cliente.id, cliente));
@@ -56,6 +58,7 @@ export function useClientesSaldos() {
           cpf: detalhes?.cpf ?? null,
           observacoes: detalhes?.observacoes ?? null,
           created_at: detalhes?.created_at ?? null,
+          tipo_cliente: (detalhes?.tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c",
         };
       }) as ClienteSaldoResumo[];
     },

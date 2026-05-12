@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { useClientesSaldos, type ClienteSaldoResumo } from "@/hooks/useClientesSaldos";
+import { TipoClienteSwitch } from "@/components/clientes/TipoClienteSwitch";
 
 type SortKey = "saldo_devedor" | "total_faturado" | "qtd_oss";
 type SortDirection = "asc" | "desc";
@@ -164,7 +165,12 @@ export default function Clientes() {
                 {filtered.map((c) => (
                   <tr key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/clientes/${c.id}`)}>
                     <td>
-                      <p className="text-sm font-medium text-primary hover:underline">{c.nome}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-primary hover:underline">{c.nome}</p>
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <TipoClienteSwitch clienteId={c.id} tipoAtual={c.tipo_cliente ?? "consumidor_b2c"} compact />
+                        </span>
+                      </div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                         <Phone className="h-3 w-3" /> {c.telefone || "—"}
                         {c.whatsapp ? <MessageCircle className="h-3 w-3 text-success" /> : null}
