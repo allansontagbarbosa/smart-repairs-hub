@@ -960,6 +960,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_conta"]
           updated_at: string
           valor: number
+          valor_pago_centavos: number
         }
         Insert: {
           categoria?: string
@@ -984,6 +985,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_conta"]
           updated_at?: string
           valor: number
+          valor_pago_centavos?: number
         }
         Update: {
           categoria?: string
@@ -1008,6 +1010,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_conta"]
           updated_at?: string
           valor?: number
+          valor_pago_centavos?: number
         }
         Relationships: [
           {
@@ -1050,6 +1053,73 @@ export type Database = {
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_pagamentos: {
+        Row: {
+          conta_pagar_id: string
+          created_at: string
+          created_by: string | null
+          data_pagamento: string
+          empresa_id: string
+          estornado_em: string | null
+          estornado_por: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_conta"]
+          id: string
+          movimentacao_id: string | null
+          observacao: string | null
+          valor_centavos: number
+        }
+        Insert: {
+          conta_pagar_id: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string
+          empresa_id: string
+          estornado_em?: string | null
+          estornado_por?: string | null
+          forma_pagamento: Database["public"]["Enums"]["forma_pagamento_conta"]
+          id?: string
+          movimentacao_id?: string | null
+          observacao?: string | null
+          valor_centavos: number
+        }
+        Update: {
+          conta_pagar_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string
+          empresa_id?: string
+          estornado_em?: string | null
+          estornado_por?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["forma_pagamento_conta"]
+          id?: string
+          movimentacao_id?: string | null
+          observacao?: string | null
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_pagamentos_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_a_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_pagamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_pagar_pagamentos_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_financeiras"
             referencedColumns: ["id"]
           },
         ]
@@ -5642,6 +5712,7 @@ export type Database = {
         | "mantido_em_banco"
         | "compensado"
       escopo_meta: "empresa" | "tecnico" | "loja"
+      forma_pagamento_conta: "pix" | "dinheiro" | "cartao" | "transferencia"
       metric_meta:
         | "faturamento"
         | "qtd_os"
@@ -5655,7 +5726,7 @@ export type Database = {
         | "retorno_cliente_30d"
       status_comissao: "pendente" | "liberada" | "paga" | "estornada"
       status_conferencia: "em_andamento" | "finalizada"
-      status_conta: "pendente" | "paga" | "vencida" | "cancelada"
+      status_conta: "pendente" | "paga" | "vencida" | "cancelada" | "parcial"
       status_estoque_aparelho:
         | "disponivel"
         | "em_assistencia"
@@ -5839,6 +5910,7 @@ export const Constants = {
         "compensado",
       ],
       escopo_meta: ["empresa", "tecnico", "loja"],
+      forma_pagamento_conta: ["pix", "dinheiro", "cartao", "transferencia"],
       metric_meta: [
         "faturamento",
         "qtd_os",
@@ -5853,7 +5925,7 @@ export const Constants = {
       ],
       status_comissao: ["pendente", "liberada", "paga", "estornada"],
       status_conferencia: ["em_andamento", "finalizada"],
-      status_conta: ["pendente", "paga", "vencida", "cancelada"],
+      status_conta: ["pendente", "paga", "vencida", "cancelada", "parcial"],
       status_estoque_aparelho: [
         "disponivel",
         "em_assistencia",
