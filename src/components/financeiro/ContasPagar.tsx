@@ -65,6 +65,7 @@ export function ContasPagar({
   const [filterLoja, setFilterLoja] = useState("todas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
+  const [contaPagar, setContaPagar] = useState<ContaPagar | null>(null);
   const queryClient = useQueryClient();
 
   const contasComStatus = useMemo(() =>
