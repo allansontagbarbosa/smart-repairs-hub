@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { Plus, Search, CheckCircle, Moon, Sun, Keyboard, LogOut, User as UserIcon } from "lucide-react";
-import { NotificacoesBell } from "@/components/NotificacoesBell";
+import { NotificacoesSino } from "@/components/layout/NotificacoesSino";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
