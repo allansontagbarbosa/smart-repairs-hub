@@ -3465,37 +3465,49 @@ export type Database = {
       }
       notificacoes: {
         Row: {
+          arquivada_em: string | null
           created_at: string | null
           empresa_id: string | null
           id: string
           lida: boolean
+          link: string | null
           mensagem: string
           referencia_id: string | null
           referencia_tabela: string | null
+          severidade: string | null
           tipo: string
           titulo: string
+          user_id: string | null
         }
         Insert: {
+          arquivada_em?: string | null
           created_at?: string | null
           empresa_id?: string | null
           id?: string
           lida?: boolean
+          link?: string | null
           mensagem: string
           referencia_id?: string | null
           referencia_tabela?: string | null
+          severidade?: string | null
           tipo: string
           titulo: string
+          user_id?: string | null
         }
         Update: {
+          arquivada_em?: string | null
           created_at?: string | null
           empresa_id?: string | null
           id?: string
           lida?: boolean
+          link?: string | null
           mensagem?: string
           referencia_id?: string | null
           referencia_tabela?: string | null
+          severidade?: string | null
           tipo?: string
           titulo?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -5262,6 +5274,20 @@ export type Database = {
         }
         Returns: string
       }
+      criar_notificacao_unica: {
+        Args: {
+          p_dedupe_hours?: number
+          p_empresa_id: string
+          p_link?: string
+          p_mensagem: string
+          p_referencia_id?: string
+          p_referencia_tabela?: string
+          p_severidade?: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       criar_os_com_data: {
         Args: {
           p_dados: Json
@@ -5590,7 +5616,12 @@ export type Database = {
           user_id: string
         }[]
       }
+      marcar_notificacao: {
+        Args: { p_acao: string; p_notif_id: string }
+        Returns: Json
+      }
       marcar_os_pagas_em_massa: { Args: { p_os_ids: string[] }; Returns: Json }
+      marcar_todas_notificacoes_lidas: { Args: never; Returns: Json }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -5631,6 +5662,7 @@ export type Database = {
         Args: { p_ordem_id: string }
         Returns: Json
       }
+      processar_notificacoes_diarias: { Args: never; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
