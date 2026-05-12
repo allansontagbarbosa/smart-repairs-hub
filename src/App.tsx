@@ -48,6 +48,7 @@ import RHFuncionario from "./pages/RHFuncionario";
 import RHImportPonto from "./pages/RHImportPonto";
 import RHFolhaMensal from "./pages/RHFolhaMensal";
 import RHGerenciarFuncionarios from "./pages/RHGerenciarFuncionarios";
+import NotificacoesPage from "./pages/Notificacoes";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -169,6 +170,7 @@ const App = () => (
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
+                    <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

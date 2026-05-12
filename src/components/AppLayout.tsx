@@ -6,7 +6,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { Plus, Search, CheckCircle, Moon, Sun, Keyboard, LogOut, User as UserIcon } from "lucide-react";
-import { NotificacoesBell } from "@/components/NotificacoesBell";
+import { NotificacoesSino } from "@/components/layout/NotificacoesSino";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -158,7 +158,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
 
-              <NotificacoesBell />
+              <NotificacoesSino />
 
               {/* Mobile: avatar com menu de perfil/sair */}
               <div className="sm:hidden">
