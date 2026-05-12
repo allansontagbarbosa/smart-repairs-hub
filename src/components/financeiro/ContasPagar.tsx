@@ -341,6 +341,7 @@ export function ContasPagar({
             <SelectItem value="pendente">Pendente</SelectItem>
             <SelectItem value="hoje">Vence Hoje</SelectItem>
             <SelectItem value="atrasado">Atrasado</SelectItem>
+            <SelectItem value="parcial">Parcial</SelectItem>
             <SelectItem value="paga">Pago</SelectItem>
           </SelectContent>
         </Select>
