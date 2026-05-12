@@ -72,7 +72,18 @@ import TecnicoMetas from "./pages/tecnico/TecnicoMetas";
 import TecnicoTransferencias from "./pages/tecnico/TecnicoTransferencias";
 import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <ErrorBoundary>
