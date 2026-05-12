@@ -23,10 +23,12 @@ export default function RH() {
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 
   const handleGerarFolha = async () => {
-    if (!confirm(`Gerar folha de ${competenciaAtual}? Isso lançará salários (CLT), VT e VA pra todos funcionários ativos com valores cadastrados.`)) return;
+    if (!confirm(`Gerar folha de ${competenciaAtual}?\n\n• Cria movimentações no extrato dos funcionários\n• LANÇA como contas a pagar no /financeiro automaticamente\n• Vencimento dia 5 do mês seguinte\n• Idempotente: não duplica se já gerado`)) return;
     try {
       const r = await gerarFolha.mutateAsync(competenciaAtual);
-      toast.success(`Folha gerada: ${r.funcionarios_processados} funcionários, total ${fmt((r.total_salarios_centavos ?? 0) + (r.total_vt_centavos ?? 0) + (r.total_va_centavos ?? 0))}`);
+      toast.success(
+        `Folha gerada! ${r.funcionarios_processados} funcionários, ${r.contas_criadas ?? 0} contas criadas no financeiro. Total: ${fmt(r.total_geral_centavos ?? 0)}`
+      );
     } catch (err: any) {
       toast.error(err.message || "Erro");
     }

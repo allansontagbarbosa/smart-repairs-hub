@@ -5326,6 +5326,10 @@ export type Database = {
         Returns: Json
       }
       gerar_folha_mensal: { Args: { p_competencia: string }; Returns: Json }
+      gerar_folha_mensal_completa: {
+        Args: { p_competencia: string; p_dia_vencimento?: number }
+        Returns: Json
+      }
       gerar_movimentacao_entrada_os: {
         Args: { p_ordem_id: string }
         Returns: undefined
