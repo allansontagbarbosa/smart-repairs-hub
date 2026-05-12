@@ -48,6 +48,7 @@ import RHFuncionario from "./pages/RHFuncionario";
 import RHImportPonto from "./pages/RHImportPonto";
 import RHFolhaMensal from "./pages/RHFolhaMensal";
 import RHGerenciarFuncionarios from "./pages/RHGerenciarFuncionarios";
+import NotificacoesPage from "./pages/Notificacoes";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
