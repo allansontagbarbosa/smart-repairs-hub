@@ -82,10 +82,13 @@ export function RelDRE() {
     queryFn: async () => {
       const { data } = await supabase
         .from("contas_a_pagar")
-        .select("valor, recorrente, mes_competencia")
+        .select("valor, recorrente, mes_competencia, categoria")
         .eq("mes_competencia", competencia)
         .is("deleted_at", null);
-      return data ?? [];
+      // Ignora categorias já contadas em "Custos" (Comissões e Prejuízos)
+      return (data ?? []).filter(
+        (c: any) => c.categoria !== "Comissões" && c.categoria !== "Prejuízos"
+      );
     },
   });
 
