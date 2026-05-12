@@ -285,16 +285,83 @@ export function RelDRE() {
   const prev = () => { if (mes === 0) { setMes(11); setAno(ano - 1); } else setMes(mes - 1); };
   const next = () => { if (mes === 11) { setMes(0); setAno(ano + 1); } else setMes(mes + 1); };
 
+  const { data: dreCompleta } = useDREProfissional(competencia);
+  const { data: empresaInfo } = useQuery({
+    queryKey: ["rel-dre-empresa-info"],
+    queryFn: async () => {
+      const { data } = await supabase.from("empresas").select("nome,cnpj").limit(1).maybeSingle();
+      return data;
+    },
+  });
+  const graficosRef = useRef<HTMLDivElement>(null);
+  const [exportando, setExportando] = useState<"pdf" | "excel" | null>(null);
+
+  const handleExportPDF = async () => {
+    if (!dreCompleta) {
+      toast.error("Aguarde os dados carregarem.");
+      return;
+    }
+    setExportando("pdf");
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      await exportarDREPDF({
+        empresa: { nome: empresaInfo?.nome ?? "Ditt Software", cnpj: empresaInfo?.cnpj ?? undefined },
+        competencia,
+        dre: dreCompleta,
+        graficosElement: graficosRef.current,
+      });
+      toast.success("PDF gerado.");
+    } catch (e: any) {
+      toast.error("Falha ao gerar PDF: " + (e?.message ?? ""));
+    } finally {
+      setExportando(null);
+    }
+  };
+
+  const handleExportExcel = () => {
+    if (!dreCompleta) {
+      toast.error("Aguarde os dados carregarem.");
+      return;
+    }
+    setExportando("excel");
+    try {
+      exportarDREExcel({
+        empresa: { nome: empresaInfo?.nome ?? "Ditt Software" },
+        competencia,
+        dre: dreCompleta,
+      });
+      toast.success("Excel gerado.");
+    } catch (e: any) {
+      toast.error("Falha ao gerar Excel: " + (e?.message ?? ""));
+    } finally {
+      setExportando(null);
+    }
+  };
+
   return (
     <div className="space-y-6 mt-4">
       {/* Period nav */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Button variant="outline" size="icon" onClick={prev}><ChevronLeft className="h-4 w-4" /></Button>
         <span className="font-semibold text-lg min-w-[180px] text-center">{meses[mes]} {ano}</span>
         <Button variant="outline" size="icon" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
-        <Button variant="outline" size="sm" className="ml-auto print:hidden" onClick={() => window.print()}>
-          <Printer className="h-4 w-4 mr-1" /> Exportar PDF
-        </Button>
+        <div className="ml-auto flex gap-2 print:hidden">
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exportando !== null || !dreCompleta}>
+            {exportando === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
+            Exportar PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exportando !== null || !dreCompleta}>
+            {exportando === "excel" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-1" />}
+            Exportar Excel
+          </Button>
+        </div>
+      </div>
+
+      {/* Gráficos offscreen para captura no PDF */}
+      <div style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none" }} aria-hidden="true">
+        <div ref={graficosRef}>
+          {dreCompleta && <DREGraficosOffscreen dre={dreCompleta} />}
+        </div>
       </div>
 
       {/* DRE Card */}
