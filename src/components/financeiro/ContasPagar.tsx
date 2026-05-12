@@ -237,7 +237,14 @@ export function ContasPagar({
         <td className={`text-sm ${c.smartStatus.key === "atrasado" ? "text-destructive font-medium" : c.smartStatus.key === "hoje" ? "text-warning font-medium" : ""}`}>
           {fmtDate(c.data_vencimento)}
         </td>
-        <td className="text-sm font-medium">{fmtCurrency(c.valor)}</td>
+        <td className="text-sm font-medium">
+          <div>{fmtCurrency(c.valor)}</div>
+          {c.status === "parcial" && (c.valor_pago_centavos ?? 0) > 0 && (
+            <div className="text-[10px] text-success font-normal">
+              {fmtCurrency((c.valor_pago_centavos ?? 0) / 100)} pago
+            </div>
+          )}
+        </td>
         <td>
           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.smartStatus.color}`}>
             {c.smartStatus.label}
@@ -245,8 +252,8 @@ export function ContasPagar({
         </td>
         <td>
           <div className="flex items-center justify-end gap-0.5">
-            {c.status !== "paga" && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Marcar como paga" onClick={() => pagarMutation.mutate(c)}>
+            {c.status !== "paga" && c.status !== "cancelada" && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Registrar pagamento" onClick={() => setContaPagar(c)}>
                 <Check className="h-3.5 w-3.5" />
               </Button>
             )}
