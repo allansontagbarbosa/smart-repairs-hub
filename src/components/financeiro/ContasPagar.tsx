@@ -67,6 +67,19 @@ export function ContasPagar({
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
   const [contaPagar, setContaPagar] = useState<ContaPagar | null>(null);
   const queryClient = useQueryClient();
+  const sincronizar = useSincronizarComissoesEmContas();
+
+  const handleSincronizar = async () => {
+    const competencia = new Date().toISOString().slice(0, 7);
+    try {
+      const r = await sincronizar.mutateAsync(competencia);
+      toast.success(
+        `Comissões sincronizadas: ${r.contas_novas} novas + ${r.contas_atualizadas} atualizadas — Total R$ ${r.total_reais.toFixed(2)}`
+      );
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const contasComStatus = useMemo(() =>
     contas.map(c => ({ ...c, smartStatus: getSmartStatus(c) })),
