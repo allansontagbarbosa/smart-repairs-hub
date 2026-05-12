@@ -20,7 +20,8 @@ export type ContaPagar = {
   data_vencimento: string;
   mes_competencia: string | null;
   data_pagamento: string | null;
-  status: "pendente" | "paga" | "vencida" | "cancelada";
+  status: "pendente" | "paga" | "vencida" | "cancelada" | "parcial";
+  valor_pago_centavos?: number | null;
   recorrente: boolean;
   observacoes: string | null;
   created_at: string;
