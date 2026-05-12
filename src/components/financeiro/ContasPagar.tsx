@@ -16,6 +16,7 @@ import type { PeriodPreset, PeriodRange } from "@/components/dashboard/period-pr
 import { ExportButton } from "@/components/ExportButton";
 import type { ExportRow } from "@/lib/exportData";
 import { ContasDashboard } from "./ContasDashboard";
+import { RegistrarPagamentoDialog } from "./RegistrarPagamentoDialog";
 
 const fmtCurrency = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 const fmtDate = (d: string) => format(new Date(d + "T12:00:00"), "dd/MM/yyyy");
@@ -34,6 +35,7 @@ const getDefaultCompetencia = (date: Date, recorrente: boolean) => {
 
 function getSmartStatus(c: ContaPagar): { key: string; label: string; color: string } {
   if (c.status === "paga") return { key: "paga", label: "Pago", color: "bg-success text-success-foreground" };
+  if (c.status === "parcial") return { key: "parcial", label: "Parcial", color: "bg-warning/20 text-warning border border-warning/30" };
   if (c.status === "cancelada") return { key: "cancelada", label: "Cancelada", color: "bg-muted text-muted-foreground" };
   const venc = new Date(c.data_vencimento + "T23:59:59");
   const now = new Date();
@@ -63,6 +65,7 @@ export function ContasPagar({
   const [filterLoja, setFilterLoja] = useState("todas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
+  const [contaPagar, setContaPagar] = useState<ContaPagar | null>(null);
   const queryClient = useQueryClient();
 
   const contasComStatus = useMemo(() =>
@@ -234,7 +237,14 @@ export function ContasPagar({
         <td className={`text-sm ${c.smartStatus.key === "atrasado" ? "text-destructive font-medium" : c.smartStatus.key === "hoje" ? "text-warning font-medium" : ""}`}>
           {fmtDate(c.data_vencimento)}
         </td>
-        <td className="text-sm font-medium">{fmtCurrency(c.valor)}</td>
+        <td className="text-sm font-medium">
+          <div>{fmtCurrency(c.valor)}</div>
+          {c.status === "parcial" && (c.valor_pago_centavos ?? 0) > 0 && (
+            <div className="text-[10px] text-success font-normal">
+              {fmtCurrency((c.valor_pago_centavos ?? 0) / 100)} pago
+            </div>
+          )}
+        </td>
         <td>
           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.smartStatus.color}`}>
             {c.smartStatus.label}
@@ -242,8 +252,8 @@ export function ContasPagar({
         </td>
         <td>
           <div className="flex items-center justify-end gap-0.5">
-            {c.status !== "paga" && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Marcar como paga" onClick={() => pagarMutation.mutate(c)}>
+            {c.status !== "paga" && c.status !== "cancelada" && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Registrar pagamento" onClick={() => setContaPagar(c)}>
                 <Check className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -331,6 +341,7 @@ export function ContasPagar({
             <SelectItem value="pendente">Pendente</SelectItem>
             <SelectItem value="hoje">Vence Hoje</SelectItem>
             <SelectItem value="atrasado">Atrasado</SelectItem>
+            <SelectItem value="parcial">Parcial</SelectItem>
             <SelectItem value="paga">Pago</SelectItem>
           </SelectContent>
         </Select>
@@ -387,6 +398,12 @@ export function ContasPagar({
         fornecedores={fornecedores}
         lojas={lojas}
         ordens={ordens as any}
+      />
+
+      <RegistrarPagamentoDialog
+        open={!!contaPagar}
+        onOpenChange={(o) => !o && setContaPagar(null)}
+        conta={contaPagar}
       />
     </div>
   );
