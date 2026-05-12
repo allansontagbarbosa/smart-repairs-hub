@@ -316,6 +316,8 @@ export function ContasPagar({
         </div>
       )}
 
+      <ContasDashboard contas={filtered} />
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2.5">
         <div className="relative flex-1">
