@@ -5017,8 +5017,11 @@ export type Database = {
           empresa_id: string
           id: string
           intervalo_refresh_segundos: number
+          layout: Json | null
+          logo_url: string | null
           nome: string
           orientacao: string
+          tamanho_fonte: string | null
           tema: string
           ultimo_acesso_em: string | null
           updated_at: string
@@ -5032,8 +5035,11 @@ export type Database = {
           empresa_id: string
           id?: string
           intervalo_refresh_segundos?: number
+          layout?: Json | null
+          logo_url?: string | null
           nome: string
           orientacao?: string
+          tamanho_fonte?: string | null
           tema?: string
           ultimo_acesso_em?: string | null
           updated_at?: string
@@ -5047,8 +5053,11 @@ export type Database = {
           empresa_id?: string
           id?: string
           intervalo_refresh_segundos?: number
+          layout?: Json | null
+          logo_url?: string | null
           nome?: string
           orientacao?: string
+          tamanho_fonte?: string | null
           tema?: string
           ultimo_acesso_em?: string | null
           updated_at?: string
@@ -5806,6 +5815,15 @@ export type Database = {
         Returns: Json
       }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      tv_atualizar_layout: {
+        Args: {
+          p_layout: Json
+          p_logo_url?: string
+          p_painel_id: string
+          p_tamanho_fonte?: string
+        }
+        Returns: Json
+      }
       tv_atualizar_painel: {
         Args: {
           p_intervalo_refresh?: number

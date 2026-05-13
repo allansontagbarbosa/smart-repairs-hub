@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Tv, RefreshCw, Copy, Trash2 } from "lucide-react";
+import { Plus, Tv, RefreshCw, Copy, Trash2, Pencil } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   useTVPaineis,
   useCriarTVPainel,
@@ -37,6 +38,7 @@ export default function TVConfigurar() {
   const criar = useCriarTVPainel();
   const regenerar = useRegenerarCodigoTV();
   const excluir = useExcluirTVPainel();
+  const navigate = useNavigate();
 
   const [modoNovo, setModoNovo] = useState(false);
   const [nome, setNome] = useState("");
@@ -183,6 +185,9 @@ export default function TVConfigurar() {
                 </p>
               </div>
               <div className="flex gap-1">
+                <Button size="icon" variant="ghost" onClick={() => navigate(`/tv/editar/${p.id}`)} title="Editar layout">
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 <Button size="icon" variant="ghost" onClick={() => copiarCodigo(p.codigo)} title="Copiar código">
                   <Copy className="h-4 w-4" />
                 </Button>

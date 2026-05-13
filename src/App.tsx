@@ -52,6 +52,7 @@ import NotificacoesPage from "./pages/Notificacoes";
 import TVConfigurar from "./pages/TVConfigurar";
 import TVAcesso from "./pages/TVAcesso";
 import TVDisplay from "./pages/TVDisplay";
+import TVEditarLayout from "./pages/TVEditarLayout";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -177,6 +178,7 @@ const App = () => (
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/tv/configurar" element={<ProtectedRoute permissao="configuracoes"><TVConfigurar /></ProtectedRoute>} />
+                    <Route path="/tv/editar/:painelId" element={<ProtectedRoute permissao="configuracoes"><TVEditarLayout /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
