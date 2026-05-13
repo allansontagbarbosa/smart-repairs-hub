@@ -66,7 +66,7 @@ export default function TVDisplay() {
   const tamanho: "P" | "M" | "G" = painel.tamanho_fonte || "M";
   const fontes = TAMANHOS[tamanho];
 
-  // Layout: usa o salvo, complementa qualquer widget faltante
+  // Layout: prioriza o salvo. Complementa widgets sem posição.
   const salvo: LayoutItem[] = (painel.layout || []) as LayoutItem[];
   const idsSalvos = new Set(salvo.map((l) => l.i));
   const faltantes: LayoutItem[] = widgets
@@ -78,7 +78,7 @@ export default function TVDisplay() {
       w: 4,
       h: 2,
     }));
-  const layout: LayoutItem[] = [...salvo.filter((l) => widgets.includes(l.i)), ...faltantes];
+  const layout: LayoutItem[] = [...salvo, ...faltantes];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
