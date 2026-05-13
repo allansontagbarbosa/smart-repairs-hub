@@ -52,6 +52,7 @@ import NotificacoesPage from "./pages/Notificacoes";
 import TVConfigurar from "./pages/TVConfigurar";
 import TVAcesso from "./pages/TVAcesso";
 import TVDisplay from "./pages/TVDisplay";
+import TVEditarLayout from "./pages/TVEditarLayout";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
