@@ -38,6 +38,7 @@ export default function TVConfigurar() {
   const criar = useCriarTVPainel();
   const regenerar = useRegenerarCodigoTV();
   const excluir = useExcluirTVPainel();
+  const navigate = useNavigate();
 
   const [modoNovo, setModoNovo] = useState(false);
   const [nome, setNome] = useState("");
