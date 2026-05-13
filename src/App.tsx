@@ -49,6 +49,9 @@ import RHImportPonto from "./pages/RHImportPonto";
 import RHFolhaMensal from "./pages/RHFolhaMensal";
 import RHGerenciarFuncionarios from "./pages/RHGerenciarFuncionarios";
 import NotificacoesPage from "./pages/Notificacoes";
+import TVConfigurar from "./pages/TVConfigurar";
+import TVAcesso from "./pages/TVAcesso";
+import TVDisplay from "./pages/TVDisplay";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
