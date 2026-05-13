@@ -130,6 +130,10 @@ const App = () => (
               <Route path="/aceitar-convite" element={<AceitarConvite />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
 
+              {/* Painéis TV (públicos — sem auth) */}
+              <Route path="/tv" element={<TVAcesso />} />
+              <Route path="/tv/d/:codigo" element={<TVDisplay />} />
+
               {/* Portal do Técnico */}
               <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
