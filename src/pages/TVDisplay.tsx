@@ -185,22 +185,22 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
   switch (id) {
     case "kpis_dia":
       return (
-        <div className="grid grid-cols-2 gap-2 h-full">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 h-full">
           <KPI color="#00C896" label="OSs hoje" value={dados.kpis?.oss_hoje ?? 0} f={f} />
-          <KPI color="#3b82f6" label="Faturamento hoje" value={fmt(dados.kpis?.faturamento_hoje ?? 0)} f={f} />
+          <KPI color="#3b82f6" label="Faturamento hoje" value={fmtK(dados.kpis?.faturamento_hoje ?? 0)} f={f} />
           <KPI color="#a855f7" label="Faturamento mês" value={fmtK(dados.kpis?.faturamento_mes ?? 0)} f={f} />
           <KPI color="#f59e0b" label="Prontos retirar" value={dados.kpis?.prontos_retirar ?? 0} f={f} />
         </div>
       );
+
     case "podio_tecnicos":
       return (
-        <div className="h-full flex flex-col">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>🏆 Pódio</h3>
-          <div className="flex-1 grid grid-cols-3 gap-2">
+        <WidgetCard title="🏆 Pódio dos técnicos" f={f}>
+          <div className="grid grid-cols-3 gap-2 h-full">
             {(dados.podio ?? []).slice(0, 3).map((t: any, i: number) => (
               <div
                 key={i}
-                className={`p-2 rounded-lg text-center ${
+                className={`p-2 rounded-lg text-center flex flex-col justify-center ${
                   i === 0 ? "bg-yellow-500/20 border border-yellow-500/40"
                   : i === 1 ? "bg-gray-300/15 border border-gray-400/40"
                   : "bg-orange-700/20 border border-orange-700/40"
@@ -215,36 +215,35 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
               <p className="col-span-3 text-center text-sm text-white/50 py-4">Sem dados</p>
             )}
           </div>
-        </div>
+        </WidgetCard>
       );
-    case "aparelhos_tecnicos":
+
+    case "aparelhos_tecnicos": {
+      const max = Math.max(1, ...(dados.aparelhos_tecnicos ?? []).map((x: any) => x.qtd));
       return (
-        <div className="h-full flex flex-col">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>📋 Aparelhos por técnico</h3>
-          <div className="flex-1 space-y-2 overflow-auto">
-            {(dados.aparelhos_tecnicos ?? []).map((t: any, i: number) => {
-              const max = Math.max(1, ...(dados.aparelhos_tecnicos ?? []).map((x: any) => x.qtd));
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={`${f.base} w-28 truncate`}>{t.nome}</span>
-                  <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
-                    <div className="h-full bg-blue-500" style={{ width: `${(t.qtd / max) * 100}%` }} />
-                  </div>
-                  <span className={`${f.base} font-bold w-6 text-right`}>{t.qtd}</span>
+        <WidgetCard title="📋 Aparelhos por técnico" f={f}>
+          <div className="space-y-2 overflow-auto h-full">
+            {(dados.aparelhos_tecnicos ?? []).map((t: any, i: number) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className={`${f.base} w-28 truncate`}>{t.nome}</span>
+                <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
+                  <div className="h-full bg-blue-500" style={{ width: `${(t.qtd / max) * 100}%` }} />
                 </div>
-              );
-            })}
+                <span className={`${f.base} font-bold w-6 text-right`}>{t.qtd}</span>
+              </div>
+            ))}
             {(!dados.aparelhos_tecnicos || dados.aparelhos_tecnicos.length === 0) && (
               <p className="text-center text-sm text-white/50 py-4">Nenhum aparelho aberto</p>
             )}
           </div>
-        </div>
+        </WidgetCard>
       );
+    }
+
     case "alertas":
       return (
-        <div className="h-full flex flex-col">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>⏰ Atenção</h3>
-          <div className="flex-1 space-y-2">
+        <WidgetCard title="⏰ Atenção" f={f}>
+          <div className="space-y-2">
             {(dados.alertas?.prontas_paradas ?? 0) > 0 && (
               <Alerta cor="red" texto={`${dados.alertas.prontas_paradas} OSs prontas há +7 dias`} f={f} />
             )}
@@ -258,31 +257,31 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
               <p className="text-center text-sm text-white/50 py-4">✅ Tudo em ordem!</p>
             )}
           </div>
-        </div>
+        </WidgetCard>
       );
+
     case "meta_mes":
       return (
-        <div className="h-full flex flex-col">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>🎯 Meta do mês</h3>
-          <div className="flex-1 flex flex-col justify-center">
-            <div className="flex items-baseline gap-2 mb-2">
+        <WidgetCard title="🎯 Meta do mês" f={f}>
+          <div className="flex flex-col justify-center h-full">
+            <div className="flex items-baseline gap-2 mb-2 flex-wrap">
               <span className={`${f.kpi} font-black text-[#00C896]`}>{fmt(dados.meta?.atual_valor ?? 0)}</span>
               <span className={`${f.base} text-white/60`}>de {fmt(dados.meta?.meta_valor ?? 0)}</span>
             </div>
             <div className="h-3 bg-white/5 rounded-full overflow-hidden mb-1">
-              <div className="h-full bg-gradient-to-r from-[#00C896] to-[#00b389]" style={{ width: `${dados.meta?.pct ?? 0}%` }} />
+              <div className="h-full bg-gradient-to-r from-[#00C896] to-[#00b389]" style={{ width: `${Math.min(dados.meta?.pct ?? 0, 100)}%` }} />
             </div>
             <p className={`${f.base} font-bold text-[#00C896] text-right`}>{dados.meta?.pct ?? 0}%</p>
           </div>
-        </div>
+        </WidgetCard>
       );
-    case "top_lojistas":
+
+    case "top_lojistas": {
+      const max = Math.max(1, ...(dados.top_lojistas ?? []).map((x: any) => x.saldo));
       return (
-        <div className="h-full flex flex-col">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>🏪 Top lojistas</h3>
-          <div className="flex-1 space-y-2 overflow-auto">
+        <WidgetCard title="🏪 Top lojistas (saldo)" f={f}>
+          <div className="space-y-2 overflow-auto h-full">
             {(dados.top_lojistas ?? []).map((l: any, i: number) => {
-              const max = Math.max(1, ...(dados.top_lojistas ?? []).map((x: any) => x.saldo));
               const cor = l.saldo > 30000 ? "bg-red-500" : l.saldo > 20000 ? "bg-amber-500" : "bg-yellow-500";
               return (
                 <div key={i} className="flex items-center gap-2">
@@ -298,32 +297,204 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
               <p className="text-center text-sm text-white/50 py-4">Nada pra cobrar</p>
             )}
           </div>
-        </div>
+        </WidgetCard>
       );
-    case "financeiro_mes":
-      return (
-        <div className="h-full flex flex-col">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>💰 Financeiro mês</h3>
-          <div className="flex-1 grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs text-white/60 uppercase">Receita</p>
-              <p className={`${f.kpi} font-bold text-[#00C896]`}>{fmtK(dados.kpis?.faturamento_mes ?? 0)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-white/60 uppercase">Meta</p>
-              <p className={`${f.kpi} font-bold`}>{fmtK(dados.meta?.meta_valor ?? 0)}</p>
-            </div>
-          </div>
-        </div>
-      );
+    }
+
     case "estoque_critico":
       return (
-        <div className="h-full flex flex-col items-center justify-center">
-          <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>📦 Estoque crítico</h3>
-          <p className={`${f.kpi} font-black text-amber-400`}>{dados.alertas?.estoque_baixo ?? 0}</p>
-          <p className={`${f.base} text-white/60`}>peças abaixo do mínimo</p>
-        </div>
+        <WidgetCard title="📦 Estoque crítico" f={f}>
+          <div className="space-y-1.5 overflow-auto h-full">
+            {(dados.estoque_critico ?? []).length === 0 ? (
+              <p className="text-center text-sm text-white/50 py-4">✓ Estoque OK</p>
+            ) : (
+              (dados.estoque_critico ?? []).map((p: any, i: number) => (
+                <div key={i} className="flex items-center justify-between gap-2 p-1.5 bg-red-500/5 border border-red-500/20 rounded">
+                  <span className={`${f.base} truncate flex-1`}>{p.nome}</span>
+                  <span className={`${f.base} font-mono font-bold text-red-400`}>
+                    {p.quantidade}/{p.minimo}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </WidgetCard>
       );
+
+    case "financeiro_mes": {
+      const fin = dados.financeiro_mes ?? {};
+      const lucro = (fin.receita || 0) - (fin.custos_pecas || 0) - (fin.despesas || 0);
+      return (
+        <WidgetCard title="💰 Financeiro do mês" f={f}>
+          <div className="grid grid-cols-3 gap-2 h-full">
+            <div className="flex flex-col justify-center">
+              <p className="text-[10px] text-white/60 uppercase">Receita</p>
+              <p className={`${f.kpi} font-black text-[#00C896]`}>{fmtK(fin.receita || 0)}</p>
+            </div>
+            <div className="flex flex-col justify-center">
+              <p className="text-[10px] text-white/60 uppercase">Custos</p>
+              <p className={`${f.kpi} font-black text-red-400`}>-{fmtK((fin.custos_pecas || 0) + (fin.despesas || 0))}</p>
+            </div>
+            <div className="flex flex-col justify-center">
+              <p className="text-[10px] text-white/60 uppercase">Lucro</p>
+              <p className={`${f.kpi} font-black ${lucro >= 0 ? "text-[#00C896]" : "text-red-500"}`}>{fmtK(lucro)}</p>
+            </div>
+          </div>
+        </WidgetCard>
+      );
+    }
+
+    case "ultimas_oss":
+      return (
+        <WidgetCard title="🔔 Últimas OSs entregues" f={f}>
+          <div className="space-y-1.5 overflow-auto h-full">
+            {(dados.ultimas_oss ?? []).length === 0 ? (
+              <p className="text-center text-sm text-white/50 py-4">Sem OSs entregues</p>
+            ) : (
+              (dados.ultimas_oss ?? []).map((os: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
+                  <span className={`${f.base} font-mono font-bold text-[#00C896]`}>#{os.numero}</span>
+                  <span className={`${f.base} flex-1 truncate text-white/80`}>{os.tecnico || "—"}</span>
+                  <span className={`${f.base} font-bold`}>{fmtK(os.valor)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </WidgetCard>
+      );
+
+    case "agenda_dia":
+      return (
+        <WidgetCard title="📅 Agenda do dia" f={f}>
+          <div className="space-y-1.5 overflow-auto h-full">
+            {(dados.agenda_dia ?? []).length === 0 ? (
+              <p className="text-center text-sm text-white/50 py-4">Sem OSs com previsão hoje</p>
+            ) : (
+              (dados.agenda_dia ?? []).map((os: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
+                  <span className={`${f.base} font-mono font-bold text-blue-400`}>#{os.numero}</span>
+                  <span className={`${f.base} flex-1 truncate text-white/80`}>{os.tecnico || "—"}</span>
+                  {os.prioridade === "urgente" && (
+                    <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded uppercase">URG</span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </WidgetCard>
+      );
+
+    case "contas_vencer":
+      return (
+        <WidgetCard title="⏳ Contas a vencer" f={f}>
+          <div className="space-y-1.5 overflow-auto h-full">
+            {(dados.contas_vencer ?? []).length === 0 ? (
+              <p className="text-center text-sm text-white/50 py-4">✓ Sem contas próximas</p>
+            ) : (
+              (dados.contas_vencer ?? []).map((c: any, i: number) => {
+                const cor = c.dias <= 2 ? "text-red-400 bg-red-500/10" : "text-amber-400 bg-amber-500/10";
+                return (
+                  <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
+                    <span className={`${f.base} flex-1 truncate text-white/80`}>{c.descricao}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${cor}`}>
+                      {c.dias === 0 ? "hoje" : `${c.dias}d`}
+                    </span>
+                    <span className={`${f.base} font-bold`}>{fmtK(c.valor)}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </WidgetCard>
+      );
+
+    case "graf_semanal": {
+      const max = Math.max(1, ...(dados.graf_semanal ?? []).map((s: any) => s.receita));
+      return (
+        <WidgetCard title="📈 Receita últimas 4 semanas" f={f}>
+          <div className="flex items-end justify-around gap-2 h-full pt-2">
+            {(dados.graf_semanal ?? []).map((s: any, i: number) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full">
+                <span className="text-[10px] font-bold text-white/80">{fmtK(s.receita)}</span>
+                <div className="w-full flex-1 flex items-end">
+                  <div
+                    className="w-full bg-gradient-to-t from-[#00C896] to-[#00b389] rounded-t"
+                    style={{ height: `${(s.receita / max) * 100}%`, minHeight: "4px" }}
+                  />
+                </div>
+                <span className="text-[10px] text-white/60">{s.semana}</span>
+              </div>
+            ))}
+          </div>
+        </WidgetCard>
+      );
+    }
+
+    case "ranking_lojistas":
+      return (
+        <WidgetCard title="🏪 Top lojistas (volume)" f={f}>
+          <div className="space-y-1.5 overflow-auto h-full">
+            {(dados.ranking_lojistas ?? []).length === 0 ? (
+              <p className="text-center text-sm text-white/50 py-4">Sem dados</p>
+            ) : (
+              (dados.ranking_lojistas ?? []).map((l: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
+                  <span className="text-lg font-black text-purple-400 w-6 text-center">{i + 1}</span>
+                  <span className={`${f.base} flex-1 truncate text-white/80`}>{l.nome}</span>
+                  <span className={`${f.base} font-bold`}>{l.qtd_oss} OSs</span>
+                </div>
+              ))
+            )}
+          </div>
+        </WidgetCard>
+      );
+
+    case "ticket_medio": {
+      const arr = (dados.ticket_medio ?? []).map((m: any) => ({ ...m, _val: parseFloat(m.ticket) }));
+      const max = Math.max(1, ...arr.map((m: any) => m._val));
+      return (
+        <WidgetCard title="💵 Ticket médio (6 meses)" f={f}>
+          <div className="flex items-end justify-around gap-1 h-full pt-2">
+            {arr.map((m: any, i: number) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full">
+                <span className="text-[9px] font-bold text-white/80">{fmt(m._val)}</span>
+                <div className="w-full flex-1 flex items-end">
+                  <div
+                    className="w-full bg-gradient-to-t from-pink-500 to-pink-400 rounded-t"
+                    style={{ height: `${(m._val / max) * 100}%`, minHeight: "4px" }}
+                  />
+                </div>
+                <span className="text-[9px] text-white/60">{m.mes}</span>
+              </div>
+            ))}
+          </div>
+        </WidgetCard>
+      );
+    }
+
+    case "top_defeitos": {
+      const max = Math.max(1, ...(dados.top_defeitos ?? []).map((d: any) => d.qtd));
+      return (
+        <WidgetCard title="🔧 Top defeitos do mês" f={f}>
+          <div className="space-y-2 overflow-auto h-full">
+            {(dados.top_defeitos ?? []).length === 0 ? (
+              <p className="text-center text-sm text-white/50 py-4">Sem dados</p>
+            ) : (
+              (dados.top_defeitos ?? []).map((d: any, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className={`${f.base} w-28 truncate`}>{d.defeito}</span>
+                  <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
+                    <div className="h-full bg-cyan-500" style={{ width: `${(d.qtd / max) * 100}%` }} />
+                  </div>
+                  <span className={`${f.base} font-bold w-6 text-right`}>{d.qtd}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </WidgetCard>
+      );
+    }
+
     case "clima_relogio":
       return (
         <div className="h-full flex flex-col items-center justify-center">
@@ -335,9 +506,21 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
           </p>
         </div>
       );
+
     default:
       return <p className="text-white/40 text-sm">{id}</p>;
   }
+}
+
+function WidgetCard({ title, children, f }: any) {
+  return (
+    <div className="h-full flex flex-col">
+      <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>
+        {title}
+      </h3>
+      <div className="flex-1 min-h-0">{children}</div>
+    </div>
+  );
 }
 
 function KPI({ color, label, value, f }: any) {
