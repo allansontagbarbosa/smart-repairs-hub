@@ -49,6 +49,9 @@ import RHImportPonto from "./pages/RHImportPonto";
 import RHFolhaMensal from "./pages/RHFolhaMensal";
 import RHGerenciarFuncionarios from "./pages/RHGerenciarFuncionarios";
 import NotificacoesPage from "./pages/Notificacoes";
+import TVConfigurar from "./pages/TVConfigurar";
+import TVAcesso from "./pages/TVAcesso";
+import TVDisplay from "./pages/TVDisplay";
 
 // Lojista B2B
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -127,6 +130,10 @@ const App = () => (
               <Route path="/aceitar-convite" element={<AceitarConvite />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
 
+              {/* Painéis TV (públicos — sem auth) */}
+              <Route path="/tv" element={<TVAcesso />} />
+              <Route path="/tv/d/:codigo" element={<TVDisplay />} />
+
               {/* Portal do Técnico */}
               <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
               <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
@@ -169,6 +176,7 @@ const App = () => (
                     <Route path="/rh/:id" element={<RHFuncionario />} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
+                    <Route path="/tv/configurar" element={<ProtectedRoute permissao="configuracoes"><TVConfigurar /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
