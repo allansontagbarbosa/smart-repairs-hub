@@ -1,15 +1,11 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { useDREProfissional } from "@/hooks/useDREProfissional";
-import { exportarDREPDF } from "@/lib/exportarDREPDF";
-import { exportarDREExcel } from "@/lib/exportarDREExcel";
-import { DREGraficosOffscreen } from "./DREGraficosOffscreen";
-import { toast } from "sonner";
+import { imprimirDRE } from "@/lib/imprimirDRE";
 
 const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -285,7 +281,6 @@ export function RelDRE() {
   const prev = () => { if (mes === 0) { setMes(11); setAno(ano - 1); } else setMes(mes - 1); };
   const next = () => { if (mes === 11) { setMes(0); setAno(ano + 1); } else setMes(mes + 1); };
 
-  const { data: dreCompleta } = useDREProfissional(competencia);
   const { data: empresaInfo } = useQuery({
     queryKey: ["rel-dre-empresa-info"],
     queryFn: async () => {
@@ -293,49 +288,19 @@ export function RelDRE() {
       return data;
     },
   });
-  const graficosRef = useRef<HTMLDivElement>(null);
-  const [exportando, setExportando] = useState<"pdf" | "excel" | null>(null);
 
-  const handleExportPDF = async () => {
-    if (!dreCompleta) {
-      toast.error("Aguarde os dados carregarem.");
-      return;
-    }
-    setExportando("pdf");
-    try {
-      await new Promise((r) => setTimeout(r, 600));
-      await exportarDREPDF({
-        empresa: { nome: empresaInfo?.nome ?? "Ditt Software", cnpj: empresaInfo?.cnpj ?? undefined },
-        competencia,
-        dre: dreCompleta,
-        graficosElement: graficosRef.current,
-      });
-      toast.success("PDF gerado.");
-    } catch (e: any) {
-      toast.error("Falha ao gerar PDF: " + (e?.message ?? ""));
-    } finally {
-      setExportando(null);
-    }
-  };
-
-  const handleExportExcel = () => {
-    if (!dreCompleta) {
-      toast.error("Aguarde os dados carregarem.");
-      return;
-    }
-    setExportando("excel");
-    try {
-      exportarDREExcel({
-        empresa: { nome: empresaInfo?.nome ?? "Ditt Software" },
-        competencia,
-        dre: dreCompleta,
-      });
-      toast.success("Excel gerado.");
-    } catch (e: any) {
-      toast.error("Falha ao gerar Excel: " + (e?.message ?? ""));
-    } finally {
-      setExportando(null);
-    }
+  const handleImprimir = () => {
+    const graficosEl = document.querySelector(".dre-charts-print");
+    const graficosHTML = graficosEl ? graficosEl.innerHTML : "";
+    imprimirDRE({
+      empresa: {
+        nome: empresaInfo?.nome ?? "Ditt Software",
+        cnpj: empresaInfo?.cnpj ?? undefined,
+      },
+      competencia,
+      dre,
+      graficosHTML,
+    });
   };
 
   return (
@@ -346,21 +311,10 @@ export function RelDRE() {
         <span className="font-semibold text-lg min-w-[180px] text-center">{meses[mes]} {ano}</span>
         <Button variant="outline" size="icon" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
         <div className="ml-auto flex gap-2 print:hidden">
-          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exportando !== null || !dreCompleta}>
-            {exportando === "pdf" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
-            Exportar PDF
+          <Button variant="outline" size="sm" onClick={handleImprimir}>
+            <Printer className="h-4 w-4 mr-1" />
+            Imprimir / PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={exportando !== null || !dreCompleta}>
-            {exportando === "excel" ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-1" />}
-            Exportar Excel
-          </Button>
-        </div>
-      </div>
-
-      {/* Gráficos offscreen para captura no PDF */}
-      <div style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none" }} aria-hidden="true">
-        <div ref={graficosRef}>
-          {dreCompleta && <DREGraficosOffscreen dre={dreCompleta} />}
         </div>
       </div>
 
@@ -418,24 +372,26 @@ export function RelDRE() {
         </CardContent>
       </Card>
 
-      {/* Chart */}
-      <Card className="print:hidden">
-        <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData ?? []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Legend />
-              <Bar dataKey="Receita" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
-              <Bar dataKey="Gastos" fill="hsl(var(--destructive))" radius={[4,4,0,0]} />
-              <Bar dataKey="Lucro" fill="hsl(var(--chart-2))" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Chart — wrapper capturado para impressão */}
+      <div className="dre-charts-print">
+        <Card className="print:hidden">
+          <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData ?? []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v: number) => fmt(v)} />
+                <Legend />
+                <Bar dataKey="Receita" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+                <Bar dataKey="Gastos" fill="hsl(var(--destructive))" radius={[4,4,0,0]} />
+                <Bar dataKey="Lucro" fill="hsl(var(--chart-2))" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
