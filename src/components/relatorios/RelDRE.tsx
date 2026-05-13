@@ -299,6 +299,7 @@ export function RelDRE() {
       },
       competencia,
       dre,
+      socios: socios ?? [],
       graficosHTML,
     });
   };

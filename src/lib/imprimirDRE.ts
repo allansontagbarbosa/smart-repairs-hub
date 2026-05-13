@@ -14,12 +14,17 @@ interface DREData {
   ebitda: number;
   prejuizosNaoOpTotal: number;
   resultadoNaoOperacional: number;
+  lucroLiquido?: number;
+  reservaPct?: number;
+  reserva?: number;
+  porSocio?: number;
 }
 
 interface ImprimirDREParams {
   empresa: { nome: string; cnpj?: string };
   competencia: string; // YYYY-MM
   dre: DREData;
+  socios?: { id: string; nome: string }[];
   graficosHTML?: string;
 }
 
@@ -27,20 +32,47 @@ const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtPct = (v: number) => `${v.toFixed(1)}%`;
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Insere espaços em "ARJASSISTENCIALTDA" → "ARJ ASSISTENCIA LTDA"
+// Estratégia: separa por dicionário comum de termos societários; se vier vazio
+// ou já com espaços, mantém. Sem alterar nomes que já estejam OK.
+function formatarNomeEmpresa(raw: string): string {
+  if (!raw) return "EMPRESA";
+  const upper = raw.toUpperCase().trim();
+  // Já tem espaços? só normaliza
+  if (/\s/.test(upper)) return upper.replace(/\s+/g, " ");
+  // Tenta separar sufixos comuns
+  const sufixos = ["LTDA", "ME", "EIRELI", "EPP", "SA", "MEI"];
+  let s = upper;
+  sufixos.forEach((suf) => {
+    const re = new RegExp(`${suf}$`);
+    if (re.test(s)) s = s.replace(re, ` ${suf}`);
+  });
+  // Tenta separar palavras conhecidas no meio
+  const palavras = ["ASSISTENCIA", "ASSISTÊNCIA", "TECNICA", "TÉCNICA", "COMERCIO", "COMÉRCIO", "SERVICOS", "SERVIÇOS", "TECNOLOGIA", "MOBILE", "FIX"];
+  palavras.forEach((p) => {
+    const re = new RegExp(p, "g");
+    s = s.replace(re, ` ${p} `);
+  });
+  return s.replace(/\s+/g, " ").trim();
+}
+
 type Linha =
   | { tipo: "header"; label: string }
   | {
-      tipo?: "linha";
       label: string;
       valor: number;
       bold?: boolean;
       total?: boolean;
       destaque?: boolean;
       negativo?: boolean;
+      distribuicao?: boolean;
     };
 
 export function imprimirDRE(params: ImprimirDREParams) {
-  const { empresa, competencia, dre, graficosHTML } = params;
+  const { empresa, competencia, dre, socios = [], graficosHTML } = params;
   const [year, monthN] = competencia.split("-").map(Number);
   const nomeMes = new Date(year, monthN - 1).toLocaleDateString("pt-BR", {
     month: "long",
@@ -48,14 +80,15 @@ export function imprimirDRE(params: ImprimirDREParams) {
   });
   const nomeMesCapital = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
 
-  const margem = dre.receitaBruta > 0 ? (dre.ebitda / dre.receitaBruta) * 100 : 0;
-  const lucroLiquido = dre.ebitda - dre.depreciacao;
+  const margem =
+    dre.receitaBruta > 0 ? (dre.ebitda / dre.receitaBruta) * 100 : 0;
+  const lucroLiquido = dre.lucroLiquido ?? dre.ebitda - dre.depreciacao;
 
   const linhas: Linha[] = [
     { tipo: "header", label: "RECEITAS" },
     { label: "Serviços faturados", valor: dre.servicosFaturados },
     ...(dre.outrosReceb > 0
-      ? [{ label: "Outros recebimentos", valor: dre.outrosReceb } as Linha]
+      ? [{ label: "Outros recebimentos", valor: dre.outrosReceb }]
       : []),
     { label: "= Receita Bruta", valor: dre.receitaBruta, bold: true, total: true },
     { tipo: "header", label: "DEDUÇÕES" },
@@ -65,13 +98,7 @@ export function imprimirDRE(params: ImprimirDREParams) {
     { label: "(−) Peças utilizadas", valor: -dre.custoPecas, negativo: true },
     { label: "(−) Comissões", valor: -dre.comissoesPagas, negativo: true },
     ...(dre.prejuizosOpTotal > 0
-      ? [
-          {
-            label: "(−) Prejuízos operacionais",
-            valor: -dre.prejuizosOpTotal,
-            negativo: true,
-          } as Linha,
-        ]
+      ? [{ label: "(−) Prejuízos operacionais", valor: -dre.prejuizosOpTotal, negativo: true }]
       : []),
     { label: "= Lucro Bruto", valor: dre.lucroBruto, bold: true, total: true, destaque: true },
     { tipo: "header", label: "DESPESAS OPERACIONAIS" },
@@ -80,192 +107,306 @@ export function imprimirDRE(params: ImprimirDREParams) {
     { label: "= EBITDA", valor: dre.ebitda, bold: true, total: true, destaque: true },
     { tipo: "header", label: "RESULTADO" },
     ...(dre.depreciacao > 0
-      ? [
-          {
-            label: "(−) Depreciação estimada",
-            valor: -dre.depreciacao,
-            negativo: true,
-          } as Linha,
-        ]
+      ? [{ label: "(−) Depreciação estimada", valor: -dre.depreciacao, negativo: true }]
       : []),
     { label: "= Lucro Líquido", valor: lucroLiquido, bold: true, total: true, destaque: true },
-    ...(dre.prejuizosNaoOpTotal > 0
-      ? [
-          {
-            label: "(−) Prejuízos não-operacionais",
-            valor: -dre.prejuizosNaoOpTotal,
-            negativo: true,
-          } as Linha,
-        ]
-      : []),
   ];
+
+  if (lucroLiquido > 0 && socios.length > 0 && dre.reservaPct !== undefined) {
+    linhas.push({ tipo: "header", label: "DISTRIBUIÇÃO" });
+    linhas.push({
+      label: `Reserva empresa (${dre.reservaPct}%)`,
+      valor: dre.reserva ?? 0,
+      distribuicao: true,
+    });
+    socios.forEach((s) => {
+      linhas.push({ label: s.nome, valor: dre.porSocio ?? 0, distribuicao: true });
+    });
+  }
 
   const linhasHTML = linhas
     .map((l) => {
-      if (l.tipo === "header") {
-        return `<tr><td colspan="2" class="header-row">${l.label}</td></tr>`;
+      if ("tipo" in l && l.tipo === "header") {
+        return `<tr class="section-header"><td colspan="2">${escapeHtml(l.label)}</td></tr>`;
       }
+      const li = l as Exclude<Linha, { tipo: "header" }>;
       const classes = [
-        l.bold && "bold",
-        l.total && "total",
-        l.destaque && "destaque",
-        l.negativo && "negativo",
+        li.bold && "bold",
+        li.total && "total",
+        li.destaque && "destaque",
+        li.negativo && "negativo",
+        li.distribuicao && "distribuicao",
       ]
         .filter(Boolean)
         .join(" ");
-      return `<tr class="${classes}"><td>${l.label}</td><td class="valor">${fmt(l.valor)}</td></tr>`;
+      return `<tr class="${classes}"><td>${escapeHtml(li.label)}</td><td class="val">${fmt(li.valor)}</td></tr>`;
     })
     .join("");
 
-  const dataGer = new Date().toLocaleDateString("pt-BR");
-  const horaGer = new Date().toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  // ===== Pizza =====
+  const pizzaData = [
+    { nome: "Peças", valor: dre.custoPecas, cor: "#00C896" },
+    { nome: "Comissões", valor: dre.comissoesPagas, cor: "#3b82f6" },
+    { nome: "Gastos fixos", valor: dre.gastosFixos, cor: "#f59e0b" },
+    { nome: "Outros gastos", valor: dre.outrosGastos, cor: "#ef4444" },
+    ...(dre.prejuizosOpTotal > 0
+      ? [{ nome: "Prejuízos", valor: dre.prejuizosOpTotal, cor: "#8b5cf6" }]
+      : []),
+  ].filter((d) => d.valor > 0);
 
-  const html = `<!DOCTYPE html>
+  const totalPizza = pizzaData.reduce((s, d) => s + d.valor, 0);
+
+  let pizzaSVG = "";
+  if (totalPizza > 0) {
+    const cx = 110, cy = 110, r = 90;
+    let acum = -Math.PI / 2;
+    const fatias = pizzaData.map((d) => {
+      const pct = d.valor / totalPizza;
+      const ang = pct * 2 * Math.PI;
+      const x1 = cx + r * Math.cos(acum);
+      const y1 = cy + r * Math.sin(acum);
+      const fim = acum + ang;
+      const x2 = cx + r * Math.cos(fim);
+      const y2 = cy + r * Math.sin(fim);
+      const large = ang > Math.PI ? 1 : 0;
+      // Caso de uma única fatia (100%), desenha círculo
+      const path =
+        pct >= 0.999
+          ? `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy} Z`
+          : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+      acum = fim;
+      return { path, ...d, pct: pct * 100 };
+    });
+    pizzaSVG = `
+      <div class="pizza-wrap">
+        <svg viewBox="0 0 220 220" width="240" height="240" xmlns="http://www.w3.org/2000/svg">
+          ${fatias
+            .map(
+              (f) => `<path d="${f.path}" fill="${f.cor}" stroke="#fff" stroke-width="2"/>`
+            )
+            .join("")}
+        </svg>
+        <ul class="pizza-legend">
+          ${fatias
+            .map(
+              (f) => `
+            <li>
+              <span class="dot" style="background:${f.cor}"></span>
+              <span class="lname">${escapeHtml(f.nome)}</span>
+              <span class="lval">${fmt(f.valor)} <em>(${f.pct.toFixed(1)}%)</em></span>
+            </li>`
+            )
+            .join("")}
+        </ul>
+      </div>`;
+  }
+
+  const nomeEmpresa = escapeHtml(formatarNomeEmpresa(empresa.nome));
+  const cnpjLine = empresa.cnpj
+    ? `<div class="meta">CNPJ ${escapeHtml(empresa.cnpj)}</div>`
+    : "";
+  const dataGerada = `${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString(
+    "pt-BR",
+    { hour: "2-digit", minute: "2-digit" }
+  )}`;
+
+  const html = `<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>DRE ${nomeMesCapital} — ${empresa.nome}</title>
+<meta charset="utf-8" />
+<title>DRE — ${nomeEmpresa} — ${nomeMesCapital}</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: A4; margin: 16mm; }
+  * { box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Manrope", "Inter", sans-serif;
-    font-size: 11pt; line-height: 1.5; color: #1a1a1a; background: #f5f5f5;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #111827;
+    margin: 0;
+    background: #f3f4f6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .page {
-    max-width: 210mm; min-height: 297mm; margin: 10mm auto;
-    padding: 0 0 15mm 0; background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: #fff;
+    max-width: 210mm;
+    margin: 16px auto;
+    padding: 24px 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,.08);
   }
   .header {
-    background: #00C896; color: white; padding: 12mm 15mm;
-    display: flex; justify-content: space-between; align-items: flex-end;
+    background: linear-gradient(135deg, #00C896 0%, #00a37a 100%);
+    color: #fff;
+    padding: 22px 26px;
+    border-radius: 12px;
+    margin-bottom: 22px;
   }
-  .header h1 { font-size: 20pt; font-weight: 700; letter-spacing: -0.5pt; line-height: 1.1; }
-  .header .empresa-info { text-align: right; font-size: 9pt; line-height: 1.4; opacity: 0.95; }
-  .content { padding: 8mm 15mm 0 15mm; }
-  .titulo-secao { margin: 0 0 6mm 0; }
-  .titulo-secao h2 { font-size: 18pt; font-weight: 700; color: #1a1a1a; letter-spacing: -0.3pt; }
-  .titulo-secao .subtitulo { font-size: 10pt; color: #666; margin-top: 1mm; }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 6mm 0; }
-  .kpi-card {
-    border-left: 1mm solid #00C896; background: #f8f9fa;
-    padding: 4mm; page-break-inside: avoid;
+  .header h1 {
+    margin: 0 0 6px;
+    font-size: 22pt;
+    letter-spacing: 2px;
+    font-weight: 800;
   }
-  .kpi-card.green  { border-color: #22c55e; }
-  .kpi-card.blue   { border-color: #3b82f6; }
-  .kpi-card.purple { border-color: #8b5cf6; }
-  .kpi-card.orange { border-color: #f59e0b; }
-  .kpi-card .label {
-    font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.6pt;
-    color: #666; font-weight: 600;
+  .header .meta { font-size: 10pt; opacity: .92; line-height: 1.5; }
+
+  h2.title { margin: 0 0 4px; font-size: 16pt; }
+  .subtitle { color: #6b7280; margin: 0 0 18px; font-size: 11pt; }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 22px;
   }
-  .kpi-card .valor { font-size: 14pt; font-weight: 700; margin-top: 2mm; color: #1a1a1a; line-height: 1.2; }
-  .kpi-card .sub { font-size: 8pt; color: #666; margin-top: 1mm; }
-  .dre-table { width: 100%; border-collapse: collapse; margin: 4mm 0; font-size: 10pt; }
-  .dre-table .header-row td {
-    background: #f0f0f3; color: #444; font-size: 7.5pt; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.8pt;
-    padding: 3mm 3mm 2mm 3mm; border-bottom: 0.3mm solid #d4d4d8;
+  .kpi {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fafafa;
   }
-  .dre-table td { padding: 2.5mm 3mm; border-bottom: 0.1mm solid #f0f0f0; }
-  .dre-table td.valor { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .dre-table tr.bold td { font-weight: 700; }
-  .dre-table tr.total td {
-    border-top: 0.3mm solid #000; border-bottom: 0.3mm solid #000;
-    padding-top: 3mm; padding-bottom: 3mm;
+  .kpi .l { font-size: 8.5pt; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }
+  .kpi .v { font-size: 14pt; font-weight: 700; margin-top: 4px; color: #111827; }
+  .kpi .h { font-size: 8pt; color: #9ca3af; margin-top: 2px; }
+
+  table.dre {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5pt;
   }
-  .dre-table tr.destaque td { background: #f0fdf4; }
-  .dre-table tr.negativo td.valor { color: #dc2626; }
-  .graficos-secao {
-    margin-top: 10mm; page-break-before: always; padding-top: 8mm;
+  table.dre td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #f3f4f6;
   }
-  .graficos-secao h2 { font-size: 16pt; font-weight: 700; margin-bottom: 6mm; color: #1a1a1a; }
-  .graficos-container svg { max-width: 100%; height: auto; }
-  .rodape {
-    margin: 10mm 15mm 0 15mm; padding-top: 4mm; border-top: 0.2mm solid #ddd;
-    font-size: 8pt; color: #888; display: flex; justify-content: space-between;
+  table.dre td.val { text-align: right; font-variant-numeric: tabular-nums; }
+  table.dre tr.section-header td {
+    background: #f9fafb;
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 9pt;
+    letter-spacing: 1px;
+    padding: 10px;
+    border-bottom: 1px solid #e5e7eb;
+    border-top: 1px solid #e5e7eb;
   }
-  @page { size: A4; margin: 0; }
-  @media print {
-    body { background: white; margin: 0; }
-    .page { margin: 0; box-shadow: none; }
-    .no-print { display: none !important; }
+  table.dre tr.bold td { font-weight: 700; }
+  table.dre tr.total td { background: #f9fafb; }
+  table.dre tr.destaque td { background: #ecfdf5; color: #065f46; }
+  table.dre tr.negativo td.val { color: #b91c1c; }
+  table.dre tr.distribuicao td {
+    background: #fffbeb;
+    color: #92400e;
+    font-weight: 600;
   }
+
+  .charts-section { margin-top: 26px; page-break-before: always; }
+  .charts-section h3 { margin: 0 0 4px; font-size: 14pt; }
+  .charts-section p.sub { margin: 0 0 14px; color: #6b7280; font-size: 10pt; }
+
+  .pizza-wrap {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .pizza-legend { list-style: none; padding: 0; margin: 0; flex: 1; }
+  .pizza-legend li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 10.5pt;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+  .pizza-legend li:last-child { border-bottom: none; }
+  .pizza-legend .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .pizza-legend .lname { flex: 1; font-weight: 600; }
+  .pizza-legend .lval { font-variant-numeric: tabular-nums; color: #374151; }
+  .pizza-legend em { color: #6b7280; font-style: normal; }
+
+  .charts-extra {
+    margin-top: 22px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff;
+  }
+  .charts-extra h4 { margin: 0 0 10px; font-size: 12pt; }
+
+  .footer {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    color: #9ca3af;
+    font-size: 9pt;
+  }
+
   .controls {
-    position: fixed; top: 1rem; right: 1rem; background: white;
-    padding: 8px 12px; border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
-    z-index: 9999; display: flex; gap: 8px;
+    position: fixed;
+    top: 12px; right: 12px;
+    background: #fff;
+    padding: 8px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    z-index: 9999;
+    display: flex; gap: 6px;
   }
   .controls button {
-    padding: 8px 16px; border: none; border-radius: 6px;
-    font-weight: 600; cursor: pointer; font-size: 11pt;
+    padding: 8px 14px; border: none; border-radius: 6px;
+    font-weight: 600; cursor: pointer; font-size: 10pt;
   }
-  .controls button:hover { opacity: 0.85; }
-  .btn-print { background: #00C896; color: white; }
-  .btn-close { background: #f0f0f0; color: #333; }
+  .btn-print { background: #00C896; color: #fff; }
+  .btn-close { background: #f3f4f6; color: #374151; }
+
+  @media print {
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; padding: 0; max-width: none; }
+    .controls { display: none !important; }
+  }
 </style>
 </head>
 <body>
-  <div class="controls no-print">
+  <div class="controls">
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
     <button class="btn-close" onclick="window.close()">Fechar</button>
   </div>
+
   <div class="page">
     <div class="header">
-      <div>
-        <h1>${empresa.nome.toUpperCase()}</h1>
-      </div>
-      <div class="empresa-info">
-        ${empresa.cnpj ? `CNPJ ${empresa.cnpj}<br>` : ""}
-        Gerado em ${dataGer} às ${horaGer}
-      </div>
+      <h1>${nomeEmpresa}</h1>
+      ${cnpjLine}
+      <div class="meta">Gerado em ${dataGerada}</div>
     </div>
-    <div class="content">
-      <div class="titulo-secao">
-        <h2>Demonstrativo de Resultado</h2>
-        <div class="subtitulo">Competência: ${nomeMesCapital}</div>
-      </div>
-      <div class="kpis">
-        <div class="kpi-card green">
-          <div class="label">Receita Bruta</div>
-          <div class="valor">${fmt(dre.receitaBruta)}</div>
-          <div class="sub">Total faturado no mês</div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="label">Lucro Bruto</div>
-          <div class="valor">${fmt(dre.lucroBruto)}</div>
-          <div class="sub">Receita menos custos</div>
-        </div>
-        <div class="kpi-card purple">
-          <div class="label">EBITDA</div>
-          <div class="valor">${fmt(dre.ebitda)}</div>
-          <div class="sub">Resultado operacional</div>
-        </div>
-        <div class="kpi-card orange">
-          <div class="label">Margem Líquida</div>
-          <div class="valor">${fmtPct(margem)}</div>
-          <div class="sub">EBITDA / Receita Bruta</div>
-        </div>
-      </div>
-      <table class="dre-table">
-        <tbody>${linhasHTML}</tbody>
-      </table>
+
+    <h2 class="title">Demonstrativo de Resultado</h2>
+    <p class="subtitle">Competência: ${nomeMesCapital}</p>
+
+    <div class="kpis">
+      <div class="kpi"><div class="l">Receita Bruta</div><div class="v">${fmt(dre.receitaBruta)}</div><div class="h">Total faturado</div></div>
+      <div class="kpi"><div class="l">Lucro Bruto</div><div class="v">${fmt(dre.lucroBruto)}</div><div class="h">Receita − custos</div></div>
+      <div class="kpi"><div class="l">EBITDA</div><div class="v">${fmt(dre.ebitda)}</div><div class="h">Resultado operacional</div></div>
+      <div class="kpi"><div class="l">Margem</div><div class="v">${fmtPct(margem)}</div><div class="h">EBITDA / Receita</div></div>
+    </div>
+
+    <table class="dre"><tbody>${linhasHTML}</tbody></table>
+
+    <div class="charts-section">
+      <h3>Análise Visual</h3>
+      <p class="sub">Distribuição de custos e despesas operacionais</p>
+      ${pizzaSVG || '<p style="color:#9ca3af">Sem dados de custos para o período.</p>'}
       ${
         graficosHTML
-          ? `<div class="graficos-secao">
-              <h2>Análise Visual</h2>
-              <div class="graficos-container">${graficosHTML}</div>
-            </div>`
+          ? `<div class="charts-extra"><h4>Últimos 6 meses</h4>${graficosHTML}</div>`
           : ""
       }
     </div>
-    <div class="rodape">
-      <span>${empresa.nome} — DRE ${nomeMesCapital}</span>
-      <span>Documento gerado automaticamente pelo Ditt Software</span>
+
+    <div class="footer">
+      <span>${nomeEmpresa} — DRE ${nomeMesCapital}</span>
+      <span>Documento gerado pelo Ditt Software</span>
     </div>
   </div>
 </body>
