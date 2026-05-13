@@ -5008,6 +5008,62 @@ export type Database = {
           },
         ]
       }
+      tv_paineis: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          id: string
+          intervalo_refresh_segundos: number
+          nome: string
+          orientacao: string
+          tema: string
+          ultimo_acesso_em: string | null
+          updated_at: string
+          widgets: Json
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          id?: string
+          intervalo_refresh_segundos?: number
+          nome: string
+          orientacao?: string
+          tema?: string
+          ultimo_acesso_em?: string | null
+          updated_at?: string
+          widgets?: Json
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          id?: string
+          intervalo_refresh_segundos?: number
+          nome?: string
+          orientacao?: string
+          tema?: string
+          ultimo_acesso_em?: string | null
+          updated_at?: string
+          widgets?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_paineis_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           ativo: boolean
@@ -5429,6 +5485,7 @@ export type Database = {
         }
         Returns: Json
       }
+      gerar_codigo_tv: { Args: never; Returns: string }
       gerar_folha_mensal: { Args: { p_competencia: string }; Returns: Json }
       gerar_folha_mensal_completa: {
         Args: { p_competencia: string; p_dia_vencimento?: number }
@@ -5749,6 +5806,29 @@ export type Database = {
         Returns: Json
       }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      tv_atualizar_painel: {
+        Args: {
+          p_intervalo_refresh?: number
+          p_nome?: string
+          p_orientacao?: string
+          p_painel_id: string
+          p_tema?: string
+          p_widgets?: Json
+        }
+        Returns: Json
+      }
+      tv_criar_painel: {
+        Args: {
+          p_intervalo_refresh?: number
+          p_nome: string
+          p_orientacao?: string
+          p_tema?: string
+          p_widgets: Json
+        }
+        Returns: Json
+      }
+      tv_get_painel_data: { Args: { p_codigo: string }; Returns: Json }
+      tv_regenerar_codigo: { Args: { p_painel_id: string }; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
       unaccent_lower: { Args: { txt: string }; Returns: string }
       verificar_lojista_por_email: {
