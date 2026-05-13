@@ -143,3 +143,43 @@ export function useTVPainelDados(codigo: string | null, intervaloMs = 30000) {
     staleTime: Math.max(intervaloMs - 5000, 5000),
   });
 }
+
+export function useAtualizarLayoutTV() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      painel_id: string;
+      layout?: any[];
+      tamanho_fonte?: "P" | "M" | "G";
+      logo_url?: string;
+    }) => {
+      const { error } = await supabase.rpc("tv_atualizar_layout" as any, {
+        p_painel_id: params.painel_id,
+        p_layout: (params.layout ?? []) as any,
+        p_tamanho_fonte: params.tamanho_fonte ?? null,
+        p_logo_url: params.logo_url ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tv-paineis"] });
+      toast.success("Layout salvo");
+    },
+    onError: (err: any) => toast.error(err.message ?? "Erro ao salvar"),
+  });
+}
+
+export function useUploadLogoTV() {
+  return useMutation({
+    mutationFn: async (params: { empresa_id: string; file: File }) => {
+      const ext = params.file.name.split(".").pop();
+      const fileName = `${params.empresa_id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("tv-logos")
+        .upload(fileName, params.file, { upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("tv-logos").getPublicUrl(fileName);
+      return data.publicUrl;
+    },
+  });
+}
