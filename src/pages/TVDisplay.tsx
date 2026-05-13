@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useTVPainelDados } from "@/hooks/useTVPaineis";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Responsive, WidthProvider, type LayoutItem } from "react-grid-layout/legacy";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -27,10 +27,29 @@ export default function TVDisplay() {
   const { codigo } = useParams<{ codigo: string }>();
   const { data, isLoading, error } = useTVPainelDados(codigo ?? null);
   const [hora, setHora] = useState(new Date());
+  const containerRef = useRef<HTMLElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 1920, height: 1080 });
 
   useEffect(() => {
     const i = setInterval(() => setHora(new Date()), 1000);
     return () => clearInterval(i);
+  }, []);
+
+  useEffect(() => {
+    const medir = () => {
+      if (containerRef.current) {
+        const r = containerRef.current.getBoundingClientRect();
+        setContainerSize({ width: r.width, height: r.height });
+      }
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener("resize", medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", medir);
+    };
   }, []);
 
   useEffect(() => {
@@ -80,10 +99,17 @@ export default function TVDisplay() {
     }));
   const layout: LayoutItem[] = [...salvo, ...faltantes];
 
+  const MARGIN_Y = 12;
+  const maxRows = Math.max(...layout.map((l) => (l.y || 0) + (l.h || 1)), 1);
+  const rowHeight = Math.max(
+    50,
+    Math.min(260, (containerSize.height - (maxRows + 1) * MARGIN_Y - 16) / maxRows)
+  );
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#0a0a0a] text-white flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-[#00C896]/10 to-transparent">
+      <header className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-gradient-to-r from-[#00C896]/10 to-transparent">
         <div className="flex items-center gap-4">
           {painel.logo_url ? (
             <img
@@ -128,20 +154,21 @@ export default function TVDisplay() {
         </div>
       </header>
 
-      {/* Body grid via react-grid-layout (read-only) */}
-      <main className="flex-1 p-4">
+      {/* Body grid via react-grid-layout (read-only) — auto-scale */}
+      <main ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
         <ResponsiveGridLayout
           className="layout"
           layouts={{ lg: layout }}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 12, sm: 12, xs: 6, xxs: 4 }}
-          rowHeight={80}
+          rowHeight={rowHeight}
           isDraggable={false}
           isResizable={false}
-          margin={[12, 12]}
+          margin={[MARGIN_Y, MARGIN_Y]}
+          containerPadding={[8, 8]}
         >
           {layout.map((item) => (
-            <div key={item.i} className="bg-[#131313] border border-white/5 rounded-lg p-4 overflow-hidden">
+            <div key={item.i} className="bg-[#131313] border border-white/5 rounded-lg p-3 overflow-hidden">
               {renderWidget(item.i, dados, hora, fontes)}
             </div>
           ))}
@@ -149,7 +176,7 @@ export default function TVDisplay() {
       </main>
 
       {/* Faixa scroll */}
-      <footer className="bg-[#00C896] text-black overflow-hidden py-2">
+      <footer className="flex-shrink-0 bg-[#00C896] text-black overflow-hidden py-2">
         <div className="flex gap-12 whitespace-nowrap animate-marquee font-semibold text-sm">
           {[
             `💡 ${dados.kpis?.oss_hoje ?? 0} OSs entregues hoje`,

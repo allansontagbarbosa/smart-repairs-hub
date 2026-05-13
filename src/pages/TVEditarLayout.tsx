@@ -34,6 +34,7 @@ export default function TVEditarLayout() {
   const [tamanhoFonte, setTamanhoFonte] = useState<"P" | "M" | "G">("M");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [selectorAberto, setSelectorAberto] = useState(false);
+  const [resizingInfo, setResizingInfo] = useState<{ id: string; w: number; h: number } | null>(null);
 
   useEffect(() => {
     if (painel) {
@@ -257,17 +258,23 @@ export default function TVEditarLayout() {
             cols={{ lg: 12, md: 12, sm: 12, xs: 6, xxs: 4 }}
             rowHeight={70}
             onLayoutChange={(l) => setLayout(l as LayoutItem[])}
+            onResize={(_l, _o, n) => setResizingInfo({ id: n.i, w: n.w, h: n.h })}
+            onResizeStop={() => setResizingInfo(null)}
             isDraggable
             isResizable
+            resizeHandles={["se"]}
             margin={[12, 12]}
             draggableCancel=".no-drag"
           >
             {layout.map((item) => {
               const meta = getWidget(item.i);
+              const isResizing = resizingInfo?.id === item.i;
+              const curW = isResizing ? resizingInfo!.w : item.w;
+              const curH = isResizing ? resizingInfo!.h : item.h;
               return (
                 <div
                   key={item.i}
-                  className="group relative bg-[#131313] border-2 border-[#00C896]/30 rounded-lg p-3 flex flex-col justify-between cursor-move overflow-hidden"
+                  className="group relative bg-[#131313] border-2 border-[#00C896]/30 rounded-lg p-3 flex flex-col justify-between cursor-move overflow-hidden hover:border-[#00C896]"
                 >
                   <button
                     type="button"
@@ -280,8 +287,19 @@ export default function TVEditarLayout() {
                   <div className="text-white text-sm font-semibold pr-7">
                     {meta?.icon ?? "📦"} {meta?.nome ?? item.i}
                   </div>
-                  <div className="text-[10px] text-white/50 text-right font-mono">
-                    {item.w} col × {item.h} lin
+                  <div className="flex items-center justify-between">
+                    <div
+                      className={`text-[11px] font-mono px-2 py-1 rounded transition-all ${
+                        isResizing
+                          ? "bg-[#00C896] text-black font-bold scale-110"
+                          : "bg-white/5 text-white/60"
+                      }`}
+                    >
+                      {curW} col × {curH} lin
+                    </div>
+                    <div className="text-[9px] text-white/40 opacity-0 group-hover:opacity-100 transition">
+                      ↘ puxe pra redimensionar
+                    </div>
                   </div>
                 </div>
               );

@@ -213,6 +213,55 @@ body.compact .section-header {
   @apply px-3 py-2.5;
 }
 
+/* react-grid-layout — handles visíveis e indicadores */
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  z-index: 10;
+}
+.react-grid-item > .react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid #00C896;
+  border-bottom: 2px solid #00C896;
+  border-bottom-right-radius: 2px;
+}
+.react-grid-item.react-grid-placeholder {
+  background: rgba(0, 200, 150, 0.2) !important;
+  border: 2px dashed #00C896 !important;
+  border-radius: 8px !important;
+  opacity: 0.6;
+  transition: all 100ms ease;
+  z-index: 2;
+  user-select: none;
+}
+.react-grid-item.resizing {
+  z-index: 3;
+  will-change: width, height;
+  outline: 2px solid #00C896;
+  outline-offset: 2px;
+}
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+  opacity: 0.85;
+  cursor: grabbing;
+}
+.react-grid-item:hover > .react-resizable-handle::after {
+  border-color: #00ffaf;
+  width: 12px;
+  height: 12px;
+}
+
 /* Print: always white background */
 @media print {
   .dark {
