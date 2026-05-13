@@ -34,6 +34,7 @@ export default function TVEditarLayout() {
   const [tamanhoFonte, setTamanhoFonte] = useState<"P" | "M" | "G">("M");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [selectorAberto, setSelectorAberto] = useState(false);
+  const [resizingInfo, setResizingInfo] = useState<{ id: string; w: number; h: number } | null>(null);
 
   useEffect(() => {
     if (painel) {
