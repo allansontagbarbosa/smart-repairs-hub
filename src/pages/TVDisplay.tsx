@@ -27,10 +27,29 @@ export default function TVDisplay() {
   const { codigo } = useParams<{ codigo: string }>();
   const { data, isLoading, error } = useTVPainelDados(codigo ?? null);
   const [hora, setHora] = useState(new Date());
+  const containerRef = useRef<HTMLElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 1920, height: 1080 });
 
   useEffect(() => {
     const i = setInterval(() => setHora(new Date()), 1000);
     return () => clearInterval(i);
+  }, []);
+
+  useEffect(() => {
+    const medir = () => {
+      if (containerRef.current) {
+        const r = containerRef.current.getBoundingClientRect();
+        setContainerSize({ width: r.width, height: r.height });
+      }
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener("resize", medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", medir);
+    };
   }, []);
 
   useEffect(() => {
