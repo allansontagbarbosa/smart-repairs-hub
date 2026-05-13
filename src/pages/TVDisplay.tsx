@@ -99,6 +99,13 @@ export default function TVDisplay() {
     }));
   const layout: LayoutItem[] = [...salvo, ...faltantes];
 
+  const MARGIN_Y = 12;
+  const maxRows = Math.max(...layout.map((l) => (l.y || 0) + (l.h || 1)), 1);
+  const rowHeight = Math.max(
+    50,
+    Math.min(260, (containerSize.height - (maxRows + 1) * MARGIN_Y - 16) / maxRows)
+  );
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
       {/* Header */}
