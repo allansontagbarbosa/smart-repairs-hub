@@ -185,6 +185,9 @@ export default function TVConfigurar() {
                 </p>
               </div>
               <div className="flex gap-1">
+                <Button size="icon" variant="ghost" onClick={() => navigate(`/tv/editar/${p.id}`)} title="Editar layout">
+                  <Pencil className="h-4 w-4" />
+                </Button>
                 <Button size="icon" variant="ghost" onClick={() => copiarCodigo(p.codigo)} title="Copiar código">
                   <Copy className="h-4 w-4" />
                 </Button>
