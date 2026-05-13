@@ -38,17 +38,17 @@ export default function TVEditarLayout() {
   const uploadLogo = useUploadLogoTV();
 
   const painel = paineis.find((p) => p.id === painelId);
-  const [layout, setLayout] = useState<Layout[]>([]);
+  const [layout, setLayout] = useState<LayoutItem[]>([]);
   const [tamanhoFonte, setTamanhoFonte] = useState<"P" | "M" | "G">("M");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (painel) {
       // garantir que todos os widgets têm posição
-      const existentes = (painel.layout || []) as Layout[];
+      const existentes = (painel.layout || []) as LayoutItem[];
       const ids = new Set(existentes.map((l) => l.i));
       const faltando = (painel.widgets || []).filter((w) => !ids.has(w));
-      const novos: Layout[] = faltando.map((w, i) => ({
+      const novos: LayoutItem[] = faltando.map((w, i) => ({
         i: w,
         x: ((existentes.length + i) % 3) * 4,
         y: Math.floor((existentes.length + i) / 3) * 2,
