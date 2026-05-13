@@ -357,8 +357,16 @@ function KPICard({ color, label, value, sub }: any) {
 }
 
 function Widget({ title, children, colSpan = 6 }: any) {
+  const spanCls: Record<number, string> = {
+    3: "lg:col-span-3",
+    4: "lg:col-span-4",
+    6: "lg:col-span-6",
+    8: "lg:col-span-8",
+    9: "lg:col-span-9",
+    12: "lg:col-span-12",
+  };
   return (
-    <div className={`col-span-12 lg:col-span-${colSpan} bg-[#131313] border border-white/5 rounded-lg p-5`}>
+    <div className={`col-span-12 ${spanCls[colSpan] ?? "lg:col-span-6"} bg-[#131313] border border-white/5 rounded-lg p-5`}>
       <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider mb-3">{title}</h3>
       {children}
     </div>
