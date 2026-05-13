@@ -13,6 +13,9 @@ export interface TVPainel {
   ativo: boolean;
   ultimo_acesso_em: string | null;
   created_at: string;
+  layout: any[];
+  logo_url: string | null;
+  tamanho_fonte: "P" | "M" | "G";
 }
 
 export function useTVPaineis() {
