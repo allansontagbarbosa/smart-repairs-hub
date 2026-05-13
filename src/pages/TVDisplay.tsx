@@ -176,7 +176,7 @@ export default function TVDisplay() {
       </main>
 
       {/* Faixa scroll */}
-      <footer className="bg-[#00C896] text-black overflow-hidden py-2">
+      <footer className="flex-shrink-0 bg-[#00C896] text-black overflow-hidden py-2">
         <div className="flex gap-12 whitespace-nowrap animate-marquee font-semibold text-sm">
           {[
             `💡 ${dados.kpis?.oss_hoje ?? 0} OSs entregues hoje`,
