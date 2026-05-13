@@ -372,24 +372,26 @@ export function RelDRE() {
         </CardContent>
       </Card>
 
-      {/* Chart */}
-      <Card className="print:hidden">
-        <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData ?? []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => fmt(v)} />
-              <Legend />
-              <Bar dataKey="Receita" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
-              <Bar dataKey="Gastos" fill="hsl(var(--destructive))" radius={[4,4,0,0]} />
-              <Bar dataKey="Lucro" fill="hsl(var(--chart-2))" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Chart — wrapper capturado para impressão */}
+      <div className="dre-charts-print">
+        <Card className="print:hidden">
+          <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData ?? []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mes" />
+                <YAxis tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v: number) => fmt(v)} />
+                <Legend />
+                <Bar dataKey="Receita" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+                <Bar dataKey="Gastos" fill="hsl(var(--destructive))" radius={[4,4,0,0]} />
+                <Bar dataKey="Lucro" fill="hsl(var(--chart-2))" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
