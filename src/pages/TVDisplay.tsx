@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useTVPainelDados } from "@/hooks/useTVPaineis";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Responsive, WidthProvider, type LayoutItem } from "react-grid-layout/legacy";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
