@@ -107,9 +107,9 @@ export default function TVDisplay() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#0a0a0a] text-white flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-[#00C896]/10 to-transparent">
+      <header className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-gradient-to-r from-[#00C896]/10 to-transparent">
         <div className="flex items-center gap-4">
           {painel.logo_url ? (
             <img
@@ -154,20 +154,21 @@ export default function TVDisplay() {
         </div>
       </header>
 
-      {/* Body grid via react-grid-layout (read-only) */}
-      <main className="flex-1 p-4">
+      {/* Body grid via react-grid-layout (read-only) — auto-scale */}
+      <main ref={containerRef} className="flex-1 min-h-0 overflow-hidden">
         <ResponsiveGridLayout
           className="layout"
           layouts={{ lg: layout }}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 12, sm: 12, xs: 6, xxs: 4 }}
-          rowHeight={80}
+          rowHeight={rowHeight}
           isDraggable={false}
           isResizable={false}
-          margin={[12, 12]}
+          margin={[MARGIN_Y, MARGIN_Y]}
+          containerPadding={[8, 8]}
         >
           {layout.map((item) => (
-            <div key={item.i} className="bg-[#131313] border border-white/5 rounded-lg p-4 overflow-hidden">
+            <div key={item.i} className="bg-[#131313] border border-white/5 rounded-lg p-3 overflow-hidden">
               {renderWidget(item.i, dados, hora, fontes)}
             </div>
           ))}
