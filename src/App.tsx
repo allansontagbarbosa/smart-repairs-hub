@@ -176,6 +176,7 @@ const App = () => (
                     <Route path="/rh/:id" element={<RHFuncionario />} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
+                    <Route path="/tv/configurar" element={<ProtectedRoute permissao="configuracoes"><TVConfigurar /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
