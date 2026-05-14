@@ -173,6 +173,7 @@ export default function ClientePerfil() {
       <AcessoPortalSection
         clienteId={cliente.id}
         clienteNome={cliente.nome}
+        clienteEmail={(cliente as any).email}
         clienteTelefone={(cliente as any).telefone}
         tipoCliente={((cliente as any).tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
       />
