@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Ditt Software <onboarding@resend.dev>",
+        from: "Ditt Software <convites@ditt.com.br>",
         to: [cliente.email],
         subject: "Seu acesso ao portal Ditt",
         html: htmlEmail({ nome: cliente.nome, link, expira }),
