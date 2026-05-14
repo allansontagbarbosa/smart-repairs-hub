@@ -3590,6 +3590,9 @@ export type Database = {
           obs_cliente: string | null
           observacoes: string | null
           orcamento_aprovado_em: string | null
+          orcamento_decidido_por_user: string | null
+          orcamento_motivo_reprovacao: string | null
+          orcamento_reprovado_em: string | null
           os_origem_id: string | null
           prazo_vencido: boolean
           previsao_entrega: string | null
@@ -3661,6 +3664,9 @@ export type Database = {
           obs_cliente?: string | null
           observacoes?: string | null
           orcamento_aprovado_em?: string | null
+          orcamento_decidido_por_user?: string | null
+          orcamento_motivo_reprovacao?: string | null
+          orcamento_reprovado_em?: string | null
           os_origem_id?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
@@ -3732,6 +3738,9 @@ export type Database = {
           obs_cliente?: string | null
           observacoes?: string | null
           orcamento_aprovado_em?: string | null
+          orcamento_decidido_por_user?: string | null
+          orcamento_motivo_reprovacao?: string | null
+          orcamento_reprovado_em?: string | null
           os_origem_id?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
@@ -5566,6 +5575,13 @@ export type Database = {
           tipo: string
         }[]
       }
+      get_my_cliente_lojista: {
+        Args: never
+        Returns: {
+          cliente_id: string
+          empresa_id: string
+        }[]
+      }
       get_my_empresa_id: { Args: never; Returns: string }
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_permissoes: { Args: never; Returns: Json }
@@ -5735,6 +5751,17 @@ export type Database = {
           p_forma_pagamento?: string
           p_movimentacao_ids: string[]
         }
+        Returns: Json
+      }
+      portal_aprovar_orcamento: { Args: { p_os_id: string }; Returns: Json }
+      portal_dashboard_lojista: { Args: never; Returns: Json }
+      portal_detalhe_ordem: { Args: { p_os_id: string }; Returns: Json }
+      portal_listar_ordens: {
+        Args: { p_status_filter?: string }
+        Returns: Json
+      }
+      portal_reprovar_orcamento: {
+        Args: { p_motivo?: string; p_os_id: string }
         Returns: Json
       }
       prejuizos_evolucao_mensal: { Args: { p_meses?: number }; Returns: Json }
