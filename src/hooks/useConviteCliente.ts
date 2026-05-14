@@ -15,11 +15,13 @@ export type StatusConvite = "pendente" | "aceito" | "revogado" | "expirado" | nu
 
 export interface ClienteConviteRow {
   id: string;
+  email: string | null;
   user_id: string | null;
   convite_token: string | null;
   convite_enviado_em: string | null;
   convite_aceito_em: string | null;
   convite_expira_em: string | null;
+  convite_email_enviado_em: string | null;
   status_convite: StatusConvite;
 }
 
@@ -30,7 +32,7 @@ export function useClienteConvite(clienteId: string | undefined) {
     queryFn: async (): Promise<ClienteConviteRow | null> => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, user_id, convite_token, convite_enviado_em, convite_aceito_em, convite_expira_em, status_convite")
+        .select("id, email, user_id, convite_token, convite_enviado_em, convite_aceito_em, convite_expira_em, convite_email_enviado_em, status_convite")
         .eq("id", clienteId!)
         .maybeSingle();
       if (error) throw error;
@@ -42,21 +44,43 @@ export function useClienteConvite(clienteId: string | undefined) {
 export function useCriarConvite() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (clienteId: string): Promise<ConviteResult> => {
+    mutationFn: async (args: { clienteId: string; email?: string }): Promise<ConviteResult> => {
       const { data, error } = await supabase.rpc("criar_convite_cliente" as any, {
-        p_cliente_id: clienteId,
+        p_cliente_id: args.clienteId,
+        p_email: args.email ?? null,
       });
       if (error) throw error;
       const r = data as ConviteResult;
       if (!r.success) throw new Error(r.error ?? "Erro ao criar convite");
       return r;
     },
-    onSuccess: (_, clienteId) => {
-      qc.invalidateQueries({ queryKey: ["cliente-convite", clienteId] });
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["cliente-convite", vars.clienteId] });
       qc.invalidateQueries({ queryKey: ["clientes"] });
       toast.success("Convite gerado");
     },
     onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
+export function useEnviarConviteEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (clienteId: string) => {
+      const { data, error } = await supabase.functions.invoke("enviar-convite-email", {
+        body: { cliente_id: clienteId },
+      });
+      if (error) throw error;
+      if (!(data as any)?.success) {
+        throw new Error((data as any)?.error ?? "Erro ao enviar email");
+      }
+      return data;
+    },
+    onSuccess: (_, clienteId) => {
+      qc.invalidateQueries({ queryKey: ["cliente-convite", clienteId] });
+      toast.success("Convite enviado por email");
+    },
+    onError: (e: Error) => toast.error(`Erro no envio: ${e.message}`),
   });
 }
 

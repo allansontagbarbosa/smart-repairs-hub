@@ -1,41 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { Copy, MessageCircle, Loader2, ShieldCheck, Clock, XCircle, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  useClienteConvite, useCriarConvite, useRevogarConvite,
+  Copy, MessageCircle, Loader2, ShieldCheck, Clock, XCircle, Mail, MailCheck, Send,
+} from "lucide-react";
+import {
+  useClienteConvite, useCriarConvite, useEnviarConviteEmail, useRevogarConvite,
 } from "@/hooks/useConviteCliente";
 import { toast } from "sonner";
 
-const PORTAL_URL = (import.meta.env.VITE_PORTAL_URL as string | undefined) ?? "https://portal.ditt.com";
+const PORTAL_URL = (import.meta.env.VITE_PORTAL_URL as string | undefined) ?? "https://ditt-portal-loki.lovable.app";
 
 interface Props {
   clienteId: string;
   clienteNome: string;
+  clienteEmail?: string | null;
   clienteTelefone?: string | null;
   tipoCliente: "lojista_b2b" | "consumidor_b2c";
 }
 
 const dt = (s?: string | null) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function AcessoPortalSection({ clienteId, clienteNome, clienteTelefone, tipoCliente }: Props) {
+export function AcessoPortalSection({ clienteId, clienteNome, clienteEmail, clienteTelefone, tipoCliente }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [tokenAtual, setTokenAtual] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState(clienteEmail ?? "");
   const { data: convite } = useClienteConvite(clienteId);
   const criar = useCriarConvite();
+  const enviarEmail = useEnviarConviteEmail();
   const revogar = useRevogarConvite();
+
+  useEffect(() => {
+    setEmailInput(convite?.email ?? clienteEmail ?? "");
+  }, [convite?.email, clienteEmail]);
 
   if (tipoCliente !== "lojista_b2b") return null;
 
   const link = (token: string) => `${PORTAL_URL}/aceitar-convite/${token}`;
+  const ocupado = criar.isPending || enviarEmail.isPending;
 
-  async function gerar() {
-    const r = await criar.mutateAsync(clienteId);
-    if (r.token) {
-      setTokenAtual(r.token);
-      setModalOpen(true);
+  function abrirModal() {
+    setEmailInput(convite?.email ?? clienteEmail ?? "");
+    setModalOpen(true);
+  }
+
+  async function handleConfirmar() {
+    const email = emailInput.trim();
+    if (!EMAIL_RE.test(email)) {
+      toast.error("Email inválido");
+      return;
+    }
+    try {
+      const r = await criar.mutateAsync({ clienteId, email });
+      if (r.success) {
+        setModalOpen(false);
+        await enviarEmail.mutateAsync(clienteId);
+      }
+    } catch {
+      // erros já tostados nos hooks
     }
   }
 
@@ -53,7 +79,7 @@ export function AcessoPortalSection({ clienteId, clienteNome, clienteTelefone, t
     window.open(url, "_blank");
   }
 
-  // Estado: já aceitou
+  // ───── Estado: aceito ─────
   if (convite?.status_convite === "aceito" && convite.user_id) {
     return (
       <div className="rounded-lg border bg-card p-4">
@@ -78,29 +104,43 @@ export function AcessoPortalSection({ clienteId, clienteNome, clienteTelefone, t
     );
   }
 
-  // Estado: convite pendente
+  // ───── Estado: pendente ─────
   if (convite?.status_convite === "pendente" && convite.convite_token) {
     const token = convite.convite_token;
     return (
       <div className="rounded-lg border bg-card p-4">
         <h3 className="text-sm font-semibold text-foreground mb-3">Acesso ao portal</h3>
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Clock className="h-4 w-4 text-warning" />
             <span className="font-medium text-foreground">Convite pendente</span>
             <span className="text-xs text-muted-foreground">
-              · Enviado {dt(convite.convite_enviado_em)} · Expira {dt(convite.convite_expira_em)}
+              · Para {convite.email ?? "—"} · expira {dt(convite.convite_expira_em)}
             </span>
           </div>
+          {convite.convite_email_enviado_em && (
+            <div className="flex items-center gap-2 text-xs text-success">
+              <MailCheck className="h-3.5 w-3.5" />
+              Email enviado em {dt(convite.convite_email_enviado_em)}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => enviarEmail.mutate(clienteId)}
+              disabled={enviarEmail.isPending}
+              className="gap-2"
+            >
+              {enviarEmail.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              {convite.convite_email_enviado_em ? "Reenviar email" : "Enviar email"}
+            </Button>
             <Button size="sm" variant="outline" onClick={() => copiarLink(token)}>
-              <Copy className="h-3.5 w-3.5 mr-2" /> Copiar link
+              <Copy className="h-3.5 w-3.5 mr-2" /> Copiar
             </Button>
             <Button size="sm" variant="outline" onClick={() => abrirWhatsApp(token)}>
               <MessageCircle className="h-3.5 w-3.5 mr-2" /> WhatsApp
             </Button>
-            <Button size="sm" variant="outline" onClick={gerar} disabled={criar.isPending}>
-              {criar.isPending && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+            <Button size="sm" variant="outline" onClick={abrirModal} disabled={criar.isPending}>
               Gerar novo
             </Button>
             <Button
@@ -118,7 +158,9 @@ export function AcessoPortalSection({ clienteId, clienteNome, clienteTelefone, t
     );
   }
 
-  // Sem convite / revogado / expirado
+  // ───── Sem convite / revogado / expirado ─────
+  const semEmail = !convite?.email && !clienteEmail;
+
   return (
     <>
       <div className="rounded-lg border bg-card p-4">
@@ -129,42 +171,52 @@ export function AcessoPortalSection({ clienteId, clienteNome, clienteTelefone, t
             <p className="text-xs text-muted-foreground mt-1">
               {convite?.status_convite === "revogado" && "Acesso revogado anteriormente. "}
               {convite?.status_convite === "expirado" && "Convite anterior expirou. "}
-              Gere um link de convite pra esse lojista acessar o portal.
+              Vamos pedir o email e mandar o convite automaticamente.
             </p>
           </div>
-          <Button onClick={gerar} disabled={criar.isPending} className="gap-2">
-            {criar.isPending ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Gerando…</>
-            ) : (
-              <><Mail className="h-4 w-4" /> Convidar pra portal</>
-            )}
+          <Button onClick={abrirModal} disabled={ocupado} className="gap-2">
+            <Mail className="h-4 w-4" />
+            Convidar pra portal
           </Button>
         </div>
       </div>
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={(o) => !ocupado && setModalOpen(o)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convite gerado</DialogTitle>
+            <DialogTitle>Convidar {clienteNome}</DialogTitle>
             <DialogDescription>
-              Link válido por 7 dias. Compartilhe com {clienteNome} via WhatsApp ou copie pra enviar como preferir.
+              {semEmail
+                ? "Esse cliente não tem email cadastrado. Informe um agora pra receber o convite."
+                : "Confirme o email pra onde o convite será enviado."}
             </DialogDescription>
           </DialogHeader>
-          {tokenAtual && (
-            <div className="space-y-3">
-              <div className="rounded-md border bg-muted/50 p-3 font-mono text-xs break-all">
-                {link(tokenAtual)}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => abrirWhatsApp(tokenAtual)} className="gap-2">
-                  <MessageCircle className="h-4 w-4" /> Abrir WhatsApp
-                </Button>
-                <Button variant="outline" onClick={() => copiarLink(tokenAtual)} className="gap-2">
-                  <Copy className="h-4 w-4" /> Copiar link
-                </Button>
-              </div>
-            </div>
-          )}
+
+          <div className="space-y-2 py-2">
+            <Label htmlFor="email-convite">Email do lojista</Label>
+            <Input
+              id="email-convite"
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="contato@lojista.com.br"
+              disabled={ocupado}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              O email é salvo no cadastro do cliente e usado pra criar a conta no portal.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setModalOpen(false)} disabled={ocupado}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmar} disabled={ocupado} className="gap-2">
+              {ocupado && <Loader2 className="h-4 w-4 animate-spin" />}
+              {criar.isPending ? "Criando…" : enviarEmail.isPending ? "Enviando email…" : "Enviar convite"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
