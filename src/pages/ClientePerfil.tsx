@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TipoClienteSwitch } from "@/components/clientes/TipoClienteSwitch";
 import { AcessoPortalSection } from "@/components/clientes/AcessoPortalSection";
+import { DadosClienteEditavel } from "@/components/clientes/DadosClienteEditavel";
 
 type Periodo = "mes" | "3m" | "6m" | "custom";
 
