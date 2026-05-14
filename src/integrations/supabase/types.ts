@@ -567,6 +567,10 @@ export type Database = {
           cep: string | null
           cidade: string | null
           complemento: string | null
+          convite_aceito_em: string | null
+          convite_enviado_em: string | null
+          convite_expira_em: string | null
+          convite_token: string | null
           cpf: string | null
           created_at: string
           data_nascimento: string | null
@@ -583,6 +587,9 @@ export type Database = {
           origem: string | null
           rua: string | null
           status: string
+          status_convite:
+            | Database["public"]["Enums"]["status_convite_enum"]
+            | null
           telefone: string
           tipo_cliente: Database["public"]["Enums"]["tipo_cliente"]
           updated_at: string
@@ -594,6 +601,10 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
+          convite_aceito_em?: string | null
+          convite_enviado_em?: string | null
+          convite_expira_em?: string | null
+          convite_token?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -610,6 +621,9 @@ export type Database = {
           origem?: string | null
           rua?: string | null
           status?: string
+          status_convite?:
+            | Database["public"]["Enums"]["status_convite_enum"]
+            | null
           telefone: string
           tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
           updated_at?: string
@@ -621,6 +635,10 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           complemento?: string | null
+          convite_aceito_em?: string | null
+          convite_enviado_em?: string | null
+          convite_expira_em?: string | null
+          convite_token?: string | null
           cpf?: string | null
           created_at?: string
           data_nascimento?: string | null
@@ -637,6 +655,9 @@ export type Database = {
           origem?: string | null
           rua?: string | null
           status?: string
+          status_convite?:
+            | Database["public"]["Enums"]["status_convite_enum"]
+            | null
           telefone?: string
           tipo_cliente?: Database["public"]["Enums"]["tipo_cliente"]
           updated_at?: string
@@ -5136,6 +5157,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
       alterar_tipo_cliente: {
         Args: { p_cliente_id: string; p_novo_tipo: string }
         Returns: Json
@@ -5313,6 +5335,7 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_convite_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       criar_funcionario_rh: {
         Args: {
           p_carga_horaria_semanal?: number
@@ -5802,6 +5825,7 @@ export type Database = {
           puladas: number
         }[]
       }
+      revogar_convite_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       revogar_usuario: { Args: { p_user_profile_id: string }; Returns: Json }
       saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
       salvar_perfil_acesso: {
@@ -5879,6 +5903,7 @@ export type Database = {
       status_comissao: "pendente" | "liberada" | "paga" | "estornada"
       status_conferencia: "em_andamento" | "finalizada"
       status_conta: "pendente" | "paga" | "vencida" | "cancelada" | "parcial"
+      status_convite_enum: "pendente" | "aceito" | "revogado" | "expirado"
       status_estoque_aparelho:
         | "disponivel"
         | "em_assistencia"
@@ -6078,6 +6103,7 @@ export const Constants = {
       status_comissao: ["pendente", "liberada", "paga", "estornada"],
       status_conferencia: ["em_andamento", "finalizada"],
       status_conta: ["pendente", "paga", "vencida", "cancelada", "parcial"],
+      status_convite_enum: ["pendente", "aceito", "revogado", "expirado"],
       status_estoque_aparelho: [
         "disponivel",
         "em_assistencia",

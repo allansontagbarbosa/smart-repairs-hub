@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TipoClienteSwitch } from "@/components/clientes/TipoClienteSwitch";
+import { AcessoPortalSection } from "@/components/clientes/AcessoPortalSection";
 
 type Periodo = "mes" | "3m" | "6m" | "custom";
 
@@ -153,6 +154,13 @@ export default function ClientePerfil() {
       </div>
 
       <TipoClienteSwitch clienteId={cliente.id} tipoAtual={(cliente as any).tipo_cliente ?? "consumidor_b2c"} />
+
+      <AcessoPortalSection
+        clienteId={cliente.id}
+        clienteNome={cliente.nome}
+        clienteTelefone={(cliente as any).telefone}
+        tipoCliente={((cliente as any).tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
+      />
 
       <div className={`rounded-lg border p-5 ${saldoBgClass}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
