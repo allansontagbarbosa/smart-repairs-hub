@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TipoClienteSwitch } from "@/components/clientes/TipoClienteSwitch";
 import { AcessoPortalSection } from "@/components/clientes/AcessoPortalSection";
+import { DadosClienteEditavel } from "@/components/clientes/DadosClienteEditavel";
 
 type Periodo = "mes" | "3m" | "6m" | "custom";
 
@@ -77,6 +78,20 @@ export default function ClientePerfil() {
 
   const { data: extrato = [], isLoading: loadingExtrato } = useExtratoCliente(id, periodoFiltro.inicio, periodoFiltro.fim);
   const { data: pagamentos = [], isLoading: loadingPagamentos } = usePagamentosClienteLista(id);
+
+  const { data: clienteCompleto } = useQuery({
+    enabled: !!id,
+    queryKey: ["cliente-completo", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, email, telefone, whatsapp, cpf, documento, data_nascimento, cep, rua, numero_endereco, complemento, bairro, cidade, estado, observacoes")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: aparelhos = [], isLoading: loadingAparelhos } = useQuery({
     enabled: !!id,
@@ -161,6 +176,8 @@ export default function ClientePerfil() {
         clienteTelefone={(cliente as any).telefone}
         tipoCliente={((cliente as any).tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
       />
+
+      {clienteCompleto && <DadosClienteEditavel cliente={clienteCompleto as any} />}
 
       <div className={`rounded-lg border p-5 ${saldoBgClass}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

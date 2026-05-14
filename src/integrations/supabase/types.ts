@@ -5180,6 +5180,10 @@ export type Database = {
         }
         Returns: Json
       }
+      atualizar_cliente: {
+        Args: { p_cliente_id: string; p_dados: Json }
+        Returns: Json
+      }
       atualizar_user_profile: {
         Args: {
           p_ativo?: boolean
