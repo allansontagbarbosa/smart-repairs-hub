@@ -5332,6 +5332,7 @@ export type Database = {
         Args: { p_competencia: string }
         Returns: Json
       }
+      consultar_convite_publico: { Args: { p_token: string }; Returns: Json }
       consultar_os_publica: {
         Args: { p_numero: string; p_telefone_4digitos: string }
         Returns: Json
