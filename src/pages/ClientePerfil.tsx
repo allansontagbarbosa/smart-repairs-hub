@@ -177,6 +177,8 @@ export default function ClientePerfil() {
         tipoCliente={((cliente as any).tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
       />
 
+      {clienteCompleto && <DadosClienteEditavel cliente={clienteCompleto as any} />}
+
       <div className={`rounded-lg border p-5 ${saldoBgClass}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
