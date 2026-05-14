@@ -568,6 +568,7 @@ export type Database = {
           cidade: string | null
           complemento: string | null
           convite_aceito_em: string | null
+          convite_email_enviado_em: string | null
           convite_enviado_em: string | null
           convite_expira_em: string | null
           convite_token: string | null
@@ -602,6 +603,7 @@ export type Database = {
           cidade?: string | null
           complemento?: string | null
           convite_aceito_em?: string | null
+          convite_email_enviado_em?: string | null
           convite_enviado_em?: string | null
           convite_expira_em?: string | null
           convite_token?: string | null
@@ -636,6 +638,7 @@ export type Database = {
           cidade?: string | null
           complemento?: string | null
           convite_aceito_em?: string | null
+          convite_email_enviado_em?: string | null
           convite_enviado_em?: string | null
           convite_expira_em?: string | null
           convite_token?: string | null
@@ -5349,7 +5352,9 @@ export type Database = {
         }
         Returns: Json
       }
-      criar_convite_cliente: { Args: { p_cliente_id: string }; Returns: Json }
+      criar_convite_cliente:
+        | { Args: { p_cliente_id: string }; Returns: Json }
+        | { Args: { p_cliente_id: string; p_email?: string }; Returns: Json }
       criar_funcionario_rh: {
         Args: {
           p_carga_horaria_semanal?: number
