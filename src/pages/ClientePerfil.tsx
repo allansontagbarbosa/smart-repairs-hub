@@ -79,6 +79,20 @@ export default function ClientePerfil() {
   const { data: extrato = [], isLoading: loadingExtrato } = useExtratoCliente(id, periodoFiltro.inicio, periodoFiltro.fim);
   const { data: pagamentos = [], isLoading: loadingPagamentos } = usePagamentosClienteLista(id);
 
+  const { data: clienteCompleto } = useQuery({
+    enabled: !!id,
+    queryKey: ["cliente-completo", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, email, telefone, whatsapp, cpf, documento, data_nascimento, cep, rua, numero_endereco, complemento, bairro, cidade, estado, observacoes")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: aparelhos = [], isLoading: loadingAparelhos } = useQuery({
     enabled: !!id,
     queryKey: ["cliente-aparelhos-com-ordens", id],
