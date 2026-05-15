@@ -1,22 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap, type RpcResp } from "./_shared";
+
+type SincronizarComissoesResult = {
+  success: boolean;
+  contas_novas: number;
+  contas_atualizadas: number;
+  total_reais: number;
+};
 
 export function useSincronizarComissoesEmContas() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (competencia: string) => {
-      const { data, error } = await (supabase as any).rpc(
+      const { data, error } = await supabase.rpc(
         "consolidar_comissoes_em_contas_pagar",
         { p_competencia: competencia }
       );
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error ?? "Erro");
-      return data as {
-        success: boolean;
-        contas_novas: number;
-        contas_atualizadas: number;
-        total_reais: number;
-      };
+      return unwrap<RpcResp<SincronizarComissoesResult>>(data) as SincronizarComissoesResult;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contas-a-pagar"] });
