@@ -14,7 +14,7 @@ import {
 } from "@/hooks/useConviteCliente";
 import { toast } from "sonner";
 
-const PORTAL_URL = (import.meta.env.VITE_PORTAL_URL as string | undefined) ?? "https://ditt-portal-loki.lovable.app";
+const PORTAL_URL = (import.meta.env.VITE_PORTAL_URL as string | undefined) ?? "https://portal.ditt.com.br";
 
 interface Props {
   clienteId: string;
