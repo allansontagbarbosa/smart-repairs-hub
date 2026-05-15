@@ -79,9 +79,7 @@ export function ContasPagar({
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao sincronizar comissões";
       toast.error(msg);
-      return;
     }
-    void 0;
   };
 
   const contasComStatus = useMemo(() =>
