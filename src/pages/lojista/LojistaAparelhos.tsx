@@ -71,9 +71,9 @@ export default function LojistaAparelhos() {
       const q = search.toLowerCase();
       list = list.filter(o =>
         String(o.numero).includes(q) ||
-        ((o.aparelhos as any)?.imei || "").includes(q) ||
-        ((o.aparelhos as any)?.modelo || "").toLowerCase().includes(q) ||
-        ((o.aparelhos as any)?.marca || "").toLowerCase().includes(q)
+        ((o.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.imei || "").includes(q) ||
+        ((o.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.modelo || "").toLowerCase().includes(q) ||
+        ((o.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.marca || "").toLowerCase().includes(q)
       );
     }
 
@@ -85,8 +85,8 @@ export default function LojistaAparelhos() {
     const rows = filtered.map(o =>
       [
         o.numero,
-        `${(o.aparelhos as any)?.marca} ${(o.aparelhos as any)?.modelo}`,
-        (o.aparelhos as any)?.imei || "",
+        `${(o.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.marca} ${(o.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.modelo}`,
+        (o.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.imei || "",
         o.status,
         new Date(o.data_entrada).toLocaleDateString("pt-BR"),
         o.previsao_entrega ? new Date(o.previsao_entrega).toLocaleDateString("pt-BR") : "",
@@ -172,10 +172,10 @@ export default function LojistaAparelhos() {
                 >
                   <td className="px-4 py-3 font-medium">#{String(os.numero).padStart(3, "0")}</td>
                   <td className="px-4 py-3">
-                    {(os.aparelhos as any)?.marca} {(os.aparelhos as any)?.modelo}
+                    {(os.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.marca} {(os.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.modelo}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell font-mono text-xs">
-                    {(os.aparelhos as any)?.imei || "—"}
+                    {(os.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.imei || "—"}
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={os.status} /></td>
                   <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
@@ -213,8 +213,8 @@ export default function LojistaAparelhos() {
                   <StatusBadge status={selectedOs.status} />
                 </div>
                 <div className="space-y-2">
-                  <DetailRow label="Aparelho" value={`${(selectedOs.aparelhos as any)?.marca} ${(selectedOs.aparelhos as any)?.modelo}`} />
-                  <DetailRow label="IMEI" value={(selectedOs.aparelhos as any)?.imei || "—"} />
+                  <DetailRow label="Aparelho" value={`${(selectedOs.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.marca} ${(selectedOs.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.modelo}`} />
+                  <DetailRow label="IMEI" value={(selectedOs.aparelhos as { marca?: string; modelo?: string; imei?: string } | null)?.imei || "—"} />
                   <DetailRow label="Defeito" value={selectedOs.defeito_relatado} />
                   {selectedOs.diagnostico && <DetailRow label="Diagnóstico" value={selectedOs.diagnostico} />}
                   {selectedOs.servico_realizado && <DetailRow label="Serviço realizado" value={selectedOs.servico_realizado} />}

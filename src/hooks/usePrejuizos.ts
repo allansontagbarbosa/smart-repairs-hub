@@ -26,7 +26,7 @@ export function useListarPrejuizos(filtros: FiltrosPrejuizo, page: number = 0) {
       page,
     ],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("listar_prejuizos" as any, {
+      const { data, error } = await supabase.rpc("listar_prejuizos", {
         p_data_inicio: filtros.data_inicio || null,
         p_data_fim: filtros.data_fim || null,
         p_tipo: filtros.tipo || null,
@@ -35,7 +35,7 @@ export function useListarPrejuizos(filtros: FiltrosPrejuizo, page: number = 0) {
         p_offset: page * 50,
       });
       if (error) throw error;
-      const r = data as any;
+      const r = (data ?? {}) as { success?: boolean; error?: string; [k: string]: any };
       if (!r?.success) throw new Error(r?.error ?? "Erro");
       return {
         total: r.total as number,
@@ -51,14 +51,14 @@ export function useResumoPrejuizos(data_inicio?: string, data_fim?: string) {
     queryKey: ["prejuizos", "resumo", data_inicio ?? null, data_fim ?? null],
     queryFn: async () => {
       const { data, error } = await supabase.rpc(
-        "prejuizos_resumo_periodo" as any,
+        "prejuizos_resumo_periodo",
         {
           p_data_inicio: data_inicio || null,
           p_data_fim: data_fim || null,
         }
       );
       if (error) throw error;
-      const r = data as any;
+      const r = (data ?? {}) as { success?: boolean; error?: string; [k: string]: any };
       if (!r?.success) throw new Error(r?.error ?? "Erro");
       return r as PrejuizoResumoPeriodo & { success: boolean };
     },
@@ -70,12 +70,12 @@ export function usePrejuizosPorTipo(data_inicio?: string, data_fim?: string) {
   return useQuery({
     queryKey: ["prejuizos", "por-tipo", data_inicio ?? null, data_fim ?? null],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("prejuizos_por_tipo" as any, {
+      const { data, error } = await supabase.rpc("prejuizos_por_tipo", {
         p_data_inicio: data_inicio || null,
         p_data_fim: data_fim || null,
       });
       if (error) throw error;
-      const r = data as any;
+      const r = (data ?? {}) as { success?: boolean; error?: string; [k: string]: any };
       if (!r?.success) throw new Error(r?.error ?? "Erro");
       return (r.tipos ?? []) as PrejuizoTipoAgrupado[];
     },
@@ -97,7 +97,7 @@ export function useCriarPrejuizo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CriarPrejuizoInput) => {
-      const { data, error } = await supabase.rpc("criar_prejuizo" as any, {
+      const { data, error } = await supabase.rpc("criar_prejuizo", {
         p_tipo: input.tipo,
         p_valor_centavos: input.valor_centavos,
         p_descricao: input.descricao || null,
@@ -108,7 +108,7 @@ export function useCriarPrejuizo() {
         p_origem: "manual",
       });
       if (error) throw error;
-      const r = data as any;
+      const r = (data ?? {}) as { success?: boolean; error?: string; [k: string]: any };
       if (!r?.success) throw new Error(r?.error ?? "Erro ao criar prejuízo");
       return r;
     },
@@ -125,21 +125,21 @@ export function useDeletarPrejuizo() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data: prejuizo } = await supabase
-        .from("prejuizos" as any)
+        .from("prejuizos")
         .select("movimentacao_financeira_id")
         .eq("id", id)
         .single();
 
       const { error } = await supabase
-        .from("prejuizos" as any)
+        .from("prejuizos")
         .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
 
-      const movId = (prejuizo as any)?.movimentacao_financeira_id;
+      const movId = (prejuizo as { movimentacao_financeira_id?: string } | null)?.movimentacao_financeira_id;
       if (movId) {
         await supabase
-          .from("movimentacoes_financeiras" as any)
+          .from("movimentacoes_financeiras")
           .update({ estornada_em: new Date().toISOString() })
           .eq("id", movId);
       }
