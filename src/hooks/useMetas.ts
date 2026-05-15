@@ -117,7 +117,8 @@ export function useAtualizarMeta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...m }: Partial<Meta> & { id: string }) => {
-      const { data, error } = await supabase.from("metas").update(m).eq("id", id).select().single();
+      const payload = m as unknown as Database["public"]["Tables"]["metas"]["Update"];
+      const { data, error } = await supabase.from("metas").update(payload).eq("id", id).select().single();
       if (error) throw error;
       return data;
     },
