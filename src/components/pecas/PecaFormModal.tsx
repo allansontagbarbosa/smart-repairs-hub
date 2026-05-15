@@ -49,7 +49,8 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
   const qc = useQueryClient();
   const isEditing = !!pecaId;
   const [form, setForm] = useState<typeof emptyForm>(emptyForm);
-  const set = (k: keyof typeof emptyForm, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const set = <K extends keyof typeof emptyForm>(k: K, v: (typeof emptyForm)[K]) =>
+    setForm(p => ({ ...p, [k]: v }));
 
   const { data: categorias = [] } = useQuery({
     queryKey: ["estoque_categorias"],
@@ -159,7 +160,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
       onSaved?.(peca);
       onOpenChange(false);
     },
-    onError: (e: any) => {
+    onError: (e: Error) => {
       const msg = String(e?.message ?? "");
       if (msg.includes("duplicate") || msg.includes("unique")) {
         toast.error("SKU já está em uso. Use outro ou deixe vazio.");
@@ -169,7 +170,9 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
     },
   });
 
-  const filteredModelos = modelos.filter((m: any) => !form.marca_id || m.marca_id === form.marca_id);
+  const filteredModelos = (modelos as Array<{ id: string; nome: string; marca_id: string | null }>).filter(
+    (m) => !form.marca_id || m.marca_id === form.marca_id
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,7 +215,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
               label="Categoria"
               value={form.categoria_id}
               onValueChange={(v) => set("categoria_id", v)}
-              options={categorias as any}
+              options={categorias}
               onCreateNew={createCategoria}
               entityName="categoria"
             />
@@ -223,7 +226,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
               label="Marca compatível"
               value={form.marca_id}
               onValueChange={(v) => { set("marca_id", v); set("modelo_id", ""); }}
-              options={marcas as any}
+              options={marcas}
               onCreateNew={createMarca}
               entityName="marca"
             />
@@ -231,7 +234,7 @@ export function PecaFormModal({ open, onOpenChange, pecaId, onSaved }: PecaFormM
               label="Modelo compatível"
               value={form.modelo_id}
               onValueChange={(v) => set("modelo_id", v)}
-              options={filteredModelos as any}
+              options={filteredModelos}
               onCreateNew={createModelo}
               entityName="modelo"
             />
