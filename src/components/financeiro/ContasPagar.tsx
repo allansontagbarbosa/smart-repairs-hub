@@ -76,9 +76,12 @@ export function ContasPagar({
       toast.success(
         `Comissões sincronizadas: ${r.contas_novas} novas + ${r.contas_atualizadas} atualizadas — Total R$ ${r.total_reais.toFixed(2)}`
       );
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao sincronizar comissões";
+      toast.error(msg);
+      return;
     }
+    void 0;
   };
 
   const contasComStatus = useMemo(() =>
