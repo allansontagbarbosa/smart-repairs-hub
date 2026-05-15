@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handlePostSignInRedirect = async (session: Session | null) => {
@@ -74,8 +75,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      if (event === "SIGNED_IN") {
-        void handlePostSignInRedirect(session);
+      if (event === "TOKEN_REFRESHED") {
+        void queryClient.invalidateQueries();
+      }
+
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        void queryClient.invalidateQueries();
+        if (event === "SIGNED_IN") {
+          void handlePostSignInRedirect(session);
+        }
+      }
+
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
       }
     });
 
@@ -86,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
