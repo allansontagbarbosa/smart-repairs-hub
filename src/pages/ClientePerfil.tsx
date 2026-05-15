@@ -86,7 +86,7 @@ export default function ClientePerfil() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, email, telefone, whatsapp, cpf, documento, data_nascimento, cep, rua, numero_endereco, complemento, bairro, cidade, estado, observacoes")
+        .select("id, nome, email, telefone, whatsapp, cpf, documento, data_nascimento, cep, rua, numero_endereco, complemento, bairro, cidade, estado, observacoes, tipo_cliente, status_convite, convite_token, convite_enviado_em, convite_aceito_em, convite_expira_em, convite_email_enviado_em, user_id, created_at, updated_at")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
