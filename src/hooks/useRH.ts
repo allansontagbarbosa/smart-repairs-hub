@@ -17,7 +17,7 @@ export function useListarFuncionariosRH() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("listar_funcionarios_rh");
       if (error) throw error;
-      const r = unwrap<{ funcionarios?: FuncionarioRH[] }>(data);
+      const r = unwrap(data);
       if (!r.success) throw new Error(r.error ?? "Erro");
       return r.funcionarios ?? [];
     },
@@ -41,7 +41,7 @@ export function useListarTodosFuncionarios() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("listar_todos_funcionarios");
       if (error) throw error;
-      const r = unwrap<{ funcionarios?: FuncionarioListado[] }>(data);
+      const r = unwrap(data);
       if (!r.success) throw new Error(r.error ?? "Erro");
       return r.funcionarios ?? [];
     },
@@ -94,7 +94,7 @@ export function useHolerite(funcionarioId: string | null, competencia: string) {
         p_competencia: competencia,
       });
       if (error) throw error;
-      const r = unwrap<Holerite>(data);
+      const r = unwrap(data);
       if (!r.success) throw new Error(r.error ?? "Erro");
       return r as Holerite & { success: boolean };
     },
@@ -123,7 +123,7 @@ export function useBancoHoras(funcionarioId: string | null, competencia: string)
 export function useAtualizarFuncionario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; campos: Record<string, unknown> }) => {
+    mutationFn: async (input: { id: string; campos: Record<string, any> }) => {
       const { error } = await supabase
         .from("funcionarios")
         .update(input.campos)
@@ -241,7 +241,7 @@ export function useCriarFuncionarioRH() {
         p_valor_diaria_centavos: input.valor_diaria_centavos ?? null,
       });
       if (error) throw error;
-      const r = unwrap<{ funcionario_id?: string; message?: string }>(data);
+      const r = unwrap(data);
       if (!r.success) throw new Error(r.error ?? "Erro ao criar");
       return r as { success: boolean; funcionario_id: string; message: string };
     },
