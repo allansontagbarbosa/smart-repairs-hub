@@ -87,6 +87,16 @@ const queryClient = new QueryClient({
   },
 });
 
+function RedirectLegacyLojista() {
+  const [params] = useSearchParams();
+  const token = params.get("token");
+  const portalUrl = (import.meta.env.VITE_PORTAL_URL as string | undefined) ?? "https://ditt-portal-loki.lovable.app";
+  if (typeof window !== "undefined") {
+    window.location.replace(token ? `${portalUrl}/login?legacy=1` : `${portalUrl}/login`);
+  }
+  return null;
+}
+
 const App = () => (
   <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
