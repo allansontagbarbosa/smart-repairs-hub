@@ -421,7 +421,7 @@ export function ContasPagar({
         centros={centros}
         fornecedores={fornecedores}
         lojas={lojas}
-        ordens={ordens as any}
+        ordens={ordens}
       />
 
       <RegistrarPagamentoDialog
