@@ -1,7 +1,9 @@
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { unwrap, type RpcResp } from "./_shared";
+import type { TVPainelResponse } from "@/types/tv";
 
 /**
  * Layout do painel TV — JSON livre por design.
@@ -153,7 +155,7 @@ export function useExcluirTVPainel() {
 }
 
 export function useTVPainelDados(codigo: string | null, intervaloMs = 30000) {
-  return useQuery({
+  return useQuery<TVPainelResponse | null>({
     queryKey: ["tv-painel-dados", codigo],
     queryFn: async () => {
       if (!codigo) return null;
@@ -161,16 +163,52 @@ export function useTVPainelDados(codigo: string | null, intervaloMs = 30000) {
         p_codigo: codigo,
       } as never);
       if (error) throw error;
-      // Dados do painel têm shape dinâmico por widget — consumido em TVDisplay
-      // via acesso por chave. Tipar de verdade exigiria mapear todos os widgets.
-      // EXCEÇÃO documentada.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return data as any;
+      return (data as unknown) as TVPainelResponse;
     },
     enabled: !!codigo,
     refetchInterval: intervaloMs,
     staleTime: Math.max(intervaloMs - 5000, 5000),
   });
+}
+
+/**
+ * Realtime opcional: subscreve mudanças em ordens_de_servico da empresa
+ * e dispara refetch debounced (3s) do painel TV. Polling de 30s segue
+ * como fallback. Desligar com VITE_TV_REALTIME=false.
+ */
+const REALTIME_TV_ENABLED = import.meta.env.VITE_TV_REALTIME !== "false";
+
+export function useTVRealtimeRefetch(empresaId: string | undefined | null) {
+  const qc = useQueryClient();
+  const debounceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!REALTIME_TV_ENABLED || !empresaId) return;
+
+    const channel = supabase
+      .channel(`tv-painel-${empresaId}-${Date.now()}`)
+      .on(
+        "postgres_changes" as never,
+        {
+          event: "*",
+          schema: "public",
+          table: "ordens_de_servico",
+          filter: `empresa_id=eq.${empresaId}`,
+        } as never,
+        () => {
+          if (debounceRef.current) window.clearTimeout(debounceRef.current);
+          debounceRef.current = window.setTimeout(() => {
+            qc.invalidateQueries({ queryKey: ["tv-painel-dados"] });
+          }, 3000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [empresaId, qc]);
 }
 
 export function useAtualizarLayoutTV() {
