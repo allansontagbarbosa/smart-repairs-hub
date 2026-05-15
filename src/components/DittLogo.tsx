@@ -35,7 +35,10 @@ export function DittLogo({
   }
   const useDarkArt = variant === 'white' || isDark;
 
-  const heights = { sm: 24, md: 36, lg: 64 } as const;
+  // Assets são quadrados (1081x1081) com padding interno embutido na arte.
+  // Para o conteúdo visual bater com tamanhos típicos de wordmark/ícone na UI,
+  // escalamos ~2x em relação à altura nominal do componente.
+  const heights = { sm: 44, md: 64, lg: 112 } as const;
   const h = heights[size];
 
   // Tagline embute no asset com wordmark, então showTagline controla qual arte:
