@@ -9,7 +9,8 @@ import {
   Copy, MessageCircle, Loader2, ShieldCheck, Clock, XCircle, Mail, MailCheck, Send,
 } from "lucide-react";
 import {
-  useClienteConvite, useCriarConvite, useEnviarConviteEmail, useRevogarConvite,
+  useCriarConvite, useEnviarConviteEmail, useRevogarConvite,
+  type ClienteConviteRow,
 } from "@/hooks/useConviteCliente";
 import { toast } from "sonner";
 
@@ -21,15 +22,15 @@ interface Props {
   clienteEmail?: string | null;
   clienteTelefone?: string | null;
   tipoCliente: "lojista_b2b" | "consumidor_b2c";
+  convite?: ClienteConviteRow | null;
 }
 
 const dt = (s?: string | null) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function AcessoPortalSection({ clienteId, clienteNome, clienteEmail, clienteTelefone, tipoCliente }: Props) {
+export function AcessoPortalSection({ clienteId, clienteNome, clienteEmail, clienteTelefone, tipoCliente, convite }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [emailInput, setEmailInput] = useState(clienteEmail ?? "");
-  const { data: convite } = useClienteConvite(clienteId);
   const criar = useCriarConvite();
   const enviarEmail = useEnviarConviteEmail();
   const revogar = useRevogarConvite();
