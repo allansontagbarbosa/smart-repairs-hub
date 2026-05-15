@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -54,11 +54,8 @@ import TVAcesso from "./pages/TVAcesso";
 import TVDisplay from "./pages/TVDisplay";
 import TVEditarLayout from "./pages/TVEditarLayout";
 
-// Lojista B2B
+// Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
 import LojistaLogin from "./pages/lojista/LojistaLogin";
-import LojistaRecuperarSenha from "./pages/lojista/LojistaRecuperarSenha";
-import LojistaRedefinirSenha from "./pages/lojista/LojistaRedefinirSenha";
-import AceitarConviteLojista from "./pages/lojista/AceitarConviteLojista";
 import LojistaLayout from "./pages/lojista/LojistaLayout";
 import LojistaDashboard from "./pages/lojista/LojistaDashboard";
 import LojistaAparelhos from "./pages/lojista/LojistaAparelhos";
@@ -113,11 +110,12 @@ const App = () => (
               <Route path="/portal" element={<PortalDashboard />} />
               <Route path="/portal/ordem/:id" element={<PortalOrdemDetalhe />} />
 
-              {/* Portal Lojista B2B */}
+              {/* Portal Lojista B2B (legacy) */}
               <Route path="/lojista/login" element={<LojistaLogin />} />
-              <Route path="/lojista/recuperar-senha" element={<LojistaRecuperarSenha />} />
-              <Route path="/lojista/redefinir-senha" element={<LojistaRedefinirSenha />} />
-              <Route path="/lojista/aceitar-convite" element={<AceitarConviteLojista />} />
+              {/* Rotas legacy de convite/senha — redirect pro portal novo */}
+              <Route path="/lojista/aceitar-convite" element={<RedirectLegacyLojista />} />
+              <Route path="/lojista/recuperar-senha" element={<RedirectLegacyLojista />} />
+              <Route path="/lojista/redefinir-senha" element={<RedirectLegacyLojista />} />
               <Route path="/lojista" element={<LojistaGuard><LojistaLayout><LojistaDashboard /></LojistaLayout></LojistaGuard>} />
               <Route path="/lojista/dashboard" element={<Navigate to="/lojista" replace />} />
               <Route path="/lojista/aparelhos" element={<LojistaGuard><LojistaLayout><LojistaAparelhos /></LojistaLayout></LojistaGuard>} />
