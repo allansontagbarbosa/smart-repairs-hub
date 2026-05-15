@@ -169,18 +169,18 @@ export default function ClientePerfil() {
         <Button onClick={() => setNovaOsOpen(true)} className="gap-2"><Plus className="h-4 w-4" />Nova OS</Button>
       </div>
 
-      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={((clienteCompleto as any)?.tipo_cliente ?? (cliente as any).tipo_cliente ?? "consumidor_b2c")} />
+      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={(clienteCompleto?.tipo_cliente ?? cliente.tipo_cliente ?? "consumidor_b2c")} />
 
       <AcessoPortalSection
         clienteId={cliente.id}
         clienteNome={cliente.nome}
-        clienteEmail={(clienteCompleto as any)?.email ?? (cliente as any).email}
-        clienteTelefone={(clienteCompleto as any)?.telefone ?? (cliente as any).telefone}
-        tipoCliente={(((clienteCompleto as any)?.tipo_cliente ?? (cliente as any).tipo_cliente) ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
-        convite={clienteCompleto as any}
+        clienteEmail={clienteCompleto?.email ?? cliente.email}
+        clienteTelefone={clienteCompleto?.telefone ?? cliente.telefone}
+        tipoCliente={((clienteCompleto?.tipo_cliente ?? cliente.tipo_cliente) ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
+        convite={clienteCompleto}
       />
 
-      {clienteCompleto && <DadosClienteEditavel cliente={clienteCompleto as any} />}
+      {clienteCompleto && <DadosClienteEditavel cliente={clienteCompleto} />}
 
       <div className={`rounded-lg border p-5 ${saldoBgClass}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
