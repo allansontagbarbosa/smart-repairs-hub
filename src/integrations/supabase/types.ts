@@ -5263,8 +5263,16 @@ export type Database = {
         }
         Returns: Json
       }
+      atribuir_tecnico_os: {
+        Args: { p_os_id: string; p_tecnico_id: string }
+        Returns: Json
+      }
       atualizar_cliente: {
         Args: { p_cliente_id: string; p_dados: Json }
+        Returns: Json
+      }
+      atualizar_status_os: {
+        Args: { p_novo_status: string; p_observacao?: string; p_os_id: string }
         Returns: Json
       }
       atualizar_user_profile: {
@@ -5484,6 +5492,16 @@ export type Database = {
           p_dados: Json
           p_data_entrada: string
           p_justificativa?: string
+        }
+        Returns: Json
+      }
+      criar_os_com_data_v2: {
+        Args: {
+          p_aparelho: string
+          p_cliente_id: string
+          p_data_entrada?: string
+          p_defeito_relatado: string
+          p_observacoes?: string
         }
         Returns: Json
       }
