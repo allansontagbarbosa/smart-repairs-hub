@@ -35,9 +35,8 @@ export function DittLogo({
   }
   const useDarkArt = variant === 'white' || isDark;
 
-  // PNGs já estão recortados, sem fundo e sem artboard quadrado.
-  // Mantém altura visual proporcional para headers, sidebar e telas públicas.
-  const heights = { sm: 24, md: 32, lg: 52 } as const;
+  // PNGs recortados sem fundo/artboard; altura visual proporcional para headers e telas públicas.
+  const heights = { sm: 22, md: 30, lg: 48 } as const;
   const h = heights[size];
 
   // Tagline embute no asset com wordmark, então showTagline controla qual arte:
