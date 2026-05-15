@@ -169,14 +169,15 @@ export default function ClientePerfil() {
         <Button onClick={() => setNovaOsOpen(true)} className="gap-2"><Plus className="h-4 w-4" />Nova OS</Button>
       </div>
 
-      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={(cliente as any).tipo_cliente ?? "consumidor_b2c"} />
+      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={((clienteCompleto as any)?.tipo_cliente ?? (cliente as any).tipo_cliente ?? "consumidor_b2c")} />
 
       <AcessoPortalSection
         clienteId={cliente.id}
         clienteNome={cliente.nome}
-        clienteEmail={(cliente as any).email}
-        clienteTelefone={(cliente as any).telefone}
-        tipoCliente={((cliente as any).tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
+        clienteEmail={(clienteCompleto as any)?.email ?? (cliente as any).email}
+        clienteTelefone={(clienteCompleto as any)?.telefone ?? (cliente as any).telefone}
+        tipoCliente={(((clienteCompleto as any)?.tipo_cliente ?? (cliente as any).tipo_cliente) ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
+        convite={clienteCompleto as any}
       />
 
       {clienteCompleto && <DadosClienteEditavel cliente={clienteCompleto as any} />}
