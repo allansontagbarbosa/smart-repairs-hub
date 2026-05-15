@@ -9,6 +9,15 @@ import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2, XCircle } from "lucide
 import { DittLogo } from "@/components/DittLogo";
 import { toast } from "sonner";
 
+/**
+ * Rota: /aceitar-convite
+ * Uso: convite de USUÁRIO INTERNO (técnico/admin) via Supabase Auth invite.
+ *      Cliente B2B / lojista usa rota separada no portal externo:
+ *      https://portal.ditt.com.br/aceitar-convite/$token
+ *
+ * NÃO renomear esse path — invite-user/index.ts referencia 3x como redirectTo
+ * e convites já enviados ficariam quebrados.
+ */
 export default function AceitarConvite() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
