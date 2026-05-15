@@ -13,8 +13,10 @@ const hostname = window.location.hostname;
 const isPreview = hostname.endsWith(".lovableproject.com");
 const isDev = hostname === "localhost" || hostname === "127.0.0.1";
 const temBypass = new URLSearchParams(window.location.search).has("preview");
+// Dentro do iframe do editor Lovable, NUNCA redirecionar — senão o preview fica em branco.
+const dentroDoEditor = window.self !== window.top;
 
-if (isPreview && !isDev && !temBypass) {
+if (isPreview && !isDev && !temBypass && !dentroDoEditor) {
   const novaUrl = `https://${PRODUCTION_DOMAIN}${window.location.pathname}${window.location.search}${window.location.hash}`;
   window.location.replace(novaUrl);
   // Interrompe a renderização durante o redirect.
