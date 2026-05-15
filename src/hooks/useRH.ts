@@ -125,9 +125,10 @@ export function useAtualizarFuncionario() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { id: string; campos: Record<string, any> }) => {
+      const payload = input.campos as Database["public"]["Tables"]["funcionarios"]["Update"];
       const { error } = await supabase
         .from("funcionarios")
-        .update(input.campos)
+        .update(payload)
         .eq("id", input.id);
       if (error) throw error;
     },
