@@ -1,22 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap, type RpcResp } from "./_shared";
+
+type SincronizarComissoesResult = {
+  success: boolean;
+  contas_novas: number;
+  contas_atualizadas: number;
+  total_reais: number;
+};
 
 export function useSincronizarComissoesEmContas() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (competencia: string) => {
-      const { data, error } = await (supabase as any).rpc(
+      const { data, error } = await supabase.rpc(
         "consolidar_comissoes_em_contas_pagar",
         { p_competencia: competencia }
       );
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error ?? "Erro");
-      return data as {
-        success: boolean;
-        contas_novas: number;
-        contas_atualizadas: number;
-        total_reais: number;
-      };
+      return unwrap<RpcResp<SincronizarComissoesResult>>(data) as SincronizarComissoesResult;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contas-a-pagar"] });
@@ -185,7 +187,19 @@ async function fetchRecebimentos() {
     console.error("ERRO fetchRecebimentos:", error.code, error.message, error.details);
     throw error;
   }
-  return (data ?? []).map((m: any) => ({
+  type MovRow = {
+    id: string;
+    descricao: string | null;
+    valor: number | string | null;
+    data: string;
+    forma_pagamento: string | null;
+    categoria: string | null;
+    ordem_id: string | null;
+    cliente_id: string | null;
+    estoque_id: string | null;
+    created_at: string;
+  };
+  return ((data ?? []) as MovRow[]).map((m) => ({
     id: m.id,
     descricao: m.descricao,
     valor: Number(m.valor ?? 0),
@@ -357,14 +371,21 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     }).reduce((s, c) => s + Number(c.valor), 0);
 
     // Receita REALIZADA no período
-    const ordensConcluidasMes = (allOrdens as any[]).filter(o => {
+    type OrdemFin = {
+      status: string;
+      data_conclusao: string | null;
+      valor: number | string | null;
+      valor_total: number | string | null;
+      custo_pecas: number | string | null;
+    };
+    const ordensConcluidasMes = (allOrdens as unknown as OrdemFin[]).filter((o) => {
       if (o.status !== "pronto" && o.status !== "entregue") return false;
       const ref = o.data_conclusao ?? null;
       if (!ref) return false;
       const d = new Date(ref);
       return d >= periodStart && d <= periodEnd;
     });
-    const receitaMes = ordensConcluidasMes.reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
+    const receitaMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     // Despesas por competência cobertas pelo range
@@ -414,15 +435,15 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
         })
         .reduce((s, c) => s + Number(c.valor), 0);
 
-      const rec = (allOrdens as any[])
-        .filter(o => {
+      const rec = (allOrdens as unknown as OrdemFin[])
+        .filter((o) => {
           if (o.status !== "pronto" && o.status !== "entregue") return false;
           const ref = o.data_conclusao ?? null;
           if (!ref) return false;
           const dd = new Date(ref);
           return dd >= ms && dd <= me;
         })
-        .reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
+        .reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
 
       evolucaoMensal.push({ mes: label, despesas: desp, receita: rec });
     }

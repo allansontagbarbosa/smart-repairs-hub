@@ -1,6 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { unwrap, type RpcResp } from "./_shared";
+
+/**
+ * Layout do painel TV — JSON livre por design.
+ * Cada widget tem `tipo` e props específicas que variam por widget;
+ * mantemos `props` como Record<string, unknown> em vez de tentar tipar todas
+ * as variantes de widget aqui (o que exigiria refator do TVConfigurar e do
+ * TVDisplay).
+ */
+export interface PainelLayoutWidget {
+  id?: string;
+  tipo: string;
+  posicao?: { x: number; y: number; w: number; h: number };
+  props?: Record<string, unknown>;
+}
+
+// Algumas RPCs e a tabela `tv_paineis` ainda não constam nos tipos gerados pelo
+// supabase (são features novas). Por isso mantemos `as any` apenas no nome da
+// RPC/tabela. EXCEÇÃO documentada — remove quando os types forem regenerados.
+type RpcName = string;
+type TableName = string;
 
 export interface TVPainel {
   id: string;
@@ -13,6 +34,10 @@ export interface TVPainel {
   ativo: boolean;
   ultimo_acesso_em: string | null;
   created_at: string;
+  // Layout livre por design — array de widgets cujo shape varia por tipo.
+  // Mantemos any[] aqui pra não forçar refator de TVEditarLayout / TVDisplay
+  // que usam shapes específicos de react-grid-layout. EXCEÇÃO documentada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   layout: any[];
   logo_url: string | null;
   tamanho_fonte: "P" | "M" | "G";
@@ -23,12 +48,12 @@ export function useTVPaineis() {
     queryKey: ["tv-paineis"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tv_paineis" as any)
+        .from("tv_paineis" as unknown as TableName as never)
         .select("*")
-        .eq("ativo", true)
-        .order("created_at", { ascending: false });
+        .eq("ativo" as never, true as never)
+        .order("created_at" as never, { ascending: false });
       if (error) throw error;
-      return ((data ?? []) as any[]) as TVPainel[];
+      return ((data ?? []) as unknown) as TVPainel[];
     },
   });
 }
@@ -43,25 +68,25 @@ export function useCriarTVPainel() {
       orientacao?: "auto" | "landscape" | "portrait";
       intervalo_refresh?: number;
     }) => {
-      const { data, error } = await supabase.rpc("tv_criar_painel" as any, {
+      const { data, error } = await supabase.rpc("tv_criar_painel" as RpcName as never, {
         p_nome: params.nome,
-        p_widgets: params.widgets as any,
+        p_widgets: params.widgets,
         p_tema: params.tema ?? "dark",
         p_orientacao: params.orientacao ?? "auto",
         p_intervalo_refresh: params.intervalo_refresh ?? 30,
-      });
+      } as never);
       if (error) throw error;
-      return data;
+      return unwrap<RpcResp<{ codigo?: string }>>(data);
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       if (data?.success) {
-        toast.success(`Painel criado! Código: ${data.codigo}`);
+        toast.success(`Painel criado! Código: ${data.codigo ?? ""}`);
         qc.invalidateQueries({ queryKey: ["tv-paineis"] });
       } else if (data?.error) {
         toast.error(data.error);
       }
     },
-    onError: (err: any) => toast.error(err.message ?? "Erro ao criar painel"),
+    onError: (err: Error) => toast.error(err.message ?? "Erro ao criar painel"),
   });
 }
 
@@ -76,14 +101,14 @@ export function useAtualizarTVPainel() {
       orientacao?: string;
       intervalo_refresh?: number;
     }) => {
-      const { error } = await supabase.rpc("tv_atualizar_painel" as any, {
+      const { error } = await supabase.rpc("tv_atualizar_painel" as RpcName as never, {
         p_painel_id: params.painel_id,
         p_nome: params.nome ?? null,
-        p_widgets: (params.widgets ?? null) as any,
+        p_widgets: params.widgets ?? null,
         p_tema: params.tema ?? null,
         p_orientacao: params.orientacao ?? null,
         p_intervalo_refresh: params.intervalo_refresh ?? null,
-      });
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -97,15 +122,15 @@ export function useRegenerarCodigoTV() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (painel_id: string) => {
-      const { data, error } = await supabase.rpc("tv_regenerar_codigo" as any, {
+      const { data, error } = await supabase.rpc("tv_regenerar_codigo" as RpcName as never, {
         p_painel_id: painel_id,
-      });
+      } as never);
       if (error) throw error;
-      return data;
+      return unwrap<RpcResp<{ novo_codigo?: string }>>(data);
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["tv-paineis"] });
-      toast.success(`Novo código: ${data?.novo_codigo}`);
+      toast.success(`Novo código: ${data?.novo_codigo ?? ""}`);
     },
   });
 }
@@ -115,9 +140,9 @@ export function useExcluirTVPainel() {
   return useMutation({
     mutationFn: async (painel_id: string) => {
       const { error } = await supabase
-        .from("tv_paineis" as any)
-        .update({ ativo: false })
-        .eq("id", painel_id);
+        .from("tv_paineis" as unknown as TableName as never)
+        .update({ ativo: false } as never)
+        .eq("id" as never, painel_id as never);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -132,10 +157,14 @@ export function useTVPainelDados(codigo: string | null, intervaloMs = 30000) {
     queryKey: ["tv-painel-dados", codigo],
     queryFn: async () => {
       if (!codigo) return null;
-      const { data, error } = await supabase.rpc("tv_get_painel_data" as any, {
+      const { data, error } = await supabase.rpc("tv_get_painel_data" as RpcName as never, {
         p_codigo: codigo,
-      });
+      } as never);
       if (error) throw error;
+      // Dados do painel têm shape dinâmico por widget — consumido em TVDisplay
+      // via acesso por chave. Tipar de verdade exigiria mapear todos os widgets.
+      // EXCEÇÃO documentada.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return data as any;
     },
     enabled: !!codigo,
@@ -149,23 +178,24 @@ export function useAtualizarLayoutTV() {
   return useMutation({
     mutationFn: async (params: {
       painel_id: string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       layout?: any[];
       tamanho_fonte?: "P" | "M" | "G";
       logo_url?: string;
     }) => {
-      const { error } = await supabase.rpc("tv_atualizar_layout" as any, {
+      const { error } = await supabase.rpc("tv_atualizar_layout" as RpcName as never, {
         p_painel_id: params.painel_id,
-        p_layout: (params.layout ?? []) as any,
+        p_layout: params.layout ?? [],
         p_tamanho_fonte: params.tamanho_fonte ?? null,
         p_logo_url: params.logo_url ?? null,
-      });
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tv-paineis"] });
       toast.success("Layout salvo");
     },
-    onError: (err: any) => toast.error(err.message ?? "Erro ao salvar"),
+    onError: (err: Error) => toast.error(err.message ?? "Erro ao salvar"),
   });
 }
 
