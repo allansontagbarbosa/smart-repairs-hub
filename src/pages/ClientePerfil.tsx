@@ -8,6 +8,7 @@ import { useClientesSaldos } from "@/hooks/useClientesSaldos";
 import { useExtratoCliente, type ExtratoClienteItem } from "@/hooks/useExtratoCliente";
 import { usePagamentosClienteLista } from "@/hooks/usePagamentosClienteLista";
 import { RegistrarPagamentoDialog } from "@/components/ClienteHistoricoSheet";
+import { AcoesPagamento } from "@/components/financeiro/AcoesPagamento";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { StatusBadge } from "@/components/StatusBadge";
