@@ -5809,12 +5809,16 @@ export type Database = {
         Returns: Json
       }
       portal_aprovar_orcamento: { Args: { p_os_id: string }; Returns: Json }
+      portal_atualizar_meu_perfil: { Args: { p_dados: Json }; Returns: Json }
       portal_dashboard_lojista: { Args: never; Returns: Json }
-      portal_detalhe_ordem: { Args: { p_os_id: string }; Returns: Json }
+      portal_detalhe_ordem: { Args: { p_ordem_id: string }; Returns: Json }
+      portal_extrato_financeiro: { Args: { p_dias?: number }; Returns: Json }
       portal_listar_ordens: {
         Args: { p_status_filter?: string }
         Returns: Json
       }
+      portal_meus_aparelhos: { Args: never; Returns: Json }
+      portal_minhas_garantias: { Args: never; Returns: Json }
       portal_reprovar_orcamento: {
         Args: { p_motivo?: string; p_os_id: string }
         Returns: Json
