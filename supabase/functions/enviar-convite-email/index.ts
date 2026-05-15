@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
     const PORTAL_URL =
-      Deno.env.get("PORTAL_URL") ?? "https://ditt-portal-loki.lovable.app";
+      Deno.env.get("PORTAL_URL") ?? "https://portal.ditt.com.br";
 
     if (!RESEND_KEY) {
       return json({ success: false, error: "RESEND_API_KEY não configurada" }, 500);
