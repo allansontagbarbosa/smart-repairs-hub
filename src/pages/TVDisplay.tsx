@@ -1,9 +1,32 @@
 import { useParams, Link } from "react-router-dom";
-import { useTVPainelDados } from "@/hooks/useTVPaineis";
+import { useTVPainelDados, useTVRealtimeRefetch } from "@/hooks/useTVPaineis";
 import { useEffect, useRef, useState } from "react";
 import { Responsive, WidthProvider, type LayoutItem } from "react-grid-layout/legacy";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
+import {
+  motion,
+  AnimatePresence,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from "framer-motion";
+import type {
+  TVDados,
+  TVPainelMeta,
+  WidgetFontes,
+  TVPodioTecnico,
+  TVAparelhoTecnico,
+  TVLojistaSaldo,
+  TVRankingLojista,
+  TVEstoqueCritico,
+  TVUltimaOS,
+  TVAgendaDia,
+  TVContaVencer,
+  TVGrafSemanal,
+  TVTicketMedio,
+  TVTopDefeito,
+} from "@/types/tv";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -17,11 +40,30 @@ const fmt = (v: number) =>
 const fmtK = (v: number) =>
   v >= 1000 ? `R$ ${(v / 1000).toFixed(1)}k` : fmt(v);
 
-const TAMANHOS = {
+const TAMANHOS: Record<"P" | "M" | "G", WidgetFontes> = {
   P: { kpi: "text-xl", titulo: "text-xs", base: "text-xs" },
   M: { kpi: "text-3xl", titulo: "text-sm", base: "text-sm" },
   G: { kpi: "text-5xl", titulo: "text-base", base: "text-base" },
 };
+
+/** Número animado com spring (countup suave quando o valor muda). */
+function AnimatedNumber({
+  value,
+  format,
+}: {
+  value: number;
+  format?: (v: number) => string;
+}) {
+  const reduce = useReducedMotion();
+  const spring = useSpring(value, reduce ? { duration: 0 } : { damping: 24, stiffness: 80 });
+  const display = useTransform(spring, (v) =>
+    format ? format(v) : Math.round(v).toLocaleString("pt-BR")
+  );
+  useEffect(() => {
+    spring.set(value);
+  }, [value, spring]);
+  return <motion.span>{display}</motion.span>;
+}
 
 export default function TVDisplay() {
   const { codigo } = useParams<{ codigo: string }>();
@@ -29,6 +71,10 @@ export default function TVDisplay() {
   const [hora, setHora] = useState(new Date());
   const containerRef = useRef<HTMLElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 1920, height: 1080 });
+
+  const empresaId =
+    data && data.success ? data.painel.empresa_id : undefined;
+  useTVRealtimeRefetch(empresaId);
 
   useEffect(() => {
     const i = setInterval(() => setHora(new Date()), 1000);
@@ -69,7 +115,7 @@ export default function TVDisplay() {
     );
   }
 
-  if (error || !data?.success) {
+  if (error || !data || !data.success) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-4">
         <h1 className="text-3xl font-bold">⚠️ Código inválido</h1>
@@ -80,7 +126,8 @@ export default function TVDisplay() {
     );
   }
 
-  const { painel, dados } = data;
+  const painel: TVPainelMeta = data.painel;
+  const dados: TVDados = data.dados;
   const widgets: string[] = painel.widgets || [];
   const tamanho: "P" | "M" | "G" = painel.tamanho_fonte || "M";
   const fontes = TAMANHOS[tamanho];
@@ -208,14 +255,14 @@ export default function TVDisplay() {
   );
 }
 
-function renderWidget(id: string, dados: any, hora: Date, f: any) {
+function renderWidget(id: string, dados: TVDados, hora: Date, f: WidgetFontes) {
   switch (id) {
     case "kpis_dia":
       return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 h-full">
           <KPI color="#00C896" label="OSs hoje" value={dados.kpis?.oss_hoje ?? 0} f={f} />
-          <KPI color="#3b82f6" label="Faturamento hoje" value={fmtK(dados.kpis?.faturamento_hoje ?? 0)} f={f} />
-          <KPI color="#a855f7" label="Faturamento mês" value={fmtK(dados.kpis?.faturamento_mes ?? 0)} f={f} />
+          <KPI color="#3b82f6" label="Faturamento hoje" value={dados.kpis?.faturamento_hoje ?? 0} f={f} formatMoney />
+          <KPI color="#a855f7" label="Faturamento mês" value={dados.kpis?.faturamento_mes ?? 0} f={f} formatMoney />
           <KPI color="#f59e0b" label="Prontos retirar" value={dados.kpis?.prontos_retirar ?? 0} f={f} />
         </div>
       );
@@ -224,20 +271,29 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
       return (
         <WidgetCard title="🏆 Pódio dos técnicos" f={f}>
           <div className="grid grid-cols-3 gap-2 h-full">
-            {(dados.podio ?? []).slice(0, 3).map((t: any, i: number) => (
-              <div
-                key={i}
-                className={`p-2 rounded-lg text-center flex flex-col justify-center ${
-                  i === 0 ? "bg-yellow-500/20 border border-yellow-500/40"
-                  : i === 1 ? "bg-gray-300/15 border border-gray-400/40"
-                  : "bg-orange-700/20 border border-orange-700/40"
-                }`}
-              >
-                <div className="text-xl font-black">{i + 1}º</div>
-                <div className={`${f.base} font-semibold truncate`}>{t.nome}</div>
-                <div className={`${f.kpi} font-bold text-[#00C896]`}>{t.oss}</div>
-              </div>
-            ))}
+            <AnimatePresence>
+              {(dados.podio ?? []).slice(0, 3).map((t: TVPodioTecnico, i: number) => (
+                <motion.div
+                  layout
+                  key={t.nome}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className={`p-2 rounded-lg text-center flex flex-col justify-center ${
+                    i === 0 ? "bg-yellow-500/20 border border-yellow-500/40"
+                    : i === 1 ? "bg-gray-300/15 border border-gray-400/40"
+                    : "bg-orange-700/20 border border-orange-700/40"
+                  }`}
+                >
+                  <div className="text-xl font-black">{i + 1}º</div>
+                  <div className={`${f.base} font-semibold truncate`}>{t.nome}</div>
+                  <div className={`${f.kpi} font-bold text-[#00C896]`}>
+                    <AnimatedNumber value={t.oss} />
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {(!dados.podio || dados.podio.length === 0) && (
               <p className="col-span-3 text-center text-sm text-white/50 py-4">Sem dados</p>
             )}
@@ -246,19 +302,34 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
       );
 
     case "aparelhos_tecnicos": {
-      const max = Math.max(1, ...(dados.aparelhos_tecnicos ?? []).map((x: any) => x.qtd));
+      const max = Math.max(1, ...(dados.aparelhos_tecnicos ?? []).map((x: TVAparelhoTecnico) => x.qtd));
       return (
         <WidgetCard title="📋 Aparelhos por técnico" f={f}>
           <div className="space-y-2 overflow-auto h-full">
-            {(dados.aparelhos_tecnicos ?? []).map((t: any, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className={`${f.base} w-28 truncate`}>{t.nome}</span>
-                <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
-                  <div className="h-full bg-blue-500" style={{ width: `${(t.qtd / max) * 100}%` }} />
-                </div>
-                <span className={`${f.base} font-bold w-6 text-right`}>{t.qtd}</span>
-              </div>
-            ))}
+            <AnimatePresence>
+              {(dados.aparelhos_tecnicos ?? []).map((t: TVAparelhoTecnico) => (
+                <motion.div
+                  layout
+                  key={t.nome}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="flex items-center gap-2"
+                >
+                  <span className={`${f.base} w-28 truncate`}>{t.nome}</span>
+                  <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
+                    <motion.div
+                      className="h-full bg-blue-500"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(t.qtd / max) * 100}%` }}
+                      transition={{ duration: 0.6, ease: "easeOut" }}
+                    />
+                  </div>
+                  <span className={`${f.base} font-bold w-6 text-right`}>{t.qtd}</span>
+                </motion.div>
+              ))}
+            </AnimatePresence>
             {(!dados.aparelhos_tecnicos || dados.aparelhos_tecnicos.length === 0) && (
               <p className="text-center text-sm text-white/50 py-4">Nenhum aparelho aberto</p>
             )}
@@ -292,11 +363,18 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
         <WidgetCard title="🎯 Meta do mês" f={f}>
           <div className="flex flex-col justify-center h-full">
             <div className="flex items-baseline gap-2 mb-2 flex-wrap">
-              <span className={`${f.kpi} font-black text-[#00C896]`}>{fmt(dados.meta?.atual_valor ?? 0)}</span>
+              <span className={`${f.kpi} font-black text-[#00C896]`}>
+                <AnimatedNumber value={dados.meta?.atual_valor ?? 0} format={fmt} />
+              </span>
               <span className={`${f.base} text-white/60`}>de {fmt(dados.meta?.meta_valor ?? 0)}</span>
             </div>
             <div className="h-3 bg-white/5 rounded-full overflow-hidden mb-1">
-              <div className="h-full bg-gradient-to-r from-[#00C896] to-[#00b389]" style={{ width: `${Math.min(dados.meta?.pct ?? 0, 100)}%` }} />
+              <motion.div
+                className="h-full bg-gradient-to-r from-[#00C896] to-[#00b389]"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(dados.meta?.pct ?? 0, 100)}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
             </div>
             <p className={`${f.base} font-bold text-[#00C896] text-right`}>{dados.meta?.pct ?? 0}%</p>
           </div>
@@ -304,22 +382,37 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
       );
 
     case "top_lojistas": {
-      const max = Math.max(1, ...(dados.top_lojistas ?? []).map((x: any) => x.saldo));
+      const max = Math.max(1, ...(dados.top_lojistas ?? []).map((x: TVLojistaSaldo) => x.saldo));
       return (
         <WidgetCard title="🏪 Top lojistas (saldo)" f={f}>
           <div className="space-y-2 overflow-auto h-full">
-            {(dados.top_lojistas ?? []).map((l: any, i: number) => {
-              const cor = l.saldo > 30000 ? "bg-red-500" : l.saldo > 20000 ? "bg-amber-500" : "bg-yellow-500";
-              return (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={`${f.base} w-28 truncate`}>{l.nome}</span>
-                  <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
-                    <div className={`h-full ${cor}`} style={{ width: `${(l.saldo / max) * 100}%` }} />
-                  </div>
-                  <span className={`${f.base} font-bold w-16 text-right`}>{fmtK(l.saldo)}</span>
-                </div>
-              );
-            })}
+            <AnimatePresence>
+              {(dados.top_lojistas ?? []).map((l: TVLojistaSaldo) => {
+                const cor = l.saldo > 30000 ? "bg-red-500" : l.saldo > 20000 ? "bg-amber-500" : "bg-yellow-500";
+                return (
+                  <motion.div
+                    layout
+                    key={l.nome}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className={`${f.base} w-28 truncate`}>{l.nome}</span>
+                    <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
+                      <motion.div
+                        className={`h-full ${cor}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(l.saldo / max) * 100}%` }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                      />
+                    </div>
+                    <span className={`${f.base} font-bold w-16 text-right`}>{fmtK(l.saldo)}</span>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
             {(!dados.top_lojistas || dados.top_lojistas.length === 0) && (
               <p className="text-center text-sm text-white/50 py-4">Nada pra cobrar</p>
             )}
@@ -335,36 +428,52 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
             {(dados.estoque_critico ?? []).length === 0 ? (
               <p className="text-center text-sm text-white/50 py-4">✓ Estoque OK</p>
             ) : (
-              (dados.estoque_critico ?? []).map((p: any, i: number) => (
-                <div key={i} className="flex items-center justify-between gap-2 p-1.5 bg-red-500/5 border border-red-500/20 rounded">
-                  <span className={`${f.base} truncate flex-1`}>{p.nome}</span>
-                  <span className={`${f.base} font-mono font-bold text-red-400`}>
-                    {p.quantidade}/{p.minimo}
-                  </span>
-                </div>
-              ))
+              <AnimatePresence>
+                {(dados.estoque_critico ?? []).map((p: TVEstoqueCritico) => (
+                  <motion.div
+                    layout
+                    key={p.nome}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex items-center justify-between gap-2 p-1.5 bg-red-500/5 border border-red-500/20 rounded"
+                  >
+                    <span className={`${f.base} truncate flex-1`}>{p.nome}</span>
+                    <span className={`${f.base} font-mono font-bold text-red-400`}>
+                      {p.quantidade}/{p.minimo}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </WidgetCard>
       );
 
     case "financeiro_mes": {
-      const fin = dados.financeiro_mes ?? {};
+      const fin = dados.financeiro_mes ?? { receita: 0, custos_pecas: 0, despesas: 0 };
       const lucro = (fin.receita || 0) - (fin.custos_pecas || 0) - (fin.despesas || 0);
       return (
         <WidgetCard title="💰 Financeiro do mês" f={f}>
           <div className="grid grid-cols-3 gap-2 h-full">
             <div className="flex flex-col justify-center">
               <p className="text-[10px] text-white/60 uppercase">Receita</p>
-              <p className={`${f.kpi} font-black text-[#00C896]`}>{fmtK(fin.receita || 0)}</p>
+              <p className={`${f.kpi} font-black text-[#00C896]`}>
+                <AnimatedNumber value={fin.receita || 0} format={fmtK} />
+              </p>
             </div>
             <div className="flex flex-col justify-center">
               <p className="text-[10px] text-white/60 uppercase">Custos</p>
-              <p className={`${f.kpi} font-black text-red-400`}>-{fmtK((fin.custos_pecas || 0) + (fin.despesas || 0))}</p>
+              <p className={`${f.kpi} font-black text-red-400`}>
+                -<AnimatedNumber value={(fin.custos_pecas || 0) + (fin.despesas || 0)} format={fmtK} />
+              </p>
             </div>
             <div className="flex flex-col justify-center">
               <p className="text-[10px] text-white/60 uppercase">Lucro</p>
-              <p className={`${f.kpi} font-black ${lucro >= 0 ? "text-[#00C896]" : "text-red-500"}`}>{fmtK(lucro)}</p>
+              <p className={`${f.kpi} font-black ${lucro >= 0 ? "text-[#00C896]" : "text-red-500"}`}>
+                <AnimatedNumber value={lucro} format={fmtK} />
+              </p>
             </div>
           </div>
         </WidgetCard>
@@ -378,13 +487,23 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
             {(dados.ultimas_oss ?? []).length === 0 ? (
               <p className="text-center text-sm text-white/50 py-4">Sem OSs entregues</p>
             ) : (
-              (dados.ultimas_oss ?? []).map((os: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
-                  <span className={`${f.base} font-mono font-bold text-[#00C896]`}>#{os.numero}</span>
-                  <span className={`${f.base} flex-1 truncate text-white/80`}>{os.tecnico || "—"}</span>
-                  <span className={`${f.base} font-bold`}>{fmtK(os.valor)}</span>
-                </div>
-              ))
+              <AnimatePresence>
+                {(dados.ultimas_oss ?? []).map((os: TVUltimaOS) => (
+                  <motion.div
+                    layout
+                    key={os.numero}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex items-center gap-2 p-1.5 bg-white/5 rounded"
+                  >
+                    <span className={`${f.base} font-mono font-bold text-[#00C896]`}>#{os.numero}</span>
+                    <span className={`${f.base} flex-1 truncate text-white/80`}>{os.tecnico || "—"}</span>
+                    <span className={`${f.base} font-bold`}>{fmtK(os.valor)}</span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </WidgetCard>
@@ -397,15 +516,25 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
             {(dados.agenda_dia ?? []).length === 0 ? (
               <p className="text-center text-sm text-white/50 py-4">Sem OSs com previsão hoje</p>
             ) : (
-              (dados.agenda_dia ?? []).map((os: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
-                  <span className={`${f.base} font-mono font-bold text-blue-400`}>#{os.numero}</span>
-                  <span className={`${f.base} flex-1 truncate text-white/80`}>{os.tecnico || "—"}</span>
-                  {os.prioridade === "urgente" && (
-                    <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded uppercase">URG</span>
-                  )}
-                </div>
-              ))
+              <AnimatePresence>
+                {(dados.agenda_dia ?? []).map((os: TVAgendaDia) => (
+                  <motion.div
+                    layout
+                    key={os.numero}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex items-center gap-2 p-1.5 bg-white/5 rounded"
+                  >
+                    <span className={`${f.base} font-mono font-bold text-blue-400`}>#{os.numero}</span>
+                    <span className={`${f.base} flex-1 truncate text-white/80`}>{os.tecnico || "—"}</span>
+                    {os.prioridade === "urgente" && (
+                      <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded uppercase">URG</span>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </WidgetCard>
@@ -418,35 +547,66 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
             {(dados.contas_vencer ?? []).length === 0 ? (
               <p className="text-center text-sm text-white/50 py-4">✓ Sem contas próximas</p>
             ) : (
-              (dados.contas_vencer ?? []).map((c: any, i: number) => {
-                const cor = c.dias <= 2 ? "text-red-400 bg-red-500/10" : "text-amber-400 bg-amber-500/10";
-                return (
-                  <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
-                    <span className={`${f.base} flex-1 truncate text-white/80`}>{c.descricao}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${cor}`}>
-                      {c.dias === 0 ? "hoje" : `${c.dias}d`}
-                    </span>
-                    <span className={`${f.base} font-bold`}>{fmtK(c.valor)}</span>
-                  </div>
-                );
-              })
+              <AnimatePresence>
+                {(dados.contas_vencer ?? []).map((c: TVContaVencer, i: number) => {
+                  const cor = c.dias <= 2 ? "text-red-400 bg-red-500/10" : "text-amber-400 bg-amber-500/10";
+                  const venceHoje = c.dias === 0;
+                  const key = `${c.descricao}-${c.vencimento}-${i}`;
+                  return (
+                    <motion.div
+                      layout
+                      key={key}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={
+                        venceHoje
+                          ? {
+                              opacity: 1,
+                              x: 0,
+                              boxShadow: [
+                                "0 0 0 0 rgba(239, 68, 68, 0)",
+                                "0 0 0 8px rgba(239, 68, 68, 0.18)",
+                                "0 0 0 0 rgba(239, 68, 68, 0)",
+                              ],
+                            }
+                          : { opacity: 1, x: 0 }
+                      }
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={
+                        venceHoje
+                          ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                          : { duration: 0.35, ease: "easeOut" }
+                      }
+                      className="flex items-center gap-2 p-1.5 bg-white/5 rounded"
+                    >
+                      <span className={`${f.base} flex-1 truncate text-white/80`}>{c.descricao}</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${cor}`}>
+                        {c.dias === 0 ? "hoje" : `${c.dias}d`}
+                      </span>
+                      <span className={`${f.base} font-bold`}>{fmtK(c.valor)}</span>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             )}
           </div>
         </WidgetCard>
       );
 
     case "graf_semanal": {
-      const max = Math.max(1, ...(dados.graf_semanal ?? []).map((s: any) => s.receita));
+      const max = Math.max(1, ...(dados.graf_semanal ?? []).map((s: TVGrafSemanal) => s.receita));
       return (
         <WidgetCard title="📈 Receita últimas 4 semanas" f={f}>
           <div className="flex items-end justify-around gap-2 h-full pt-2">
-            {(dados.graf_semanal ?? []).map((s: any, i: number) => (
+            {(dados.graf_semanal ?? []).map((s: TVGrafSemanal, i: number) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full">
                 <span className="text-[10px] font-bold text-white/80">{fmtK(s.receita)}</span>
                 <div className="w-full flex-1 flex items-end">
-                  <div
+                  <motion.div
                     className="w-full bg-gradient-to-t from-[#00C896] to-[#00b389] rounded-t"
-                    style={{ height: `${(s.receita / max) * 100}%`, minHeight: "4px" }}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${(s.receita / max) * 100}%` }}
+                    transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
+                    style={{ minHeight: "4px" }}
                   />
                 </div>
                 <span className="text-[10px] text-white/60">{s.semana}</span>
@@ -464,31 +624,47 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
             {(dados.ranking_lojistas ?? []).length === 0 ? (
               <p className="text-center text-sm text-white/50 py-4">Sem dados</p>
             ) : (
-              (dados.ranking_lojistas ?? []).map((l: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded">
-                  <span className="text-lg font-black text-purple-400 w-6 text-center">{i + 1}</span>
-                  <span className={`${f.base} flex-1 truncate text-white/80`}>{l.nome}</span>
-                  <span className={`${f.base} font-bold`}>{l.qtd_oss} OSs</span>
-                </div>
-              ))
+              <AnimatePresence>
+                {(dados.ranking_lojistas ?? []).map((l: TVRankingLojista, i: number) => (
+                  <motion.div
+                    layout
+                    key={l.nome}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex items-center gap-2 p-1.5 bg-white/5 rounded"
+                  >
+                    <span className="text-lg font-black text-purple-400 w-6 text-center">{i + 1}</span>
+                    <span className={`${f.base} flex-1 truncate text-white/80`}>{l.nome}</span>
+                    <span className={`${f.base} font-bold`}>{l.qtd_oss} OSs</span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </WidgetCard>
       );
 
     case "ticket_medio": {
-      const arr = (dados.ticket_medio ?? []).map((m: any) => ({ ...m, _val: parseFloat(m.ticket) }));
-      const max = Math.max(1, ...arr.map((m: any) => m._val));
+      const arr = (dados.ticket_medio ?? []).map((m: TVTicketMedio) => ({
+        ...m,
+        _val: typeof m.ticket === "number" ? m.ticket : parseFloat(m.ticket),
+      }));
+      const max = Math.max(1, ...arr.map((m) => m._val));
       return (
         <WidgetCard title="💵 Ticket médio (6 meses)" f={f}>
           <div className="flex items-end justify-around gap-1 h-full pt-2">
-            {arr.map((m: any, i: number) => (
+            {arr.map((m, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full">
                 <span className="text-[9px] font-bold text-white/80">{fmt(m._val)}</span>
                 <div className="w-full flex-1 flex items-end">
-                  <div
+                  <motion.div
                     className="w-full bg-gradient-to-t from-pink-500 to-pink-400 rounded-t"
-                    style={{ height: `${(m._val / max) * 100}%`, minHeight: "4px" }}
+                    initial={{ height: 0 }}
+                    animate={{ height: `${(m._val / max) * 100}%` }}
+                    transition={{ duration: 0.7, ease: "easeOut", delay: i * 0.05 }}
+                    style={{ minHeight: "4px" }}
                   />
                 </div>
                 <span className="text-[9px] text-white/60">{m.mes}</span>
@@ -500,22 +676,37 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
     }
 
     case "top_defeitos": {
-      const max = Math.max(1, ...(dados.top_defeitos ?? []).map((d: any) => d.qtd));
+      const max = Math.max(1, ...(dados.top_defeitos ?? []).map((d: TVTopDefeito) => d.qtd));
       return (
         <WidgetCard title="🔧 Top defeitos do mês" f={f}>
           <div className="space-y-2 overflow-auto h-full">
             {(dados.top_defeitos ?? []).length === 0 ? (
               <p className="text-center text-sm text-white/50 py-4">Sem dados</p>
             ) : (
-              (dados.top_defeitos ?? []).map((d: any, i: number) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className={`${f.base} w-28 truncate`}>{d.defeito}</span>
-                  <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
-                    <div className="h-full bg-cyan-500" style={{ width: `${(d.qtd / max) * 100}%` }} />
-                  </div>
-                  <span className={`${f.base} font-bold w-6 text-right`}>{d.qtd}</span>
-                </div>
-              ))
+              <AnimatePresence>
+                {(dados.top_defeitos ?? []).map((d: TVTopDefeito) => (
+                  <motion.div
+                    layout
+                    key={d.defeito}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className={`${f.base} w-28 truncate`}>{d.defeito}</span>
+                    <div className="flex-1 h-5 bg-white/5 rounded overflow-hidden">
+                      <motion.div
+                        className="h-full bg-cyan-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(d.qtd / max) * 100}%` }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                      />
+                    </div>
+                    <span className={`${f.base} font-bold w-6 text-right`}>{d.qtd}</span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </WidgetCard>
@@ -539,7 +730,15 @@ function renderWidget(id: string, dados: any, hora: Date, f: any) {
   }
 }
 
-function WidgetCard({ title, children, f }: any) {
+function WidgetCard({
+  title,
+  children,
+  f,
+}: {
+  title: string;
+  children: React.ReactNode;
+  f: WidgetFontes;
+}) {
   return (
     <div className="h-full flex flex-col">
       <h3 className={`${f.titulo} font-semibold text-white/80 uppercase tracking-wider mb-2`}>
@@ -550,19 +749,41 @@ function WidgetCard({ title, children, f }: any) {
   );
 }
 
-function KPI({ color, label, value, f }: any) {
+function KPI({
+  color,
+  label,
+  value,
+  f,
+  formatMoney,
+}: {
+  color: string;
+  label: string;
+  value: number;
+  f: WidgetFontes;
+  formatMoney?: boolean;
+}) {
   return (
     <div
       className="rounded-lg p-3 flex flex-col justify-center"
       style={{ borderLeft: `4px solid ${color}`, background: "rgba(255,255,255,0.03)" }}
     >
       <p className="text-[10px] text-white/60 uppercase tracking-wide">{label}</p>
-      <p className={`${f.kpi} font-black mt-1`}>{value}</p>
+      <p className={`${f.kpi} font-black mt-1`}>
+        <AnimatedNumber value={value} format={formatMoney ? fmtK : undefined} />
+      </p>
     </div>
   );
 }
 
-function Alerta({ cor, texto, f }: any) {
+function Alerta({
+  cor,
+  texto,
+  f,
+}: {
+  cor: "red" | "amber" | "blue";
+  texto: string;
+  f: WidgetFontes;
+}) {
   const cores: Record<string, string> = {
     red: "bg-red-500/10 border-red-500/30",
     amber: "bg-amber-500/10 border-amber-500/30",
