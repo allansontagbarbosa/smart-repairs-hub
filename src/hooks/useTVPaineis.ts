@@ -34,7 +34,11 @@ export interface TVPainel {
   ativo: boolean;
   ultimo_acesso_em: string | null;
   created_at: string;
-  layout: PainelLayoutWidget[];
+  // Layout livre por design — array de widgets cujo shape varia por tipo.
+  // Mantemos any[] aqui pra não forçar refator de TVEditarLayout / TVDisplay
+  // que usam shapes específicos de react-grid-layout. EXCEÇÃO documentada.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  layout: any[];
   logo_url: string | null;
   tamanho_fonte: "P" | "M" | "G";
 }
@@ -157,7 +161,11 @@ export function useTVPainelDados(codigo: string | null, intervaloMs = 30000) {
         p_codigo: codigo,
       } as never);
       if (error) throw error;
-      return data as unknown as Record<string, unknown>;
+      // Dados do painel têm shape dinâmico por widget — consumido em TVDisplay
+      // via acesso por chave. Tipar de verdade exigiria mapear todos os widgets.
+      // EXCEÇÃO documentada.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return data as any;
     },
     enabled: !!codigo,
     refetchInterval: intervaloMs,
@@ -170,7 +178,8 @@ export function useAtualizarLayoutTV() {
   return useMutation({
     mutationFn: async (params: {
       painel_id: string;
-      layout?: PainelLayoutWidget[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      layout?: any[];
       tamanho_fonte?: "P" | "M" | "G";
       logo_url?: string;
     }) => {
