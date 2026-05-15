@@ -1,19 +1,23 @@
 import { APP_CONFIG } from "@/config/app";
+import { useTheme } from "@/contexts/ThemeContext";
+import logoLight from "@/assets/ditt-logo-light.jpg";
+import logoLightIcon from "@/assets/ditt-logo-light-icon.jpg";
+import logoDark from "@/assets/ditt-logo-dark.jpg";
+import logoDarkIcon from "@/assets/ditt-logo-dark-icon.jpg";
 
 interface Props {
   size?: 'sm' | 'md' | 'lg';
   showWordmark?: boolean;
   showTagline?: boolean;
+  /** 'default' segue o tema, 'white' força versão para fundo escuro */
   variant?: 'default' | 'white';
   iconOnly?: boolean;
 }
 
 /**
  * Ditt Software logo.
- *
- * Símbolo: dois "selos" arredondados sobrepostos diagonalmente
- * (manual da marca pág. 5/6). O símbolo SEMPRE é verde Ditt #00C896
- * em uso normal — a única exceção é variant="white" para fundos escuros.
+ * Usa as artes oficiais (manual da marca) e troca automaticamente
+ * conforme o tema (claro/escuro). O símbolo permanece sempre verde.
  */
 export function DittLogo({
   size = 'md',
@@ -22,101 +26,51 @@ export function DittLogo({
   variant = 'default',
   iconOnly = false,
 }: Props) {
-  const sizes = {
-    sm: { icon: 24, text: 18, tag: 8, gap: 8 },
-    md: { icon: 32, text: 24, tag: 10, gap: 10 },
-    lg: { icon: 56, text: 42, tag: 14, gap: 14 },
-  };
-  const s = sizes[size];
+  // Hook protegido: fora do ThemeProvider (ex.: tela de login pública), cai no claro.
+  let isDark = false;
+  try {
+    isDark = useTheme().resolvedTheme === 'dark';
+  } catch {
+    isDark = false;
+  }
+  const useDarkArt = variant === 'white' || isDark;
 
-  const colors = {
-    default: { symbol: '#00C896', text: '#000000', tag: '#525252' },
-    white:   { symbol: '#FFFFFF', text: '#FFFFFF', tag: 'rgba(255,255,255,0.75)' },
-  };
-  const c = colors[variant];
+  const heights = { sm: 24, md: 36, lg: 64 } as const;
+  const h = heights[size];
 
-  // SVG do símbolo: dois rect arredondados sobrepostos.
-  // viewBox 100x100 — fácil escalar.
-  const Symbol = (
-    <svg
-      width={s.icon}
-      height={s.icon}
-      viewBox="0 0 100 100"
-      role="img"
-      aria-label={APP_CONFIG.name}
-      style={{ display: 'block', flexShrink: 0 }}
-    >
-      <title>{APP_CONFIG.name}</title>
-      {/* Forma traseira (canto sup-direito) */}
-      <rect
-        x="32"
-        y="8"
-        width="60"
-        height="60"
-        rx="14"
-        ry="14"
-        fill={c.symbol}
-        opacity="0.55"
-      />
-      {/* Forma frontal (canto inf-esquerdo) */}
-      <rect
-        x="8"
-        y="32"
-        width="60"
-        height="60"
-        rx="14"
-        ry="14"
-        fill={c.symbol}
-      />
-      {/* Recorte central (cria o "ponto" dentro da forma frontal) */}
-      <circle cx="38" cy="62" r="7" fill="#FFFFFF" />
-    </svg>
-  );
+  // Tagline embute no asset com wordmark, então showTagline controla qual arte:
+  // - showWordmark + showTagline -> arte com "SOFTWARE"
+  // - showWordmark sem tagline   -> arte só "ditt"
+  // - iconOnly                   -> apenas símbolo
+  const src = iconOnly
+    ? (useDarkArt ? logoDarkIcon : logoLightIcon) // arte ícone vem com "ditt", mas usamos como símbolo escalado
+    : showTagline
+      ? (useDarkArt ? logoDark : logoLight)
+      : (useDarkArt ? logoDarkIcon : logoLightIcon);
 
-  if (iconOnly) return Symbol;
+  // Para iconOnly de verdade, usa o símbolo SVG isolado (já existente abaixo).
+  if (iconOnly) {
+    return <SymbolOnly size={h} forceWhite={variant === 'white'} />;
+  }
 
   return (
-    <div
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: s.gap,
-        lineHeight: 1,
-      }}
-    >
-      {Symbol}
-      {showWordmark && (
-        <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2 }}>
-          <span
-            style={{
-              fontFamily: "'Manrope', system-ui, sans-serif",
-              fontWeight: 700,
-              fontSize: s.text,
-              color: c.text,
-              letterSpacing: '-0.04em',
-              lineHeight: 1,
-            }}
-          >
-            ditt
-          </span>
-          {showTagline && (
-            <span
-              style={{
-                fontFamily: "'Manrope', system-ui, sans-serif",
-                fontWeight: 600,
-                fontSize: s.tag,
-                color: c.tag,
-                letterSpacing: '0.25em',
-                lineHeight: 1,
-                textTransform: 'uppercase',
-              }}
-            >
-              Software
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+    <img
+      src={src}
+      alt={APP_CONFIG.name}
+      style={{ height: h, width: 'auto', display: 'block' }}
+      draggable={false}
+    />
+  );
+}
+
+function SymbolOnly({ size, forceWhite }: { size: number; forceWhite: boolean }) {
+  const fill = forceWhite ? '#FFFFFF' : '#00C896';
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="Ditt">
+      <rect x="32" y="8" width="60" height="60" rx="14" ry="14" fill={fill} opacity="0.55" />
+      <rect x="8" y="32" width="60" height="60" rx="14" ry="14" fill={fill} />
+      <rect x="34" y="58" width="14" height="14" rx="2" fill="#FFFFFF" />
+    </svg>
   );
 }
 
