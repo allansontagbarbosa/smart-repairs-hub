@@ -3643,6 +3643,7 @@ export type Database = {
           sinal_pago: number
           status: Database["public"]["Enums"]["status_ordem"]
           tecnico: string | null
+          tecnico_responsavel_id: string | null
           tipo_servico: string | null
           tipo_servico_id: string | null
           updated_at: string
@@ -3717,6 +3718,7 @@ export type Database = {
           sinal_pago?: number
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
+          tecnico_responsavel_id?: string | null
           tipo_servico?: string | null
           tipo_servico_id?: string | null
           updated_at?: string
@@ -3791,6 +3793,7 @@ export type Database = {
           sinal_pago?: number
           status?: Database["public"]["Enums"]["status_ordem"]
           tecnico?: string | null
+          tecnico_responsavel_id?: string | null
           tipo_servico?: string | null
           tipo_servico_id?: string | null
           updated_at?: string
@@ -4082,6 +4085,47 @@ export type Database = {
             columns: ["tecnico_id"]
             isOneToOne: false
             referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_status_historico: {
+        Row: {
+          empresa_id: string
+          id: string
+          mudado_em: string
+          mudado_por: string | null
+          observacao: string | null
+          os_id: string
+          status_anterior: string | null
+          status_novo: string
+        }
+        Insert: {
+          empresa_id: string
+          id?: string
+          mudado_em?: string
+          mudado_por?: string | null
+          observacao?: string | null
+          os_id: string
+          status_anterior?: string | null
+          status_novo: string
+        }
+        Update: {
+          empresa_id?: string
+          id?: string
+          mudado_em?: string
+          mudado_por?: string | null
+          observacao?: string | null
+          os_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_status_historico_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
         ]
@@ -5794,6 +5838,12 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      os_status_em_casa: { Args: { p_status: string }; Returns: boolean }
+      os_status_mapear_legado: { Args: { p_status: string }; Returns: string }
+      os_status_reconhece_receita: {
+        Args: { p_status: string }
+        Returns: boolean
       }
       pagar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       pagar_comissoes_em_lote: {
