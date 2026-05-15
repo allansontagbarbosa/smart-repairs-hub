@@ -187,7 +187,19 @@ async function fetchRecebimentos() {
     console.error("ERRO fetchRecebimentos:", error.code, error.message, error.details);
     throw error;
   }
-  return (data ?? []).map((m: any) => ({
+  type MovRow = {
+    id: string;
+    descricao: string | null;
+    valor: number | string | null;
+    data: string;
+    forma_pagamento: string | null;
+    categoria: string | null;
+    ordem_id: string | null;
+    cliente_id: string | null;
+    estoque_id: string | null;
+    created_at: string;
+  };
+  return ((data ?? []) as MovRow[]).map((m) => ({
     id: m.id,
     descricao: m.descricao,
     valor: Number(m.valor ?? 0),
