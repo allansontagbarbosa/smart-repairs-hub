@@ -77,11 +77,11 @@ import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
       refetchOnWindowFocus: true,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
+      refetchOnReconnect: true,
+      refetchOnMount: "always",
       retry: 1,
     },
   },

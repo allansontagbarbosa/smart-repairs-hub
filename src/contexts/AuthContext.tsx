@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { buildUserProfileLookup } from "@/lib/userProfileLookup";
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handlePostSignInRedirect = async (session: Session | null) => {
@@ -73,8 +75,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
 
-      if (event === "SIGNED_IN") {
-        void handlePostSignInRedirect(session);
+      if (event === "TOKEN_REFRESHED") {
+        void queryClient.invalidateQueries();
+      }
+
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        void queryClient.invalidateQueries();
+        if (event === "SIGNED_IN") {
+          void handlePostSignInRedirect(session);
+        }
+      }
+
+      if (event === "SIGNED_OUT") {
+        queryClient.clear();
       }
     });
 
@@ -85,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
