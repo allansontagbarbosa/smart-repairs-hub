@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FuncionarioRH, Holerite } from "@/types/rh";
 
-type RpcResp<T = Record<string, unknown>> = { success?: boolean; error?: string } & T;
+// RPCs return JSONB; consumers downstream rely on dynamic field access.
+// Keep the return loosely-typed (any) to avoid forcing a deep refactor of all
+// pages that read these fields. The RPC name itself is now strictly typed.
+type RpcResp = { success?: boolean; error?: string } & Record<string, any>;
 
-function unwrap<T = Record<string, unknown>>(data: unknown): RpcResp<T> {
-  return (data ?? {}) as RpcResp<T>;
+function unwrap(data: unknown): RpcResp {
+  return (data ?? {}) as RpcResp;
 }
 
 export function useListarFuncionariosRH() {
