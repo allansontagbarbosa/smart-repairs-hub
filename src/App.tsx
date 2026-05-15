@@ -142,6 +142,8 @@ const App = () => (
               {/* Painéis TV (públicos — sem auth) */}
               <Route path="/tv" element={<TVAcesso />} />
               <Route path="/tv/d/:codigo" element={<TVDisplay />} />
+              {/* Rota paralela pra validar mudanças (animações + realtime) sem afetar TVs em produção */}
+              <Route path="/tv/preview/:codigo" element={<TVDisplay />} />
 
               {/* Portal do Técnico */}
               <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
