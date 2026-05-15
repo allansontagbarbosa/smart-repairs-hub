@@ -8,6 +8,7 @@ import { useClientesSaldos } from "@/hooks/useClientesSaldos";
 import { useExtratoCliente, type ExtratoClienteItem } from "@/hooks/useExtratoCliente";
 import { usePagamentosClienteLista } from "@/hooks/usePagamentosClienteLista";
 import { RegistrarPagamentoDialog } from "@/components/ClienteHistoricoSheet";
+import { AcoesPagamento } from "@/components/financeiro/AcoesPagamento";
 import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -357,11 +358,11 @@ function AparelhosTab({ aparelhos, isLoading, onViewOS }: { aparelhos: AparelhoC
   );
 }
 
-function PagamentosTab({ pagamentos, isLoading, onRegistrar }: { pagamentos: Array<{ id: string; data_pagamento: string | null; forma_pagamento: string | null; valor: number | null; observacoes: string | null }>; isLoading: boolean; onRegistrar: () => void }) {
+function PagamentosTab({ pagamentos, isLoading, onRegistrar }: { pagamentos: Array<{ id: string; cliente_id: string; data_pagamento: string | null; forma_pagamento: string | null; valor: number | null; observacoes: string | null }>; isLoading: boolean; onRegistrar: () => void }) {
   return (
     <div className="rounded-lg border bg-card">
       <div className="flex items-center justify-between gap-3 border-b p-4"><h2 className="text-base font-semibold">Pagamentos</h2><Button size="sm" onClick={onRegistrar}><CreditCard className="h-4 w-4 mr-2" />Registrar Pagamento</Button></div>
-      {isLoading ? <Loading /> : <div className="overflow-x-auto"><table className="data-table min-w-[720px]"><thead><tr><th>Data</th><th>Forma Pagamento</th><th className="text-right">Valor</th><th>Observações</th></tr></thead><tbody>{pagamentos.map((p) => <tr key={p.id}><td>{fmtDate(p.data_pagamento)}</td><td className="capitalize">{String(p.forma_pagamento || "—").replace(/_/g, " ")}</td><td className="text-right font-semibold text-success">{fmtCurrency(p.valor)}</td><td className="text-muted-foreground">{p.observacoes || "—"}</td></tr>)}{pagamentos.length === 0 ? <tr><td colSpan={4} className="py-10 text-center text-sm text-muted-foreground">Nenhum pagamento registrado.</td></tr> : null}</tbody></table></div>}
+      {isLoading ? <Loading /> : <div className="overflow-x-auto"><table className="data-table min-w-[720px]"><thead><tr><th>Data</th><th>Forma Pagamento</th><th className="text-right">Valor</th><th>Observações</th><th className="w-24 text-right">Ações</th></tr></thead><tbody>{pagamentos.map((p) => <tr key={p.id}><td>{fmtDate(p.data_pagamento)}</td><td className="capitalize">{String(p.forma_pagamento || "—").replace(/_/g, " ")}</td><td className="text-right font-semibold text-success">{fmtCurrency(p.valor)}</td><td className="text-muted-foreground">{p.observacoes || "—"}</td><td className="text-right"><AcoesPagamento pagamento={{ id: p.id, cliente_id: p.cliente_id, valor: Number(p.valor ?? 0), data_pagamento: p.data_pagamento ?? "", forma_pagamento: p.forma_pagamento, observacoes: p.observacoes }} /></td></tr>)}{pagamentos.length === 0 ? <tr><td colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Nenhum pagamento registrado.</td></tr> : null}</tbody></table></div>}
     </div>
   );
 }

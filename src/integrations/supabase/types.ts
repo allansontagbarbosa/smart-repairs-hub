@@ -196,6 +196,42 @@ export type Database = {
           },
         ]
       }
+      audit_pagamentos: {
+        Row: {
+          acao: string
+          criado_em: string
+          empresa_id: string
+          id: string
+          motivo: string | null
+          pagamento_id: string
+          user_id: string
+          valores_antes: Json
+          valores_depois: Json | null
+        }
+        Insert: {
+          acao: string
+          criado_em?: string
+          empresa_id: string
+          id?: string
+          motivo?: string | null
+          pagamento_id: string
+          user_id: string
+          valores_antes: Json
+          valores_depois?: Json | null
+        }
+        Update: {
+          acao?: string
+          criado_em?: string
+          empresa_id?: string
+          id?: string
+          motivo?: string | null
+          pagamento_id?: string
+          user_id?: string
+          valores_antes?: Json
+          valores_depois?: Json | null
+        }
+        Relationships: []
+      }
       auditoria: {
         Row: {
           acao: string
@@ -5492,6 +5528,10 @@ export type Database = {
         Args: { p_ordem_id: string; p_servicos: Json }
         Returns: Json
       }
+      editar_pagamento_cliente: {
+        Args: { p_dados: Json; p_motivo?: string; p_pagamento_id: string }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -5514,6 +5554,10 @@ export type Database = {
       }
       excluir_definitivamente_os_canceladas_lote: {
         Args: { p_confirmacao: string; p_ordem_ids: string[] }
+        Returns: Json
+      }
+      excluir_pagamento_cliente: {
+        Args: { p_motivo?: string; p_pagamento_id: string }
         Returns: Json
       }
       extrato_cliente: {
