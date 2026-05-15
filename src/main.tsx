@@ -8,7 +8,7 @@ import "./index.css";
 // mobilefix.dev preservando path/query/hash. Use ?preview na URL para
 // editar no Lovable sem ser redirecionado.
 const PRODUCTION_DOMAIN =
-  (import.meta.env.VITE_PRODUCTION_DOMAIN as string | undefined) ?? "mobilefix.dev";
+  (import.meta.env.VITE_PRODUCTION_DOMAIN as string | undefined) ?? "ditt.com.br";
 const hostname = window.location.hostname;
 const isPreview = hostname.endsWith(".lovableproject.com");
 const isDev = hostname === "localhost" || hostname === "127.0.0.1";
