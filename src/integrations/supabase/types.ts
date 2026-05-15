@@ -5532,6 +5532,7 @@ export type Database = {
         Args: { p_dados: Json; p_motivo?: string; p_pagamento_id: string }
         Returns: Json
       }
+      eh_admin: { Args: never; Returns: boolean }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
