@@ -56,6 +56,7 @@ export function useCriarConvite() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["cliente-convite", vars.clienteId] });
+      qc.invalidateQueries({ queryKey: ["cliente-completo", vars.clienteId] });
       qc.invalidateQueries({ queryKey: ["clientes"] });
       toast.success("Convite gerado");
     },
@@ -78,6 +79,7 @@ export function useEnviarConviteEmail() {
     },
     onSuccess: (_, clienteId) => {
       qc.invalidateQueries({ queryKey: ["cliente-convite", clienteId] });
+      qc.invalidateQueries({ queryKey: ["cliente-completo", clienteId] });
       toast.success("Convite enviado por email");
     },
     onError: (e: Error) => toast.error(`Erro no envio: ${e.message}`),
@@ -97,6 +99,7 @@ export function useRevogarConvite() {
     },
     onSuccess: (_, clienteId) => {
       qc.invalidateQueries({ queryKey: ["cliente-convite", clienteId] });
+      qc.invalidateQueries({ queryKey: ["cliente-completo", clienteId] });
       qc.invalidateQueries({ queryKey: ["clientes"] });
       toast.success("Acesso revogado");
     },

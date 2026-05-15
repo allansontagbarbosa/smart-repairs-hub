@@ -86,7 +86,7 @@ export default function ClientePerfil() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, email, telefone, whatsapp, cpf, documento, data_nascimento, cep, rua, numero_endereco, complemento, bairro, cidade, estado, observacoes")
+        .select("id, nome, email, telefone, whatsapp, cpf, documento, data_nascimento, cep, rua, numero_endereco, complemento, bairro, cidade, estado, observacoes, tipo_cliente, status_convite, convite_token, convite_enviado_em, convite_aceito_em, convite_expira_em, convite_email_enviado_em, user_id, created_at, updated_at")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -169,14 +169,15 @@ export default function ClientePerfil() {
         <Button onClick={() => setNovaOsOpen(true)} className="gap-2"><Plus className="h-4 w-4" />Nova OS</Button>
       </div>
 
-      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={(cliente as any).tipo_cliente ?? "consumidor_b2c"} />
+      <TipoClienteSwitch clienteId={cliente.id} tipoAtual={((clienteCompleto as any)?.tipo_cliente ?? (cliente as any).tipo_cliente ?? "consumidor_b2c")} />
 
       <AcessoPortalSection
         clienteId={cliente.id}
         clienteNome={cliente.nome}
-        clienteEmail={(cliente as any).email}
-        clienteTelefone={(cliente as any).telefone}
-        tipoCliente={((cliente as any).tipo_cliente ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
+        clienteEmail={(clienteCompleto as any)?.email ?? (cliente as any).email}
+        clienteTelefone={(clienteCompleto as any)?.telefone ?? (cliente as any).telefone}
+        tipoCliente={(((clienteCompleto as any)?.tipo_cliente ?? (cliente as any).tipo_cliente) ?? "consumidor_b2c") as "lojista_b2b" | "consumidor_b2c"}
+        convite={clienteCompleto as any}
       />
 
       {clienteCompleto && <DadosClienteEditavel cliente={clienteCompleto as any} />}
