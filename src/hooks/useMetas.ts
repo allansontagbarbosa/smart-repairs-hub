@@ -70,13 +70,15 @@ export const METRICAS_LABEL: Record<MetricaMeta, { label: string; sentido: Senti
   retorno_cliente_30d: { label: "Retorno de cliente 30d (%)", sentido: "maior", unidade: "percentual" },
 };
 
+type RpcResp = { success?: boolean; error?: string } & Record<string, any>;
+
 export function useMetas(status: StatusMeta | "todas" = "ativa") {
   return useQuery({
     queryKey: ["metas", status],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("listar_metas_com_progresso" as any, { p_status: status === "todas" ? null : status });
+      const { data, error } = await supabase.rpc("listar_metas_com_progresso", { p_status: status === "todas" ? null : status });
       if (error) throw error;
-      const p = data as any;
+      const p = (data ?? {}) as RpcResp;
       if (!p?.success) throw new Error(p?.error || "Falha");
       return (p.metas ?? []) as Meta[];
     },
@@ -89,9 +91,9 @@ export function useMetaProgresso(metaId: string | null) {
     queryKey: ["meta-progresso", metaId],
     enabled: !!metaId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("calcular_progresso_meta" as any, { p_meta_id: metaId! });
+      const { data, error } = await supabase.rpc("calcular_progresso_meta", { p_meta_id: metaId! });
       if (error) throw error;
-      const p = data as any;
+      const p = (data ?? {}) as RpcResp;
       if (!p?.success) throw new Error(p?.error || "Falha");
       return p as MetaProgresso & { success: boolean };
     },
@@ -102,8 +104,8 @@ export function useCriarMeta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (meta: NovaMeta) => {
-      const { data: empresa } = await supabase.rpc("get_my_empresa_id" as any);
-      const { data, error } = await supabase.from("metas").insert({ ...meta, empresa_id: empresa as any, valor_atual: 0 } as any).select().single();
+      const { data: empresa } = await supabase.rpc("get_my_empresa_id");
+      const { data, error } = await supabase.from("metas").insert({ ...meta, empresa_id: empresa as string, valor_atual: 0 }).select().single();
       if (error) throw error;
       return data;
     },
@@ -115,7 +117,7 @@ export function useAtualizarMeta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...m }: Partial<Meta> & { id: string }) => {
-      const { data, error } = await supabase.from("metas").update(m as any).eq("id", id).select().single();
+      const { data, error } = await supabase.from("metas").update(m).eq("id", id).select().single();
       if (error) throw error;
       return data;
     },
@@ -127,7 +129,7 @@ export function useExcluirMeta() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("metas").update({ deleted_at: new Date().toISOString() } as any).eq("id", id);
+      const { error } = await supabase.from("metas").update({ deleted_at: new Date().toISOString() }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["metas"] }),
