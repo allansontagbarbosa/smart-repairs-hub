@@ -1,9 +1,9 @@
 import { APP_CONFIG } from "@/config/app";
 import { useTheme } from "@/contexts/ThemeContext";
-import logoLight from "@/assets/ditt-logo-light.jpg";
-import logoLightIcon from "@/assets/ditt-logo-light-icon.jpg";
-import logoDark from "@/assets/ditt-logo-dark.jpg";
-import logoDarkIcon from "@/assets/ditt-logo-dark-icon.jpg";
+import logoLight from "@/assets/ditt-logo-light.png";
+import logoLightIcon from "@/assets/ditt-logo-light-icon.png";
+import logoDark from "@/assets/ditt-logo-dark.png";
+import logoDarkIcon from "@/assets/ditt-logo-dark-icon.png";
 
 interface Props {
   size?: 'sm' | 'md' | 'lg';
@@ -35,10 +35,8 @@ export function DittLogo({
   }
   const useDarkArt = variant === 'white' || isDark;
 
-  // Assets são quadrados (1081x1081) com padding interno embutido na arte.
-  // Para o conteúdo visual bater com tamanhos típicos de wordmark/ícone na UI,
-  // escalamos ~2x em relação à altura nominal do componente.
-  const heights = { sm: 44, md: 64, lg: 112 } as const;
+  // PNGs recortados sem fundo/artboard; altura visual proporcional para headers e telas públicas.
+  const heights = { sm: 22, md: 30, lg: 48 } as const;
   const h = heights[size];
 
   // Tagline embute no asset com wordmark, então showTagline controla qual arte:
