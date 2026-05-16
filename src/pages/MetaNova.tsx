@@ -21,7 +21,7 @@ export interface FormState {
   threshold_alerta: number;
 }
 
-const ICN: Record<MetricaMeta, any> = {
+const ICN: Record<MetricaMeta, ElementType> = {
   faturamento: TrendingUp, qtd_os: ClipboardList, qtd_servicos: Wrench, ticket_medio: Receipt,
   comissao_paga: DollarSign, margem_os: Trophy, tempo_medio_horas: Clock,
   retrabalho_taxa: Repeat, aprovacao_orcamento_taxa: FileCheck, retorno_cliente_30d: Users,
