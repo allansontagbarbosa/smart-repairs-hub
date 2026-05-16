@@ -57,11 +57,21 @@ export default function MetaNova() {
     threshold_alerta: 80,
   });
 
+  // Lista apenas funcionários com user_profile vinculado a um perfil de acesso "Técnico"
+  // (mesmo critério usado pelo ConfigTecnicosTab — fonte da verdade).
   const { data: tecnicos = [] } = useQuery({
     queryKey: ["tecnicos-meta"],
     enabled: form.escopo === "tecnico",
-    queryFn: async () =>
-      (await supabase.from("funcionarios").select("id,nome").eq("ativo", true).is("deleted_at", null).order("nome")).data ?? [],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("id, nome, user_profiles!inner(perfis_acesso!inner(nome_perfil))")
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .eq("user_profiles.perfis_acesso.nome_perfil", "Técnico")
+        .order("nome");
+      return (data ?? []).map((f: any) => ({ id: f.id, nome: f.nome }));
+    },
   });
   const { data: lojas = [] } = useQuery({
     queryKey: ["lojas-meta"],
