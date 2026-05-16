@@ -87,9 +87,8 @@ export default function MetaNova() {
           .order("nome_perfil"),
         supabase
           .from("user_profiles")
-          .select("perfil_id, funcionario_id")
-          .eq("empresa_id", empresaId!)
-          .or("ativo.eq.true,ativo.is.null"),
+          .select("perfil_id, funcionario_id, ativo")
+          .eq("empresa_id", empresaId!),
       ]);
 
       if (funcionariosRes.error) throw funcionariosRes.error;
@@ -103,6 +102,7 @@ export default function MetaNova() {
 
       const funcionarios = funcionariosRes.data ?? [];
       return (userProfilesRes.data ?? [])
+        .filter((u: any) => u.ativo === true || u.ativo === null)
         .filter((u: any) => u.perfil_id === tecnicoPerfil?.id && u.funcionario_id)
         .map((u: any) => funcionarios.find((f: any) => f.id === u.funcionario_id))
         .filter(Boolean);
