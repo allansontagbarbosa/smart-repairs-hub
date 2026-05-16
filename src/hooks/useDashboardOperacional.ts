@@ -72,12 +72,6 @@ export interface DashboardOperacional {
   atualizado_em: string;
 }
 
-interface RPCResponse {
-  success: boolean;
-  data?: DashboardOperacional;
-  error?: string;
-}
-
 interface UseDashboardOperacionalReturn {
   data: DashboardOperacional | null;
   loading: boolean;
@@ -97,16 +91,25 @@ export function useDashboardOperacional(): UseDashboardOperacionalReturn {
     setError(null);
 
     try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc(
+      const { data: rpcRaw, error: rpcError } = await supabase.rpc(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "get_dashboard_operacional" as any
       );
+
+      console.log("[DashboardDebug] RPC raw response:", rpcRaw);
+      console.log("[DashboardDebug] RPC error:", rpcError);
 
       if (rpcError) {
         throw new Error(`Erro Supabase: ${rpcError.message}`);
       }
 
-      const response = rpcData as unknown as RPCResponse;
+      const response = rpcRaw as unknown as { success?: boolean; data?: DashboardOperacional; error?: string };
+
+      console.log("[DashboardDebug] response.success:", response?.success);
+      console.log("[DashboardDebug] response.data type:", typeof response?.data);
+      console.log("[DashboardDebug] response.data.bancadas:", response?.data?.bancadas);
+      console.log("[DashboardDebug] bancadas isArray:", Array.isArray(response?.data?.bancadas));
+      console.log("[DashboardDebug] bancadas length:", response?.data?.bancadas?.length);
 
       if (!response?.success) {
         throw new Error(response?.error || "Resposta da RPC sem 'success: true'");
@@ -116,7 +119,27 @@ export function useDashboardOperacional(): UseDashboardOperacionalReturn {
         throw new Error("Resposta da RPC sem campo 'data'");
       }
 
-      setData(response.data);
+      const normalized: DashboardOperacional = {
+        bancadas: Array.isArray(response.data.bancadas) ? response.data.bancadas : [],
+        contadores: response.data.contadores ?? {
+          recebido: 0, em_analise: 0, aprovacao: 0, em_reparo: 0,
+          aguardando_peca: 0, pronto: 0, entregue_hoje: 0, total_em_casa: 0
+        },
+        caixa_hoje: response.data.caixa_hoje ?? { entrada_hoje: 0, qtd_os_pagas: 0 },
+        lucro_mes: response.data.lucro_mes ?? {
+          regime: "competencia", receita: 0, custo_pecas: 0,
+          custo_comissao: 0, lucro: 0, margem_pct: 0
+        },
+        estoque: response.data.estoque ?? { total_pecas: 0, zeradas: 0 },
+        ranking: response.data.ranking ?? { mes: 0, ano: 0, tecnicos: [] },
+        atualizado_em: response.data.atualizado_em ?? new Date().toISOString(),
+      };
+
+      console.log("[DashboardDebug] normalized bancadas length:", normalized.bancadas.length);
+      console.log("[DashboardDebug] normalized ranking.mes:", normalized.ranking.mes);
+      console.log("[DashboardDebug] normalized contadores:", normalized.contadores);
+
+      setData(normalized);
       setLastFetch(new Date());
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
