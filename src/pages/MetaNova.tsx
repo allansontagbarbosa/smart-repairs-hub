@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,11 @@ const DESC: Record<MetricaMeta, string> = {
   aprovacao_orcamento_taxa: "% de orçamentos aprovados",
   retorno_cliente_30d: "% de clientes que voltaram",
 };
+
+type MetaInfo = (typeof METRICAS_LABEL)[MetricaMeta];
+type FuncionarioOption = { id: string; nome: string };
+type PerfilAcessoOption = { id: string; nome_perfil: string | null };
+type UserProfileTecnicoOption = { perfil_id: string | null; funcionario_id: string | null; ativo: boolean | null };
 
 function normalizarNome(s: string | null | undefined) {
   return (s ?? "")
