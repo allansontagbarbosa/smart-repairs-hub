@@ -53,6 +53,7 @@ import TVConfigurar from "./pages/TVConfigurar";
 import TVAcesso from "./pages/TVAcesso";
 import TVDisplay from "./pages/TVDisplay";
 import TVEditarLayout from "./pages/TVEditarLayout";
+import AdminDiagnosticoDashboard from "./pages/AdminDiagnosticoDashboard";
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
 import LojistaLogin from "./pages/lojista/LojistaLogin";
