@@ -203,11 +203,16 @@ async function fetchContasPeriodo(rangeStart: Date, rangeEnd: Date) {
   const competencias = getCompetenciaMonths(rangeStart, rangeEnd);
   const { data, error } = await supabase
     .from("contas_a_pagar")
-    .select("valor, recorrente, mes_competencia")
+    .select("valor, recorrente, mes_competencia, categoria")
     .in("mes_competencia", competencias)
     .is("deleted_at", null);
   if (error) throw error;
-  return data ?? [];
+  // Igual à DRE (RelDRE.tsx): ignora categorias já contadas em "Custos".
+  // Comissões vêm da tabela `comissoes` via RPC; Prejuízos vêm de `prejuizos`.
+  // Se essas categorias também aparecem em `contas_a_pagar`, é dupla contagem.
+  return (data ?? []).filter(
+    (c: any) => c.categoria !== "Comissões" && c.categoria !== "Prejuízos"
+  );
 }
 
 async function fetchEmpresaConfig() {
