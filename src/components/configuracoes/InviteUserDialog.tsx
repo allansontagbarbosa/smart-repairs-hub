@@ -66,6 +66,7 @@ export function InviteUserDialog({
 
     setLoading(true);
     try {
+      console.log('[convite] iniciando envio:', { email: email.trim(), nome, perfil_id: perfilId, empresa_id: empresaId });
       const res = await supabase.functions.invoke("invite-user", {
         body: {
           email: email.trim(),
@@ -74,13 +75,15 @@ export function InviteUserDialog({
           empresa_id: empresaId,
         },
       });
+      console.log('[convite] resposta:', res);
 
       const errorMsg = res.error?.message || res.data?.error;
       if (errorMsg) {
+        console.error('[convite] erro estruturado:', res.error || res.data?.error);
         if (errorMsg.includes("already been registered")) {
           toast.success("Usuário reativado com sucesso!");
         } else {
-          toast.error(errorMsg);
+          throw new Error(errorMsg);
         }
       }
       if (!errorMsg || errorMsg.includes("already been registered")) {
@@ -92,8 +95,11 @@ export function InviteUserDialog({
         qc.invalidateQueries({ queryKey: ["user_profiles"] });
         await qc.refetchQueries({ queryKey: ["user_profiles"] });
       }
-    } catch {
-      toast.error("Erro ao enviar convite");
+    } catch (err) {
+      console.error('[convite] FALHA:', err);
+      console.error('[convite] err.message:', (err as Error)?.message);
+      console.error('[convite] err.stack:', (err as Error)?.stack);
+      toast.error(`Erro ao enviar convite: ${(err as Error)?.message || 'desconhecido'}`);
     }
     setLoading(false);
   };
