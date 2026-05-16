@@ -193,6 +193,7 @@ const App = () => (
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
+                    <Route path="/admin/diagnostico-dashboard" element={<AdminDiagnosticoDashboard />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppLayout>
