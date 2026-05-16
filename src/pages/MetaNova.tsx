@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, X, Check, Building, User, Store, TrendingUp, Cli
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCriarMeta, METRICAS_LABEL, MetricaMeta, EscopoMeta } from "@/hooks/useMetas";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
 
 export interface FormState {
@@ -39,8 +40,17 @@ const DESC: Record<MetricaMeta, string> = {
   retorno_cliente_30d: "% de clientes que voltaram",
 };
 
+function normalizarNome(s: string | null | undefined) {
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 export default function MetaNova() {
   const navigate = useNavigate();
+  const { empresaId } = useEmpresa();
   const criar = useCriarMeta();
   const [step, setStep] = useState(1);
   const hoje = new Date();
@@ -57,20 +67,45 @@ export default function MetaNova() {
     threshold_alerta: 80,
   });
 
-  // Lista apenas funcionários com user_profile vinculado a um perfil de acesso "Técnico"
-  // (mesmo critério usado pelo ConfigTecnicosTab — fonte da verdade).
+  // Mesma estratégia do ConfigTecnicosTab: identifica o perfil Técnico,
+  // filtra user_profiles por perfil_id e só então mapeia para funcionários.
   const { data: tecnicos = [] } = useQuery({
-    queryKey: ["tecnicos-meta"],
-    enabled: form.escopo === "tecnico",
+    queryKey: ["tecnicos-meta", empresaId],
+    enabled: form.escopo === "tecnico" && !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("funcionarios")
-        .select("id, nome, user_profiles!inner(perfis_acesso!inner(nome_perfil))")
-        .eq("ativo", true)
-        .is("deleted_at", null)
-        .eq("user_profiles.perfis_acesso.nome_perfil", "Técnico")
-        .order("nome");
-      return (data ?? []).map((f: any) => ({ id: f.id, nome: f.nome }));
+      const [funcionariosRes, perfisRes, userProfilesRes] = await Promise.all([
+        supabase
+          .from("funcionarios")
+          .select("id, nome")
+          .eq("empresa_id", empresaId!)
+          .eq("ativo", true)
+          .is("deleted_at", null)
+          .order("nome"),
+        supabase
+          .from("perfis_acesso")
+          .select("id, nome_perfil")
+          .order("nome_perfil"),
+        supabase
+          .from("user_profiles")
+          .select("perfil_id, funcionario_id")
+          .eq("empresa_id", empresaId!)
+          .or("ativo.eq.true,ativo.is.null"),
+      ]);
+
+      if (funcionariosRes.error) throw funcionariosRes.error;
+      if (perfisRes.error) throw perfisRes.error;
+      if (userProfilesRes.error) throw userProfilesRes.error;
+
+      const tecnicoPerfil = (perfisRes.data ?? []).find((p: any) => {
+        const nome = normalizarNome(p.nome_perfil);
+        return nome === "tecnico" || nome === "tecnicos" || nome.startsWith("tecnico");
+      });
+
+      const funcionarios = funcionariosRes.data ?? [];
+      return (userProfilesRes.data ?? [])
+        .filter((u: any) => u.perfil_id === tecnicoPerfil?.id && u.funcionario_id)
+        .map((u: any) => funcionarios.find((f: any) => f.id === u.funcionario_id))
+        .filter(Boolean);
     },
   });
   const { data: lojas = [] } = useQuery({
