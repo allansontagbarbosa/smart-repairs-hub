@@ -4985,6 +4985,81 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnico_metas_mensais: {
+        Row: {
+          ano: number
+          created_at: string
+          deleted_at: string | null
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          mes: number
+          meta_faturamento: number
+          meta_qtd_os: number
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          deleted_at?: string | null
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          mes: number
+          meta_faturamento?: number
+          meta_qtd_os?: number
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          deleted_at?: string | null
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          mes?: number
+          meta_faturamento?: number
+          meta_qtd_os?: number
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tecnico_sessoes: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          encerrado_em: string | null
+          funcionario_id: string
+          id: string
+          iniciado_em: string
+          observacao: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          encerrado_em?: string | null
+          funcionario_id: string
+          id?: string
+          iniciado_em?: string
+          observacao?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          encerrado_em?: string | null
+          funcionario_id?: string
+          id?: string
+          iniciado_em?: string
+          observacao?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       tecnicos_metas: {
         Row: {
           ano: number
@@ -5692,6 +5767,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      get_minha_sessao_atual: { Args: never; Returns: Json }
       get_my_cliente_lojista: {
         Args: never
         Returns: {
@@ -5716,6 +5792,10 @@ export type Database = {
           ultima_os_data: string
           ultimo_pagamento_data: string
         }[]
+      }
+      get_tecnico_kpis_avancado: {
+        Args: { p_ano?: number; p_funcionario_id: string; p_mes?: number }
+        Returns: Json
       }
       historico_pagamentos_conta: {
         Args: { p_conta_pagar_id: string }
@@ -5876,6 +5956,7 @@ export type Database = {
         }
         Returns: Json
       }
+      pegar_os: { Args: { p_os_id: string }; Returns: Json }
       portal_aprovar_orcamento: { Args: { p_os_id: string }; Returns: Json }
       portal_atualizar_meu_perfil: { Args: { p_dados: Json }; Returns: Json }
       portal_dashboard_lojista: { Args: never; Returns: Json }
@@ -5993,6 +6074,7 @@ export type Database = {
         Returns: Json
       }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      trocar_meu_status: { Args: { p_novo_status: string }; Returns: Json }
       tv_atualizar_layout: {
         Args: {
           p_layout: Json
