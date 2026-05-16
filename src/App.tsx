@@ -78,11 +78,11 @@ import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      refetchOnMount: "always",
+      staleTime: 5 * 60_000,       // 5 min: dados ficam "frescos" por mais tempo
+      gcTime: 30 * 60_000,         // 30 min: cache permanece mais tempo após uso
+      refetchOnWindowFocus: false, // NÃO refetch ao voltar pra aba (causava "reset" do app)
+      refetchOnReconnect: true,    // mantém: refetch quando reconectar internet
+      refetchOnMount: false,       // NÃO refetch sempre que componente monta — só se dados stale
       retry: 1,
     },
   },
