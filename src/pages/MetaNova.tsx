@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ElementType } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, X, Check, Building, User, Store, TrendingUp, Cli
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCriarMeta, METRICAS_LABEL, MetricaMeta, EscopoMeta } from "@/hooks/useMetas";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
 
 export interface FormState {
@@ -20,7 +21,7 @@ export interface FormState {
   threshold_alerta: number;
 }
 
-const ICN: Record<MetricaMeta, any> = {
+const ICN: Record<MetricaMeta, ElementType> = {
   faturamento: TrendingUp, qtd_os: ClipboardList, qtd_servicos: Wrench, ticket_medio: Receipt,
   comissao_paga: DollarSign, margem_os: Trophy, tempo_medio_horas: Clock,
   retrabalho_taxa: Repeat, aprovacao_orcamento_taxa: FileCheck, retorno_cliente_30d: Users,
@@ -39,8 +40,22 @@ const DESC: Record<MetricaMeta, string> = {
   retorno_cliente_30d: "% de clientes que voltaram",
 };
 
+type MetaInfo = (typeof METRICAS_LABEL)[MetricaMeta];
+type FuncionarioOption = { id: string; nome: string };
+type PerfilAcessoOption = { id: string; nome_perfil: string | null };
+type UserProfileTecnicoOption = { perfil_id: string | null; funcionario_id: string | null; ativo: boolean | null };
+
+function normalizarNome(s: string | null | undefined) {
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 export default function MetaNova() {
   const navigate = useNavigate();
+  const { empresaId } = useEmpresa();
   const criar = useCriarMeta();
   const [step, setStep] = useState(1);
   const hoje = new Date();
@@ -57,20 +72,45 @@ export default function MetaNova() {
     threshold_alerta: 80,
   });
 
-  // Lista apenas funcionários com user_profile vinculado a um perfil de acesso "Técnico"
-  // (mesmo critério usado pelo ConfigTecnicosTab — fonte da verdade).
+  // Mesma estratégia do ConfigTecnicosTab: identifica o perfil Técnico,
+  // filtra user_profiles por perfil_id e só então mapeia para funcionários.
   const { data: tecnicos = [] } = useQuery({
-    queryKey: ["tecnicos-meta"],
-    enabled: form.escopo === "tecnico",
+    queryKey: ["tecnicos-meta", empresaId],
+    enabled: form.escopo === "tecnico" && !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("funcionarios")
-        .select("id, nome, user_profiles!inner(perfis_acesso!inner(nome_perfil))")
-        .eq("ativo", true)
-        .is("deleted_at", null)
-        .eq("user_profiles.perfis_acesso.nome_perfil", "Técnico")
-        .order("nome");
-      return (data ?? []).map((f: any) => ({ id: f.id, nome: f.nome }));
+      const [funcionariosRes, perfisRes, userProfilesRes] = await Promise.all([
+        supabase
+          .from("funcionarios")
+          .select("id, nome")
+          .eq("empresa_id", empresaId!)
+          .eq("ativo", true)
+          .is("deleted_at", null)
+          .order("nome"),
+        supabase
+          .from("perfis_acesso")
+          .select("id, nome_perfil")
+          .order("nome_perfil"),
+        supabase
+          .from("user_profiles")
+          .select("perfil_id, funcionario_id, ativo")
+          .eq("empresa_id", empresaId!),
+      ]);
+
+      if (funcionariosRes.error) throw funcionariosRes.error;
+      if (perfisRes.error) throw perfisRes.error;
+      if (userProfilesRes.error) throw userProfilesRes.error;
+
+      const tecnicoPerfil = ((perfisRes.data ?? []) as PerfilAcessoOption[]).find((p) => {
+        const nome = normalizarNome(p.nome_perfil);
+        return nome === "tecnico" || nome === "tecnicos" || nome.startsWith("tecnico");
+      });
+
+      const funcionarios = (funcionariosRes.data ?? []) as FuncionarioOption[];
+      return ((userProfilesRes.data ?? []) as UserProfileTecnicoOption[])
+        .filter((u) => u.ativo === true || u.ativo === null)
+        .filter((u) => u.perfil_id === tecnicoPerfil?.id && u.funcionario_id)
+        .map((u) => funcionarios.find((f) => f.id === u.funcionario_id))
+        .filter((f): f is FuncionarioOption => Boolean(f));
     },
   });
   const { data: lojas = [] } = useQuery({
@@ -103,8 +143,8 @@ export default function MetaNova() {
       });
       toast.success("Meta criada!");
       navigate("/metas");
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao criar");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao criar");
     }
   };
 
@@ -181,7 +221,7 @@ interface StepProps {
 }
 
 function StepMetrica({ form, setForm }: StepProps) {
-  const todas = Object.entries(METRICAS_LABEL) as [MetricaMeta, any][];
+  const todas = Object.entries(METRICAS_LABEL) as [MetricaMeta, MetaInfo][];
   return (
     <div>
       <h3 className="text-sm font-medium mb-3">Qual métrica você quer acompanhar?</h3>
@@ -208,7 +248,7 @@ function StepMetrica({ form, setForm }: StepProps) {
 }
 
 function StepEscopo({ form, setForm, tecnicos = [], lojas = [] }: StepProps) {
-  const opts: { id: EscopoMeta; icon: any; label: string; desc: string }[] = [
+  const opts: { id: EscopoMeta; icon: ElementType; label: string; desc: string }[] = [
     { id: "empresa", icon: Building, label: "Empresa toda", desc: "Soma de todos os técnicos e lojas" },
     { id: "tecnico", icon: User, label: "Por técnico", desc: "Apenas 1 técnico específico" },
     { id: "loja", icon: Store, label: "Por loja", desc: "Apenas 1 loja específica" },
