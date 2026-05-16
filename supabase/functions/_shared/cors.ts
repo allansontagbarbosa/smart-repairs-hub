@@ -3,6 +3,8 @@
 // receive requests from external servers and need an open CORS policy.
 
 const ALLOWED_ORIGINS = [
+  "https://ditt.com.br",
+  "https://www.ditt.com.br",
   "https://mobilefix.dev",
   "https://www.mobilefix.dev",
   "https://smart-repairs-hub.lovable.app",
