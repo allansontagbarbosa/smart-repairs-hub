@@ -3338,6 +3338,45 @@ export type Database = {
         }
         Relationships: []
       }
+      metas_tecnico_mensais: {
+        Row: {
+          ano: number
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          mes: number
+          meta_faturamento: number | null
+          meta_qtd_os: number | null
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          mes: number
+          meta_faturamento?: number | null
+          meta_qtd_os?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          mes?: number
+          meta_faturamento?: number | null
+          meta_qtd_os?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       modelos: {
         Row: {
           ativo: boolean
@@ -5673,6 +5712,13 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      get_dashboard_bancadas: { Args: never; Returns: Json }
+      get_dashboard_caixa_hoje: { Args: never; Returns: Json }
+      get_dashboard_contadores_status: { Args: never; Returns: Json }
+      get_dashboard_estoque_resumo: { Args: never; Returns: Json }
+      get_dashboard_lucro_mes: { Args: never; Returns: Json }
+      get_dashboard_operacional: { Args: never; Returns: Json }
+      get_dashboard_ranking_mes: { Args: never; Returns: Json }
       get_dashboard_summary: {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
