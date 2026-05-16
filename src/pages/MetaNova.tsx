@@ -221,7 +221,7 @@ interface StepProps {
 }
 
 function StepMetrica({ form, setForm }: StepProps) {
-  const todas = Object.entries(METRICAS_LABEL) as [MetricaMeta, any][];
+  const todas = Object.entries(METRICAS_LABEL) as [MetricaMeta, MetaInfo][];
   return (
     <div>
       <h3 className="text-sm font-medium mb-3">Qual métrica você quer acompanhar?</h3>
@@ -248,7 +248,7 @@ function StepMetrica({ form, setForm }: StepProps) {
 }
 
 function StepEscopo({ form, setForm, tecnicos = [], lojas = [] }: StepProps) {
-  const opts: { id: EscopoMeta; icon: any; label: string; desc: string }[] = [
+  const opts: { id: EscopoMeta; icon: ElementType; label: string; desc: string }[] = [
     { id: "empresa", icon: Building, label: "Empresa toda", desc: "Soma de todos os técnicos e lojas" },
     { id: "tecnico", icon: User, label: "Por técnico", desc: "Apenas 1 técnico específico" },
     { id: "loja", icon: Store, label: "Por loja", desc: "Apenas 1 loja específica" },
