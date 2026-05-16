@@ -100,17 +100,17 @@ export default function MetaNova() {
       if (perfisRes.error) throw perfisRes.error;
       if (userProfilesRes.error) throw userProfilesRes.error;
 
-      const tecnicoPerfil = (perfisRes.data ?? []).find((p: any) => {
+      const tecnicoPerfil = ((perfisRes.data ?? []) as PerfilAcessoOption[]).find((p) => {
         const nome = normalizarNome(p.nome_perfil);
         return nome === "tecnico" || nome === "tecnicos" || nome.startsWith("tecnico");
       });
 
-      const funcionarios = funcionariosRes.data ?? [];
-      return (userProfilesRes.data ?? [])
-        .filter((u: any) => u.ativo === true || u.ativo === null)
-        .filter((u: any) => u.perfil_id === tecnicoPerfil?.id && u.funcionario_id)
-        .map((u: any) => funcionarios.find((f: any) => f.id === u.funcionario_id))
-        .filter(Boolean);
+      const funcionarios = (funcionariosRes.data ?? []) as FuncionarioOption[];
+      return ((userProfilesRes.data ?? []) as UserProfileTecnicoOption[])
+        .filter((u) => u.ativo === true || u.ativo === null)
+        .filter((u) => u.perfil_id === tecnicoPerfil?.id && u.funcionario_id)
+        .map((u) => funcionarios.find((f) => f.id === u.funcionario_id))
+        .filter((f): f is FuncionarioOption => Boolean(f));
     },
   });
   const { data: lojas = [] } = useQuery({
@@ -143,8 +143,8 @@ export default function MetaNova() {
       });
       toast.success("Meta criada!");
       navigate("/metas");
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao criar");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao criar");
     }
   };
 
