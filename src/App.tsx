@@ -30,6 +30,10 @@ import NotFound from "./pages/NotFound";
 import SemAcesso from "./pages/SemAcesso";
 import Login from "./pages/Login";
 import { AuthGuard } from "@/components/AuthGuard";
+import { PerfilGuard } from "@/components/PerfilGuard";
+
+const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
+const PERFIS_TECNICO = ["Técnico"];
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
