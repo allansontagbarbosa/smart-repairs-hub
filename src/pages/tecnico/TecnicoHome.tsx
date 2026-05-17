@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,24 @@ import { startOfDay, differenceInCalendarDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const LIMITE_SIMULTANEO = 5;
+
+function CronometroVivo({ iniciadoEm }: { iniciadoEm: string | null | undefined }) {
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!iniciadoEm) return;
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [iniciadoEm]);
+  if (!iniciadoEm) return <span>agora</span>;
+  const inicio = new Date(iniciadoEm).getTime();
+  const diffSec = Math.max(0, Math.floor((agora - inicio) / 1000));
+  const h = Math.floor(diffSec / 3600);
+  const m = Math.floor((diffSec % 3600) / 60);
+  const s = diffSec % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (h > 0) return <span>{pad(h)}:{pad(m)}:{pad(s)}</span>;
+  return <span>{pad(m)}:{pad(s)}</span>;
+}
 
 function tempoDesde(iso: string | null | undefined) {
   if (!iso) return "agora";
@@ -166,7 +185,7 @@ export default function TecnicoHome() {
                   <p className="text-sm font-semibold truncate">{servicoAtual.nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     #{servicoAtual.ordens_de_servico?.numero_formatado || servicoAtual.ordens_de_servico?.numero}
-                    {" · há "}{tempoDesde(servicoAtual.iniciado_em)}
+                    {" · há "}<CronometroVivo iniciadoEm={servicoAtual.iniciado_em} />
                     {emAndamento.length > 1 ? ` · +${emAndamento.length - 1} outros` : ""}
                   </p>
                 </div>
