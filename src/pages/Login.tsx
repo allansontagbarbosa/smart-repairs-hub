@@ -20,15 +20,16 @@ const DEMO_PASSWORD = "Demo@123";
 type Mode = "login" | "signup" | "forgot";
 
 async function getRotaInicial(userId: string): Promise<string> {
+  // Busca ESPECIFICAMENTE por user_id (não usa OR ambíguo)
   const { data, error } = await supabase
     .from("user_profiles")
     .select("perfil_id, perfis_acesso(nome_perfil)")
-    .or(buildUserProfileLookup(userId))
+    .eq("user_id", userId)
     .eq("ativo", true)
     .maybeSingle();
 
-  // Log temporário pra eu ver o formato real do retorno
-  console.log("[getRotaInicial] data:", data);
+  console.log("[getRotaInicial] userId:", userId);
+  console.log("[getRotaInicial] data:", JSON.stringify(data));
   console.log("[getRotaInicial] error:", error);
 
   if (error || !data) {
@@ -36,25 +37,12 @@ async function getRotaInicial(userId: string): Promise<string> {
     return "/dashboard";
   }
 
-  // perfis_acesso pode vir como OBJETO ou ARRAY dependendo de como
-  // o PostgREST infere a cardinalidade da FK. Tratamos ambos:
   const pa = (data as any).perfis_acesso;
-  let perfilNome: string | undefined;
+  const perfilNome = Array.isArray(pa) ? pa[0]?.nome_perfil : pa?.nome_perfil;
 
-  if (Array.isArray(pa)) {
-    perfilNome = pa[0]?.nome_perfil;
-  } else if (pa && typeof pa === "object") {
-    perfilNome = pa.nome_perfil;
-  }
+  console.log("[getRotaInicial] perfilNome:", perfilNome);
 
-  console.log("[getRotaInicial] perfilNome detectado:", perfilNome);
-
-  if (perfilNome === "Técnico") {
-    console.log("[getRotaInicial] → /tecnico");
-    return "/tecnico";
-  }
-
-  console.log("[getRotaInicial] → /dashboard (perfil:", perfilNome, ")");
+  if (perfilNome === "Técnico") return "/tecnico";
   return "/dashboard";
 }
 
