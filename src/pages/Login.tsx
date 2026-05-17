@@ -27,10 +27,34 @@ async function getRotaInicial(userId: string): Promise<string> {
     .eq("ativo", true)
     .maybeSingle();
 
-  if (error || !data) return "/dashboard";
+  // Log temporário pra eu ver o formato real do retorno
+  console.log("[getRotaInicial] data:", data);
+  console.log("[getRotaInicial] error:", error);
 
-  const perfilNome = (data as any).perfis_acesso?.nome_perfil;
-  if (perfilNome === "Técnico") return "/tecnico";
+  if (error || !data) {
+    console.warn("[getRotaInicial] sem dados, fallback /dashboard");
+    return "/dashboard";
+  }
+
+  // perfis_acesso pode vir como OBJETO ou ARRAY dependendo de como
+  // o PostgREST infere a cardinalidade da FK. Tratamos ambos:
+  const pa = (data as any).perfis_acesso;
+  let perfilNome: string | undefined;
+
+  if (Array.isArray(pa)) {
+    perfilNome = pa[0]?.nome_perfil;
+  } else if (pa && typeof pa === "object") {
+    perfilNome = pa.nome_perfil;
+  }
+
+  console.log("[getRotaInicial] perfilNome detectado:", perfilNome);
+
+  if (perfilNome === "Técnico") {
+    console.log("[getRotaInicial] → /tecnico");
+    return "/tecnico";
+  }
+
+  console.log("[getRotaInicial] → /dashboard (perfil:", perfilNome, ")");
   return "/dashboard";
 }
 
