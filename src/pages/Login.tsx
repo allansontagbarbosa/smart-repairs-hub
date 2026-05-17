@@ -19,6 +19,21 @@ const DEMO_PASSWORD = "Demo@123";
 
 type Mode = "login" | "signup" | "forgot";
 
+async function getRotaInicial(userId: string): Promise<string> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("perfil_id, perfis_acesso(nome_perfil)")
+    .or(buildUserProfileLookup(userId))
+    .eq("ativo", true)
+    .maybeSingle();
+
+  if (error || !data) return "/dashboard";
+
+  const perfilNome = (data as any).perfis_acesso?.nome_perfil;
+  if (perfilNome === "Técnico") return "/tecnico";
+  return "/dashboard";
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
