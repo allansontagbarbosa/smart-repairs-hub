@@ -4,7 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useTecnicoIdentidade, useTecnicoMetricas } from "@/hooks/useTecnico";
-import { Target, TrendingUp, Award, Info } from "lucide-react";
+import { Target, TrendingUp, Info } from "lucide-react";
+
+interface MetaRow {
+  id: string;
+  nome: string;
+  escopo: string;
+  escopo_id: string | null;
+  metrica: string;
+  valor_alvo: number;
+  valor_atual: number;
+  periodo_inicio: string;
+  periodo_fim: string;
+  status: string;
+}
 
 export default function TecnicoMetas() {
   const { data: identidade } = useTecnicoIdentidade();
@@ -13,55 +26,43 @@ export default function TecnicoMetas() {
   const mes = now.getMonth() + 1;
   const { data: metricas } = useTecnicoMetricas(identidade?.funcionario_id, ano, mes);
 
-  const { data: meta } = useQuery({
-    queryKey: ["tecnico-meta", identidade?.empresa_id, identidade?.funcionario_id, ano, mes],
-    enabled: !!identidade?.funcionario_id,
+  const { data: metasDoMes = [] } = useQuery<MetaRow[]>({
+    queryKey: ["minhas-metas-mes", identidade?.funcionario_id, identidade?.empresa_id, ano, mes],
+    enabled: !!identidade?.funcionario_id && !!identidade?.empresa_id,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("tecnicos_metas")
-        .select("*")
-        .eq("funcionario_id", identidade!.funcionario_id!)
-        .eq("ano", ano)
-        .eq("mes", mes)
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: equipe } = useQuery({
-    queryKey: ["equipe-meta", identidade?.empresa_id, ano, mes],
-    enabled: !!identidade?.empresa_id,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("equipe_metas")
-        .select("*")
+      const inicio = new Date(ano, mes - 1, 1).toISOString().slice(0, 10);
+      const fim = new Date(ano, mes, 0).toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("metas")
+        .select("id, nome, escopo, escopo_id, metrica, valor_alvo, valor_atual, periodo_inicio, periodo_fim, status")
         .eq("empresa_id", identidade!.empresa_id!)
-        .eq("ano", ano)
-        .eq("mes", mes)
-        .maybeSingle();
-      return data;
+        .is("deleted_at", null)
+        .eq("status", "ativa")
+        .lte("periodo_inicio", fim)
+        .gte("periodo_fim", inicio)
+        .or(`and(escopo.eq.tecnico,escopo_id.eq.${identidade!.funcionario_id}),escopo.eq.empresa`);
+      if (error) throw error;
+      return (data ?? []) as MetaRow[];
     },
   });
 
-  const { data: qtdTecnicos = 1 } = useQuery({
-    queryKey: ["qtd-tecnicos", identidade?.empresa_id],
-    enabled: !!identidade?.empresa_id,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("funcionarios")
-        .select("id", { count: "exact", head: true })
-        .eq("empresa_id", identidade!.empresa_id!)
-        .eq("ativo", true);
-      return Math.max(1, count ?? 1);
-    },
-  });
+  const metasIndividuais = metasDoMes.filter(
+    (m) => m.escopo === "tecnico" && m.escopo_id === identidade?.funcionario_id
+  );
+  const metasEmpresa = metasDoMes.filter((m) => m.escopo === "empresa");
 
-  const metaQtdEfetiva = meta?.meta_quantidade_os
-    ?? (equipe?.meta_quantidade_os ? Math.ceil(equipe.meta_quantidade_os / qtdTecnicos) : 0);
-  const metaValEfetiva = meta?.meta_valor_servicos
-    ? Number(meta.meta_valor_servicos)
-    : (equipe?.meta_faturamento ? Number(equipe.meta_faturamento) / qtdTecnicos : 0);
-  const usandoFallback = !meta && !!equipe;
+  const metaQtdIndiv = metasIndividuais.find((m) => m.metrica === "qtd_os")?.valor_alvo ?? 0;
+  const metaValIndiv = Number(metasIndividuais.find((m) => m.metrica === "faturamento")?.valor_alvo ?? 0);
+  const metaQtdEmpresa = metasEmpresa.find((m) => m.metrica === "qtd_os")?.valor_alvo ?? 0;
+  const metaValEmpresa = Number(metasEmpresa.find((m) => m.metrica === "faturamento")?.valor_alvo ?? 0);
+
+  const temIndividual = metasIndividuais.length > 0;
+  const temEmpresa = metasEmpresa.length > 0;
+
+  // Se não tem individual mas tem empresa, mostramos a meta da empresa como referência (sem ratear).
+  const metaQtdEfetiva = temIndividual ? Number(metaQtdIndiv) : Number(metaQtdEmpresa);
+  const metaValEfetiva = temIndividual ? metaValIndiv : metaValEmpresa;
+  const mostrandoEmpresaNoLugarIndiv = !temIndividual && temEmpresa;
 
   const progressoQtd = useMemo(() => {
     if (!metaQtdEfetiva) return 0;
@@ -82,7 +83,7 @@ export default function TecnicoMetas() {
         {new Date(ano, mes - 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
       </p>
 
-      {!meta && !equipe ? (
+      {!temIndividual && !temEmpresa ? (
         <Card><CardContent className="py-6 text-center space-y-2">
           <Target className="h-8 w-8 mx-auto text-muted-foreground" />
           <p className="text-sm">Nenhuma meta definida pelo gestor para este mês.</p>
@@ -90,13 +91,13 @@ export default function TecnicoMetas() {
       ) : (
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2">
-            <Target className="h-4 w-4" /> {usandoFallback ? "Sua parte da meta da equipe" : "Meta individual"}
+            <Target className="h-4 w-4" /> {mostrandoEmpresaNoLugarIndiv ? "Meta da equipe" : "Meta individual"}
           </CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            {usandoFallback && (
+            {mostrandoEmpresaNoLugarIndiv && (
               <div className="flex items-start gap-2 text-[11px] text-muted-foreground bg-muted/40 rounded-md p-2">
                 <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                <span>Meta derivada da equipe (sua parte: {metaQtdEfetiva} OS / {fmtBrl(metaValEfetiva)})</span>
+                <span>Você ainda não tem meta individual cadastrada — exibindo meta da equipe.</span>
               </div>
             )}
             <MetaItem
@@ -111,29 +112,18 @@ export default function TecnicoMetas() {
               meta={fmtBrl(metaValEfetiva)}
               progresso={progressoVal}
             />
-            {meta && Number(meta.bonus_meta_batida) > 0 && (
-              <div className="flex items-center gap-2 text-xs bg-accent/40 rounded-md p-2">
-                <Award className="h-4 w-4 text-primary" />
-                Bônus por meta batida: <strong>{fmtBrl(Number(meta.bonus_meta_batida))}</strong>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
 
-      {equipe && (
+      {temIndividual && temEmpresa && (
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2">
             <TrendingUp className="h-4 w-4" /> Meta da equipe
           </CardTitle></CardHeader>
           <CardContent className="text-sm space-y-1">
-            <p>Quantidade alvo: <strong>{equipe.meta_quantidade_os}</strong> OS</p>
-            <p>Faturamento alvo: <strong>{fmtBrl(Number(equipe.meta_faturamento ?? 0))}</strong></p>
-            {Number(equipe.bonus_equipe_batida) > 0 && (
-              <p className="text-xs text-muted-foreground pt-1">
-                Bônus distribuído se a equipe bater: {fmtBrl(Number(equipe.bonus_equipe_batida))}
-              </p>
-            )}
+            <p>Quantidade alvo: <strong>{metaQtdEmpresa}</strong> OS</p>
+            <p>Faturamento alvo: <strong>{fmtBrl(metaValEmpresa)}</strong></p>
           </CardContent>
         </Card>
       )}
