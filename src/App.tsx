@@ -30,6 +30,10 @@ import NotFound from "./pages/NotFound";
 import SemAcesso from "./pages/SemAcesso";
 import Login from "./pages/Login";
 import { AuthGuard } from "@/components/AuthGuard";
+import { PerfilGuard } from "@/components/PerfilGuard";
+
+const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
+const PERFIS_TECNICO = ["Técnico"];
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
@@ -147,18 +151,19 @@ const App = () => (
               <Route path="/tv/preview/:codigo" element={<TVDisplay />} />
 
               {/* Portal do Técnico */}
-              <Route path="/tecnico" element={<TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/ordens" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/ordens/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/comissoes" element={<TecnicoGuard><TecnicoLayout><TecnicoComissoes /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/os" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/os/:id" element={<TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/metas" element={<TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/transferencias" element={<TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard>} />
-              <Route path="/tecnico/historico" element={<TecnicoGuard><TecnicoLayout><TecnicoHistorico /></TecnicoLayout></TecnicoGuard>} />
+              <Route path="/tecnico" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/ordens" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/ordens/:id" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/comissoes" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoComissoes /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/os" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/os/:id" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoOrdemDetalhe /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/metas" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/transferencias" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+              <Route path="/tecnico/historico" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoHistorico /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
+                <PerfilGuard perfis={PERFIS_ADMIN}>
                 <AuthGuard>
                   <AppLayout>
                   <Routes>
@@ -198,6 +203,7 @@ const App = () => (
                   </Routes>
                 </AppLayout>
                 </AuthGuard>
+                </PerfilGuard>
               } />
             </Routes>
           </BrowserRouter>
