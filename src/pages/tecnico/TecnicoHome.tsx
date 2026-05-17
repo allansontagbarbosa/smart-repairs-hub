@@ -389,9 +389,6 @@ export default function TecnicoHome() {
               <Link to="/tecnico/historico" className="flex items-center gap-2 rounded-md border p-2 text-xs hover:bg-accent/50">
                 <History className="h-4 w-4" /> Histórico
               </Link>
-              <Link to="/tecnico/transferencias" className="flex items-center gap-2 rounded-md border p-2 text-xs hover:bg-accent/50">
-                <ArrowLeftRight className="h-4 w-4" /> Transferências
-              </Link>
               <Link to="/tecnico/metas" className="flex items-center gap-2 rounded-md border p-2 text-xs hover:bg-accent/50">
                 <BarChart3 className="h-4 w-4" /> Minha meta
               </Link>
