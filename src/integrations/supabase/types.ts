@@ -1594,42 +1594,6 @@ export type Database = {
           },
         ]
       }
-      equipe_metas: {
-        Row: {
-          ano: number
-          bonus_equipe_batida: number | null
-          created_at: string
-          empresa_id: string
-          id: string
-          mes: number
-          meta_faturamento: number | null
-          meta_quantidade_os: number | null
-          updated_at: string
-        }
-        Insert: {
-          ano: number
-          bonus_equipe_batida?: number | null
-          created_at?: string
-          empresa_id: string
-          id?: string
-          mes: number
-          meta_faturamento?: number | null
-          meta_quantidade_os?: number | null
-          updated_at?: string
-        }
-        Update: {
-          ano?: number
-          bonus_equipe_batida?: number | null
-          created_at?: string
-          empresa_id?: string
-          id?: string
-          mes?: number
-          meta_faturamento?: number | null
-          meta_quantidade_os?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       estoque: {
         Row: {
           categoria: string | null
@@ -4985,48 +4949,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tecnico_metas_mensais: {
-        Row: {
-          ano: number
-          created_at: string
-          deleted_at: string | null
-          empresa_id: string
-          funcionario_id: string
-          id: string
-          mes: number
-          meta_faturamento: number
-          meta_qtd_os: number
-          observacoes: string | null
-          updated_at: string
-        }
-        Insert: {
-          ano: number
-          created_at?: string
-          deleted_at?: string | null
-          empresa_id: string
-          funcionario_id: string
-          id?: string
-          mes: number
-          meta_faturamento?: number
-          meta_qtd_os?: number
-          observacoes?: string | null
-          updated_at?: string
-        }
-        Update: {
-          ano?: number
-          created_at?: string
-          deleted_at?: string | null
-          empresa_id?: string
-          funcionario_id?: string
-          id?: string
-          mes?: number
-          meta_faturamento?: number
-          meta_qtd_os?: number
-          observacoes?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       tecnico_sessoes: {
         Row: {
           created_at: string
@@ -5057,54 +4979,6 @@ export type Database = {
           iniciado_em?: string
           observacao?: string | null
           status?: string
-        }
-        Relationships: []
-      }
-      tecnicos_metas: {
-        Row: {
-          ano: number
-          bonus_meta_batida: number | null
-          created_at: string
-          created_by: string | null
-          empresa_id: string
-          funcionario_id: string
-          id: string
-          mes: number
-          meta_quantidade_os: number | null
-          meta_valor_servicos: number | null
-          observacoes: string | null
-          salario_base: number | null
-          updated_at: string
-        }
-        Insert: {
-          ano: number
-          bonus_meta_batida?: number | null
-          created_at?: string
-          created_by?: string | null
-          empresa_id: string
-          funcionario_id: string
-          id?: string
-          mes: number
-          meta_quantidade_os?: number | null
-          meta_valor_servicos?: number | null
-          observacoes?: string | null
-          salario_base?: number | null
-          updated_at?: string
-        }
-        Update: {
-          ano?: number
-          bonus_meta_batida?: number | null
-          created_at?: string
-          created_by?: string | null
-          empresa_id?: string
-          funcionario_id?: string
-          id?: string
-          mes?: number
-          meta_quantidade_os?: number | null
-          meta_valor_servicos?: number | null
-          observacoes?: string | null
-          salario_base?: number | null
-          updated_at?: string
         }
         Relationships: []
       }
