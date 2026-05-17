@@ -31,6 +31,24 @@ import { ptBR } from "date-fns/locale";
 
 const LIMITE_SIMULTANEO = 5;
 
+function CronometroVivo({ iniciadoEm }: { iniciadoEm: string | null | undefined }) {
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!iniciadoEm) return;
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [iniciadoEm]);
+  if (!iniciadoEm) return <span>agora</span>;
+  const inicio = new Date(iniciadoEm).getTime();
+  const diffSec = Math.max(0, Math.floor((agora - inicio) / 1000));
+  const h = Math.floor(diffSec / 3600);
+  const m = Math.floor((diffSec % 3600) / 60);
+  const s = diffSec % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (h > 0) return <span>{pad(h)}:{pad(m)}:{pad(s)}</span>;
+  return <span>{pad(m)}:{pad(s)}</span>;
+}
+
 function tempoDesde(iso: string | null | undefined) {
   if (!iso) return "agora";
   const min = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
