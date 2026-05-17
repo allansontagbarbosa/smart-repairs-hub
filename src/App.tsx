@@ -163,6 +163,7 @@ const App = () => (
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
+                <PerfilGuard perfis={PERFIS_ADMIN}>
                 <AuthGuard>
                   <AppLayout>
                   <Routes>
@@ -202,6 +203,7 @@ const App = () => (
                   </Routes>
                 </AppLayout>
                 </AuthGuard>
+                </PerfilGuard>
               } />
             </Routes>
           </BrowserRouter>
