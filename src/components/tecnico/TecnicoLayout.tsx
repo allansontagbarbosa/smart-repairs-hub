@@ -68,7 +68,7 @@ const NAV = [
   { to: "/tecnico", icon: LayoutGrid, label: "Início", end: true },
   { to: "/tecnico/ordens", icon: ClipboardList, label: "Minhas OS" },
   { to: "/tecnico/comissoes", icon: DollarSign, label: "Comissões" },
-  { to: "/tecnico/transferencias", icon: ArrowLeftRight, label: "Transferências" },
+  
   { to: "/tecnico/metas", icon: Target, label: "Metas" },
   { to: "/tecnico/historico", icon: History, label: "Histórico" },
 ];
