@@ -185,7 +185,7 @@ export default function TecnicoHome() {
                   <p className="text-sm font-semibold truncate">{servicoAtual.nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     #{servicoAtual.ordens_de_servico?.numero_formatado || servicoAtual.ordens_de_servico?.numero}
-                    {" · há "}{tempoDesde(servicoAtual.iniciado_em)}
+                    {" · há "}<CronometroVivo iniciadoEm={servicoAtual.iniciado_em} />
                     {emAndamento.length > 1 ? ` · +${emAndamento.length - 1} outros` : ""}
                   </p>
                 </div>
