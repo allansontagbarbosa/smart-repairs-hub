@@ -54,7 +54,8 @@ export default function Login() {
   const isFromInvite = new URLSearchParams(window.location.search).get("convite") === "1";
 
   useEffect(() => {
-    if (user) navigate("/dashboard", { replace: true });
+    if (!user) return;
+    getRotaInicial(user.id).then(rota => navigate(rota, { replace: true }));
   }, [user, navigate]);
 
   const { data: empresa } = useQuery({
