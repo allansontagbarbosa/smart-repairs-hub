@@ -100,6 +100,38 @@ export default function RH() {
         </div>
       </div>
 
+      {pendentes.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
+          <CardContent className="p-4 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                {pendentes.length} funcionário(s) sem dados CLT completos
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                Estes foram cadastrados via convite e precisam ter CPF, salário, tipo de vínculo e data de admissão preenchidos para receber folha de pagamento:
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {pendentes.slice(0, 8).map((f: any) => (
+                  <Link
+                    key={f.id}
+                    to={`/rh/${f.id}`}
+                    className="text-xs px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                  >
+                    {f.nome.split(" ")[0]}
+                  </Link>
+                ))}
+                {pendentes.length > 8 && (
+                  <span className="text-xs px-2 py-0.5 text-amber-800/80 dark:text-amber-200/80">
+                    +{pendentes.length - 8} outros
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
