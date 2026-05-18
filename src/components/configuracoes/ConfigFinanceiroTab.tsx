@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Save } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+
+interface SocioEdit {
+  id?: string;
+  nome: string;
+  percentual_participacao: number;
+  user_id: string | null;
+}
 
 interface Props {
   categoriasFinanceiras: any[];
@@ -131,20 +139,39 @@ function MetasCard() {
     queryKey: ["config-socios", empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("socios").select("*").eq("ativo", true).order("ordem");
+      const { data } = await supabase
+        .from("socios")
+        .select("id, nome, ordem, ativo, empresa_id, percentual_participacao, user_id")
+        .eq("empresa_id", empresaId)
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("ordem");
       return data ?? [];
+    },
+  });
+
+  const { data: usuariosAdmin = [] } = useQuery({
+    queryKey: ["usuarios-admin-disponiveis", empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("user_id, funcionarios(id, nome), perfis_acesso!inner(nome_perfil)")
+        .eq("empresa_id", empresaId)
+        .eq("ativo", true)
+        .eq("perfis_acesso.nome_perfil", "Administrador");
+      return (data ?? []).filter((r: any) => r.user_id && r.funcionarios?.nome);
     },
   });
 
   const [metaGastos, setMetaGastos] = useState("");
   const [metaFaturamento, setMetaFaturamento] = useState("");
-  const [numSocios, setNumSocios] = useState("1");
   const [pctReserva, setPctReserva] = useState("10");
   const [gastosFix, setGastosFix] = useState("");
   const [depreciacao, setDepreciacao] = useState("");
   const [impostos, setImpostos] = useState("");
   const [outrosGastos, setOutrosGastos] = useState("");
-  const [socioNomes, setSocioNomes] = useState<string[]>([]);
+  const [sociosEdit, setSociosEdit] = useState<SocioEdit[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Load empresa_config values
@@ -152,7 +179,6 @@ function MetasCard() {
     if (!config) return;
     setMetaGastos(String(config.meta_gastos_mes ?? ""));
     setMetaFaturamento(String(config.meta_faturamento_mes ?? ""));
-    setNumSocios(String(config.numero_socios ?? 1));
     setPctReserva(String(config.percentual_reserva_empresa ?? 10));
     setOutrosGastos(String((config as any).outros_gastos ?? ""));
   }, [config]);
@@ -170,12 +196,32 @@ function MetasCard() {
   }, [ajustes]);
 
   useEffect(() => {
-    if (socios) {
-      const n = Number(numSocios) || 1;
-      const nomes = Array.from({ length: n }, (_, i) => socios[i]?.nome ?? "");
-      setSocioNomes(nomes);
-    }
-  }, [socios, numSocios]);
+    if (!socios) return;
+    setSociosEdit(
+      socios.map((s: any) => ({
+        id: s.id,
+        nome: s.nome ?? "",
+        percentual_participacao: Number(s.percentual_participacao ?? 0),
+        user_id: s.user_id ?? null,
+      })),
+    );
+  }, [socios]);
+
+  const atualizarSocio = (idx: number, patch: Partial<SocioEdit>) => {
+    setSociosEdit((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  };
+
+  const adicionarSocio = () => {
+    setSociosEdit((prev) => [...prev, { nome: "", percentual_participacao: 0, user_id: null }]);
+  };
+
+  const removerSocio = (idx: number) => {
+    setSociosEdit((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const somaPct = sociosEdit.reduce((sum, s) => sum + Number(s.percentual_participacao || 0), 0);
+  const somaOK = Math.abs(somaPct - 100) < 0.01;
+
 
   const upsertAjuste = async (tipo: string, valor: number) => {
     const existing = (ajustes ?? []).find((a: any) => a.tipo === tipo);
@@ -199,10 +245,16 @@ function MetasCard() {
       return;
     }
 
+    const soma = sociosEdit.reduce((s, x) => s + Number(x.percentual_participacao || 0), 0);
+    if (sociosEdit.length > 0 && Math.abs(soma - 100) >= 0.01) {
+      toast.error(`Percentuais somam ${soma.toFixed(2)}%. Devem totalizar 100%.`);
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const ns = Number(numSocios) || 1;
+      const ns = sociosEdit.length || 1;
 
       // Save empresa_config (metas + reserva + outros_gastos)
       const payload = {
@@ -236,26 +288,43 @@ function MetasCard() {
       await upsertAjuste("impostos", Number(impostos) || 0);
       await upsertAjuste("depreciacao", Number(depreciacao) || 0);
 
-      // Save sócios
+      // Save sócios — upsert each in sociosEdit, deactivate removed ones
       const existing = socios ?? [];
-      for (let i = 0; i < ns; i++) {
-        const nome = socioNomes[i]?.trim() || "";
-        const socioResponse = existing[i]
-          ? await supabase.from("socios").update({ nome, ordem: i } as any).eq("id", existing[i].id)
-          : await supabase.from("socios").insert({ nome, ordem: i, empresa_id: empresaId } as any);
+      const idsMantidos = new Set(sociosEdit.filter((s) => s.id).map((s) => s.id as string));
 
-        if (socioResponse.error) throw socioResponse.error;
+      for (let i = 0; i < sociosEdit.length; i++) {
+        const s = sociosEdit[i];
+        const row = {
+          empresa_id: empresaId,
+          nome: (s.nome ?? "").trim(),
+          ordem: i,
+          ativo: true,
+          percentual_participacao: Number(s.percentual_participacao) || 0,
+          user_id: s.user_id ?? null,
+        };
+        const resp = s.id
+          ? await supabase.from("socios").update(row as any).eq("id", s.id)
+          : await supabase.from("socios").insert(row as any);
+        if (resp.error) throw resp.error;
       }
 
-      for (let i = ns; i < existing.length; i++) {
-        const { error } = await supabase.from("socios").update({ ativo: false } as any).eq("id", existing[i].id);
-        if (error) throw error;
+      // Soft-delete sócios removidos
+      for (const existente of existing) {
+        if (!idsMantidos.has(existente.id)) {
+          const { error } = await supabase
+            .from("socios")
+            .update({ ativo: false } as any)
+            .eq("id", existente.id);
+          if (error) throw error;
+        }
       }
 
       qc.invalidateQueries({ queryKey: ["empresa_config_meta", empresaId] });
       qc.invalidateQueries({ queryKey: ["config-ajustes", empresaId, anoMes] });
       qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
       qc.invalidateQueries({ queryKey: ["dashboard-socios"] });
+      qc.invalidateQueries({ queryKey: ["socios"] });
+      qc.invalidateQueries({ queryKey: ["config-socios", empresaId] });
       qc.invalidateQueries({ queryKey: ["rel-dre-ajustes"] });
       refetchSocios();
       refetchAjustes();
@@ -312,7 +381,10 @@ function MetasCard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Número de sócios</Label>
-              <Input type="number" min="1" max="10" value={numSocios} onChange={(e) => setNumSocios(e.target.value)} />
+              <Input type="number" value={sociosEdit.length} disabled readOnly />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Calculado automaticamente. Para alterar, adicione ou remova sócios abaixo.
+              </p>
             </div>
             <div>
               <Label>Reserva da empresa (%)</Label>
@@ -321,20 +393,96 @@ function MetasCard() {
             </div>
           </div>
 
-          {Array.from({ length: Number(numSocios) || 1 }, (_, i) => (
-            <div key={i}>
-              <Label>Nome do Sócio {i + 1}</Label>
-              <Input
-                placeholder={`Sócio ${i + 1}`}
-                value={socioNomes[i] ?? ""}
-                onChange={(e) => {
-                  const copy = [...socioNomes];
-                  copy[i] = e.target.value;
-                  setSocioNomes(copy);
-                }}
-              />
+          <div className="space-y-3">
+            {sociosEdit.map((s, idx) => (
+              <div key={s.id ?? `novo-${idx}`} className="border rounded-md p-3 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold">Sócio {idx + 1}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => removerSocio(idx)}
+                    title="Remover sócio"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input
+                      placeholder={`Sócio ${idx + 1}`}
+                      value={s.nome}
+                      onChange={(e) => atualizarSocio(idx, { nome: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Participação (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={s.percentual_participacao}
+                      onChange={(e) =>
+                        atualizarSocio(idx, {
+                          percentual_participacao: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Vincular a usuário (opcional)</Label>
+                  <Select
+                    value={s.user_id ?? "_none"}
+                    onValueChange={(v) =>
+                      atualizarSocio(idx, { user_id: v === "_none" ? null : v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum (sócio sem login)</SelectItem>
+                      {usuariosAdmin.map((u: any) => (
+                        <SelectItem key={u.user_id} value={u.user_id}>
+                          {u.funcionarios.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ))}
+
+            <Button variant="outline" size="sm" onClick={adicionarSocio} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Adicionar sócio
+            </Button>
+          </div>
+
+          {sociosEdit.length > 0 && (
+            <div
+              className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                somaOK
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {somaOK ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              <span>
+                Soma dos percentuais: <strong>{somaPct.toFixed(2)}%</strong>
+                {!somaOK && " (deve totalizar 100%)"}
+              </span>
             </div>
-          ))}
+          )}
         </div>
 
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
