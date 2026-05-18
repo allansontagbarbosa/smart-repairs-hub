@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Mail, UserPlus, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, Mail, UserPlus, ChevronDown, ChevronRight, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -158,9 +158,24 @@ export function InviteUserDialog({
           {mostrarBlocoRH && (
             <Collapsible open={expandirRH} onOpenChange={setExpandirRH}>
               <CollapsibleTrigger asChild>
-                <button type="button" className="flex items-center gap-1 text-sm text-primary hover:underline">
-                  {expandirRH ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                  {expandirRH ? "Ocultar dados CLT" : "Adicionar dados CLT agora (opcional)"}
+                <button
+                  type="button"
+                  className="w-full rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors p-3 flex items-center gap-3 text-left"
+                >
+                  <div className="h-9 w-9 rounded-md bg-primary/15 text-primary grid place-items-center shrink-0">
+                    <BadgeCheck className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      {expandirRH ? "Ocultar dados de RH" : "Cadastrar dados de RH agora"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {expandirRH
+                        ? "Os campos serão enviados junto com o convite."
+                        : "Opcional · CPF, salário e contrato · pra já entrar na folha"}
+                    </p>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandirRH ? "rotate-180" : ""}`} />
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-3 border-l-2 border-primary/20 pl-3">
