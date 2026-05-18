@@ -139,20 +139,39 @@ function MetasCard() {
     queryKey: ["config-socios", empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      const { data } = await supabase.from("socios").select("*").eq("ativo", true).order("ordem");
+      const { data } = await supabase
+        .from("socios")
+        .select("id, nome, ordem, ativo, empresa_id, percentual_participacao, user_id")
+        .eq("empresa_id", empresaId)
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("ordem");
       return data ?? [];
+    },
+  });
+
+  const { data: usuariosAdmin = [] } = useQuery({
+    queryKey: ["usuarios-admin-disponiveis", empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("user_id, funcionarios(id, nome), perfis_acesso!inner(nome_perfil)")
+        .eq("empresa_id", empresaId)
+        .eq("ativo", true)
+        .eq("perfis_acesso.nome_perfil", "Administrador");
+      return (data ?? []).filter((r: any) => r.user_id && r.funcionarios?.nome);
     },
   });
 
   const [metaGastos, setMetaGastos] = useState("");
   const [metaFaturamento, setMetaFaturamento] = useState("");
-  const [numSocios, setNumSocios] = useState("1");
   const [pctReserva, setPctReserva] = useState("10");
   const [gastosFix, setGastosFix] = useState("");
   const [depreciacao, setDepreciacao] = useState("");
   const [impostos, setImpostos] = useState("");
   const [outrosGastos, setOutrosGastos] = useState("");
-  const [socioNomes, setSocioNomes] = useState<string[]>([]);
+  const [sociosEdit, setSociosEdit] = useState<SocioEdit[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Load empresa_config values
@@ -160,7 +179,6 @@ function MetasCard() {
     if (!config) return;
     setMetaGastos(String(config.meta_gastos_mes ?? ""));
     setMetaFaturamento(String(config.meta_faturamento_mes ?? ""));
-    setNumSocios(String(config.numero_socios ?? 1));
     setPctReserva(String(config.percentual_reserva_empresa ?? 10));
     setOutrosGastos(String((config as any).outros_gastos ?? ""));
   }, [config]);
@@ -178,12 +196,32 @@ function MetasCard() {
   }, [ajustes]);
 
   useEffect(() => {
-    if (socios) {
-      const n = Number(numSocios) || 1;
-      const nomes = Array.from({ length: n }, (_, i) => socios[i]?.nome ?? "");
-      setSocioNomes(nomes);
-    }
-  }, [socios, numSocios]);
+    if (!socios) return;
+    setSociosEdit(
+      socios.map((s: any) => ({
+        id: s.id,
+        nome: s.nome ?? "",
+        percentual_participacao: Number(s.percentual_participacao ?? 0),
+        user_id: s.user_id ?? null,
+      })),
+    );
+  }, [socios]);
+
+  const atualizarSocio = (idx: number, patch: Partial<SocioEdit>) => {
+    setSociosEdit((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
+  };
+
+  const adicionarSocio = () => {
+    setSociosEdit((prev) => [...prev, { nome: "", percentual_participacao: 0, user_id: null }]);
+  };
+
+  const removerSocio = (idx: number) => {
+    setSociosEdit((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const somaPct = sociosEdit.reduce((sum, s) => sum + Number(s.percentual_participacao || 0), 0);
+  const somaOK = Math.abs(somaPct - 100) < 0.01;
+
 
   const upsertAjuste = async (tipo: string, valor: number) => {
     const existing = (ajustes ?? []).find((a: any) => a.tipo === tipo);
