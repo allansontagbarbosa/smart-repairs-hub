@@ -496,6 +496,34 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     return () => { cancelled = true; };
   }, [imei, selectedClientId]);
 
+  // Bloqueio: verifica se já existe OS aberta pro mesmo aparelho
+  useEffect(() => {
+    if (!aparelhoExistente?.id) {
+      setOsAbertaExistente(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("ordens_de_servico")
+        .select("id, numero, numero_formatado, status")
+        .eq("aparelho_id", aparelhoExistente.id)
+        .is("deleted_at", null)
+        .not("status", "in", "(entregue,cancelada,Entregue,Cancelada)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      setOsAbertaExistente(data ? {
+        id: data.id,
+        numero: (data as any).numero ?? null,
+        numero_formatado: (data as any).numero_formatado ?? null,
+        status: String((data as any).status ?? ""),
+      } : null);
+    })();
+    return () => { cancelled = true; };
+  }, [aparelhoExistente?.id]);
+
   // Auto-fill via ViaCEP
   useEffect(() => {
     const digits = newClientCep.replace(/\D/g, "");
