@@ -381,7 +381,10 @@ function MetasCard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label>Número de sócios</Label>
-              <Input type="number" min="1" max="10" value={numSocios} onChange={(e) => setNumSocios(e.target.value)} />
+              <Input type="number" value={sociosEdit.length} disabled readOnly />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Calculado automaticamente. Para alterar, adicione ou remova sócios abaixo.
+              </p>
             </div>
             <div>
               <Label>Reserva da empresa (%)</Label>
@@ -390,20 +393,96 @@ function MetasCard() {
             </div>
           </div>
 
-          {Array.from({ length: Number(numSocios) || 1 }, (_, i) => (
-            <div key={i}>
-              <Label>Nome do Sócio {i + 1}</Label>
-              <Input
-                placeholder={`Sócio ${i + 1}`}
-                value={socioNomes[i] ?? ""}
-                onChange={(e) => {
-                  const copy = [...socioNomes];
-                  copy[i] = e.target.value;
-                  setSocioNomes(copy);
-                }}
-              />
+          <div className="space-y-3">
+            {sociosEdit.map((s, idx) => (
+              <div key={s.id ?? `novo-${idx}`} className="border rounded-md p-3 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold">Sócio {idx + 1}</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => removerSocio(idx)}
+                    title="Remover sócio"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input
+                      placeholder={`Sócio ${idx + 1}`}
+                      value={s.nome}
+                      onChange={(e) => atualizarSocio(idx, { nome: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Participação (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={s.percentual_participacao}
+                      onChange={(e) =>
+                        atualizarSocio(idx, {
+                          percentual_participacao: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Vincular a usuário (opcional)</Label>
+                  <Select
+                    value={s.user_id ?? "_none"}
+                    onValueChange={(v) =>
+                      atualizarSocio(idx, { user_id: v === "_none" ? null : v })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum (sócio sem login)</SelectItem>
+                      {usuariosAdmin.map((u: any) => (
+                        <SelectItem key={u.user_id} value={u.user_id}>
+                          {u.funcionarios.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ))}
+
+            <Button variant="outline" size="sm" onClick={adicionarSocio} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Adicionar sócio
+            </Button>
+          </div>
+
+          {sociosEdit.length > 0 && (
+            <div
+              className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                somaOK
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {somaOK ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              <span>
+                Soma dos percentuais: <strong>{somaPct.toFixed(2)}%</strong>
+                {!somaOK && " (deve totalizar 100%)"}
+              </span>
             </div>
-          ))}
+          )}
         </div>
 
         <Button onClick={handleSave} disabled={saving} size="sm" className="gap-1.5">
