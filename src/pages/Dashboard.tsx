@@ -440,6 +440,25 @@ export default function Dashboard() {
 
   const socios = sociosList ?? [];
 
+  // Distribuição por sócio respeitando percentual_participacao
+  const partesSocios = useMemo(() => {
+    return socios.map((s: any) => {
+      const pct = Number(s.percentual_participacao ?? 0);
+      return {
+        id: s.id,
+        nome: s.nome,
+        percentual: pct,
+        valor: kpis.lucroDistrib * (pct / 100),
+      };
+    });
+  }, [socios, kpis.lucroDistrib]);
+
+  const somaPctSocios = useMemo(
+    () => partesSocios.reduce((acc, p) => acc + p.percentual, 0),
+    [partesSocios]
+  );
+  const percentuaisOk = Math.abs(somaPctSocios - 100) < 0.01;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────────
