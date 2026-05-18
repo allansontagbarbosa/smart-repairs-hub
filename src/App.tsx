@@ -172,29 +172,29 @@ const App = () => (
                     <Route path="/assistencia/exclusao-canceladas" element={<ProtectedRoute permissao="assistencia.excluir"><ExclusaoOSCanceladas /></ProtectedRoute>} />
                     <Route path="/assistencia/fluxo" element={<ProtectedRoute permissao="assistencia.ver"><FluxoAssistencia /></ProtectedRoute>} />
                     <Route path="/assistencia/fila-ia" element={<ProtectedRoute permissao="fila_ia"><FilaIA /></ProtectedRoute>} />
-                    <Route path="/aparelhos" element={<ProtectedRoute permissao="assistencia.ver"><AparelhosAssistencia /></ProtectedRoute>} />
+                    <Route path="/aparelhos" element={<ProtectedRoute permissao="aparelhos.ver"><AparelhosAssistencia /></ProtectedRoute>} />
                     <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
                     <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
-                    <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="financeiro.ver"><FaturasLojistas /></ProtectedRoute>} />
+                    <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="faturas_b2b.ver"><FaturasLojistas /></ProtectedRoute>} />
                     <Route path="/clientes" element={<ProtectedRoute permissao="clientes.ver"><Clientes /></ProtectedRoute>} />
                     <Route path="/clientes/:id" element={<ProtectedRoute permissao="clientes.ver"><ClientePerfil /></ProtectedRoute>} />
-                    <Route path="/fornecedores" element={<ProtectedRoute permissao="pecas.ver"><Fornecedores /></ProtectedRoute>} />
-                    <Route path="/compras" element={<ProtectedRoute permissao="pecas.ver"><Compras /></ProtectedRoute>} />
+                    <Route path="/fornecedores" element={<ProtectedRoute permissao="fornecedores.ver"><Fornecedores /></ProtectedRoute>} />
+                    <Route path="/compras" element={<ProtectedRoute permissao="compras.ver"><Compras /></ProtectedRoute>} />
                     <Route path="/relatorios" element={<ProtectedRoute permissao="relatorios"><Relatorios /></ProtectedRoute>} />
-                    <Route path="/tecnicos/desempenho" element={<ProtectedRoute permissao="relatorios"><DesempenhoTecnicos /></ProtectedRoute>} />
-                    <Route path="/metas" element={<ProtectedRoute permissao="relatorios"><Metas /></ProtectedRoute>} />
-                    <Route path="/metas/nova" element={<ProtectedRoute permissao="relatorios"><MetaNova /></ProtectedRoute>} />
-                    <Route path="/metas/historico" element={<ProtectedRoute permissao="relatorios"><MetasHistorico /></ProtectedRoute>} />
-                    <Route path="/metas/:id" element={<ProtectedRoute permissao="relatorios"><MetaDetalhe /></ProtectedRoute>} />
-                    <Route path="/rh" element={<RH />} />
-                   <Route path="/rh/gerenciar" element={<RHGerenciarFuncionarios />} />
-                   <Route path="/rh/importar-ponto" element={<RHImportPonto />} />
-                   <Route path="/rh/folha-mensal" element={<RHFolhaMensal />} />
-                    <Route path="/rh/:id" element={<RHFuncionario />} />
+                    <Route path="/tecnicos/desempenho" element={<ProtectedRoute permissao="desempenho_tecnicos"><DesempenhoTecnicos /></ProtectedRoute>} />
+                    <Route path="/metas" element={<ProtectedRoute permissao="metas.ver"><Metas /></ProtectedRoute>} />
+                    <Route path="/metas/nova" element={<ProtectedRoute permissao="metas.criar"><MetaNova /></ProtectedRoute>} />
+                    <Route path="/metas/historico" element={<ProtectedRoute permissao="metas.ver"><MetasHistorico /></ProtectedRoute>} />
+                    <Route path="/metas/:id" element={<ProtectedRoute permissao="metas.ver"><MetaDetalhe /></ProtectedRoute>} />
+                    <Route path="/rh" element={<ProtectedRoute permissao="rh.ver"><RH /></ProtectedRoute>} />
+                    <Route path="/rh/gerenciar" element={<ProtectedRoute permissao="rh.editar"><RHGerenciarFuncionarios /></ProtectedRoute>} />
+                    <Route path="/rh/importar-ponto" element={<ProtectedRoute permissao="rh.editar"><RHImportPonto /></ProtectedRoute>} />
+                    <Route path="/rh/folha-mensal" element={<ProtectedRoute permissao="rh.ver"><RHFolhaMensal /></ProtectedRoute>} />
+                    <Route path="/rh/:id" element={<ProtectedRoute permissao="rh.ver"><RHFuncionario /></ProtectedRoute>} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
-                    <Route path="/tv/configurar" element={<ProtectedRoute permissao="configuracoes"><TVConfigurar /></ProtectedRoute>} />
-                    <Route path="/tv/editar/:painelId" element={<ProtectedRoute permissao="configuracoes"><TVEditarLayout /></ProtectedRoute>} />
+                    <Route path="/tv/configurar" element={<ProtectedRoute permissao="paineis_tv"><TVConfigurar /></ProtectedRoute>} />
+                    <Route path="/tv/editar/:painelId" element={<ProtectedRoute permissao="paineis_tv"><TVEditarLayout /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
