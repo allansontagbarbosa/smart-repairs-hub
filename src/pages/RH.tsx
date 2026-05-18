@@ -43,6 +43,8 @@ export default function RH() {
   const hoje = new Date();
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 
+  const { data: pendentes = [] } = usePendentesCompletar();
+
   const handleGerarFolha = async () => {
     if (!confirm(`Gerar folha de ${competenciaAtual}?\n\n• Cria movimentações no extrato dos funcionários\n• LANÇA como contas a pagar no /financeiro automaticamente\n• Vencimento dia 5 do mês seguinte\n• Idempotente: não duplica se já gerado`)) return;
     try {
