@@ -1,14 +1,35 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck, UserPlus } from "lucide-react";
+import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck, UserPlus, AlertTriangle } from "lucide-react";
 import { useListarFuncionariosRH, useGerarFolhaMensal } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS } from "@/types/rh";
 import { toast } from "sonner";
 import { NovoFuncionarioDialog } from "@/components/rh/NovoFuncionarioDialog";
+import { supabase } from "@/integrations/supabase/client";
+
+function usePendentesCompletar() {
+  return useQuery({
+    queryKey: ["rh", "pendentes-completar"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo, created_at, cpf, salario_centavos, data_admissao, tipo_vinculo")
+        .eq("eh_funcionario_rh", true)
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).filter((f: any) =>
+        !f.cpf || !f.salario_centavos || !f.data_admissao || !f.tipo_vinculo
+      );
+    },
+  });
+}
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -21,6 +42,8 @@ export default function RH() {
 
   const hoje = new Date();
   const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+
+  const { data: pendentes = [] } = usePendentesCompletar();
 
   const handleGerarFolha = async () => {
     if (!confirm(`Gerar folha de ${competenciaAtual}?\n\n• Cria movimentações no extrato dos funcionários\n• LANÇA como contas a pagar no /financeiro automaticamente\n• Vencimento dia 5 do mês seguinte\n• Idempotente: não duplica se já gerado`)) return;
@@ -76,6 +99,38 @@ export default function RH() {
           </Button>
         </div>
       </div>
+
+      {pendentes.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
+          <CardContent className="p-4 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                {pendentes.length} funcionário(s) sem dados CLT completos
+              </p>
+              <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
+                Estes foram cadastrados via convite e precisam ter CPF, salário, tipo de vínculo e data de admissão preenchidos para receber folha de pagamento:
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {pendentes.slice(0, 8).map((f: any) => (
+                  <Link
+                    key={f.id}
+                    to={`/rh/${f.id}`}
+                    className="text-xs px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors"
+                  >
+                    {f.nome.split(" ")[0]}
+                  </Link>
+                ))}
+                {pendentes.length > 8 && (
+                  <span className="text-xs px-2 py-0.5 text-amber-800/80 dark:text-amber-200/80">
+                    +{pendentes.length - 8} outros
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

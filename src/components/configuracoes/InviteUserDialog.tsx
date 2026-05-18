@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { Loader2, Mail, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Mail, UserPlus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useAuditoria } from "@/hooks/useAuditoria";
@@ -19,6 +20,8 @@ interface InviteUserDialogProps {
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const PERFIS_CLT = ["tecnico", "atendimento", "gerente", "financeiro"];
 
 export function InviteUserDialog({
   perfisAcesso,
@@ -34,15 +37,33 @@ export function InviteUserDialog({
   const [email, setEmail] = useState("");
   const [perfilId, setPerfilId] = useState<string>(fixedPerfilId || "");
   const [loading, setLoading] = useState(false);
+  const [expandirRH, setExpandirRH] = useState(false);
+  const [dadosRH, setDadosRH] = useState({
+    cpf: "",
+    telefone: "",
+    cargo: "",
+    tipo_vinculo: "clt",
+    salario: "",
+    data_admissao: "",
+    carga_horaria_semanal: 44,
+  });
 
   useEffect(() => {
     if (fixedPerfilId) setPerfilId(fixedPerfilId);
   }, [fixedPerfilId]);
 
+  const perfilNome = useMemo(
+    () => perfisAcesso.find((p) => p.id === perfilId)?.nome_perfil ?? "",
+    [perfilId, perfisAcesso],
+  );
+  const mostrarBlocoRH = PERFIS_CLT.includes(norm(perfilNome));
+
   const reset = () => {
     setNome("");
     setEmail("");
     setPerfilId(fixedPerfilId || "");
+    setExpandirRH(false);
+    setDadosRH({ cpf: "", telefone: "", cargo: "", tipo_vinculo: "clt", salario: "", data_admissao: "", carga_horaria_semanal: 44 });
   };
 
   const handleInviteUser = async () => {
@@ -66,20 +87,28 @@ export function InviteUserDialog({
 
     setLoading(true);
     try {
-      console.log('[convite] iniciando envio:', { email: email.trim(), nome, perfil_id: perfilId, empresa_id: empresaId });
+      const dados_rh = (expandirRH && mostrarBlocoRH) ? {
+        cpf: dadosRH.cpf || null,
+        telefone: dadosRH.telefone || null,
+        cargo: dadosRH.cargo || null,
+        tipo_vinculo: dadosRH.tipo_vinculo,
+        salario_centavos: dadosRH.salario ? Math.round(parseFloat(dadosRH.salario) * 100) : null,
+        data_admissao: dadosRH.data_admissao || null,
+        carga_horaria_semanal: dadosRH.carga_horaria_semanal || null,
+      } : null;
+
       const res = await supabase.functions.invoke("invite-user", {
         body: {
           email: email.trim(),
           nome,
           perfil_id: perfilId,
           empresa_id: empresaId,
+          dados_rh,
         },
       });
-      console.log('[convite] resposta:', res);
 
       const errorMsg = res.error?.message || res.data?.error;
       if (errorMsg) {
-        console.error('[convite] erro estruturado:', res.error || res.data?.error);
         if (errorMsg.includes("already been registered")) {
           toast.success("Usuário reativado com sucesso!");
         } else {
@@ -88,18 +117,16 @@ export function InviteUserDialog({
       }
       if (!errorMsg || errorMsg.includes("already been registered")) {
         if (!errorMsg) toast.success(`Convite enviado para ${email}`);
-        const perfilNome = perfisAcesso.find((p) => p.id === perfilId)?.nome_perfil || "Sem perfil";
-        registrar("Usuário convidado", "configuracoes", null, null, { email, perfil: perfilNome });
+        const perfilNomeReg = perfisAcesso.find((p) => p.id === perfilId)?.nome_perfil || "Sem perfil";
+        registrar("Usuário convidado", "configuracoes", null, null, { email, perfil: perfilNomeReg });
         setOpen(false);
         reset();
         qc.invalidateQueries({ queryKey: ["user_profiles"] });
+        qc.invalidateQueries({ queryKey: ["rh"] });
         await qc.refetchQueries({ queryKey: ["user_profiles"] });
       }
     } catch (err) {
-      console.error('[convite] FALHA:', err);
-      console.error('[convite] err.message:', (err as Error)?.message);
-      console.error('[convite] err.stack:', (err as Error)?.stack);
-      toast.error(`Erro ao enviar convite: ${(err as Error)?.message || 'desconhecido'}`);
+      toast.error(`Erro ao enviar convite: ${(err as Error)?.message || "desconhecido"}`);
     }
     setLoading(false);
   };
@@ -111,7 +138,7 @@ export function InviteUserDialog({
       <DialogTrigger asChild>
         <Button size="sm"><Mail className="h-3.5 w-3.5 mr-1" />{triggerLabel}</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div><Label>Nome completo *</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do colaborador" /></div>
@@ -127,6 +154,41 @@ export function InviteUserDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {mostrarBlocoRH && (
+            <Collapsible open={expandirRH} onOpenChange={setExpandirRH}>
+              <CollapsibleTrigger asChild>
+                <button type="button" className="flex items-center gap-1 text-sm text-primary hover:underline">
+                  {expandirRH ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  {expandirRH ? "Ocultar dados CLT" : "Adicionar dados CLT agora (opcional)"}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-3 border-l-2 border-primary/20 pl-3">
+                <p className="text-xs text-muted-foreground">
+                  Esses dados deixam o cadastro no RH completo. Você pode preencher depois também.
+                </p>
+                <div><Label className="text-xs">CPF</Label><Input value={dadosRH.cpf} onChange={(e) => setDadosRH({ ...dadosRH, cpf: e.target.value })} placeholder="000.000.000-00" /></div>
+                <div><Label className="text-xs">Telefone</Label><Input value={dadosRH.telefone} onChange={(e) => setDadosRH({ ...dadosRH, telefone: e.target.value })} placeholder="(11) 99999-9999" /></div>
+                <div><Label className="text-xs">Cargo</Label><Input value={dadosRH.cargo} onChange={(e) => setDadosRH({ ...dadosRH, cargo: e.target.value })} placeholder="Ex: Técnico de celular" /></div>
+                <div>
+                  <Label className="text-xs">Tipo de vínculo</Label>
+                  <Select value={dadosRH.tipo_vinculo} onValueChange={(v) => setDadosRH({ ...dadosRH, tipo_vinculo: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="clt">CLT</SelectItem>
+                      <SelectItem value="pj">PJ</SelectItem>
+                      <SelectItem value="estagio">Estágio</SelectItem>
+                      <SelectItem value="autonomo">Autônomo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label className="text-xs">Salário (R$)</Label><Input type="number" step="0.01" value={dadosRH.salario} onChange={(e) => setDadosRH({ ...dadosRH, salario: e.target.value })} placeholder="0,00" /></div>
+                <div><Label className="text-xs">Data de admissão</Label><Input type="date" value={dadosRH.data_admissao} onChange={(e) => setDadosRH({ ...dadosRH, data_admissao: e.target.value })} /></div>
+                <div><Label className="text-xs">Carga horária semanal</Label><Input type="number" value={dadosRH.carga_horaria_semanal} onChange={(e) => setDadosRH({ ...dadosRH, carga_horaria_semanal: Number(e.target.value) })} /></div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
           <p className="text-xs text-muted-foreground">O usuário receberá um email com link para definir sua senha e acessar o sistema.</p>
           <Button onClick={handleInviteUser} className="w-full" disabled={!canSubmit}>
             {loading ? (
