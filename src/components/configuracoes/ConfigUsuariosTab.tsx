@@ -565,9 +565,9 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               </tr>
             </thead>
             <tbody>
-              {["dashboard", "assistencia", "financeiro", "pecas", "clientes", "relatorios", "configuracoes", "fila_ia"].map((modulo) => (
+              {[...MODULOS_BOOL.map(m => m.key), ...MODULOS_CRUD.map(m => m.key)].map((modulo) => (
                 <tr key={modulo} className="border-b last:border-0">
-                  <td className="p-2 capitalize">{modulo.replace("_", " ")}</td>
+                  <td className="p-2 capitalize">{modulo.replace(/_/g, " ")}</td>
                   {perfisAcesso.filter((p) => p.ativo).map((p) => {
                     const perm = (p.permissoes as any)?.[modulo];
                     const tem = typeof perm === "boolean" ? perm : (perm?.ver ?? false);
