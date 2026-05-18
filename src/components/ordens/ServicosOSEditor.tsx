@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +51,37 @@ const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "curren
 const norm = (value: unknown) => Number(value) || 0;
 const sameList = (a: ServicoOSPayload[], b: ServicoOSPayload[]) => JSON.stringify(a.map(clean)) === JSON.stringify(b.map(clean));
 const clean = (s: ServicoOSPayload) => ({ id: s.id ?? null, servico_id: s.servico_id, tecnico_id: s.tecnico_id ?? null, valor: norm(s.valor), comissao: norm(s.comissao) });
+
+function TipoServicoCombobox({ value, onValueChange, tiposServico }: { value: string; onValueChange: (v: string) => void; tiposServico: TipoServicoOption[] }) {
+  const [open, setOpen] = useState(false);
+  const selected = tiposServico.find((t) => t.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" role="combobox" className="h-9 w-full justify-between font-normal">
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected?.nome || "Selecione"}</span>
+          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] min-w-[280px]" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar serviço..." />
+          <CommandList className="max-h-72">
+            <CommandEmpty>Nenhum serviço encontrado</CommandEmpty>
+            <CommandGroup>
+              {tiposServico.map((tipo) => (
+                <CommandItem key={tipo.id} value={tipo.nome} onSelect={() => { onValueChange(tipo.id); setOpen(false); }}>
+                  <Check className={cn("mr-2 h-4 w-4", value === tipo.id ? "opacity-100" : "opacity-0")} />
+                  {tipo.nome}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecnicos, onChange, onSave, autoSave = true, className, custoPecas, desconto }: Props) {
   const queryClient = useQueryClient();
@@ -127,12 +160,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   }
 
   const renderTipoSelect = (value: string, onValueChange: (value: string) => void) => (
-    <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-      <SelectContent>
-        {tiposServico.map((tipo) => <SelectItem key={tipo.id} value={tipo.id}>{tipo.nome}</SelectItem>)}
-      </SelectContent>
-    </Select>
+    <TipoServicoCombobox value={value} onValueChange={onValueChange} tiposServico={tiposServico} />
   );
 
   const renderTecnicoSelect = (value: string | null, onValueChange: (value: string | null) => void) => (
