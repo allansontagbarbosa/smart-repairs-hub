@@ -318,6 +318,17 @@ export default function TecnicoOrdemDetalhe() {
         </CardContent>
       </Card>
 
+      <SecaoPecasUtilizadas
+        ordemId={id!}
+        servicoAtualId={
+          servicos.find(
+            (s: any) =>
+              s.status === "em_andamento" &&
+              s.tecnico_id === (identidade?.funcionario_id ?? null),
+          )?.id ?? null
+        }
+      />
+
       <Tabs defaultValue="checklist">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
