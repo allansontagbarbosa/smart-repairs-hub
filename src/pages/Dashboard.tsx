@@ -228,8 +228,9 @@ async function fetchEmpresaConfig() {
 async function fetchSocios() {
   const { data, error } = await supabase
     .from("socios")
-    .select("id, nome, ordem")
+    .select("id, nome, ordem, percentual_participacao")
     .eq("ativo", true)
+    .is("deleted_at", null)
     .order("ordem");
   if (error) throw error;
   return data ?? [];
