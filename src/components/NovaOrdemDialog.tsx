@@ -767,6 +767,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setImei2("");
     setImeiResult({ status: "idle" });
     setAparelhoExistente(null);
+    setOsAbertaExistente(null);
     setMarca(""); setMarcaId("");
     setModelo(""); setModeloId("");
     setCor(""); setCorId("");
