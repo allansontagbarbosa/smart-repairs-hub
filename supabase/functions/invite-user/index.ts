@@ -42,10 +42,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, nome, perfil_id, empresa_id } = await req.json();
+    const { email, nome, perfil_id, empresa_id, dados_rh } = await req.json();
 
     // IU-01: mapear cargo do funcionário a partir do perfil de acesso
     let cargoFuncionario = "Colaborador";
+    let nomePerfilOriginal = "";
     if (perfil_id) {
       const { data: perfilData } = await adminClient
         .from("perfis_acesso")
@@ -54,8 +55,25 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (perfilData?.nome_perfil) {
         cargoFuncionario = perfilData.nome_perfil;
+        nomePerfilOriginal = perfilData.nome_perfil;
       }
     }
+
+    // Perfis operacionais que tipicamente são CLT — marcam eh_funcionario_rh
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const perfisCLT = ["tecnico", "atendimento", "gerente", "financeiro"];
+    const ehFuncionarioRH = perfisCLT.includes(norm(nomePerfilOriginal));
+
+    // Campos CLT opcionais vindos do modal (somente se eh_funcionario_rh)
+    const dadosRHExtras = (ehFuncionarioRH && dados_rh && typeof dados_rh === "object") ? {
+      cpf: dados_rh.cpf || null,
+      telefone: dados_rh.telefone || null,
+      cargo: dados_rh.cargo || cargoFuncionario,
+      tipo_vinculo: dados_rh.tipo_vinculo || "clt",
+      salario_centavos: dados_rh.salario_centavos ?? null,
+      data_admissao: dados_rh.data_admissao || null,
+      carga_horaria_semanal: dados_rh.carga_horaria_semanal ?? null,
+    } : {};
 
     if (!email || !nome || !empresa_id) {
       return new Response(JSON.stringify({ error: "Email, nome e empresa_id são obrigatórios" }), {
