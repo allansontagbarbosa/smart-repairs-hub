@@ -17,6 +17,7 @@ import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, 
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
+import { SecaoPecasUtilizadas } from "@/components/tecnico/SecaoPecasUtilizadas";
 import { statusLabels } from "@/lib/status";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
 import { abrirWhatsApp } from "@/lib/whatsapp";
