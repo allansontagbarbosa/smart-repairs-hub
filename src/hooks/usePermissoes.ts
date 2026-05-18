@@ -9,39 +9,71 @@ interface PermissaoModulo {
   excluir: boolean;
 }
 
+export type PermissoesCrud = PermissaoModulo;
+
 export interface Permissoes {
+  // Módulos booleanos (existentes)
   dashboard: boolean;
+  relatorios: boolean;
+  configuracoes: boolean;
+  fila_ia: boolean;
+  // Módulos CRUD existentes
   assistencia: PermissaoModulo;
   financeiro: PermissaoModulo;
   pecas: PermissaoModulo;
   clientes: PermissaoModulo;
-  relatorios: boolean;
-  configuracoes: boolean;
-  fila_ia: boolean;
+  // Novos módulos CRUD
+  aparelhos: PermissaoModulo;
+  compras: PermissaoModulo;
+  fornecedores: PermissaoModulo;
+  faturas_b2b: PermissaoModulo;
+  metas: PermissaoModulo;
+  rh: PermissaoModulo;
+  // Novos módulos booleanos
+  desempenho_tecnicos: boolean;
+  paineis_tv: boolean;
 }
+
+const FULL_MODULO: PermissaoModulo = { ver: true, criar: true, editar: true, excluir: true };
 
 const ADMIN_PERMISSOES: Permissoes = {
   dashboard: true,
-  assistencia: { ver: true, criar: true, editar: true, excluir: true },
-  financeiro: { ver: true, criar: true, editar: true, excluir: true },
-  pecas: { ver: true, criar: true, editar: true, excluir: true },
-  clientes: { ver: true, criar: true, editar: true, excluir: true },
   relatorios: true,
   configuracoes: true,
   fila_ia: true,
+  assistencia: FULL_MODULO,
+  financeiro: FULL_MODULO,
+  pecas: FULL_MODULO,
+  clientes: FULL_MODULO,
+  aparelhos: FULL_MODULO,
+  compras: FULL_MODULO,
+  fornecedores: FULL_MODULO,
+  faturas_b2b: FULL_MODULO,
+  metas: FULL_MODULO,
+  rh: FULL_MODULO,
+  desempenho_tecnicos: true,
+  paineis_tv: true,
 };
 
 const EMPTY_MODULO: PermissaoModulo = { ver: false, criar: false, editar: false, excluir: false };
 
 const DEFAULT_PERMISSOES: Permissoes = {
   dashboard: false,
+  relatorios: false,
+  configuracoes: false,
+  fila_ia: false,
   assistencia: EMPTY_MODULO,
   financeiro: EMPTY_MODULO,
   pecas: EMPTY_MODULO,
   clientes: EMPTY_MODULO,
-  relatorios: false,
-  configuracoes: false,
-  fila_ia: false,
+  aparelhos: EMPTY_MODULO,
+  compras: EMPTY_MODULO,
+  fornecedores: EMPTY_MODULO,
+  faturas_b2b: EMPTY_MODULO,
+  metas: EMPTY_MODULO,
+  rh: EMPTY_MODULO,
+  desempenho_tecnicos: false,
+  paineis_tv: false,
 };
 
 function parsePermissoes(raw: any): Permissoes {
@@ -53,13 +85,21 @@ function parsePermissoes(raw: any): Permissoes {
   };
   return {
     dashboard: !!raw.dashboard,
+    relatorios: !!raw.relatorios,
+    configuracoes: !!raw.configuracoes,
+    fila_ia: !!raw.fila_ia,
     assistencia: ensureModulo(raw.assistencia),
     financeiro: ensureModulo(raw.financeiro),
     pecas: ensureModulo(raw.pecas),
     clientes: ensureModulo(raw.clientes),
-    relatorios: !!raw.relatorios,
-    configuracoes: !!raw.configuracoes,
-    fila_ia: !!raw.fila_ia,
+    aparelhos: ensureModulo(raw.aparelhos),
+    compras: ensureModulo(raw.compras),
+    fornecedores: ensureModulo(raw.fornecedores),
+    faturas_b2b: ensureModulo(raw.faturas_b2b),
+    metas: ensureModulo(raw.metas),
+    rh: ensureModulo(raw.rh),
+    desempenho_tecnicos: !!raw.desempenho_tecnicos,
+    paineis_tv: !!raw.paineis_tv,
   };
 }
 
