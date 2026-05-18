@@ -1,14 +1,35 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck, UserPlus } from "lucide-react";
+import { Users, FileText, CheckCircle2, Loader2, ChevronRight, Search, Upload, UserCheck, UserPlus, AlertTriangle } from "lucide-react";
 import { useListarFuncionariosRH, useGerarFolhaMensal } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS } from "@/types/rh";
 import { toast } from "sonner";
 import { NovoFuncionarioDialog } from "@/components/rh/NovoFuncionarioDialog";
+import { supabase } from "@/integrations/supabase/client";
+
+function usePendentesCompletar() {
+  return useQuery({
+    queryKey: ["rh", "pendentes-completar"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo, created_at, cpf, salario_centavos, data_admissao, tipo_vinculo")
+        .eq("eh_funcionario_rh", true)
+        .eq("ativo", true)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).filter((f: any) =>
+        !f.cpf || !f.salario_centavos || !f.data_admissao || !f.tipo_vinculo
+      );
+    },
+  });
+}
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
