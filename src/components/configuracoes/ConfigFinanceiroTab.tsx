@@ -245,10 +245,16 @@ function MetasCard() {
       return;
     }
 
+    const soma = sociosEdit.reduce((s, x) => s + Number(x.percentual_participacao || 0), 0);
+    if (sociosEdit.length > 0 && Math.abs(soma - 100) >= 0.01) {
+      toast.error(`Percentuais somam ${soma.toFixed(2)}%. Devem totalizar 100%.`);
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const ns = Number(numSocios) || 1;
+      const ns = sociosEdit.length || 1;
 
       // Save empresa_config (metas + reserva + outros_gastos)
       const payload = {
@@ -282,26 +288,43 @@ function MetasCard() {
       await upsertAjuste("impostos", Number(impostos) || 0);
       await upsertAjuste("depreciacao", Number(depreciacao) || 0);
 
-      // Save sócios
+      // Save sócios — upsert each in sociosEdit, deactivate removed ones
       const existing = socios ?? [];
-      for (let i = 0; i < ns; i++) {
-        const nome = socioNomes[i]?.trim() || "";
-        const socioResponse = existing[i]
-          ? await supabase.from("socios").update({ nome, ordem: i } as any).eq("id", existing[i].id)
-          : await supabase.from("socios").insert({ nome, ordem: i, empresa_id: empresaId } as any);
+      const idsMantidos = new Set(sociosEdit.filter((s) => s.id).map((s) => s.id as string));
 
-        if (socioResponse.error) throw socioResponse.error;
+      for (let i = 0; i < sociosEdit.length; i++) {
+        const s = sociosEdit[i];
+        const row = {
+          empresa_id: empresaId,
+          nome: (s.nome ?? "").trim(),
+          ordem: i,
+          ativo: true,
+          percentual_participacao: Number(s.percentual_participacao) || 0,
+          user_id: s.user_id ?? null,
+        };
+        const resp = s.id
+          ? await supabase.from("socios").update(row as any).eq("id", s.id)
+          : await supabase.from("socios").insert(row as any);
+        if (resp.error) throw resp.error;
       }
 
-      for (let i = ns; i < existing.length; i++) {
-        const { error } = await supabase.from("socios").update({ ativo: false } as any).eq("id", existing[i].id);
-        if (error) throw error;
+      // Soft-delete sócios removidos
+      for (const existente of existing) {
+        if (!idsMantidos.has(existente.id)) {
+          const { error } = await supabase
+            .from("socios")
+            .update({ ativo: false } as any)
+            .eq("id", existente.id);
+          if (error) throw error;
+        }
       }
 
       qc.invalidateQueries({ queryKey: ["empresa_config_meta", empresaId] });
       qc.invalidateQueries({ queryKey: ["config-ajustes", empresaId, anoMes] });
       qc.invalidateQueries({ queryKey: ["dashboard-empresa-config"] });
       qc.invalidateQueries({ queryKey: ["dashboard-socios"] });
+      qc.invalidateQueries({ queryKey: ["socios"] });
+      qc.invalidateQueries({ queryKey: ["config-socios", empresaId] });
       qc.invalidateQueries({ queryKey: ["rel-dre-ajustes"] });
       refetchSocios();
       refetchAjustes();
