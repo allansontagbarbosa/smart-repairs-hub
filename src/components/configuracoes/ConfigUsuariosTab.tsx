@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -302,6 +304,56 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
 
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
 
+  const isAdminPerfil = (perfil: any) => /^admin/i.test(perfil?.nome_perfil || "");
+
+  const savePerfilPermissoes = async (perfil: any, novasPermissoes: any) => {
+    const oldPermissoes = perfil.permissoes;
+
+    // Optimistic update via React Query cache
+    qc.setQueryData<any[]>(["perfis_acesso"], (prev) =>
+      (prev || []).map((p) => (p.id === perfil.id ? { ...p, permissoes: novasPermissoes } : p))
+    );
+
+    const { data, error } = await supabase.rpc("salvar_perfil_acesso", {
+      p_perfil_id: perfil.id,
+      p_nome_perfil: perfil.nome_perfil,
+      p_descricao: perfil.descricao || null,
+      p_permissoes: novasPermissoes,
+      p_ativo: perfil.ativo,
+    });
+
+    if (error || !(data as any)?.success) {
+      // rollback
+      qc.setQueryData<any[]>(["perfis_acesso"], (prev) =>
+        (prev || []).map((p) => (p.id === perfil.id ? { ...p, permissoes: oldPermissoes } : p))
+      );
+      toast.error((data as any)?.error || error?.message || "Erro ao salvar permissão");
+      return false;
+    }
+
+    registrar("Perfil alterado", "configuracoes", perfil.id, { permissoes: oldPermissoes }, { permissoes: novasPermissoes });
+    invalidatePermissoesCache();
+    qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
+    return true;
+  };
+
+  const handleToggleBoolPermissao = async (perfil: any, modulo: string, novoValor: boolean) => {
+    const novasPermissoes = { ...((perfil.permissoes as any) || {}), [modulo]: novoValor };
+    const ok = await savePerfilPermissoes(perfil, novasPermissoes);
+    if (ok) toast.success(`${perfil.nome_perfil}: ${modulo.replace(/_/g, " ")} ${novoValor ? "habilitado" : "desabilitado"}`);
+  };
+
+  const handleToggleCrudPermissao = async (perfil: any, modulo: string, acao: string, novoValor: boolean) => {
+    const atual = ((perfil.permissoes as any) || {})[modulo] || { ver: false, criar: false, editar: false, excluir: false };
+    const novasPermissoes = {
+      ...((perfil.permissoes as any) || {}),
+      [modulo]: { ...atual, [acao]: novoValor },
+    };
+    const ok = await savePerfilPermissoes(perfil, novasPermissoes);
+    if (ok) toast.success(`${perfil.nome_perfil}: ${modulo} → ${acao} ${novoValor ? "✓" : "✗"}`);
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Perfis de Acesso */}
@@ -547,12 +599,15 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
         </CardContent>
       </Card>
 
-      {/* Matriz de permissões */}
+      {/* Matriz de permissões — editável inline */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Grid3x3 className="h-4 w-4" />Matriz de permissões
           </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Clique nos checkboxes para alternar. Em módulos CRUD, clique no resumo (ex: <span className="font-mono">VCED</span>) para editar Ver/Criar/Editar/Excluir. Perfis Administrador são travados.
+          </p>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-xs">
@@ -565,14 +620,42 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               </tr>
             </thead>
             <tbody>
-              {[...MODULOS_BOOL.map(m => m.key), ...MODULOS_CRUD.map(m => m.key)].map((modulo) => (
-                <tr key={modulo} className="border-b last:border-0">
-                  <td className="p-2 capitalize">{modulo.replace(/_/g, " ")}</td>
+              {MODULOS_BOOL.map((m) => (
+                <tr key={m.key} className="border-b last:border-0">
+                  <td className="p-2">{m.label}</td>
                   {perfisAcesso.filter((p) => p.ativo).map((p) => {
-                    const perm = (p.permissoes as any)?.[modulo];
-                    const tem = typeof perm === "boolean" ? perm : (perm?.ver ?? false);
+                    const value = !!(p.permissoes as any)?.[m.key];
+                    const adminLocked = isAdminPerfil(p);
                     return (
-                      <td key={p.id} className="p-2 text-center">{tem ? "✅" : "—"}</td>
+                      <td key={p.id} className="p-2 text-center">
+                        <Checkbox
+                          checked={adminLocked ? true : value}
+                          disabled={adminLocked}
+                          onCheckedChange={(c) => handleToggleBoolPermissao(p, m.key, !!c)}
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              {MODULOS_CRUD.map((m) => (
+                <tr key={m.key} className="border-b last:border-0">
+                  <td className="p-2">{m.label}</td>
+                  {perfisAcesso.filter((p) => p.ativo).map((p) => {
+                    const adminLocked = isAdminPerfil(p);
+                    const raw = (p.permissoes as any)?.[m.key];
+                    const value = adminLocked
+                      ? { ver: true, criar: true, editar: true, excluir: true }
+                      : raw || { ver: false, criar: false, editar: false, excluir: false };
+                    return (
+                      <td key={p.id} className="p-2 text-center">
+                        <CrudCellEditor
+                          moduloLabel={m.label}
+                          value={value}
+                          disabled={adminLocked}
+                          onChange={(acao, val) => handleToggleCrudPermissao(p, m.key, acao, val)}
+                        />
+                      </td>
                     );
                   })}
                 </tr>
@@ -581,6 +664,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
           </table>
         </CardContent>
       </Card>
+
 
       {/* Audit Log — admin only */}
       {isAdmin && (
@@ -742,5 +826,61 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+interface CrudCellEditorProps {
+  moduloLabel: string;
+  value: { ver: boolean; criar: boolean; editar: boolean; excluir: boolean };
+  disabled?: boolean;
+  onChange: (acao: "ver" | "criar" | "editar" | "excluir", novoValor: boolean) => void;
+}
+
+function CrudCellEditor({ moduloLabel, value, disabled, onChange }: CrudCellEditorProps) {
+  const summary =
+    (value.ver ? "V" : "-") +
+    (value.criar ? "C" : "-") +
+    (value.editar ? "E" : "-") +
+    (value.excluir ? "D" : "-");
+
+  const allOn = summary === "VCED";
+  const allOff = summary === "----";
+
+  const trigger = (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      className={cn(
+        "font-mono text-xs h-7 px-2",
+        allOff && "text-muted-foreground",
+        allOn && "text-green-600 dark:text-green-400",
+        !allOff && !allOn && "text-foreground"
+      )}
+    >
+      {summary}
+    </Button>
+  );
+
+  if (disabled) return trigger;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-56 p-3" align="center">
+        <p className="text-xs font-semibold uppercase mb-2">{moduloLabel}</p>
+        <div className="space-y-2">
+          {(["ver", "criar", "editar", "excluir"] as const).map((acao) => (
+            <label key={acao} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={!!value[acao]}
+                onCheckedChange={(c) => onChange(acao, !!c)}
+              />
+              <span className="capitalize">{acao}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
