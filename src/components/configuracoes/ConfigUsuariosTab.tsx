@@ -304,6 +304,56 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
 
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
 
+  const isAdminPerfil = (perfil: any) => /^admin/i.test(perfil?.nome_perfil || "");
+
+  const savePerfilPermissoes = async (perfil: any, novasPermissoes: any) => {
+    const oldPermissoes = perfil.permissoes;
+
+    // Optimistic update via React Query cache
+    qc.setQueryData<any[]>(["perfis_acesso"], (prev) =>
+      (prev || []).map((p) => (p.id === perfil.id ? { ...p, permissoes: novasPermissoes } : p))
+    );
+
+    const { data, error } = await supabase.rpc("salvar_perfil_acesso", {
+      p_perfil_id: perfil.id,
+      p_nome_perfil: perfil.nome_perfil,
+      p_descricao: perfil.descricao || null,
+      p_permissoes: novasPermissoes,
+      p_ativo: perfil.ativo,
+    });
+
+    if (error || !(data as any)?.success) {
+      // rollback
+      qc.setQueryData<any[]>(["perfis_acesso"], (prev) =>
+        (prev || []).map((p) => (p.id === perfil.id ? { ...p, permissoes: oldPermissoes } : p))
+      );
+      toast.error((data as any)?.error || error?.message || "Erro ao salvar permissão");
+      return false;
+    }
+
+    registrar("Perfil alterado", "configuracoes", perfil.id, { permissoes: oldPermissoes }, { permissoes: novasPermissoes });
+    invalidatePermissoesCache();
+    qc.invalidateQueries({ queryKey: ["perfis_acesso"] });
+    return true;
+  };
+
+  const handleToggleBoolPermissao = async (perfil: any, modulo: string, novoValor: boolean) => {
+    const novasPermissoes = { ...((perfil.permissoes as any) || {}), [modulo]: novoValor };
+    const ok = await savePerfilPermissoes(perfil, novasPermissoes);
+    if (ok) toast.success(`${perfil.nome_perfil}: ${modulo.replace(/_/g, " ")} ${novoValor ? "habilitado" : "desabilitado"}`);
+  };
+
+  const handleToggleCrudPermissao = async (perfil: any, modulo: string, acao: string, novoValor: boolean) => {
+    const atual = ((perfil.permissoes as any) || {})[modulo] || { ver: false, criar: false, editar: false, excluir: false };
+    const novasPermissoes = {
+      ...((perfil.permissoes as any) || {}),
+      [modulo]: { ...atual, [acao]: novoValor },
+    };
+    const ok = await savePerfilPermissoes(perfil, novasPermissoes);
+    if (ok) toast.success(`${perfil.nome_perfil}: ${modulo} → ${acao} ${novoValor ? "✓" : "✗"}`);
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Perfis de Acesso */}
