@@ -1504,7 +1504,36 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     <p className="text-xs">{imeiResult.message || "Erro ao consultar IMEI"}</p>
                   </div>
                 )}
+                {osAbertaExistente && (
+                  <div className="border-2 border-destructive rounded-md p-3 bg-destructive/5 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-destructive">
+                          Já existe OS aberta para este aparelho
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          A OS <strong>#{formatNumeroOS(osAbertaExistente.numero, osAbertaExistente.numero_formatado)}</strong> está com status <strong>{osAbertaExistente.status}</strong>. Finalize-a antes de criar uma nova.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      asChild
+                    >
+                      <Link
+                        to={`/assistencia?os=${osAbertaExistente.id}`}
+                        onClick={() => onOpenChange(false)}
+                      >
+                        Abrir OS #{formatNumeroOS(osAbertaExistente.numero, osAbertaExistente.numero_formatado)}
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <ComboboxWithCreate
