@@ -5672,6 +5672,10 @@ export type Database = {
         Args: { p_ano?: number; p_funcionario_id: string; p_mes?: number }
         Returns: Json
       }
+      has_permissao: {
+        Args: { p_acao?: string; p_modulo: string }
+        Returns: boolean
+      }
       historico_pagamentos_conta: {
         Args: { p_conta_pagar_id: string }
         Returns: Json
