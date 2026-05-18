@@ -17,7 +17,7 @@ interface DREData {
   lucroLiquido?: number;
   reservaPct?: number;
   reserva?: number;
-  porSocio?: number;
+  partesSocios?: { id: string; nome: string; percentual: number; valor: number }[];
 }
 
 interface ImprimirDREParams {
