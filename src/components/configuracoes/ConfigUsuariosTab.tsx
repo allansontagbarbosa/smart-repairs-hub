@@ -33,6 +33,12 @@ const MODULOS_CRUD = [
   { key: "financeiro", label: "Financeiro" },
   { key: "pecas", label: "Peças" },
   { key: "clientes", label: "Clientes" },
+  { key: "aparelhos", label: "Aparelhos" },
+  { key: "compras", label: "Compras" },
+  { key: "fornecedores", label: "Fornecedores" },
+  { key: "faturas_b2b", label: "Faturas B2B" },
+  { key: "metas", label: "Metas" },
+  { key: "rh", label: "RH" },
 ];
 
 const MODULOS_BOOL = [
@@ -40,6 +46,8 @@ const MODULOS_BOOL = [
   { key: "relatorios", label: "Relatórios" },
   { key: "configuracoes", label: "Configurações" },
   { key: "fila_ia", label: "Fila IA" },
+  { key: "desempenho_tecnicos", label: "Desempenho técnicos" },
+  { key: "paineis_tv", label: "Painéis TV" },
 ];
 
 const ACOES = ["ver", "criar", "editar", "excluir"] as const;
