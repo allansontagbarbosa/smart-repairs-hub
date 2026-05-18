@@ -154,6 +154,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [imei2, setImei2] = useState("");
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [aparelhoExistente, setAparelhoExistente] = useState<{ id: string; cliente_id: string; cliente_nome: string; total_os: number; mesmo_cliente: boolean } | null>(null);
+  const [osAbertaExistente, setOsAbertaExistente] = useState<{ id: string; numero: number | null; numero_formatado: string | null; status: string } | null>(null);
   const [marca, setMarca] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
@@ -495,6 +496,34 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     return () => { cancelled = true; };
   }, [imei, selectedClientId]);
 
+  // Bloqueio: verifica se já existe OS aberta pro mesmo aparelho
+  useEffect(() => {
+    if (!aparelhoExistente?.id) {
+      setOsAbertaExistente(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("ordens_de_servico")
+        .select("id, numero, numero_formatado, status")
+        .eq("aparelho_id", aparelhoExistente.id)
+        .is("deleted_at", null)
+        .not("status", "in", "(entregue,cancelada,Entregue,Cancelada)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      setOsAbertaExistente(data ? {
+        id: data.id,
+        numero: (data as any).numero ?? null,
+        numero_formatado: (data as any).numero_formatado ?? null,
+        status: String((data as any).status ?? ""),
+      } : null);
+    })();
+    return () => { cancelled = true; };
+  }, [aparelhoExistente?.id]);
+
   // Auto-fill via ViaCEP
   useEffect(() => {
     const digits = newClientCep.replace(/\D/g, "");
@@ -766,6 +795,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     setImei2("");
     setImeiResult({ status: "idle" });
     setAparelhoExistente(null);
+    setOsAbertaExistente(null);
     setMarca(""); setMarcaId("");
     setModelo(""); setModeloId("");
     setCor(""); setCorId("");
@@ -1089,7 +1119,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       setStep("sucesso");
       onSuccess();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("Já existe OS aberta")) {
+        toast.error(msg, { duration: 8000 });
+      } else {
+        toast.error(msg || "Erro ao criar OS — tente novamente");
+      }
+    },
   });
 
   // ── Validação ──
@@ -1106,7 +1143,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     (defeitosSelecionados.length > 0 || !!relatoCliente.trim()) &&
     justificativaOk &&
     podeRetroativa &&
-    todasPecasComEstoqueOk;
+    todasPecasComEstoqueOk &&
+    !osAbertaExistente;
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
@@ -1473,7 +1511,36 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     <p className="text-xs">{imeiResult.message || "Erro ao consultar IMEI"}</p>
                   </div>
                 )}
+                {osAbertaExistente && (
+                  <div className="border-2 border-destructive rounded-md p-3 bg-destructive/5 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-destructive">
+                          Já existe OS aberta para este aparelho
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          A OS <strong>#{formatNumeroOS(osAbertaExistente.numero, osAbertaExistente.numero_formatado)}</strong> está com status <strong>{osAbertaExistente.status}</strong>. Finalize-a antes de criar uma nova.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      asChild
+                    >
+                      <Link
+                        to={`/assistencia?os=${osAbertaExistente.id}`}
+                        onClick={() => onOpenChange(false)}
+                      >
+                        Abrir OS #{formatNumeroOS(osAbertaExistente.numero, osAbertaExistente.numero_formatado)}
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <ComboboxWithCreate
