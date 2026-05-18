@@ -86,8 +86,17 @@ const fmtDateTime = (d: string | null | undefined) =>
 export const ImpressaoOS = forwardRef<HTMLDivElement, { data: ImpressaoOSData }>(
   ({ data }, ref) => {
     const numero = formatNumeroOS(data.numero, data.numero_formatado);
-    const checklist = data.checklist_entrada || {};
-    const checklistEntries = Object.entries(checklist).filter(([, v]) => v && v !== "nao_testado");
+    // Suporta dois formatos legados:
+    //  (a) shape novo do editor: { itens: { liga: "ok", ... }, custom: [...] }
+    //  (b) shape antigo/flat:    { liga: "ok", tela: "ok", ... }
+    const rawChecklist = (data.checklist_entrada || {}) as Record<string, any>;
+    const flatChecklist: Record<string, any> =
+      rawChecklist && typeof rawChecklist === "object" && rawChecklist.itens && typeof rawChecklist.itens === "object"
+        ? rawChecklist.itens
+        : rawChecklist;
+    const checklistEntries = Object.entries(flatChecklist).filter(
+      ([, v]) => typeof v === "string" && v && v !== "nao_testado",
+    );
     const subtotalPecas = (data.pecas || []).reduce(
       (s, p) => s + (p.valor ?? 0) * p.quantidade,
       0,
