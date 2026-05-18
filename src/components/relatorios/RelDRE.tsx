@@ -198,7 +198,17 @@ export function RelDRE() {
     const reservaPct = empresaConfig?.percentual_reserva_empresa ?? 10;
     const reserva = Math.max(0, lucroLiquido * reservaPct / 100);
     const distribSocios = Math.max(0, lucroLiquido - reserva);
-    const porSocio = (socios ?? []).length > 0 ? distribSocios / (socios ?? []).length : 0;
+    const sociosAtivos = (socios ?? []).filter((s: any) => s.ativo);
+    const partesSocios = sociosAtivos.map((s: any) => {
+      const pct = Number(s.percentual_participacao ?? 0);
+      return {
+        id: s.id,
+        nome: s.nome,
+        percentual: pct,
+        valor: distribSocios * (pct / 100),
+      };
+    });
+    const somaPctSocios = partesSocios.reduce((acc, p) => acc + p.percentual, 0);
 
     return {
       servicosFaturados, outrosReceb, receitaBruta,
@@ -207,7 +217,7 @@ export function RelDRE() {
       gastosFixos, depreciacao, outrosGastos, ebitda,
       prejuizosNaoOpTotal, resultadoNaoOperacional,
       lucroLiquido, margem,
-      reservaPct, reserva, porSocio,
+      reservaPct, reserva, distribSocios, partesSocios, somaPctSocios,
     };
   }, [ordens, recebimentos, contas, comissoes, ajustes, socios, empresaConfig, prejuizosMes]);
 
