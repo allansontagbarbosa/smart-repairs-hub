@@ -228,8 +228,9 @@ async function fetchEmpresaConfig() {
 async function fetchSocios() {
   const { data, error } = await supabase
     .from("socios")
-    .select("id, nome, ordem")
+    .select("id, nome, ordem, percentual_participacao")
     .eq("ativo", true)
+    .is("deleted_at", null)
     .order("ordem");
   if (error) throw error;
   return data ?? [];
@@ -438,6 +439,25 @@ export default function Dashboard() {
   }, [kpis, canFinanceiro]);
 
   const socios = sociosList ?? [];
+
+  // Distribuição por sócio respeitando percentual_participacao
+  const partesSocios = useMemo(() => {
+    return socios.map((s: any) => {
+      const pct = Number(s.percentual_participacao ?? 0);
+      return {
+        id: s.id,
+        nome: s.nome,
+        percentual: pct,
+        valor: kpis.lucroDistrib * (pct / 100),
+      };
+    });
+  }, [socios, kpis.lucroDistrib]);
+
+  const somaPctSocios = useMemo(
+    () => partesSocios.reduce((acc, p) => acc + p.percentual, 0),
+    [partesSocios]
+  );
+  const percentuaisOk = Math.abs(somaPctSocios - 100) < 0.01;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -937,22 +957,29 @@ export default function Dashboard() {
 
                 {/* Sócios */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
-                  {Array.from({ length: kpis.nSocios }).map((_, i) => {
-                    const socio = socios[i];
-                    const nome = socio?.nome?.trim() || `Sócio ${i + 1}`;
+                  {partesSocios.map((p, i) => {
+                    const nome = p.nome?.trim() || `Sócio ${i + 1}`;
                     return (
-                      <div key={i} className="border rounded-lg p-3 bg-green-50">
+                      <div key={p.id} className="border rounded-lg p-3 bg-green-50">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="h-7 w-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
                             {nome[0]?.toUpperCase() || String(i + 1)}
                           </div>
-                          <span className="text-xs font-medium text-gray-600">{nome}</span>
+                          <div className="flex flex-col leading-tight">
+                            <span className="text-xs font-medium text-gray-600">{nome}</span>
+                            <span className="text-[10px] text-muted-foreground">{p.percentual.toFixed(2)}%</span>
+                          </div>
                         </div>
-                        <p className="text-sm font-bold text-green-600">{brl(kpis.lucroSocio)}</p>
+                        <p className="text-sm font-bold text-green-600">{brl(p.valor)}</p>
                       </div>
                     );
                   })}
                 </div>
+                {!percentuaisOk && partesSocios.length > 0 && (
+                  <p className="text-[11px] text-amber-600 mt-1">
+                    ⚠ Percentuais somam {somaPctSocios.toFixed(2)}%, ajuste em Configurações &gt; Financeiro
+                  </p>
+                )}
               </>
             )}
 

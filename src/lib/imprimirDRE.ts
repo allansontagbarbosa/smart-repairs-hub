@@ -17,7 +17,7 @@ interface DREData {
   lucroLiquido?: number;
   reservaPct?: number;
   reserva?: number;
-  porSocio?: number;
+  partesSocios?: { id: string; nome: string; percentual: number; valor: number }[];
 }
 
 interface ImprimirDREParams {
@@ -112,15 +112,20 @@ export function imprimirDRE(params: ImprimirDREParams) {
     { label: "= Lucro Líquido", valor: lucroLiquido, bold: true, total: true, destaque: true },
   ];
 
-  if (lucroLiquido > 0 && socios.length > 0 && dre.reservaPct !== undefined) {
+  const partesSocios = dre.partesSocios ?? [];
+  if (lucroLiquido > 0 && partesSocios.length > 0 && dre.reservaPct !== undefined) {
     linhas.push({ tipo: "header", label: "DISTRIBUIÇÃO" });
     linhas.push({
       label: `Reserva empresa (${dre.reservaPct}%)`,
       valor: dre.reserva ?? 0,
       distribuicao: true,
     });
-    socios.forEach((s) => {
-      linhas.push({ label: s.nome, valor: dre.porSocio ?? 0, distribuicao: true });
+    partesSocios.forEach((p) => {
+      linhas.push({
+        label: `${p.nome} (${p.percentual.toFixed(2)}%)`,
+        valor: p.valor,
+        distribuicao: true,
+      });
     });
   }
 

@@ -4850,29 +4850,38 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          deleted_at: string | null
           empresa_id: string | null
           id: string
           nome: string
           ordem: number
+          percentual_participacao: number
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean
           created_at?: string
+          deleted_at?: string | null
           empresa_id?: string | null
           id?: string
           nome?: string
           ordem?: number
+          percentual_participacao?: number
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean
           created_at?: string
+          deleted_at?: string | null
           empresa_id?: string | null
           id?: string
           nome?: string
           ordem?: number
+          percentual_participacao?: number
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -5641,6 +5650,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      get_meu_percentual_socio: { Args: never; Returns: number }
       get_minha_sessao_atual: { Args: never; Returns: Json }
       get_my_cliente_lojista: {
         Args: never

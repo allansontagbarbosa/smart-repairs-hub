@@ -198,7 +198,17 @@ export function RelDRE() {
     const reservaPct = empresaConfig?.percentual_reserva_empresa ?? 10;
     const reserva = Math.max(0, lucroLiquido * reservaPct / 100);
     const distribSocios = Math.max(0, lucroLiquido - reserva);
-    const porSocio = (socios ?? []).length > 0 ? distribSocios / (socios ?? []).length : 0;
+    const sociosAtivos = (socios ?? []).filter((s: any) => s.ativo);
+    const partesSocios = sociosAtivos.map((s: any) => {
+      const pct = Number(s.percentual_participacao ?? 0);
+      return {
+        id: s.id,
+        nome: s.nome,
+        percentual: pct,
+        valor: distribSocios * (pct / 100),
+      };
+    });
+    const somaPctSocios = partesSocios.reduce((acc, p) => acc + p.percentual, 0);
 
     return {
       servicosFaturados, outrosReceb, receitaBruta,
@@ -207,7 +217,7 @@ export function RelDRE() {
       gastosFixos, depreciacao, outrosGastos, ebitda,
       prejuizosNaoOpTotal, resultadoNaoOperacional,
       lucroLiquido, margem,
-      reservaPct, reserva, porSocio,
+      reservaPct, reserva, distribSocios, partesSocios, somaPctSocios,
     };
   }, [ordens, recebimentos, contas, comissoes, ajustes, socios, empresaConfig, prejuizosMes]);
 
@@ -361,13 +371,18 @@ export function RelDRE() {
               <span>{dre.margem.toFixed(1)}%</span>
             </div>
           </div>
-          {(socios ?? []).length > 0 && dre.lucroLiquido > 0 && (
+          {dre.partesSocios.length > 0 && dre.lucroLiquido > 0 && (
             <div className="border-t pt-3">
               <p className="font-bold text-muted-foreground mb-1">DISTRIBUIÇÃO</p>
               <LinhaItem label={`Reserva empresa (${dre.reservaPct}%)`} valor={dre.reserva} />
-              {(socios ?? []).map(s => (
-                <LinhaItem key={s.id} label={s.nome} valor={dre.porSocio} />
+              {dre.partesSocios.map(p => (
+                <LinhaItem key={p.id} label={`${p.nome} (${p.percentual.toFixed(2)}%)`} valor={p.valor} />
               ))}
+              {Math.abs(dre.somaPctSocios - 100) > 0.01 && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  ⚠ Percentuais somam {dre.somaPctSocios.toFixed(2)}%, ajuste em Configurações &gt; Financeiro
+                </p>
+              )}
             </div>
           )}
         </CardContent>
