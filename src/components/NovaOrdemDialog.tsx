@@ -1136,7 +1136,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     (defeitosSelecionados.length > 0 || !!relatoCliente.trim()) &&
     justificativaOk &&
     podeRetroativa &&
-    todasPecasComEstoqueOk;
+    todasPecasComEstoqueOk &&
+    !osAbertaExistente;
 
   // ── Helpers peças ──
   function getPecaNome(p: typeof pecasEstoque[number]) {
