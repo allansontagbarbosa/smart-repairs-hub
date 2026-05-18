@@ -33,6 +33,12 @@ const MODULOS_CRUD = [
   { key: "financeiro", label: "Financeiro" },
   { key: "pecas", label: "Peças" },
   { key: "clientes", label: "Clientes" },
+  { key: "aparelhos", label: "Aparelhos" },
+  { key: "compras", label: "Compras" },
+  { key: "fornecedores", label: "Fornecedores" },
+  { key: "faturas_b2b", label: "Faturas B2B" },
+  { key: "metas", label: "Metas" },
+  { key: "rh", label: "RH" },
 ];
 
 const MODULOS_BOOL = [
@@ -40,6 +46,8 @@ const MODULOS_BOOL = [
   { key: "relatorios", label: "Relatórios" },
   { key: "configuracoes", label: "Configurações" },
   { key: "fila_ia", label: "Fila IA" },
+  { key: "desempenho_tecnicos", label: "Desempenho técnicos" },
+  { key: "paineis_tv", label: "Painéis TV" },
 ];
 
 const ACOES = ["ver", "criar", "editar", "excluir"] as const;
@@ -557,9 +565,9 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               </tr>
             </thead>
             <tbody>
-              {["dashboard", "assistencia", "financeiro", "pecas", "clientes", "relatorios", "configuracoes", "fila_ia"].map((modulo) => (
+              {[...MODULOS_BOOL.map(m => m.key), ...MODULOS_CRUD.map(m => m.key)].map((modulo) => (
                 <tr key={modulo} className="border-b last:border-0">
-                  <td className="p-2 capitalize">{modulo.replace("_", " ")}</td>
+                  <td className="p-2 capitalize">{modulo.replace(/_/g, " ")}</td>
                   {perfisAcesso.filter((p) => p.ativo).map((p) => {
                     const perm = (p.permissoes as any)?.[modulo];
                     const tem = typeof perm === "boolean" ? perm : (perm?.ver ?? false);
