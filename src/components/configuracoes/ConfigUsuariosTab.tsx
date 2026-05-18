@@ -599,12 +599,15 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
         </CardContent>
       </Card>
 
-      {/* Matriz de permissões */}
+      {/* Matriz de permissões — editável inline */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Grid3x3 className="h-4 w-4" />Matriz de permissões
           </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Clique nos checkboxes para alternar. Em módulos CRUD, clique no resumo (ex: <span className="font-mono">VCED</span>) para editar Ver/Criar/Editar/Excluir. Perfis Administrador são travados.
+          </p>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-xs">
@@ -617,14 +620,42 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
               </tr>
             </thead>
             <tbody>
-              {[...MODULOS_BOOL.map(m => m.key), ...MODULOS_CRUD.map(m => m.key)].map((modulo) => (
-                <tr key={modulo} className="border-b last:border-0">
-                  <td className="p-2 capitalize">{modulo.replace(/_/g, " ")}</td>
+              {MODULOS_BOOL.map((m) => (
+                <tr key={m.key} className="border-b last:border-0">
+                  <td className="p-2">{m.label}</td>
                   {perfisAcesso.filter((p) => p.ativo).map((p) => {
-                    const perm = (p.permissoes as any)?.[modulo];
-                    const tem = typeof perm === "boolean" ? perm : (perm?.ver ?? false);
+                    const value = !!(p.permissoes as any)?.[m.key];
+                    const adminLocked = isAdminPerfil(p);
                     return (
-                      <td key={p.id} className="p-2 text-center">{tem ? "✅" : "—"}</td>
+                      <td key={p.id} className="p-2 text-center">
+                        <Checkbox
+                          checked={adminLocked ? true : value}
+                          disabled={adminLocked}
+                          onCheckedChange={(c) => handleToggleBoolPermissao(p, m.key, !!c)}
+                        />
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+              {MODULOS_CRUD.map((m) => (
+                <tr key={m.key} className="border-b last:border-0">
+                  <td className="p-2">{m.label}</td>
+                  {perfisAcesso.filter((p) => p.ativo).map((p) => {
+                    const adminLocked = isAdminPerfil(p);
+                    const raw = (p.permissoes as any)?.[m.key];
+                    const value = adminLocked
+                      ? { ver: true, criar: true, editar: true, excluir: true }
+                      : raw || { ver: false, criar: false, editar: false, excluir: false };
+                    return (
+                      <td key={p.id} className="p-2 text-center">
+                        <CrudCellEditor
+                          moduloLabel={m.label}
+                          value={value}
+                          disabled={adminLocked}
+                          onChange={(acao, val) => handleToggleCrudPermissao(p, m.key, acao, val)}
+                        />
+                      </td>
                     );
                   })}
                 </tr>
@@ -633,6 +664,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
           </table>
         </CardContent>
       </Card>
+
 
       {/* Audit Log — admin only */}
       {isAdmin && (
