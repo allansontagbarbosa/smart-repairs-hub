@@ -1119,7 +1119,14 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       setStep("sucesso");
       onSuccess();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("Já existe OS aberta")) {
+        toast.error(msg, { duration: 8000 });
+      } else {
+        toast.error(msg || "Erro ao criar OS — tente novamente");
+      }
+    },
   });
 
   // ── Validação ──
