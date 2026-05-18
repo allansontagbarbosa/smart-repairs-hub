@@ -371,13 +371,18 @@ export function RelDRE() {
               <span>{dre.margem.toFixed(1)}%</span>
             </div>
           </div>
-          {(socios ?? []).length > 0 && dre.lucroLiquido > 0 && (
+          {dre.partesSocios.length > 0 && dre.lucroLiquido > 0 && (
             <div className="border-t pt-3">
               <p className="font-bold text-muted-foreground mb-1">DISTRIBUIÇÃO</p>
               <LinhaItem label={`Reserva empresa (${dre.reservaPct}%)`} valor={dre.reserva} />
-              {(socios ?? []).map(s => (
-                <LinhaItem key={s.id} label={s.nome} valor={dre.porSocio} />
+              {dre.partesSocios.map(p => (
+                <LinhaItem key={p.id} label={`${p.nome} (${p.percentual.toFixed(2)}%)`} valor={p.valor} />
               ))}
+              {Math.abs(dre.somaPctSocios - 100) > 0.01 && (
+                <p className="text-[11px] text-amber-600 mt-1">
+                  ⚠ Percentuais somam {dre.somaPctSocios.toFixed(2)}%, ajuste em Configurações &gt; Financeiro
+                </p>
+              )}
             </div>
           )}
         </CardContent>
