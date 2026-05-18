@@ -17,6 +17,7 @@ import { ArrowLeft, Camera, FileSignature, Trash2, Upload, Wrench, User, Phone, 
 import { toast } from "@/hooks/use-toast";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { AssinaturaCanvas } from "@/components/tecnico/AssinaturaCanvas";
+import { SecaoPecasUtilizadas } from "@/components/tecnico/SecaoPecasUtilizadas";
 import { statusLabels } from "@/lib/status";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
 import { abrirWhatsApp } from "@/lib/whatsapp";
@@ -317,6 +318,17 @@ export default function TecnicoOrdemDetalhe() {
           ))}
         </CardContent>
       </Card>
+
+      <SecaoPecasUtilizadas
+        ordemId={id!}
+        servicoAtualId={
+          servicos.find(
+            (s: any) =>
+              s.status === "em_andamento" &&
+              s.tecnico_id === (identidade?.funcionario_id ?? null),
+          )?.id ?? null
+        }
+      />
 
       <Tabs defaultValue="checklist">
         <TabsList className="grid grid-cols-3 w-full">
