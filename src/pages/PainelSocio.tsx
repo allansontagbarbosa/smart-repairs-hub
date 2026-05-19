@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
 import { NovaMetaDialog } from "@/components/painel-socio/NovaMetaDialog";
+import { FatoresExternosCards } from "@/components/painel-socio/FatoresExternosCards";
+import { InsightsIA } from "@/components/painel-socio/InsightsIA";
 import {
   ComposedChart,
   Bar,
@@ -159,6 +161,9 @@ export default function PainelSocio() {
         </Card>
       </div>
 
+      {/* Fatores externos */}
+      <FatoresExternosCards />
+
       {/* Histórico */}
       <Card>
         <CardHeader>
@@ -194,6 +199,9 @@ export default function PainelSocio() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Insights IA */}
+      <InsightsIA />
 
       {/* Sócios + Saúde */}
       <div className="grid md:grid-cols-2 gap-4">

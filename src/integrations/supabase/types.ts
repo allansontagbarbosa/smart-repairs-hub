@@ -1432,7 +1432,9 @@ export type Database = {
           endereco: Json | null
           estado: string | null
           id: string
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           nome: string
           numero: string | null
           owner_id: string
@@ -1455,7 +1457,9 @@ export type Database = {
           endereco?: Json | null
           estado?: string | null
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           nome: string
           numero?: string | null
           owner_id: string
@@ -1478,7 +1482,9 @@ export type Database = {
           endereco?: Json | null
           estado?: string | null
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           nome?: string
           numero?: string | null
           owner_id?: string
@@ -4845,6 +4851,50 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      socio_insights_cache: {
+        Row: {
+          empresa_id: string | null
+          expira_em: string
+          gerado_em: string
+          id: string
+          insights_json: Json
+          prompt_hash: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string
+        }
+        Insert: {
+          empresa_id?: string | null
+          expira_em?: string
+          gerado_em?: string
+          id?: string
+          insights_json: Json
+          prompt_hash?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id: string
+        }
+        Update: {
+          empresa_id?: string | null
+          expira_em?: string
+          gerado_em?: string
+          id?: string
+          insights_json?: Json
+          prompt_hash?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socio_insights_cache_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
