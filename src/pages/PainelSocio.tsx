@@ -32,7 +32,7 @@ async function fetchMeuSocio(userId: string): Promise<SocioInfo | null> {
 
 async function fetchEmpresaConfig() {
   const { data, error } = await supabase
-    .from("configuracoes")
+    .from("empresa_config")
     .select("percentual_reserva_empresa")
     .limit(1)
     .maybeSingle();
