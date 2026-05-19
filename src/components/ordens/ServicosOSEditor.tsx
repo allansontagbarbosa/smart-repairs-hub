@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+
+export type MotivoSemTecnico = "terceirizado" | "sem_atribuicao" | null;
 
 export type ServicoOSPayload = {
   id?: string;
@@ -20,6 +22,8 @@ export type ServicoOSPayload = {
   tecnico_id: string | null;
   valor: number;
   comissao: number;
+  motivo_sem_tecnico?: MotivoSemTecnico;
+  valor_terceirizado?: number;
 };
 
 type TipoServicoOption = { id: string; nome: string; valor_padrao?: number; comissao_padrao?: number; valor_mao_obra?: number };
@@ -34,23 +38,25 @@ type Props = {
   onSave?: (resultado: any) => void;
   autoSave?: boolean;
   className?: string;
-  /**
-   * Custo das peças usadas na OS. Quando fornecido, é descontado do lucro estimado
-   * para alinhar com o cálculo da sidebar/detalhes da OS (peça é custo, não receita).
-   */
   custoPecas?: number;
-  /**
-   * Desconto aplicado ao total ao cliente. Quando fornecido, é descontado do lucro
-   * estimado para refletir a receita real da OS.
-   */
   desconto?: number;
 };
 
 const SEM_TECNICO = "__sem_tecnico__";
+const TERCEIRIZADO = "__terceirizado__";
+const SEM_ATRIBUICAO = "__sem_atribuicao__";
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
 const norm = (value: unknown) => Number(value) || 0;
 const sameList = (a: ServicoOSPayload[], b: ServicoOSPayload[]) => JSON.stringify(a.map(clean)) === JSON.stringify(b.map(clean));
-const clean = (s: ServicoOSPayload) => ({ id: s.id ?? null, servico_id: s.servico_id, tecnico_id: s.tecnico_id ?? null, valor: norm(s.valor), comissao: norm(s.comissao) });
+const clean = (s: ServicoOSPayload): ServicoOSPayload => ({
+  id: s.id ?? null,
+  servico_id: s.servico_id,
+  tecnico_id: s.tecnico_id ?? null,
+  motivo_sem_tecnico: s.motivo_sem_tecnico ?? null,
+  valor_terceirizado: norm(s.valor_terceirizado),
+  valor: norm(s.valor),
+  comissao: norm(s.comissao),
+} as ServicoOSPayload);
 
 function TipoServicoCombobox({ value, onValueChange, tiposServico }: { value: string; onValueChange: (v: string) => void; tiposServico: TipoServicoOption[] }) {
   const [open, setOpen] = useState(false);
@@ -88,7 +94,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   const [servicos, setServicos] = useState<ServicoOSPayload[]>(() => servicosIniciais.map(clean));
   const [openAdd, setOpenAdd] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
-  const [novo, setNovo] = useState<ServicoOSPayload>({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0 });
+  const [novo, setNovo] = useState<ServicoOSPayload>({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0, motivo_sem_tecnico: null, valor_terceirizado: 0 });
 
   useEffect(() => setServicos(servicosIniciais.map(clean)), [servicosIniciais]);
 
@@ -99,15 +105,20 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
 
   const totalValor = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.valor), 0), [servicos]);
   const totalComissao = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.comissao), 0), [servicos]);
-  // Lucro estimado: usa a mesma fórmula da sidebar/detalhes da OS quando peças e desconto
-  // são fornecidos (valor − desconto − peças − comissão). Caso contrário, fallback ao
-  // cálculo legacy (valor − comissão) para compatibilidade com chamadores antigos.
-  const lucro = totalValor - norm(desconto) - norm(custoPecas) - totalComissao;
+  const totalTerceirizado = useMemo(
+    () => servicos.reduce((sum, s) => sum + (s.motivo_sem_tecnico === "terceirizado" ? norm(s.valor_terceirizado) : 0), 0),
+    [servicos],
+  );
+  const lucro = totalValor - norm(desconto) - norm(custoPecas) - totalComissao - totalTerceirizado;
   const dirty = !sameList(servicos, servicosIniciais);
 
   const salvar = useMutation({
     mutationFn: async () => {
       if (!ordemId) return { success: true, total_valor: totalValor, total_comissao: totalComissao };
+      // Valida terceirizado tem valor antes de enviar
+      const invalido = servicos.find((s) => s.motivo_sem_tecnico === "terceirizado" && norm(s.valor_terceirizado) <= 0);
+      if (invalido) throw new Error("Serviço terceirizado precisa de custo > 0");
+
       const { data, error } = await supabase.rpc("editar_os_servicos_v2" as any, {
         p_ordem_id: ordemId,
         p_servicos: servicos.map(clean),
@@ -122,6 +133,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
       queryClient.invalidateQueries({ queryKey: ["os-servicos", ordemId] });
       queryClient.invalidateQueries({ queryKey: ["os-servicos-v2", ordemId] });
       queryClient.invalidateQueries({ queryKey: ["comissoes_os", ordemId] });
+      queryClient.invalidateQueries({ queryKey: ["os-pendente-atribuicao"] });
       onSave?.(data);
     },
     onError: (error: any) => toast.error(error.message || "Erro ao salvar serviços"),
@@ -146,8 +158,12 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
       toast.error("Selecione o tipo de serviço");
       return;
     }
+    if (novo.motivo_sem_tecnico === "terceirizado" && norm(novo.valor_terceirizado) <= 0) {
+      toast.error("Informe o custo do terceirizado");
+      return;
+    }
     updateServicos([...servicos, clean(novo)]);
-    setNovo({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0 });
+    setNovo({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0, motivo_sem_tecnico: null, valor_terceirizado: 0 });
     setOpenAdd(false);
     toast.success("Serviço adicionado");
   }
@@ -163,12 +179,42 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
     <TipoServicoCombobox value={value} onValueChange={onValueChange} tiposServico={tiposServico} />
   );
 
-  const renderTecnicoSelect = (value: string | null, onValueChange: (value: string | null) => void) => (
-    <Select value={value || SEM_TECNICO} onValueChange={(value) => onValueChange(value === SEM_TECNICO ? null : value)}>
-      <SelectTrigger className="h-9"><SelectValue placeholder="Sem técnico" /></SelectTrigger>
+  function currentTecnicoValue(linha: ServicoOSPayload): string {
+    if (linha.tecnico_id) return linha.tecnico_id;
+    if (linha.motivo_sem_tecnico === "terceirizado") return TERCEIRIZADO;
+    if (linha.motivo_sem_tecnico === "sem_atribuicao") return SEM_ATRIBUICAO;
+    return SEM_TECNICO;
+  }
+
+  function handleTecnicoChange(linha: ServicoOSPayload, value: string, onUpdate: (patch: Partial<ServicoOSPayload>) => void) {
+    if (value === TERCEIRIZADO) {
+      onUpdate({ tecnico_id: null, motivo_sem_tecnico: "terceirizado" });
+    } else if (value === SEM_ATRIBUICAO) {
+      onUpdate({ tecnico_id: null, motivo_sem_tecnico: "sem_atribuicao", valor_terceirizado: 0 });
+    } else if (value === SEM_TECNICO) {
+      onUpdate({ tecnico_id: null, motivo_sem_tecnico: null, valor_terceirizado: 0 });
+    } else {
+      onUpdate({ tecnico_id: value, motivo_sem_tecnico: null, valor_terceirizado: 0 });
+    }
+  }
+
+  const renderTecnicoSelect = (linha: ServicoOSPayload, onUpdate: (patch: Partial<ServicoOSPayload>) => void) => (
+    <Select value={currentTecnicoValue(linha)} onValueChange={(v) => handleTecnicoChange(linha, v, onUpdate)}>
+      <SelectTrigger className="h-9"><SelectValue placeholder="Atribuir técnico..." /></SelectTrigger>
       <SelectContent>
-        <SelectItem value={SEM_TECNICO}>Sem técnico</SelectItem>
-        {tecnicos.map((tecnico) => <SelectItem key={tecnico.id} value={tecnico.id}>{tecnico.nome}</SelectItem>)}
+        <SelectGroup>
+          <SelectLabel>Técnicos da equipe</SelectLabel>
+          {tecnicos.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
+          {tecnicos.length === 0 && (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum técnico cadastrado</div>
+          )}
+        </SelectGroup>
+        <SelectSeparator />
+        <SelectGroup>
+          <SelectLabel>Sem técnico</SelectLabel>
+          <SelectItem value={TERCEIRIZADO}>🤝 Terceirizado (com custo)</SelectItem>
+          <SelectItem value={SEM_ATRIBUICAO}>— Sem atribuição</SelectItem>
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -176,25 +222,41 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   return (
     <div className={cn("space-y-3", className)}>
       <div className="overflow-x-auto rounded-md border">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Serviço</th>
               <th className="px-3 py-2 text-left font-medium">Técnico responsável</th>
               <th className="px-3 py-2 text-left font-medium w-28">Valor</th>
               <th className="px-3 py-2 text-left font-medium w-28">Comissão</th>
+              <th className="px-3 py-2 text-left font-medium w-32">Custo terc.</th>
               <th className="px-3 py-2 text-right font-medium w-16">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {servicos.length === 0 ? (
-              <tr><td colSpan={5} className="px-3 py-6 text-center text-xs text-muted-foreground">Nenhum serviço executado.</td></tr>
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-xs text-muted-foreground">Nenhum serviço executado.</td></tr>
             ) : servicos.map((servico, index) => (
               <tr key={`${servico.id ?? "novo"}-${index}`}>
                 <td className="px-3 py-2">{renderTipoSelect(servico.servico_id, (value) => patchRow(index, applyTipo(servico, value)))}</td>
-                <td className="px-3 py-2">{renderTecnicoSelect(servico.tecnico_id, (value) => patchRow(index, { tecnico_id: value }))}</td>
+                <td className="px-3 py-2">{renderTecnicoSelect(servico, (patch) => patchRow(index, patch))}</td>
                 <td className="px-3 py-2"><Input className="h-9" type="number" min="0" step="0.01" value={servico.valor} onChange={(e) => patchRow(index, { valor: Number(e.target.value) })} /></td>
                 <td className="px-3 py-2"><Input className="h-9" type="number" min="0" step="0.01" value={servico.comissao} onChange={(e) => patchRow(index, { comissao: Number(e.target.value) })} /></td>
+                <td className="px-3 py-2">
+                  {servico.motivo_sem_tecnico === "terceirizado" ? (
+                    <Input
+                      className="h-9"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={servico.valor_terceirizado || ""}
+                      onChange={(e) => patchRow(index, { valor_terceirizado: Number(e.target.value) || 0 })}
+                      placeholder="0,00"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-right"><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setPendingRemove(index)}><Trash2 className="h-4 w-4" /></Button></td>
               </tr>
             ))}
@@ -208,7 +270,7 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
 
       <div className="grid grid-cols-3 gap-2">
         <Card><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Valor total</p><p className="text-sm font-semibold">{money(totalValor)}</p></CardContent></Card>
-        <Card><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Comissões</p><p className="text-sm font-semibold">{money(totalComissao)}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Comissões {totalTerceirizado > 0 ? "+ terc." : ""}</p><p className="text-sm font-semibold">{money(totalComissao + totalTerceirizado)}</p></CardContent></Card>
         <Card className="border-success/30 bg-success/5"><CardContent className="p-3"><p className="text-[11px] text-muted-foreground">Lucro estimado</p><p className="text-sm font-semibold text-success">{money(lucro)}</p></CardContent></Card>
       </div>
 
@@ -223,11 +285,17 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
           <DialogHeader><DialogTitle>Adicionar serviço</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>Tipo de serviço</Label>{renderTipoSelect(novo.servico_id, (value) => setNovo(applyTipo(novo, value)))}</div>
-            <div><Label>Técnico</Label>{renderTecnicoSelect(novo.tecnico_id, (value) => setNovo((prev) => clean({ ...prev, tecnico_id: value })))}</div>
+            <div><Label>Técnico</Label>{renderTecnicoSelect(novo, (patch) => setNovo((prev) => clean({ ...prev, ...patch })))}</div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Valor</Label><Input type="number" min="0" step="0.01" value={novo.valor} onChange={(e) => setNovo((prev) => clean({ ...prev, valor: Number(e.target.value) }))} /></div>
               <div><Label>Comissão</Label><Input type="number" min="0" step="0.01" value={novo.comissao} onChange={(e) => setNovo((prev) => clean({ ...prev, comissao: Number(e.target.value) }))} /></div>
             </div>
+            {novo.motivo_sem_tecnico === "terceirizado" && (
+              <div>
+                <Label>Custo terceirizado</Label>
+                <Input type="number" min="0.01" step="0.01" value={novo.valor_terceirizado || ""} onChange={(e) => setNovo((prev) => clean({ ...prev, valor_terceirizado: Number(e.target.value) || 0 }))} placeholder="0,00" />
+              </div>
+            )}
           </div>
           <DialogFooter><Button type="button" onClick={addNovo}>Adicionar</Button></DialogFooter>
         </DialogContent>

@@ -194,6 +194,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "assinaturas_digitais_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       audit_pagamentos: {
@@ -357,6 +364,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
         ]
       }
@@ -798,6 +812,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "comissoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
+          {
             foreignKeyName: "comissoes_os_servico_id_fkey"
             columns: ["os_servico_id"]
             isOneToOne: false
@@ -1114,6 +1135,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_a_pagar_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
         ]
       }
@@ -1969,6 +1997,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "estoque_movimentos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
+          {
             foreignKeyName: "estoque_movimentos_peca_id_fkey"
             columns: ["peca_id"]
             isOneToOne: false
@@ -2510,6 +2545,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "garantias_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       historico_custo_peca: {
@@ -2613,6 +2655,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_ordens_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
         ]
       }
@@ -3491,6 +3540,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "movimentacoes_financeiras_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       notificacoes: {
@@ -3833,6 +3889,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ordens_de_servico_os_origem_id_fkey"
+            columns: ["os_origem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
+          {
             foreignKeyName: "ordens_de_servico_tipo_servico_id_fkey"
             columns: ["tipo_servico_id"]
             isOneToOne: false
@@ -3892,6 +3955,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "os_auditoria_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       os_checklist_saida: {
@@ -3939,6 +4009,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "os_checklist_saida_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       os_fotos: {
@@ -3980,6 +4057,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "os_fotos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       os_servicos: {
@@ -3991,6 +4075,7 @@ export type Database = {
           empresa_id: string | null
           id: string
           iniciado_em: string | null
+          motivo_sem_tecnico: string | null
           nome: string
           ordem_id: string
           servico_id: string | null
@@ -3998,6 +4083,7 @@ export type Database = {
           tecnico_id: string | null
           updated_at: string
           valor: number
+          valor_terceirizado: number | null
         }
         Insert: {
           categoria?: string | null
@@ -4007,6 +4093,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           iniciado_em?: string | null
+          motivo_sem_tecnico?: string | null
           nome: string
           ordem_id: string
           servico_id?: string | null
@@ -4014,6 +4101,7 @@ export type Database = {
           tecnico_id?: string | null
           updated_at?: string
           valor?: number
+          valor_terceirizado?: number | null
         }
         Update: {
           categoria?: string | null
@@ -4023,6 +4111,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           iniciado_em?: string | null
+          motivo_sem_tecnico?: string | null
           nome?: string
           ordem_id?: string
           servico_id?: string | null
@@ -4030,6 +4119,7 @@ export type Database = {
           tecnico_id?: string | null
           updated_at?: string
           valor?: number
+          valor_terceirizado?: number | null
         }
         Relationships: [
           {
@@ -4045,6 +4135,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_servicos_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
           {
             foreignKeyName: "os_servicos_servico_id_fkey"
@@ -4101,6 +4198,13 @@ export type Database = {
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "os_status_historico_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
         ]
       }
       os_transferencias: {
@@ -4156,6 +4260,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_transferencias_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
         ]
       }
@@ -4264,6 +4375,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pecas_utilizadas_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
           {
             foreignKeyName: "pecas_utilizadas_origem_servico_id_fkey"
@@ -4563,11 +4681,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "prejuizos_os_origem_id_fkey"
+            columns: ["os_origem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
+          {
             foreignKeyName: "prejuizos_os_retrabalho_id_fkey"
             columns: ["os_retrabalho_id"]
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prejuizos_os_retrabalho_id_fkey"
+            columns: ["os_retrabalho_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
         ]
       }
@@ -4740,6 +4872,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordens_de_servico"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
           },
         ]
       }
@@ -5320,7 +5459,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_os_pendente_atribuicao: {
+        Row: {
+          aparelho: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          data_conclusao: string | null
+          data_entrada: string | null
+          numero: number | null
+          ordem_id: string | null
+          previsao_entrega: string | null
+          qtd_servicos_pendentes: number | null
+          servicos: Json | null
+          status: string | null
+          valor_servicos_pendentes: number | null
+          valor_total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }

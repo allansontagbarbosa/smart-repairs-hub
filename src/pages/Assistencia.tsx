@@ -20,6 +20,7 @@ import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";
 import { AlertsBanner } from "@/components/AlertsBanner";
+import { BannerOSPendentes } from "@/components/assistencia/BannerOSPendentes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import {
@@ -128,7 +129,7 @@ function dateEndIso(date: string) {
   return new Date(`${date}T23:59:59.999`).toISOString();
 }
 
-function applyDateRange<T extends ReturnType<typeof supabase.from>>(query: any, dateRange: DateRangeFilter): T {
+function applyDateRange(query: any, dateRange: DateRangeFilter): any {
   if (!dateRange) return query;
   if (dateRange.de) query = query.gte("data_entrada", dateStartIso(dateRange.de));
   if (dateRange.ate) query = query.lte("data_entrada", dateEndIso(dateRange.ate));
@@ -155,7 +156,7 @@ function getFiltersFromParams(params: URLSearchParams): OrderFilters {
   };
 }
 
-function applyOrderFilters<T extends ReturnType<typeof supabase.from>>(query: any, filters: OrderFilters): T {
+function applyOrderFilters(query: any, filters: OrderFilters): any {
   if (filters.cliente_id) query = query.eq("aparelhos.cliente_id", filters.cliente_id);
   if (filters.funcionario_id) query = query.eq("os_servicos.tecnico_id", filters.funcionario_id);
   if (filters.marca) query = query.eq("aparelhos.marca", filters.marca);
@@ -1791,6 +1792,7 @@ export default function Assistencia() {
         </TabsList>
 
         <TabsContent value="ordens" className="space-y-4">
+          <BannerOSPendentes onAbrirOS={(id) => setSelectedOrderId(id)} />
           <div className="flex items-center gap-2 rounded-md border-[0.5px] border-border/70 bg-card p-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
