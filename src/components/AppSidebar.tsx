@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -69,6 +69,21 @@ export function AppSidebar() {
   const nome = (profile as any)?.funcionarios?.nome || profile?.nome_exibicao || user?.email?.split("@")[0] || "Usuário";
   const email = user?.email || "";
   const iniciais = getInitials(nome);
+
+  const { data: ehSocio } = useQuery({
+    queryKey: ['sidebar-eh-socio', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('socios')
+        .select('id')
+        .eq('user_id', user!.id)
+        .eq('ativo', true)
+        .is('deleted_at', null)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user?.id,
+  });
 
   const handleLogout = async () => {
     if (!confirm("Deseja sair do sistema?")) return;
