@@ -240,19 +240,27 @@ Deno.serve(async (req) => {
             nome_exibicao: nome,
           }).eq("id", existingProfile.id);
         } else {
-          // Create funcionario + profile for existing auth user
-          const { data: func } = await adminClient.from("funcionarios").insert({
-            nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
-            eh_funcionario_rh: ehFuncionarioRH,
-            ...dadosRHExtras,
-          }).select("id").single();
+          // User existe no auth, mas sem user_profiles. Reutilizar funcionário existente
+          // (se houver) em vez de criar duplicado.
+          let funcionarioId: string | null = funcExistente?.id ?? null;
+
+          if (!funcionarioId) {
+            const { data: func } = await adminClient.from("funcionarios").insert({
+              nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
+              eh_funcionario_rh: ehFuncionarioRH,
+              ...dadosRHExtras,
+            }).select("id").single();
+            funcionarioId = func?.id ?? null;
+          } else {
+            console.log("[invite-user] Reusando funcionário existente:", funcionarioId);
+          }
 
           await adminClient.from("user_profiles").insert({
             user_id: targetUserId,
             nome_exibicao: nome,
             perfil_id: perfil_id || null,
             empresa_id,
-            funcionario_id: func?.id || null,
+            funcionario_id: funcionarioId,
             ativo: true,
           });
         }
