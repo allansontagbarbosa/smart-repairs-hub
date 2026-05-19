@@ -6070,6 +6070,10 @@ export type Database = {
         Returns: Json
       }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      sync_comissao_contas_a_pagar: {
+        Args: { p_funcionario_id: string; p_mes_competencia: string }
+        Returns: undefined
+      }
       trocar_meu_status: { Args: { p_novo_status: string }; Returns: Json }
       tv_atualizar_layout: {
         Args: {
