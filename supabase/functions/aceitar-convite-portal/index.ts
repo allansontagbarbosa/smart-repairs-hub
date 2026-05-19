@@ -27,8 +27,11 @@ Deno.serve(async (req) => {
     if (!token || !password) {
       return json({ success: false, error: "Token e senha são obrigatórios" }, 400);
     }
-    if (password.length < 6) {
-      return json({ success: false, error: "Senha deve ter no mínimo 6 caracteres" }, 400);
+    if (password.length < 8) {
+      return json({ success: false, error: "Senha deve ter no mínimo 8 caracteres" }, 400);
+    }
+    if (!/[0-9]/.test(password) || !/[A-Za-z]/.test(password)) {
+      return json({ success: false, error: "Senha deve conter pelo menos uma letra e um número" }, 400);
     }
 
     const { data: cliente, error: errCli } = await supabase
@@ -57,41 +60,38 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "Convite inválido para este tipo de cliente" }, 400);
     }
 
-    const { data: usersList } = await supabase.auth.admin.listUsers({
+    // Busca exata por email — não lista todos os 1000+ users (Achado #32)
+    const { data: existingByEmail } = await supabase.auth.admin.listUsers({
       page: 1,
-      perPage: 1000,
-    });
-    const existing = usersList?.users?.find(
-      (u) => u.email?.toLowerCase() === cliente.email!.toLowerCase()
-    );
-
-    let userId: string;
+      perPage: 1,
+      filter: `email.eq.${cliente.email.toLowerCase()}`,
+    } as any);
+    const existing = existingByEmail?.users?.[0] ?? null;
 
     if (existing) {
-      const { data: updated, error: errUpd } = await supabase.auth.admin.updateUserById(existing.id, {
-        password,
-        email_confirm: true,
-      });
-      if (errUpd || !updated.user) {
-        return json({ success: false, error: `Erro ao atualizar usuário: ${errUpd?.message}` }, 500);
-      }
-      userId = updated.user.id;
-    } else {
-      const { data: created, error: errCreate } = await supabase.auth.admin.createUser({
-        email: cliente.email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          cliente_id: cliente.id,
-          nome: cliente.nome,
-          origem: "convite_portal_b2b",
-        },
-      });
-      if (errCreate || !created.user) {
-        return json({ success: false, error: `Erro ao criar usuário: ${errCreate?.message}` }, 500);
-      }
-      userId = created.user.id;
+      // Achado #33: NUNCA sobrescrever senha de conta existente via convite.
+      // Token de convite vazado não pode resetar senha de quem já tem conta.
+      return json({
+        success: false,
+        error: "Já existe uma conta com este e-mail. Use 'Esqueci minha senha' na tela de login.",
+        code: "ACCOUNT_EXISTS",
+      }, 409);
     }
+
+    const { data: created, error: errCreate } = await supabase.auth.admin.createUser({
+      email: cliente.email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        cliente_id: cliente.id,
+        nome: cliente.nome,
+        origem: "convite_portal_b2b",
+      },
+    });
+    if (errCreate || !created.user) {
+      return json({ success: false, error: `Erro ao criar usuário: ${errCreate?.message}` }, 500);
+    }
+    const userId: string = created.user.id;
 
     const { error: errLink } = await supabase
       .from("clientes")
@@ -104,9 +104,8 @@ Deno.serve(async (req) => {
       .eq("id", cliente.id);
 
     if (errLink) {
-      if (!existing) {
-        await supabase.auth.admin.deleteUser(userId);
-      }
+      // Conta acabou de ser criada — rollback
+      await supabase.auth.admin.deleteUser(userId);
       return json({ success: false, error: `Erro ao vincular: ${errLink.message}` }, 500);
     }
 
