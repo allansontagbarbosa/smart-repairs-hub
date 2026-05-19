@@ -161,6 +161,67 @@ export default function PainelSocio() {
         </Card>
       </div>
 
+      {/* KPIs previstos para fim do mês */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="bg-muted/30">
+          <CardContent className="p-3">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Faturamento previsto
+            </div>
+            <div className="text-lg font-medium mt-1">{brl(m.faturamento_previsto)}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Fim do mês</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/30">
+          <CardContent className="p-3">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Custos + Despesas previstos
+            </div>
+            <div className="text-lg font-medium mt-1">
+              {brl(
+                m.custo_pecas_previsto +
+                  m.custo_terceirizado_previsto +
+                  m.despesas +
+                  m.comissoes_previstas
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/30">
+          <CardContent className="p-3">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Lucro líquido previsto
+            </div>
+            <div
+              className={`text-lg font-medium mt-1 ${
+                m.lucro_liquido_previsto < 0 ? "text-destructive" : ""
+              }`}
+            >
+              {brl(m.lucro_liquido_previsto)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/30 border-primary/20">
+          <CardContent className="p-3">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Distribuível previsto ({(100 - m.reserva_pct).toFixed(0)}%)
+            </div>
+            <div className="text-lg font-medium mt-1 text-primary">
+              {brl(m.distribuivel_previsto)}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              Reserva: {brl(m.reserva_prevista)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {m.confiabilidade_projecao === "baixa" && (
+        <p className="text-[11px] text-muted-foreground text-center">
+          ⚠️ Projeção com baixa confiabilidade (poucos dias decorridos). Conforme o mês avança, fica mais precisa.
+        </p>
+      )}
+
       {/* Fatores externos */}
       <FatoresExternosCards />
 
