@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
 import { NovaMetaDialog } from "@/components/painel-socio/NovaMetaDialog";
+import { FatoresExternosCards } from "@/components/painel-socio/FatoresExternosCards";
+import { InsightsIA } from "@/components/painel-socio/InsightsIA";
 import {
   ComposedChart,
   Bar,
