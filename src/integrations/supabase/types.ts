@@ -1432,7 +1432,9 @@ export type Database = {
           endereco: Json | null
           estado: string | null
           id: string
+          latitude: number | null
           logo_url: string | null
+          longitude: number | null
           nome: string
           numero: string | null
           owner_id: string
@@ -1455,7 +1457,9 @@ export type Database = {
           endereco?: Json | null
           estado?: string | null
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           nome: string
           numero?: string | null
           owner_id: string
@@ -1478,7 +1482,9 @@ export type Database = {
           endereco?: Json | null
           estado?: string | null
           id?: string
+          latitude?: number | null
           logo_url?: string | null
+          longitude?: number | null
           nome?: string
           numero?: string | null
           owner_id?: string
