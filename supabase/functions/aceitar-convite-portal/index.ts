@@ -27,8 +27,11 @@ Deno.serve(async (req) => {
     if (!token || !password) {
       return json({ success: false, error: "Token e senha são obrigatórios" }, 400);
     }
-    if (password.length < 6) {
-      return json({ success: false, error: "Senha deve ter no mínimo 6 caracteres" }, 400);
+    if (password.length < 8) {
+      return json({ success: false, error: "Senha deve ter no mínimo 8 caracteres" }, 400);
+    }
+    if (!/[0-9]/.test(password) || !/[A-Za-z]/.test(password)) {
+      return json({ success: false, error: "Senha deve conter pelo menos uma letra e um número" }, 400);
     }
 
     const { data: cliente, error: errCli } = await supabase
