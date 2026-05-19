@@ -66,6 +66,8 @@ export type PainelSocioData = {
   }>;
   saude: {
     inadimplencia_centavos: number;
+    inadimplencia_qtd: number;
+    inadimplencia_dias_max: number;
     gastos_fixos_mes_centavos: number;
   };
 };
