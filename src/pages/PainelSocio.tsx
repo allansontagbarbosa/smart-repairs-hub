@@ -161,6 +161,9 @@ export default function PainelSocio() {
         </Card>
       </div>
 
+      {/* Fatores externos */}
+      <FatoresExternosCards />
+
       {/* Histórico */}
       <Card>
         <CardHeader>
