@@ -56,9 +56,16 @@ export function PerfilGuard({ perfis, children }: Props) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (perfis && perfilNome && !perfis.includes(perfilNome)) {
-    if (perfilNome === "Técnico") return <Navigate to="/tecnico" replace />;
-    return <Navigate to="/dashboard" replace />;
+  if (perfis) {
+    // Se exige perfil específico mas usuário não tem perfil → bloqueia
+    if (!perfilNome) {
+      return <Navigate to="/sem-acesso" replace />;
+    }
+    // Tem perfil mas não está na lista permitida → redireciona pra home dele
+    if (!perfis.includes(perfilNome)) {
+      if (perfilNome === "Técnico") return <Navigate to="/tecnico" replace />;
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;
