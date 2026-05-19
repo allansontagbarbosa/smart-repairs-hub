@@ -104,9 +104,8 @@ Deno.serve(async (req) => {
       .eq("id", cliente.id);
 
     if (errLink) {
-      if (!existing) {
-        await supabase.auth.admin.deleteUser(userId);
-      }
+      // Conta acabou de ser criada — rollback
+      await supabase.auth.admin.deleteUser(userId);
       return json({ success: false, error: `Erro ao vincular: ${errLink.message}` }, 500);
     }
 
