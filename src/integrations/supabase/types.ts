@@ -4855,6 +4855,50 @@ export type Database = {
           },
         ]
       }
+      socio_insights_cache: {
+        Row: {
+          empresa_id: string | null
+          expira_em: string
+          gerado_em: string
+          id: string
+          insights_json: Json
+          prompt_hash: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string
+        }
+        Insert: {
+          empresa_id?: string | null
+          expira_em?: string
+          gerado_em?: string
+          id?: string
+          insights_json: Json
+          prompt_hash?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id: string
+        }
+        Update: {
+          empresa_id?: string | null
+          expira_em?: string
+          gerado_em?: string
+          id?: string
+          insights_json?: Json
+          prompt_hash?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socio_insights_cache_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       socio_metas: {
         Row: {
           ativo: boolean
