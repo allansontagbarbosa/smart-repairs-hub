@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Loader2, Building2, Wrench, Truck, Users, DollarSign, Boxes,
+  Loader2, Building2, Wrench, Truck, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
   ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone,
 } from "lucide-react";
@@ -9,8 +9,6 @@ import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
-
-import { ConfigTecnicosTab } from "@/components/configuracoes/ConfigTecnicosTab";
 import { ConfigLojistasTab } from "@/components/configuracoes/ConfigLojistasTab";
 import { ConfigFinanceiroTab } from "@/components/configuracoes/ConfigFinanceiroTab";
 import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
@@ -50,7 +48,6 @@ const groups = [
   {
     label: "Operacional",
     items: [
-      { id: "tecnicos", label: "Técnicos", icon: Users, keywords: ["tecnico", "funcionario", "comissao", "equipe"] },
       { id: "fornecedores", label: "Fornecedores", icon: Truck, keywords: ["fornecedor", "parceiro", "compra"] },
       { id: "lojistas", label: "Lojistas B2B", icon: Store, keywords: ["lojista", "parceiro", "b2b", "loja"] },
       { id: "status", label: "Status e Etapas", icon: ListChecks, keywords: ["status", "etapa", "fluxo", "prioridade"] },
@@ -261,7 +258,6 @@ export default function Configuracoes() {
             {active === "servicos" && <ConfigServicosTab tiposServico={data.tiposServico} />}
             {active === "precos" && <ConfigListaPrecosTab listasPreco={data.listasPreco} />}
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
-            {active === "tecnicos" && <ConfigTecnicosTab funcionarios={data.funcionarios} userProfiles={data.userProfiles} perfisAcesso={data.perfisAcesso} />}
             {active === "financeiro" && <ConfigFinanceiroTab categoriasFinanceiras={data.categoriasFinanceiras} centrosCusto={data.centrosCusto} formasPagamento={data.formasPagamento} />}
             {active === "estoque" && <ConfigEstoqueTab marcas={data.marcas} modelos={data.modelos} cores={data.cores} capacidades={data.capacidades} />}
             {active === "lojistas" && <ConfigLojistasTab />}
@@ -285,7 +281,6 @@ function getSubtitle(id: string): string {
     precos: "Tabelas de preços personalizadas por cliente",
     fornecedores: "Cadastro de fornecedores e parceiros",
     lojistas: "Gerencie lojistas parceiros B2B e seus acessos",
-    tecnicos: "Equipe técnica, especialidades e comissões",
     financeiro: "Categorias, centros de custo e formas de pagamento",
     estoque: "Marcas, modelos, cores e capacidades usados nas Ordens de Serviço",
     status: "Status das ordens de serviço e ordem de exibição",
