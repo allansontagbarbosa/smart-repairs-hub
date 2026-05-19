@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, nome, perfil_id, empresa_id, dados_rh } = await req.json();
+    const { email: emailRaw, nome, perfil_id, empresa_id, dados_rh } = await req.json();
+    const email = (emailRaw || "").trim().toLowerCase();
 
     // IU-01: mapear cargo do funcionário a partir do perfil de acesso
     let cargoFuncionario = "Colaborador";
