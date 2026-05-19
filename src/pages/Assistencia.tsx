@@ -20,6 +20,7 @@ import { NovaOrdemDialog } from "@/components/NovaOrdemDialog";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { useAlertas } from "@/hooks/useAlertas";
 import { AlertsBanner } from "@/components/AlertsBanner";
+import { BannerOSPendentes } from "@/components/assistencia/BannerOSPendentes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/ConfirmarEntregaDialog";
 import {
