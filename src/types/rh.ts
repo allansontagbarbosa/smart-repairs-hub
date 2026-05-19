@@ -47,6 +47,14 @@ export interface FuncionarioRH {
   data_demissao: string | null;
   ativo: boolean;
   eh_funcionario_rh: boolean;
+  endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cep: string | null;
+  cidade: string | null;
+  estado: string | null;
+  especialidade: string | null;
   pendente_pagamento_centavos: number;
 }
 
