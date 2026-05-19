@@ -15,6 +15,7 @@ export type PainelSocioData = {
   };
   mes_atual: {
     faturamento: number;
+    receita_servicos: number;
     custo_pecas: number;
     despesas: number;
     comissoes: number;
