@@ -15,6 +15,7 @@ export type PainelSocioData = {
   };
   mes_atual: {
     faturamento: number;
+    receita_servicos: number;
     custo_pecas: number;
     despesas: number;
     comissoes: number;
@@ -65,6 +66,8 @@ export type PainelSocioData = {
   }>;
   saude: {
     inadimplencia_centavos: number;
+    inadimplencia_qtd: number;
+    inadimplencia_dias_max: number;
     gastos_fixos_mes_centavos: number;
   };
 };
