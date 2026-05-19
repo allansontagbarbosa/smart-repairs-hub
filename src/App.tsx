@@ -32,6 +32,8 @@ import Login from "./pages/Login";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PerfilGuard } from "@/components/PerfilGuard";
+import { SocioGuard } from "@/components/SocioGuard";
+import PainelSocio from "./pages/PainelSocio";
 
 const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
 const PERFIS_TECNICO = ["Técnico"];
@@ -162,6 +164,18 @@ const App = () => (
               <Route path="/tecnico/metas" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
               <Route path="/tecnico/transferencias" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
               <Route path="/tecnico/historico" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoHistorico /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+
+              {/* Internal system with sidebar */}
+              {/* Painel do Sócio — acessível a qualquer user que esteja na tabela socios */}
+              <Route path="/painel-socio" element={
+                <AuthGuard>
+                  <SocioGuard>
+                    <AppLayout>
+                      <PainelSocio />
+                    </AppLayout>
+                  </SocioGuard>
+                </AuthGuard>
+              } />
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
