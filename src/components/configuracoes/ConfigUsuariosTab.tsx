@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, Loader2, ChevronDown, ChevronRight, Filter, Trash2, CheckCircle2, XCircle, AlertTriangle, Grid3x3 } from "lucide-react";
+import { Plus, Pencil, Search, Shield, History, Lock, Unlock, Mail, KeyRound, Loader2, ChevronDown, ChevronRight, Filter, Trash2, CheckCircle2, XCircle, AlertTriangle, Grid3x3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -358,6 +358,33 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     setResendingId(null);
   };
 
+  const handleResetPassword = async (profile: any) => {
+    const email = profile.email || profile.funcionarios?.email;
+    if (!email) {
+      toast.error("Email não encontrado para este usuário");
+      return;
+    }
+    setResendingId(profile.id);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+      });
+      if (error) {
+        toast.error("Erro ao enviar reset: " + error.message);
+      } else {
+        toast.success(`Email de redefinição enviado para ${email}`);
+        registrar("Reset de senha enviado", "configuracoes", profile.id, null, {
+          nome: profile.nome_exibicao,
+          email,
+        });
+      }
+    } catch {
+      toast.error("Erro ao enviar reset de senha");
+    }
+    setResendingId(null);
+  };
+
+
   const totalAuditPages = Math.ceil(auditTotal / PAGE_SIZE);
 
   const isAdminPerfil = (perfil: any) => /^admin/i.test(perfil?.nome_perfil || "");
@@ -611,19 +638,41 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                             ))}
                           </SelectContent>
                         </Select>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
-                          title="Reenviar convite"
-                          disabled={resendingId === u.id}
-                          onClick={() => handleResendInvite(u)}
-                        >
-                          {resendingId === u.id
-                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            : <Mail className="h-3.5 w-3.5" />
+                        {(() => {
+                          const ehAtivo = u.ativo && !!u.user_id && !!u.funcionario_id;
+                          if (ehAtivo) {
+                            return (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
+                                title="Enviar email de redefinição de senha"
+                                disabled={resendingId === u.id}
+                                onClick={() => handleResetPassword(u)}
+                              >
+                                {resendingId === u.id
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <KeyRound className="h-3.5 w-3.5" />
+                                }
+                              </Button>
+                            );
                           }
-                        </Button>
+                          return (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
+                              title="Reenviar convite"
+                              disabled={resendingId === u.id}
+                              onClick={() => handleResendInvite(u)}
+                            >
+                              {resendingId === u.id
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <Mail className="h-3.5 w-3.5" />
+                              }
+                            </Button>
+                          );
+                        })()}
                         <Button
                           variant="ghost" size="icon" className="h-7 w-7"
                           title={u.ativo ? "Desativar acesso" : "Ativar acesso"}
