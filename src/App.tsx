@@ -29,6 +29,7 @@ import ConsultaCliente from "./pages/ConsultaCliente";
 import NotFound from "./pages/NotFound";
 import SemAcesso from "./pages/SemAcesso";
 import Login from "./pages/Login";
+import RedefinirSenha from "./pages/RedefinirSenha";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PerfilGuard } from "@/components/PerfilGuard";
 
@@ -115,6 +116,7 @@ const App = () => (
               {/* Landing page pública */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
               {/* Public client lookup — no auth */}
               <Route path="/consulta" element={<ConsultaCliente />} />
