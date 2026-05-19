@@ -128,7 +128,7 @@ function dateEndIso(date: string) {
   return new Date(`${date}T23:59:59.999`).toISOString();
 }
 
-function applyDateRange<T extends ReturnType<typeof supabase.from>>(query: any, dateRange: DateRangeFilter): T {
+function applyDateRange(query: any, dateRange: DateRangeFilter): any {
   if (!dateRange) return query;
   if (dateRange.de) query = query.gte("data_entrada", dateStartIso(dateRange.de));
   if (dateRange.ate) query = query.lte("data_entrada", dateEndIso(dateRange.ate));
