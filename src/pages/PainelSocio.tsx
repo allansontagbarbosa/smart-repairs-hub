@@ -32,7 +32,7 @@ async function fetchMeuSocio(userId: string): Promise<SocioInfo | null> {
 
 async function fetchEmpresaConfig() {
   const { data, error } = await supabase
-    .from("empresas")
+    .from("configuracoes")
     .select("percentual_reserva_empresa")
     .limit(1)
     .maybeSingle();
@@ -54,7 +54,7 @@ async function fetchLucroPeriodo(start: Date, end: Date) {
     supabase
       .from("contas_a_pagar")
       .select("valor, status, data_pagamento")
-      .eq("status", "pago")
+      .eq("status", "paga")
       .gte("data_pagamento", startIso)
       .lte("data_pagamento", endIso),
     supabase
