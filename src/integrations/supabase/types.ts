@@ -3990,6 +3990,7 @@ export type Database = {
           servico_id: string | null
           status: Database["public"]["Enums"]["status_servico"]
           tecnico_id: string | null
+          updated_at: string
           valor: number
         }
         Insert: {
@@ -4005,6 +4006,7 @@ export type Database = {
           servico_id?: string | null
           status?: Database["public"]["Enums"]["status_servico"]
           tecnico_id?: string | null
+          updated_at?: string
           valor?: number
         }
         Update: {
@@ -4020,6 +4022,7 @@ export type Database = {
           servico_id?: string | null
           status?: Database["public"]["Enums"]["status_servico"]
           tecnico_id?: string | null
+          updated_at?: string
           valor?: number
         }
         Relationships: [
