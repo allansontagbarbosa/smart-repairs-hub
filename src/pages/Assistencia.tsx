@@ -155,7 +155,7 @@ function getFiltersFromParams(params: URLSearchParams): OrderFilters {
   };
 }
 
-function applyOrderFilters<T extends ReturnType<typeof supabase.from>>(query: any, filters: OrderFilters): T {
+function applyOrderFilters(query: any, filters: OrderFilters): any {
   if (filters.cliente_id) query = query.eq("aparelhos.cliente_id", filters.cliente_id);
   if (filters.funcionario_id) query = query.eq("os_servicos.tecnico_id", filters.funcionario_id);
   if (filters.marca) query = query.eq("aparelhos.marca", filters.marca);
