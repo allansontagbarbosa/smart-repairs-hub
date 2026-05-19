@@ -115,7 +115,7 @@ let CACHE: CachedState | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export function usePermissoes() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const userId = user?.id ?? null;
 
   const initial = CACHE && CACHE.userId === userId ? CACHE : null;
@@ -124,11 +124,17 @@ export function usePermissoes() {
   const [perfil, setPerfil] = useState<string>(initial?.perfil ?? "");
   const [isAdmin, setIsAdmin] = useState(initial?.isAdmin ?? false);
   const [isGerente, setIsGerente] = useState(initial?.isGerente ?? false);
-  const [loading, setLoading] = useState(!initial);
+  const [loading, setLoading] = useState(authLoading || !initial);
 
   const fetchInProgress = useRef(false);
 
   useEffect(() => {
+    // Se auth ainda carregando, espera próximo render
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
     if (!userId) {
       CACHE = null;
       setPermissoes(DEFAULT_PERMISSOES);
@@ -148,8 +154,33 @@ export function usePermissoes() {
       return;
     }
 
-    if (fetchInProgress.current) return;
+    if (fetchInProgress.current) {
+      // Outra instância já está buscando — aguarda cache popular
+      let cancelled = false;
+      const poll = setInterval(() => {
+        if (cancelled) return;
+        if (CACHE && CACHE.userId === userId) {
+          setPermissoes(CACHE.permissoes);
+          setIsAdmin(CACHE.isAdmin);
+          setIsGerente(CACHE.isGerente);
+          setPerfil(CACHE.perfil);
+          setLoading(false);
+          clearInterval(poll);
+        }
+      }, 50);
+      const safety = setTimeout(() => {
+        cancelled = true;
+        clearInterval(poll);
+        setLoading(false);
+      }, 10000);
+      return () => {
+        cancelled = true;
+        clearInterval(poll);
+        clearTimeout(safety);
+      };
+    }
     fetchInProgress.current = true;
+
 
     const fetchPermissoes = async () => {
       try {
@@ -200,10 +231,11 @@ export function usePermissoes() {
     };
 
     fetchPermissoes();
-  }, [userId]);
+  }, [userId, authLoading]);
 
   const can = (modulo: keyof Permissoes, acao?: keyof PermissaoModulo): boolean => {
-    if (loading) return false;
+    if (loading || authLoading) return false;
+
     const val = permissoes[modulo];
     if (typeof val === "boolean") return val;
     if (!acao) return val.ver;
