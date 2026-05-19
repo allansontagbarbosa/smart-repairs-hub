@@ -17,6 +17,7 @@ export type PainelSocioData = {
     faturamento: number;
     receita_servicos: number;
     custo_pecas: number;
+    custo_terceirizado: number;
     despesas: number;
     comissoes: number;
     lucro_liquido: number;
@@ -25,6 +26,15 @@ export type PainelSocioData = {
     distribuivel: number;
     meu_valor_parcial: number;
     fechamento_previsto: number;
+    faturamento_previsto: number;
+    custo_pecas_previsto: number;
+    custo_terceirizado_previsto: number;
+    comissoes_previstas: number;
+    lucro_liquido_previsto: number;
+    reserva_prevista: number;
+    distribuivel_previsto: number;
+    fator_projecao: number;
+    confiabilidade_projecao: "baixa" | "média" | "alta";
   };
   mes_passado: { lucro_liquido: number; meu_valor: number };
   variacao_mes: number | null;
