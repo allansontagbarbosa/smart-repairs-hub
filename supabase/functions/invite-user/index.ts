@@ -187,6 +187,19 @@ Deno.serve(async (req) => {
 
     const siteUrl = Deno.env.get("SITE_URL") || "https://ditt.com.br";
 
+    // === Idempotência: já existe funcionário com este email na empresa? ===
+    const { data: funcExistente } = await adminClient
+      .from("funcionarios")
+      .select("id, nome, ativo, deleted_at")
+      .eq("empresa_id", empresa_id)
+      .ilike("email", email)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (funcExistente) {
+      console.log("[invite-user] Funcionário já existe na empresa:", funcExistente.id);
+    }
+
     // Invite user via admin API
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name: nome, perfil_id, empresa_id },
@@ -199,7 +212,9 @@ Deno.serve(async (req) => {
       // If user already exists, look them up and reactivate their profile
       if (inviteError.message.includes("already been registered")) {
         const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+        const existingUser = existingUsers?.users?.find(
+          (u: any) => u.email?.toLowerCase() === email
+        );
 
         if (!existingUser) {
           return new Response(JSON.stringify({ error: "Usuário existe mas não foi possível localizá-lo" }), {
