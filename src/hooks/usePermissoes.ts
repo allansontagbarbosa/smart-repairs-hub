@@ -231,10 +231,11 @@ export function usePermissoes() {
     };
 
     fetchPermissoes();
-  }, [userId]);
+  }, [userId, authLoading]);
 
   const can = (modulo: keyof Permissoes, acao?: keyof PermissaoModulo): boolean => {
-    if (loading) return false;
+    if (loading || authLoading) return false;
+
     const val = permissoes[modulo];
     if (typeof val === "boolean") return val;
     if (!acao) return val.ver;
