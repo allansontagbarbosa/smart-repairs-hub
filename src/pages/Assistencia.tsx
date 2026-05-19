@@ -1792,6 +1792,7 @@ export default function Assistencia() {
         </TabsList>
 
         <TabsContent value="ordens" className="space-y-4">
+          <BannerOSPendentes onAbrirOS={(id) => setSelectedOrderId(id)} />
           <div className="flex items-center gap-2 rounded-md border-[0.5px] border-border/70 bg-card p-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
