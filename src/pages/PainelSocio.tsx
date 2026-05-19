@@ -200,6 +200,9 @@ export default function PainelSocio() {
         </CardContent>
       </Card>
 
+      {/* Insights IA */}
+      <InsightsIA />
+
       {/* Sócios + Saúde */}
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
