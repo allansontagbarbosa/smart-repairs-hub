@@ -166,6 +166,18 @@ const App = () => (
               <Route path="/tecnico/historico" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoHistorico /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
 
               {/* Internal system with sidebar */}
+              {/* Painel do Sócio — acessível a qualquer user que esteja na tabela socios */}
+              <Route path="/painel-socio" element={
+                <AuthGuard>
+                  <SocioGuard>
+                    <AppLayout>
+                      <PainelSocio />
+                    </AppLayout>
+                  </SocioGuard>
+                </AuthGuard>
+              } />
+
+              {/* Internal system with sidebar */}
               <Route path="*" element={
                 <PerfilGuard perfis={PERFIS_ADMIN}>
                 <AuthGuard>
