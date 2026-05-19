@@ -347,6 +347,48 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // === AUTH (Achado #34 auditoria) ===
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: "Autenticação necessária" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: { user }, error: authErr } = await userClient.auth.getUser();
+  if (authErr || !user) {
+    return new Response(
+      JSON.stringify({ error: "Sessão inválida" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // === RATE LIMIT — 30 lookups por usuário a cada 10 minutos ===
+  const { data: rateData } = await userClient.rpc("checar_rate_limit", {
+    p_acao: "imei_lookup",
+    p_identificador: "user=" + user.id,
+    p_max_tentativas: 30,
+    p_janela_segundos: 600,
+  });
+  const rate = rateData as any;
+  if (rate && !rate.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: `Limite de consultas IMEI atingido. Aguarde ${rate.retry_after_seconds}s.`,
+        retry_after_seconds: rate.retry_after_seconds,
+      }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  // === FIM AUTH + RATE LIMIT ===
+
   const respond = (body: LookupResult, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
