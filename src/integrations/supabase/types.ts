@@ -4849,6 +4849,69 @@ export type Database = {
           },
         ]
       }
+      socio_metas: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          data_alvo: string | null
+          empresa_id: string
+          icone: string | null
+          id: string
+          socio_id: string
+          titulo: string
+          updated_at: string
+          user_id: string
+          valor_acumulado_centavos: number
+          valor_alvo_centavos: number
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          data_alvo?: string | null
+          empresa_id: string
+          icone?: string | null
+          id?: string
+          socio_id: string
+          titulo: string
+          updated_at?: string
+          user_id: string
+          valor_acumulado_centavos?: number
+          valor_alvo_centavos: number
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          data_alvo?: string | null
+          empresa_id?: string
+          icone?: string | null
+          id?: string
+          socio_id?: string
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+          valor_acumulado_centavos?: number
+          valor_alvo_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socio_metas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "socio_metas_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       socios: {
         Row: {
           ativo: boolean
@@ -5657,6 +5720,7 @@ export type Database = {
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_permissoes: { Args: never; Returns: Json }
       get_my_role: { Args: never; Returns: string }
+      get_painel_socio_v1: { Args: never; Returns: Json }
       get_saldo_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       get_saldos_clientes_resumo: {
         Args: never

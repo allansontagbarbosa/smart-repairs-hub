@@ -1,138 +1,52 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  PiggyBank,
+  Sparkles,
+  Star,
+  AlertTriangle,
+  Users,
+  Target,
+  Plus,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, TrendingUp, DollarSign, PiggyBank, Percent } from "lucide-react";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { usePainelSocio } from "@/hooks/usePainelSocio";
+import { NovaMetaDialog } from "@/components/painel-socio/NovaMetaDialog";
+import {
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RTooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const brl = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
-type SocioInfo = { id: string; nome: string; percentual: number };
-
-async function fetchMeuSocio(userId: string): Promise<SocioInfo | null> {
-  const { data, error } = await supabase
-    .from("socios")
-    .select("id, nome, percentual_participacao")
-    .eq("user_id", userId)
-    .eq("ativo", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  return {
-    id: data.id,
-    nome: data.nome,
-    percentual: Number(data.percentual_participacao) || 0,
-  };
-}
-
-async function fetchEmpresaConfig() {
-  const { data, error } = await supabase
-    .from("empresa_config")
-    .select("percentual_reserva_empresa")
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
-async function fetchLucroPeriodo(start: Date, end: Date) {
-  const startIso = start.toISOString();
-  const endIso = end.toISOString();
-
-  const [ordensRes, despesasRes, comissoesRes] = await Promise.all([
-    supabase
-      .from("ordens_de_servico")
-      .select("valor_total, valor, custo_pecas, status, data_conclusao")
-      .gte("data_conclusao", startIso)
-      .lte("data_conclusao", endIso)
-      .in("status", ["pronto", "entregue"]),
-    supabase
-      .from("contas_a_pagar")
-      .select("valor, status, data_pagamento")
-      .eq("status", "paga")
-      .gte("data_pagamento", startIso)
-      .lte("data_pagamento", endIso),
-    supabase
-      .from("comissoes")
-      .select("valor, status, data_pagamento")
-      .eq("status", "paga")
-      .gte("data_pagamento", startIso)
-      .lte("data_pagamento", endIso),
-  ]);
-
-  const faturamento = (ordensRes.data ?? []).reduce(
-    (s: number, o: any) => s + Number(o.valor_total ?? o.valor ?? 0),
-    0,
-  );
-  const custosPecas = (ordensRes.data ?? []).reduce(
-    (s: number, o: any) => s + Number(o.custo_pecas ?? 0),
-    0,
-  );
-  const despesas = (despesasRes.data ?? []).reduce(
-    (s: number, d: any) => s + Number(d.valor ?? 0),
-    0,
-  );
-  const comissoes = (comissoesRes.data ?? []).reduce(
-    (s: number, c: any) => s + Number(c.valor ?? 0),
-    0,
-  );
-
-  const ll = faturamento - custosPecas - despesas - comissoes;
-  return { faturamento, custosPecas, despesas, comissoes, ll };
-}
-
-async function fetchHistorico6Meses() {
-  const meses = Array.from({ length: 6 }, (_, i) => {
-    const d = subMonths(new Date(), 5 - i);
-    return {
-      start: startOfMonth(d),
-      end: endOfMonth(d),
-      label: format(d, "MMM/yy", { locale: ptBR }),
-    };
-  });
-
-  return Promise.all(
-    meses.map(async (m) => {
-      const { ll } = await fetchLucroPeriodo(m.start, m.end);
-      return { mes: m.label, lucro_liquido: ll };
-    }),
-  );
-}
+const STATUS_FUNC: Record<
+  string,
+  { label: string; bg: string; fg: string }
+> = {
+  estrela: { label: "🌟 Estrela", bg: "bg-emerald-500/15", fg: "text-emerald-700 dark:text-emerald-300" },
+  ok: { label: "Saudável", bg: "bg-emerald-500/10", fg: "text-emerald-700 dark:text-emerald-300" },
+  atencao: { label: "⚠ Atenção", bg: "bg-amber-500/15", fg: "text-amber-700 dark:text-amber-300" },
+  prejuizo: { label: "🚨 Prejuízo", bg: "bg-red-500/15", fg: "text-red-700 dark:text-red-300" },
+  sem_salario: { label: "—", bg: "bg-muted", fg: "text-muted-foreground" },
+};
 
 export default function PainelSocio() {
-  const { user } = useAuth();
+  const { data, isLoading, error } = usePainelSocio();
+  const [novaMetaOpen, setNovaMetaOpen] = useState(false);
 
-  const hoje = new Date();
-  const inicioMes = useMemo(() => startOfMonth(hoje), []);
-  const fimMes = useMemo(() => endOfMonth(hoje), []);
-
-  const { data: meuSocio, isLoading: loadingSocio } = useQuery({
-    queryKey: ["meu-socio", user?.id],
-    queryFn: () => fetchMeuSocio(user!.id),
-    enabled: !!user?.id,
-  });
-
-  const { data: empresaConfig } = useQuery({
-    queryKey: ["painel-socio-config"],
-    queryFn: fetchEmpresaConfig,
-  });
-
-  const { data: lucroMes, isLoading: loadingLucro } = useQuery({
-    queryKey: ["painel-socio-lucro-mes", inicioMes.toISOString()],
-    queryFn: () => fetchLucroPeriodo(inicioMes, fimMes),
-  });
-
-  const { data: historico } = useQuery({
-    queryKey: ["painel-socio-historico"],
-    queryFn: fetchHistorico6Meses,
-  });
-
-  if (loadingSocio || loadingLucro) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -140,114 +54,123 @@ export default function PainelSocio() {
     );
   }
 
-  if (!meuSocio) {
+  if (error || !data?.sucesso) {
     return (
       <div className="p-6 max-w-2xl">
-        <h1 className="text-2xl font-bold mb-2">Acesso restrito</h1>
+        <h1 className="text-2xl font-bold mb-2">Erro ao carregar painel</h1>
         <p className="text-muted-foreground">
-          Esta página é exclusiva para sócios cadastrados. Se você acredita que isso é um erro,
-          fale com o administrador.
+          {(error as any)?.message || "Tente novamente em alguns instantes."}
         </p>
       </div>
     );
   }
 
-  const reservaPct = Number(empresaConfig?.percentual_reserva_empresa ?? 20);
-  const ll = lucroMes?.ll ?? 0;
-  const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
-  const lucroDistrib = ll > 0 ? ll - reservaVal : 0;
-  const meuPct = meuSocio.percentual;
-  const meuValor = (lucroDistrib * meuPct) / 100;
-
-  const historicoComMeuValor = (historico ?? []).map((h) => ({
-    mes: h.mes,
-    meu_valor:
-      h.lucro_liquido > 0
-        ? ((h.lucro_liquido - (h.lucro_liquido * reservaPct) / 100) * meuPct) / 100
-        : 0,
-  }));
+  const m = data.mes_atual;
+  const variacao = data.variacao_mes;
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Painel do Sócio</h1>
-        <p className="text-muted-foreground mt-1">
-          Olá, <span className="font-medium text-foreground">{meuSocio.nome}</span>. Você participa
-          com <span className="font-medium text-foreground">{meuPct.toFixed(2)}%</span> da empresa.
-        </p>
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            PAINEL DO SÓCIO · {new Date(data.gerado_em).toLocaleDateString("pt-BR")}
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight mt-1">
+            Olá, {data.socio.nome.split(" ")[0]}
+            <span className="text-muted-foreground text-base font-normal ml-2">
+              · Participação {data.socio.percentual.toFixed(2)}%
+            </span>
+          </h1>
+        </div>
+        <Badge variant="outline" className="text-xs">
+          <Sparkles className="h-3 w-3 mr-1" />
+          Atualizado há instantes
+        </Badge>
       </div>
+
+      {/* HERO */}
+      <Card className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground border-0">
+        <CardContent className="p-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <div className="text-xs uppercase tracking-wider opacity-80">
+                VOCÊ JÁ TEM · DIA {data.periodo.dias_passados}/{data.periodo.dias_no_mes}
+              </div>
+              <div className="text-4xl md:text-5xl font-bold mt-2">{brl(m.meu_valor_parcial)}</div>
+              <div className="text-sm opacity-90 mt-2">
+                Lucro líquido parcial: {brl(m.lucro_liquido)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wider opacity-80 flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" /> FECHAMENTO PREVISTO
+              </div>
+              <div className="text-4xl md:text-5xl font-bold mt-2">{brl(m.fechamento_previsto)}</div>
+              {variacao !== null && (
+                <div
+                  className={`text-sm mt-2 ${
+                    variacao >= 0 ? "text-emerald-100" : "text-red-100"
+                  }`}
+                >
+                  {variacao >= 0 ? "↑" : "↓"} {Math.abs(variacao).toFixed(1)}% vs mês passado (
+                  {brl(data.mes_passado.meu_valor)})
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              Lucro líquido (mês)
-              <TrendingUp className="h-4 w-4" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{brl(ll)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Faturamento − custos − despesas − comissões
-            </p>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">FATURAMENTO</div>
+            <div className="text-2xl font-bold mt-1">{brl(m.faturamento)}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              Reserva da empresa ({reservaPct}%)
-              <PiggyBank className="h-4 w-4" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{brl(reservaVal)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Fica retido para caixa</p>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">
+              CUSTOS + DESPESAS
+            </div>
+            <div className="text-2xl font-bold mt-1">
+              {brl(m.custo_pecas + m.despesas + m.comissoes)}
+            </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-              Distribuível entre sócios
-              <DollarSign className="h-4 w-4" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{brl(lucroDistrib)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Lucro líquido − reserva</p>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">
+              LUCRO LÍQUIDO
+            </div>
+            <div className="text-2xl font-bold mt-1">{brl(m.lucro_liquido)}</div>
           </CardContent>
         </Card>
-
-        <Card className="border-primary/40 bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold text-primary flex items-center justify-between">
-              SEU VALOR ESTE MÊS
-              <Percent className="h-4 w-4" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{brl(meuValor)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {meuPct.toFixed(2)}% de {brl(lucroDistrib)}
-            </p>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground uppercase tracking-wider">
+              DISTRIBUÍVEL ({(100 - m.reserva_pct).toFixed(0)}%)
+            </div>
+            <div className="text-2xl font-bold mt-1">{brl(m.distribuivel)}</div>
+            <div className="text-xs text-muted-foreground mt-1">Reserva: {brl(m.reserva_val)}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfico histórico */}
+      {/* Histórico */}
       <Card>
         <CardHeader>
-          <CardTitle>Sua distribuição mensal (últimos 6 meses)</CardTitle>
+          <CardTitle>Histórico dos últimos 6 meses</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Estimativa baseada no lucro líquido e nos percentuais atuais.
+            Sua distribuição mensal estimada (mês atual incompleto)
           </p>
         </CardHeader>
         <CardContent>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={historicoComMeuValor}>
+              <ComposedChart data={data.historico}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="mes" className="text-xs" />
                 <YAxis tickFormatter={(v) => brl(Number(v))} className="text-xs" width={90} />
@@ -259,56 +182,176 @@ export default function PainelSocio() {
                   }}
                 />
                 <Bar dataKey="meu_valor" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="lucro_liquido"
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Detalhamento */}
+      {/* Sócios + Saúde */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Divisão entre sócios
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.socios.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between py-2 px-3 rounded ${
+                  s.eh_voce ? "bg-primary/10 border border-primary/30" : "bg-muted/40"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{s.nome}</span>
+                  {s.eh_voce && (
+                    <Badge variant="outline" className="text-[10px]">
+                      você
+                    </Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {s.percentual.toFixed(2)}%
+                  </span>
+                </div>
+                <span className="font-semibold">{brl(s.valor_estimado)}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PiggyBank className="h-4 w-4" /> Saúde financeira
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between py-2 border-b">
+              <span className="text-sm text-muted-foreground">Inadimplência (vencidos)</span>
+              <span className="font-semibold">{brl(data.saude.inadimplencia_centavos / 100)}</span>
+            </div>
+            <div className="flex justify-between py-2">
+              <span className="text-sm text-muted-foreground">
+                Gastos fixos médio (últimos 3 meses)
+              </span>
+              <span className="font-semibold">
+                {brl(data.saude.gastos_fixos_mes_centavos / 100)}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ROI funcionários */}
       <Card>
         <CardHeader>
-          <CardTitle>Detalhamento do mês</CardTitle>
+          <CardTitle>Ranking de produtividade · funcionários CLT</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            ROI = receita gerada nos últimos 2 meses ÷ custo total mensal (salário + VT + VA)
+          </p>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between text-sm py-1">
-            <span className="text-muted-foreground">Faturamento</span>
-            <span className="font-medium">{brl(lucroMes?.faturamento ?? 0)}</span>
-          </div>
-          <div className="flex justify-between text-sm py-1">
-            <span className="text-muted-foreground">(−) Custo das peças</span>
-            <span className="font-medium">−{brl(lucroMes?.custosPecas ?? 0)}</span>
-          </div>
-          <div className="flex justify-between text-sm py-1">
-            <span className="text-muted-foreground">(−) Despesas pagas</span>
-            <span className="font-medium">−{brl(lucroMes?.despesas ?? 0)}</span>
-          </div>
-          <div className="flex justify-between text-sm py-1 border-b">
-            <span className="text-muted-foreground">(−) Comissões pagas</span>
-            <span className="font-medium">−{brl(lucroMes?.comissoes ?? 0)}</span>
-          </div>
-          <div className="flex justify-between text-sm py-1 font-semibold">
-            <span>Lucro líquido</span>
-            <span>{brl(ll)}</span>
-          </div>
-          <div className="flex justify-between text-sm py-1">
-            <span className="text-muted-foreground">(−) Reserva da empresa ({reservaPct}%)</span>
-            <span className="font-medium">−{brl(reservaVal)}</span>
-          </div>
-          <div className="flex justify-between text-sm py-1 border-b font-semibold">
-            <span>Distribuível</span>
-            <span>{brl(lucroDistrib)}</span>
-          </div>
-          <div className="flex justify-between text-base py-2 font-bold text-primary">
-            <span>Seu valor ({meuPct.toFixed(2)}%)</span>
-            <span>{brl(meuValor)}</span>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-muted-foreground border-b">
+                  <th className="text-left py-2 px-2">#</th>
+                  <th className="text-left py-2 px-2">FUNCIONÁRIO</th>
+                  <th className="text-right py-2 px-2">CUSTO/MÊS</th>
+                  <th className="text-right py-2 px-2">RECEITA 60D</th>
+                  <th className="text-right py-2 px-2">ROI</th>
+                  <th className="text-right py-2 px-2">STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.funcionarios_roi.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-muted-foreground">
+                      Sem funcionários CLT cadastrados.
+                    </td>
+                  </tr>
+                )}
+                {data.funcionarios_roi.map((f, i) => {
+                  const cfg = STATUS_FUNC[f.status];
+                  return (
+                    <tr key={f.id} className="border-b last:border-0">
+                      <td className="py-2 px-2 text-muted-foreground">{i + 1}</td>
+                      <td className="py-2 px-2">
+                        <div className="font-medium">{f.nome}</div>
+                        <div className="text-xs text-muted-foreground">{f.cargo}</div>
+                      </td>
+                      <td className="py-2 px-2 text-right">{brl(f.custo_total_centavos / 100)}</td>
+                      <td className="py-2 px-2 text-right">{brl(f.receita_centavos / 100)}</td>
+                      <td className="py-2 px-2 text-right font-semibold">
+                        {f.roi !== null ? f.roi.toFixed(1) + "x" : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-right">
+                        <span className={`px-2 py-0.5 rounded text-xs ${cfg.bg} ${cfg.fg}`}>
+                          {cfg.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
 
+      {/* Metas */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-4 w-4" /> Suas metas pessoais
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={() => setNovaMetaOpen(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Nova meta
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {data.metas.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Você ainda não cadastrou metas. Clique em "Nova meta" pra começar.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {data.metas.map((meta) => (
+                <div key={meta.id} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">
+                      {meta.icone} {meta.titulo}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {brl(meta.valor_acumulado_centavos / 100)} de{" "}
+                      {brl(meta.valor_alvo_centavos / 100)} · {meta.progresso_pct}%
+                    </span>
+                  </div>
+                  <Progress value={meta.progresso_pct} />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <p className="text-xs text-muted-foreground text-center pt-2">
-        Valores estimados em tempo real. Distribuição efetiva depende de aprovação contábil.
+        Valores são estimativas em tempo real. A distribuição efetiva depende de aprovação contábil
+        e do regime tributário da empresa. Atualizado automaticamente a cada 5 minutos.
       </p>
+
+      <NovaMetaDialog open={novaMetaOpen} onOpenChange={setNovaMetaOpen} />
     </div>
   );
 }
