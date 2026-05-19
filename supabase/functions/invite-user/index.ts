@@ -45,7 +45,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, nome, perfil_id, empresa_id, dados_rh } = await req.json();
+    const { email: emailRaw, nome, perfil_id, empresa_id, dados_rh } = await req.json();
+    const email = (emailRaw || "").trim().toLowerCase();
 
     // IU-01: mapear cargo do funcionário a partir do perfil de acesso
     let cargoFuncionario = "Colaborador";
@@ -186,6 +187,19 @@ Deno.serve(async (req) => {
 
     const siteUrl = Deno.env.get("SITE_URL") || "https://ditt.com.br";
 
+    // === Idempotência: já existe funcionário com este email na empresa? ===
+    const { data: funcExistente } = await adminClient
+      .from("funcionarios")
+      .select("id, nome, ativo, deleted_at")
+      .eq("empresa_id", empresa_id)
+      .ilike("email", email)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (funcExistente) {
+      console.log("[invite-user] Funcionário já existe na empresa:", funcExistente.id);
+    }
+
     // Invite user via admin API
     const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: { full_name: nome, perfil_id, empresa_id },
@@ -198,7 +212,9 @@ Deno.serve(async (req) => {
       // If user already exists, look them up and reactivate their profile
       if (inviteError.message.includes("already been registered")) {
         const { data: existingUsers } = await adminClient.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+        const existingUser = existingUsers?.users?.find(
+          (u: any) => u.email?.toLowerCase() === email
+        );
 
         if (!existingUser) {
           return new Response(JSON.stringify({ error: "Usuário existe mas não foi possível localizá-lo" }), {
@@ -224,19 +240,27 @@ Deno.serve(async (req) => {
             nome_exibicao: nome,
           }).eq("id", existingProfile.id);
         } else {
-          // Create funcionario + profile for existing auth user
-          const { data: func } = await adminClient.from("funcionarios").insert({
-            nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
-            eh_funcionario_rh: ehFuncionarioRH,
-            ...dadosRHExtras,
-          }).select("id").single();
+          // User existe no auth, mas sem user_profiles. Reutilizar funcionário existente
+          // (se houver) em vez de criar duplicado.
+          let funcionarioId: string | null = funcExistente?.id ?? null;
+
+          if (!funcionarioId) {
+            const { data: func } = await adminClient.from("funcionarios").insert({
+              nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
+              eh_funcionario_rh: ehFuncionarioRH,
+              ...dadosRHExtras,
+            }).select("id").single();
+            funcionarioId = func?.id ?? null;
+          } else {
+            console.log("[invite-user] Reusando funcionário existente:", funcionarioId);
+          }
 
           await adminClient.from("user_profiles").insert({
             user_id: targetUserId,
             nome_exibicao: nome,
             perfil_id: perfil_id || null,
             empresa_id,
-            funcionario_id: func?.id || null,
+            funcionario_id: funcionarioId,
             ativo: true,
           });
         }
@@ -269,18 +293,23 @@ Deno.serve(async (req) => {
       // New user invited successfully — create profile + funcionario
       targetUserId = inviteData?.user?.id;
       if (targetUserId) {
-        const { data: func } = await adminClient.from("funcionarios").insert({
-          nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
-          eh_funcionario_rh: ehFuncionarioRH,
-          ...dadosRHExtras,
-        }).select("id").single();
+        let funcionarioId: string | null = funcExistente?.id ?? null;
+
+        if (!funcionarioId) {
+          const { data: func } = await adminClient.from("funcionarios").insert({
+            nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
+            eh_funcionario_rh: ehFuncionarioRH,
+            ...dadosRHExtras,
+          }).select("id").single();
+          funcionarioId = func?.id ?? null;
+        }
 
         await adminClient.from("user_profiles").upsert({
           user_id: targetUserId,
           nome_exibicao: nome,
           perfil_id: perfil_id || null,
           empresa_id,
-          funcionario_id: func?.id || null,
+          funcionario_id: funcionarioId,
           ativo: true,
         }, { onConflict: "user_id" });
       }
