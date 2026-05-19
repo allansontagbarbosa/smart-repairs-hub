@@ -293,18 +293,23 @@ Deno.serve(async (req) => {
       // New user invited successfully — create profile + funcionario
       targetUserId = inviteData?.user?.id;
       if (targetUserId) {
-        const { data: func } = await adminClient.from("funcionarios").insert({
-          nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
-          eh_funcionario_rh: ehFuncionarioRH,
-          ...dadosRHExtras,
-        }).select("id").single();
+        let funcionarioId: string | null = funcExistente?.id ?? null;
+
+        if (!funcionarioId) {
+          const { data: func } = await adminClient.from("funcionarios").insert({
+            nome, email, empresa_id, cargo: cargoFuncionario, funcao: cargoFuncionario, ativo: true,
+            eh_funcionario_rh: ehFuncionarioRH,
+            ...dadosRHExtras,
+          }).select("id").single();
+          funcionarioId = func?.id ?? null;
+        }
 
         await adminClient.from("user_profiles").upsert({
           user_id: targetUserId,
           nome_exibicao: nome,
           perfil_id: perfil_id || null,
           empresa_id,
-          funcionario_id: func?.id || null,
+          funcionario_id: funcionarioId,
           ativo: true,
         }, { onConflict: "user_id" });
       }
