@@ -32,6 +32,8 @@ import Login from "./pages/Login";
 import RedefinirSenha from "./pages/RedefinirSenha";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PerfilGuard } from "@/components/PerfilGuard";
+import { SocioGuard } from "@/components/SocioGuard";
+import PainelSocio from "./pages/PainelSocio";
 
 const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
 const PERFIS_TECNICO = ["Técnico"];
