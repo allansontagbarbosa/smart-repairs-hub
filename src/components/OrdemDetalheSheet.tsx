@@ -24,6 +24,9 @@ import { ConfirmarEntregaDialog, useConfirmarEntrega } from "@/components/Confir
 import { CancelarOSDialog } from "@/components/CancelarOSDialog";
 import { RegistrarPrejuizoOSDialog } from "@/components/ordens/RegistrarPrejuizoOSDialog";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
+import { useEtiquetaTemplateDefault } from "@/hooks/useEtiquetaTemplates";
+import { imprimirEtiquetas } from "@/services/etiquetaRenderer";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { cn } from "@/lib/utils";
 import { formatNumeroOS, labelOS } from "@/lib/numeroOS";
 import { ImpressaoOS, type ImpressaoOSData } from "@/components/ImpressaoOS";
