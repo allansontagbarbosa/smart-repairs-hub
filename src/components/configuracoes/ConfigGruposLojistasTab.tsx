@@ -13,8 +13,17 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Building2, Loader2, Store, Trash2, X } from "lucide-react";
+import { Plus, Building2, Loader2, Store, Trash2, X, Mail, RotateCw } from "lucide-react";
 import { toast } from "sonner";
+
+async function enviarConviteGrupo(grupoId: string) {
+  const { data, error } = await supabase.functions.invoke("convidar-grupo-lojista", {
+    body: { grupo_id: grupoId },
+  });
+  if (error) throw error;
+  if (data && !data.sucesso) throw new Error(data.erro || "Falha ao enviar convite");
+  return data;
+}
 
 type Grupo = {
   id: string;
@@ -28,6 +37,8 @@ type Grupo = {
   status_acesso: string | null;
   user_id: string | null;
   ativo: boolean;
+  convite_enviado_em?: string | null;
+  convite_aceito_em?: string | null;
 };
 
 type LojistaCliente = {
@@ -102,11 +113,13 @@ export function ConfigGruposLojistasTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {grupos.map(g => {
             const qtdLojas = lojistas.filter(l => l.grupo_id === g.id).length;
+            const podeConvidar = !!g.email && g.status_acesso !== "ativo";
+            const ehReenvio = g.status_acesso === "convidado";
             return (
-              <button
+              <div
                 key={g.id}
                 onClick={() => { setEditing(g); setOpenForm(true); }}
-                className="rounded-xl border bg-card p-4 text-left hover:border-primary/40 transition-colors"
+                className="rounded-xl border bg-card p-4 text-left hover:border-primary/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -119,7 +132,29 @@ export function ConfigGruposLojistasTab() {
                   {g.email && <p>📧 {g.email}</p>}
                   <p>🏪 {qtdLojas} {qtdLojas === 1 ? "loja vinculada" : "lojas vinculadas"}</p>
                 </div>
-              </button>
+                {podeConvidar && (
+                  <div className="mt-3 pt-3 border-t">
+                    <Button
+                      size="sm"
+                      variant={ehReenvio ? "outline" : "default"}
+                      className="h-7 text-xs gap-1.5"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const res = await enviarConviteGrupo(g.id);
+                          toast.success(res?.mensagem || "Convite enviado");
+                          qc.invalidateQueries({ queryKey: ["lojista-grupos"] });
+                        } catch (err: any) {
+                          toast.error("Erro ao enviar convite: " + (err?.message || "desconhecido"));
+                        }
+                      }}
+                    >
+                      {ehReenvio ? <RotateCw className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
+                      {ehReenvio ? "Reenviar convite" : "Enviar convite"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -249,6 +284,8 @@ function GrupoFormDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {grupo && <ConviteSection grupo={grupo} onChanged={onSaved} />}
+
         <div className="space-y-3 py-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
@@ -343,3 +380,48 @@ function GrupoFormDialog({
     </Dialog>
   );
 }
+
+function ConviteSection({ grupo, onChanged }: { grupo: Grupo; onChanged: () => void }) {
+  const [sending, setSending] = useState(false);
+  const fmt = (d?: string | null) => d ? new Date(d).toLocaleString("pt-BR") : "";
+
+  const statusTxt =
+    grupo.status_acesso === "ativo"
+      ? `Acesso ativo${grupo.convite_aceito_em ? ` desde ${fmt(grupo.convite_aceito_em)}` : ""}`
+      : grupo.status_acesso === "convidado"
+        ? `Convite enviado em ${fmt(grupo.convite_enviado_em)} — aguardando aceite`
+        : "Nenhum convite enviado ainda";
+
+  async function handleEnviar() {
+    if (!grupo.email) return;
+    setSending(true);
+    try {
+      const res = await enviarConviteGrupo(grupo.id);
+      toast.success(res?.mensagem || "Convite enviado");
+      onChanged();
+    } catch (err: any) {
+      toast.error("Erro ao enviar convite: " + (err?.message || "desconhecido"));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 flex items-center justify-between gap-3 mt-2">
+      <div className="text-xs">
+        <div className="font-semibold text-foreground mb-0.5">Status do convite</div>
+        <div className="text-muted-foreground">{statusTxt}</div>
+        {!grupo.email && (
+          <div className="text-warning mt-1">Preencha o email do grupo para poder enviar convite.</div>
+        )}
+      </div>
+      {grupo.email && grupo.status_acesso !== "ativo" && (
+        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleEnviar} disabled={sending}>
+          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (grupo.status_acesso === "convidado" ? <RotateCw className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />)}
+          {grupo.status_acesso === "convidado" ? "Reenviar convite" : "Enviar convite"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
