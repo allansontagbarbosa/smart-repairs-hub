@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { DittLogo } from "@/components/DittLogo";
 import { Button } from "@/components/ui/button";
 import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { SeletorDeLoja, BannerModoConsolidado } from "@/components/lojista/SeletorDeLoja";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Smartphone, DollarSign, ShieldCheck, History, LogOut,
@@ -39,6 +40,9 @@ export default function LojistaLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <div className="hidden md:block">
+              <SeletorDeLoja />
+            </div>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                 {initials}
@@ -78,7 +82,11 @@ export default function LojistaLayout({ children }: { children: React.ReactNode 
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+        <div className="md:hidden">
+          <SeletorDeLoja />
+        </div>
+        <BannerModoConsolidado />
         {children}
       </main>
     </div>

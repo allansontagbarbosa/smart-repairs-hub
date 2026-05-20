@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { useLojaFilter } from "@/contexts/LojistaContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,20 +15,19 @@ function fmt(v: number | null | undefined) {
 const PAGE_SIZE = 50;
 
 export default function LojistaHistorico() {
-  const { lojistaUser } = useLojistaAuth();
-  const lojistaId = lojistaUser?.lojista_id;
+  const { lojaIds, pronto } = useLojaFilter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [page, setPage] = useState(0);
 
   const { data: ordens = [] } = useQuery({
-    queryKey: ["lojista-historico", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-historico", lojaIds],
+    enabled: pronto,
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, status, valor, data_entrada, aparelhos(marca, modelo, imei)")
-        .eq("lojista_id", lojistaId!)
+        .select("id, numero, status, valor, data_entrada, loja_id, aparelhos(marca, modelo, imei)")
+        .in("loja_id", lojaIds)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
       return data ?? [];

@@ -9,7 +9,7 @@ import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
-import { ConfigLojistasTab } from "@/components/configuracoes/ConfigLojistasTab";
+import { ConfigLojistasWrapper } from "@/components/configuracoes/ConfigLojistasWrapper";
 import { ConfigFinanceiroTab } from "@/components/configuracoes/ConfigFinanceiroTab";
 import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
 import { ConfigStatusTab } from "@/components/configuracoes/ConfigStatusTab";
@@ -262,7 +262,7 @@ export default function Configuracoes() {
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
             {active === "financeiro" && <ConfigFinanceiroTab categoriasFinanceiras={data.categoriasFinanceiras} centrosCusto={data.centrosCusto} formasPagamento={data.formasPagamento} />}
             {active === "estoque" && <ConfigEstoqueTab marcas={data.marcas} modelos={data.modelos} cores={data.cores} capacidades={data.capacidades} />}
-            {active === "lojistas" && <ConfigLojistasTab />}
+            {active === "lojistas" && <ConfigLojistasWrapper />}
             {active === "status" && <ConfigStatusTab statusOrdem={data.statusOrdem} />}
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { useLojaFilter } from "@/contexts/LojistaContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { DollarSign, FileText } from "lucide-react";
@@ -12,20 +12,19 @@ function fmt(v: number | null | undefined) {
 }
 
 export default function LojistaFinanceiro() {
-  const { lojistaUser } = useLojistaAuth();
-  const lojistaId = lojistaUser?.lojista_id;
+  const { lojaIds, pronto } = useLojaFilter();
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth());
   const [ano, setAno] = useState(now.getFullYear());
 
   const { data: ordens = [] } = useQuery({
-    queryKey: ["lojista-financeiro", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-financeiro", lojaIds],
+    enabled: pronto,
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, status, valor, valor_pago, data_entrada, defeito_relatado, aparelhos(marca, modelo)")
-        .eq("lojista_id", lojistaId!)
+        .select("id, numero, status, valor, valor_pago, data_entrada, defeito_relatado, loja_id, aparelhos(marca, modelo)")
+        .in("loja_id", lojaIds)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
       return data ?? [];
