@@ -289,6 +289,7 @@ function getSubtitle(id: string): string {
     status: "Status das ordens de serviço e ordem de exibição",
     notificacoes: "Templates de mensagens automáticas",
     documentos: "Modelos de laudos, recibos e orçamentos",
+    etiquetas: "Templates de etiqueta para OS, peças e aparelhos (térmica e A4)",
     exportacao: "Importar e exportar dados do sistema",
   };
   return map[id] || "";
