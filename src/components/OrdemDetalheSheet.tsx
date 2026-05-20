@@ -48,7 +48,8 @@ interface Props {
 }
 
 export function OrdemDetalheSheet({ orderId, onClose }: Props) {
-  const { empresaId } = useEmpresa();
+  const { empresa, empresaId } = useEmpresa();
+  const { data: etiquetaTemplate } = useEtiquetaTemplateDefault("os_entrada");
   const [editing, setEditing] = useState(false);
   const [addingPart, setAddingPart] = useState(false);
   const [selectedPecaId, setSelectedPecaId] = useState("");
