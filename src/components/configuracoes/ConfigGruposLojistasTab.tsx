@@ -25,6 +25,10 @@ async function enviarConviteGrupo(grupoId: string) {
   return data;
 }
 
+type Grupo = {
+  id: string;
+  nome: string;
+  razao_social: string | null;
   cnpj_matriz: string | null;
   email: string | null;
   telefone: string | null;
