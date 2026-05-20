@@ -5898,6 +5898,10 @@ export type Database = {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
       }
+      get_dre_periodo: {
+        Args: { p_empresa_id?: string; p_fim: string; p_inicio: string }
+        Returns: Json
+      }
       get_extrato_cliente: {
         Args: { p_cliente_id: string; p_fim?: string; p_inicio?: string }
         Returns: {
@@ -6229,6 +6233,14 @@ export type Database = {
       sync_comissao_contas_a_pagar: {
         Args: { p_funcionario_id: string; p_mes_competencia: string }
         Returns: undefined
+      }
+      test_consistencia_financeira: {
+        Args: never
+        Returns: {
+          detalhes: Json
+          resultado: string
+          teste: string
+        }[]
       }
       test_painel_socio_invariantes: {
         Args: never
