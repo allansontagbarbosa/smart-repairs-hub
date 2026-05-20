@@ -16,17 +16,18 @@ function fmt(v: number | null | undefined) {
 
 export default function LojistaDashboard() {
   const { lojistaUser } = useLojistaAuth();
-  const lojistaId = lojistaUser?.lojista_id;
+  const { ehGrupo, grupoNome } = useLojistaContext();
+  const { lojaIds, pronto } = useLojaFilter();
   const navigate = useNavigate();
 
   const { data: ordens = [] } = useQuery({
-    queryKey: ["lojista-ordens", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-ordens", lojaIds],
+    enabled: pronto,
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, status, valor, valor_pago, data_entrada, data_entrega, data_conclusao, previsao_entrega, aparelhos(marca, modelo, imei)")
-        .eq("lojista_id", lojistaId!)
+        .select("id, numero, status, valor, valor_pago, data_entrada, data_entrega, data_conclusao, previsao_entrega, loja_id, aparelhos(marca, modelo, imei)")
+        .in("loja_id", lojaIds)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
       return data ?? [];
