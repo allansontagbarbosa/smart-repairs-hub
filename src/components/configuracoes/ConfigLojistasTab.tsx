@@ -141,12 +141,14 @@ export function ConfigLojistasTab() {
       ) : (
         <div className="rounded-xl border bg-card overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/30">
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Nome</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden md:table-cell">Email</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden lg:table-cell">Telefone</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Acesso</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden md:table-cell">Grupo</th>
+                <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+
                 <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
