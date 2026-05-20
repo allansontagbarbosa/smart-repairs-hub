@@ -1634,21 +1634,44 @@ export default function Assistencia() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => printEtiquetaOS({
-                  numero: order.numero,
-                  numero_formatado: order.numero_formatado ?? null,
-                  clienteNome: order.aparelhos?.clientes?.nome ?? "—",
-                  clienteTelefone: order.aparelhos?.clientes?.telefone ?? "",
-                  marca: order.aparelhos?.marca ?? "",
-                  modelo: order.aparelhos?.modelo ?? "",
-                  capacidade: (order.aparelhos as any)?.capacidade ?? null,
-                  defeitos: order.defeito_relatado ?? "",
-                  dataEntrada: order.data_entrada,
-                  previsaoEntrega: order.previsao_entrega,
-                  valor: order.valor_total ?? order.valor,
-                  imei: (order.aparelhos as any)?.imei ?? null,
-                  tecnicoAtribuido: order.tecnico ?? null,
-                })}
+                onClick={async () => {
+                  const { data: tpl } = await supabase
+                    .from("etiqueta_templates" as any)
+                    .select("*")
+                    .eq("tipo", "os_entrada")
+                    .eq("e_padrao", true)
+                    .eq("ativo", true)
+                    .is("deleted_at", null)
+                    .maybeSingle();
+                  if (!tpl) {
+                    toast.error("Configure um template em /configuracoes/etiquetas");
+                    return;
+                  }
+                  const fmt = (d: any) => d ? format(new Date(d), "dd/MM/yyyy", { locale: ptBR }) : "";
+                  const fmtBRL = (n: any) => n != null
+                    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n))
+                    : "";
+                  const numero = order.numero_formatado ?? formatNumeroOS(order.numero);
+                  try {
+                    await imprimirEtiquetas(tpl as any, {
+                      os_numero: numero,
+                      cliente_nome: order.aparelhos?.clientes?.nome ?? "—",
+                      cliente_telefone: order.aparelhos?.clientes?.telefone ?? "",
+                      aparelho: `${order.aparelhos?.marca ?? ""} ${order.aparelhos?.modelo ?? ""}`.trim(),
+                      imei: (order.aparelhos as any)?.imei ?? "",
+                      defeito: order.defeito_relatado ?? "",
+                      data_entrada: fmt(order.data_entrada),
+                      previsao_entrega: fmt(order.previsao_entrega),
+                      tecnico: order.tecnico ?? "",
+                      valor: fmtBRL(order.valor_total ?? order.valor),
+                      logo_url: empresa?.logo_url,
+                      nome_empresa: empresa?.nome,
+                    });
+                  } catch (e) {
+                    console.error("[etiqueta-menu]", e);
+                    toast.error("Erro ao gerar etiqueta");
+                  }
+                }}
               >
                 <Printer className="mr-2 h-4 w-4" /> Imprimir etiqueta
               </DropdownMenuItem>
