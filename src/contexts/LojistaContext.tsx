@@ -72,6 +72,8 @@ export function LojistaProvider({ children }: { children: ReactNode }) {
       if (lojaAtivaId && !lojas.some(l => l.id === lojaAtivaId)) {
         setLojaAtivaId(null);
       }
+      // Marca o grupo como ativo na primeira vez que o usuário acessa
+      supabase.rpc("marcar_grupo_aceito" as any).then(() => {}, () => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
