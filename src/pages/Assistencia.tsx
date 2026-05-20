@@ -35,6 +35,7 @@ import { differenceInDays, format, isToday, isYesterday, isThisWeek,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { printEtiquetaOS } from "@/lib/printEtiqueta";
+import { imprimirEtiquetas } from "@/services/etiquetaRenderer";
 import { GarantiasTab } from "@/components/GarantiasTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissoes } from "@/hooks/usePermissoes";
