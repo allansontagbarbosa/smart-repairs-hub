@@ -155,8 +155,7 @@ function GrupoFormDialog({
   const [adicionar, setAdicionar] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  // Reset on open
-  useState(() => {
+  useEffect(() => {
     if (open) {
       setNome(grupo?.nome ?? "");
       setRazao(grupo?.razao_social ?? "");
@@ -166,21 +165,9 @@ function GrupoFormDialog({
       setResponsavel(grupo?.responsavel ?? "");
       setObservacoes(grupo?.observacoes ?? "");
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, grupo?.id]);
 
-  // Sincronizar quando o `grupo` muda
-  if (open && (
-    nome !== (grupo?.nome ?? "") &&
-    !nome && !razao && !cnpj && !email && !telefone && !responsavel && !observacoes
-  )) {
-    setNome(grupo?.nome ?? "");
-    setRazao(grupo?.razao_social ?? "");
-    setCnpj(grupo?.cnpj_matriz ?? "");
-    setEmail(grupo?.email ?? "");
-    setTelefone(grupo?.telefone ?? "");
-    setResponsavel(grupo?.responsavel ?? "");
-    setObservacoes(grupo?.observacoes ?? "");
-  }
 
   const lojasNoGrupo = grupo ? todosLojistas.filter(l => l.grupo_id === grupo.id) : [];
   const lojasDisponiveis = todosLojistas.filter(l => !l.grupo_id);
