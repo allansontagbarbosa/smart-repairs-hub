@@ -263,6 +263,22 @@ export default function Dashboard() {
     refetchInterval: 60000,
   });
 
+  // FONTE ÚNICA: DRE canônica usada para todos os valores financeiros
+  const { data: dre } = useQuery({
+    queryKey: ["dashboard-dre", range.start.toISOString(), range.end.toISOString()],
+    queryFn: async () => {
+      const ini = `${range.start.getFullYear()}-${String(range.start.getMonth() + 1).padStart(2, "0")}-${String(range.start.getDate()).padStart(2, "0")}`;
+      const fi = `${range.end.getFullYear()}-${String(range.end.getMonth() + 1).padStart(2, "0")}-${String(range.end.getDate()).padStart(2, "0")}`;
+      const { data, error } = await (supabase as any).rpc("get_dre_periodo", {
+        p_inicio: ini,
+        p_fim: fi,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    refetchInterval: 60000,
+  });
+
   const { data: empresaConfig } = useQuery({
     queryKey: ["dashboard-empresa-config"],
     queryFn: fetchEmpresaConfig,
