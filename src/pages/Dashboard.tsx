@@ -318,13 +318,6 @@ export default function Dashboard() {
   const kpis = useMemo(() => {
     const now = new Date();
 
-    const ordensMes = orders;
-    const ordensFaturadas = orders.filter(o => isFaturado(o.status));
-    // Faturamento usa valor_total (cobrado real), com fallback p/ valor em OS antigas.
-    const faturamento = ordensFaturadas.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
-    // Custo de peças DEVE seguir o mesmo período da receita (data_conclusao das OS faturadas)
-    // pra EBITDA não misturar temporalidades.
-    const custosPecasMes = ordensFaturadas.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
     const ordensMes = orders;
     const ordensFaturadas = orders.filter(o => isFaturado(o.status));
