@@ -9,7 +9,7 @@ import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
 import { ConfigServicosTab } from "@/components/configuracoes/ConfigServicosTab";
 import { ConfigFornecedoresTab } from "@/components/configuracoes/ConfigFornecedoresTab";
-import { ConfigLojistasTab } from "@/components/configuracoes/ConfigLojistasTab";
+import { ConfigLojistasWrapper } from "@/components/configuracoes/ConfigLojistasWrapper";
 import { ConfigFinanceiroTab } from "@/components/configuracoes/ConfigFinanceiroTab";
 import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
 import { ConfigStatusTab } from "@/components/configuracoes/ConfigStatusTab";
