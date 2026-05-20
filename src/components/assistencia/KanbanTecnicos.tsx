@@ -404,8 +404,10 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({ id: srv.servico_id });
   const atualizar = useAtualizarTecnicoServico();
 
-  const diasPrazo = daysBetween(new Date().toISOString(), srv.previsao_entrega ? new Date(srv.previsao_entrega) : new Date());
-  const prazoAtrasado = srv.previsao_entrega ? new Date(srv.previsao_entrega).getTime() < Date.now() : false;
+  const diasPrazo = srv.previsao_entrega
+    ? Math.ceil((new Date(srv.previsao_entrega).getTime() - Date.now()) / 86400000)
+    : null;
+  const prazoAtrasado = diasPrazo !== null && diasPrazo < 0;
   const naColunaDesde = srv.iniciado_em ?? srv.updated_at ?? srv.data_entrada ?? null;
   const diasColuna = daysBetween(naColunaDesde);
   const tecAtual = tecnicos.find(t => t.id === srv.tecnico_id);
