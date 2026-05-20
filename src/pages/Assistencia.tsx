@@ -1664,8 +1664,6 @@ export default function Assistencia() {
                       previsao_entrega: fmt(order.previsao_entrega),
                       tecnico: order.tecnico ?? "",
                       valor: fmtBRL(order.valor_total ?? order.valor),
-                      logo_url: empresa?.logo_url,
-                      nome_empresa: empresa?.nome,
                     });
                   } catch (e) {
                     console.error("[etiqueta-menu]", e);
