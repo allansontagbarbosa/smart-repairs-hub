@@ -13,8 +13,17 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Building2, Loader2, Store, Trash2, X } from "lucide-react";
+import { Plus, Building2, Loader2, Store, Trash2, X, Mail, RotateCw } from "lucide-react";
 import { toast } from "sonner";
+
+async function enviarConviteGrupo(grupoId: string) {
+  const { data, error } = await supabase.functions.invoke("convidar-grupo-lojista", {
+    body: { grupo_id: grupoId },
+  });
+  if (error) throw error;
+  if (data && !data.sucesso) throw new Error(data.erro || "Falha ao enviar convite");
+  return data;
+}
 
 type Grupo = {
   id: string;
