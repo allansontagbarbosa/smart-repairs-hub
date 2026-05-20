@@ -15,6 +15,7 @@ import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
 import { ConfigStatusTab } from "@/components/configuracoes/ConfigStatusTab";
 import { ConfigNotificacoesTab } from "@/components/configuracoes/ConfigNotificacoesTab";
 import { ConfigDocumentosTab } from "@/components/configuracoes/ConfigDocumentosTab";
+import { ConfigEtiquetasTab } from "@/components/configuracoes/ConfigEtiquetasTab";
 import { ConfigUsuariosTab } from "@/components/configuracoes/ConfigUsuariosTab";
 import { ConfigListaPrecosTab } from "@/components/configuracoes/ConfigListaPrecosTab";
 import { ConfigExportacaoTab } from "@/components/configuracoes/ConfigExportacaoTab";
@@ -69,6 +70,7 @@ const groups = [
     label: "Documentos",
     items: [
       { id: "documentos", label: "Modelos de Documento", icon: FileText, keywords: ["documento", "laudo", "recibo", "orcamento", "ordem", "template"] },
+      { id: "etiquetas", label: "Etiquetas", icon: Tag, keywords: ["etiqueta", "label", "impressao", "termica", "qr", "barcode", "codigo"] },
     ],
   },
   {
@@ -264,6 +266,7 @@ export default function Configuracoes() {
             {active === "status" && <ConfigStatusTab statusOrdem={data.statusOrdem} />}
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
+            {active === "etiquetas" && <ConfigEtiquetasTab />}
             {active === "exportacao" && <ConfigExportacaoTab />}
           </div>
         </div>
@@ -286,6 +289,7 @@ function getSubtitle(id: string): string {
     status: "Status das ordens de serviço e ordem de exibição",
     notificacoes: "Templates de mensagens automáticas",
     documentos: "Modelos de laudos, recibos e orçamentos",
+    etiquetas: "Templates de etiqueta para OS, peças e aparelhos (térmica e A4)",
     exportacao: "Importar e exportar dados do sistema",
   };
   return map[id] || "";

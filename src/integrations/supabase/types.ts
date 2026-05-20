@@ -2019,6 +2019,137 @@ export type Database = {
           },
         ]
       }
+      etiqueta_templates: {
+        Row: {
+          altura_mm: number
+          ativo: boolean | null
+          campos_config: Json | null
+          campos_visiveis: Json | null
+          codigo_barras_altura_mm: number | null
+          codigo_barras_conteudo: string | null
+          created_at: string | null
+          deleted_at: string | null
+          e_padrao: boolean | null
+          empresa_id: string
+          espacamento_horizontal_mm: number | null
+          espacamento_vertical_mm: number | null
+          etiquetas_por_coluna: number | null
+          etiquetas_por_linha: number | null
+          fonte_familia: string | null
+          fonte_tamanho_base: number | null
+          fonte_tamanho_pequeno: number | null
+          fonte_tamanho_titulo: number | null
+          id: string
+          largura_mm: number
+          logo_altura_mm: number | null
+          logo_posicao: string | null
+          margem_lateral_mm: number | null
+          margem_topo_mm: number | null
+          mostrar_codigo_barras: boolean | null
+          mostrar_data_impressao: boolean | null
+          mostrar_logo: boolean | null
+          mostrar_qr_code: boolean | null
+          nome: string
+          orientacao: string | null
+          qr_code_conteudo: string | null
+          qr_code_posicao: string | null
+          qr_code_tamanho_mm: number | null
+          qr_code_url_base: string | null
+          texto_rodape: string | null
+          tipo: string
+          tipo_impressora: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          altura_mm?: number
+          ativo?: boolean | null
+          campos_config?: Json | null
+          campos_visiveis?: Json | null
+          codigo_barras_altura_mm?: number | null
+          codigo_barras_conteudo?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          e_padrao?: boolean | null
+          empresa_id: string
+          espacamento_horizontal_mm?: number | null
+          espacamento_vertical_mm?: number | null
+          etiquetas_por_coluna?: number | null
+          etiquetas_por_linha?: number | null
+          fonte_familia?: string | null
+          fonte_tamanho_base?: number | null
+          fonte_tamanho_pequeno?: number | null
+          fonte_tamanho_titulo?: number | null
+          id?: string
+          largura_mm?: number
+          logo_altura_mm?: number | null
+          logo_posicao?: string | null
+          margem_lateral_mm?: number | null
+          margem_topo_mm?: number | null
+          mostrar_codigo_barras?: boolean | null
+          mostrar_data_impressao?: boolean | null
+          mostrar_logo?: boolean | null
+          mostrar_qr_code?: boolean | null
+          nome: string
+          orientacao?: string | null
+          qr_code_conteudo?: string | null
+          qr_code_posicao?: string | null
+          qr_code_tamanho_mm?: number | null
+          qr_code_url_base?: string | null
+          texto_rodape?: string | null
+          tipo: string
+          tipo_impressora?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          altura_mm?: number
+          ativo?: boolean | null
+          campos_config?: Json | null
+          campos_visiveis?: Json | null
+          codigo_barras_altura_mm?: number | null
+          codigo_barras_conteudo?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          e_padrao?: boolean | null
+          empresa_id?: string
+          espacamento_horizontal_mm?: number | null
+          espacamento_vertical_mm?: number | null
+          etiquetas_por_coluna?: number | null
+          etiquetas_por_linha?: number | null
+          fonte_familia?: string | null
+          fonte_tamanho_base?: number | null
+          fonte_tamanho_pequeno?: number | null
+          fonte_tamanho_titulo?: number | null
+          id?: string
+          largura_mm?: number
+          logo_altura_mm?: number | null
+          logo_posicao?: string | null
+          margem_lateral_mm?: number | null
+          margem_topo_mm?: number | null
+          mostrar_codigo_barras?: boolean | null
+          mostrar_data_impressao?: boolean | null
+          mostrar_logo?: boolean | null
+          mostrar_qr_code?: boolean | null
+          nome?: string
+          orientacao?: string | null
+          qr_code_conteudo?: string | null
+          qr_code_posicao?: string | null
+          qr_code_tamanho_mm?: number | null
+          qr_code_url_base?: string | null
+          texto_rodape?: string | null
+          tipo?: string
+          tipo_impressora?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etiqueta_templates_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
