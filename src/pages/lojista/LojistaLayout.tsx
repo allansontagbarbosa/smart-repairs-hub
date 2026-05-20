@@ -40,6 +40,9 @@ export default function LojistaLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <div className="hidden md:block">
+              <SeletorDeLoja />
+            </div>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                 {initials}
