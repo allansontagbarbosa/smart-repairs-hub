@@ -1,8 +1,8 @@
-import { useState, useRef, DragEvent } from "react";
+import { useState, useRef, useEffect, DragEvent } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, LayoutGrid, Loader2, MessageCircle } from "lucide-react";
+import { ChevronRight, ChevronLeft, Clock, AlertTriangle, List, LayoutGrid, Loader2, MessageCircle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,9 @@ import { statusFlow, statusLabels, type Status } from "@/lib/status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
+import KanbanTecnicos from "@/components/assistencia/KanbanTecnicos";
+
+type KanbanModo = "status" | "tecnicos";
 
 const statusHeaderColors: Record<Status, string> = {
   recebido: "bg-muted-foreground/20",
@@ -81,8 +84,27 @@ export default function FluxoAssistencia() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const dragItemRef = useRef<{ id: string; aparelhoId: string } | null>(null);
+  const [modo, setModo] = useState<KanbanModo>(() => {
+    if (typeof window === "undefined") return "status";
+    const v = localStorage.getItem("kanban-modo");
+    return v === "tecnicos" ? "tecnicos" : "status";
+  });
+  useEffect(() => { localStorage.setItem("kanban-modo", modo); }, [modo]);
 
-  const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens", "ultimos-90"], queryFn: fetchOrders });
+  // Atalho de teclado: "S" alterna modo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
+      if (e.key === "s" || e.key === "S") {
+        setModo(prev => prev === "status" ? "tecnicos" : "status");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const { data: orders = [], isLoading } = useQuery({ queryKey: ["ordens", "ultimos-90"], queryFn: fetchOrders, enabled: modo === "status" });
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
@@ -156,7 +178,7 @@ export default function FluxoAssistencia() {
     abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(orderNum).padStart(3, "0")}.`);
   };
 
-  if (isLoading) {
+  if (isLoading && modo === "status") {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
