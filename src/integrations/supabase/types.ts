@@ -6230,6 +6230,14 @@ export type Database = {
         Args: { p_funcionario_id: string; p_mes_competencia: string }
         Returns: undefined
       }
+      test_painel_socio_invariantes: {
+        Args: never
+        Returns: {
+          detalhes: Json
+          resultado: string
+          teste: string
+        }[]
+      }
       trocar_meu_status: { Args: { p_novo_status: string }; Returns: Json }
       tv_atualizar_layout: {
         Args: {
