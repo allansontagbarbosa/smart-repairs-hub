@@ -25,12 +25,6 @@ async function enviarConviteGrupo(grupoId: string) {
   return data;
 }
 
-  status_acesso: string | null;
-  user_id: string | null;
-  ativo: boolean;
-  convite_enviado_em?: string | null;
-  convite_aceito_em?: string | null;
-};
   cnpj_matriz: string | null;
   email: string | null;
   telefone: string | null;
@@ -39,6 +33,8 @@ async function enviarConviteGrupo(grupoId: string) {
   status_acesso: string | null;
   user_id: string | null;
   ativo: boolean;
+  convite_enviado_em?: string | null;
+  convite_aceito_em?: string | null;
 };
 
 type LojistaCliente = {
