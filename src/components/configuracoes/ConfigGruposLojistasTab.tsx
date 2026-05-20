@@ -380,3 +380,48 @@ function GrupoFormDialog({
     </Dialog>
   );
 }
+
+function ConviteSection({ grupo, onChanged }: { grupo: Grupo; onChanged: () => void }) {
+  const [sending, setSending] = useState(false);
+  const fmt = (d?: string | null) => d ? new Date(d).toLocaleString("pt-BR") : "";
+
+  const statusTxt =
+    grupo.status_acesso === "ativo"
+      ? `Acesso ativo${grupo.convite_aceito_em ? ` desde ${fmt(grupo.convite_aceito_em)}` : ""}`
+      : grupo.status_acesso === "convidado"
+        ? `Convite enviado em ${fmt(grupo.convite_enviado_em)} — aguardando aceite`
+        : "Nenhum convite enviado ainda";
+
+  async function handleEnviar() {
+    if (!grupo.email) return;
+    setSending(true);
+    try {
+      const res = await enviarConviteGrupo(grupo.id);
+      toast.success(res?.mensagem || "Convite enviado");
+      onChanged();
+    } catch (err: any) {
+      toast.error("Erro ao enviar convite: " + (err?.message || "desconhecido"));
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 flex items-center justify-between gap-3 mt-2">
+      <div className="text-xs">
+        <div className="font-semibold text-foreground mb-0.5">Status do convite</div>
+        <div className="text-muted-foreground">{statusTxt}</div>
+        {!grupo.email && (
+          <div className="text-warning mt-1">Preencha o email do grupo para poder enviar convite.</div>
+        )}
+      </div>
+      {grupo.email && grupo.status_acesso !== "ativo" && (
+        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleEnviar} disabled={sending}>
+          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (grupo.status_acesso === "convidado" ? <RotateCw className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />)}
+          {grupo.status_acesso === "convidado" ? "Reenviar convite" : "Enviar convite"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
