@@ -113,11 +113,13 @@ export function ConfigGruposLojistasTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {grupos.map(g => {
             const qtdLojas = lojistas.filter(l => l.grupo_id === g.id).length;
+            const podeConvidar = !!g.email && g.status_acesso !== "ativo";
+            const ehReenvio = g.status_acesso === "convidado";
             return (
-              <button
+              <div
                 key={g.id}
                 onClick={() => { setEditing(g); setOpenForm(true); }}
-                className="rounded-xl border bg-card p-4 text-left hover:border-primary/40 transition-colors"
+                className="rounded-xl border bg-card p-4 text-left hover:border-primary/40 transition-colors cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -130,10 +132,33 @@ export function ConfigGruposLojistasTab() {
                   {g.email && <p>📧 {g.email}</p>}
                   <p>🏪 {qtdLojas} {qtdLojas === 1 ? "loja vinculada" : "lojas vinculadas"}</p>
                 </div>
-              </button>
+                {podeConvidar && (
+                  <div className="mt-3 pt-3 border-t">
+                    <Button
+                      size="sm"
+                      variant={ehReenvio ? "outline" : "default"}
+                      className="h-7 text-xs gap-1.5"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const res = await enviarConviteGrupo(g.id);
+                          toast.success(res?.mensagem || "Convite enviado");
+                          qc.invalidateQueries({ queryKey: ["lojista-grupos"] });
+                        } catch (err: any) {
+                          toast.error("Erro ao enviar convite: " + (err?.message || "desconhecido"));
+                        }
+                      }}
+                    >
+                      {ehReenvio ? <RotateCw className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
+                      {ehReenvio ? "Reenviar convite" : "Enviar convite"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
+      )}
       )}
 
       <GrupoFormDialog
