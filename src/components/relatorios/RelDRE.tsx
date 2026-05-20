@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { imprimirDRE } from "@/lib/imprimirDRE";
 
@@ -22,109 +22,33 @@ function LinhaItem({ label, valor, negativo, bold }: { label: string; valor: num
   );
 }
 
+// Formata YYYY-MM-DD a partir de Date local (sem deslocamento de timezone)
+function ymd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function RelDRE() {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth());
   const [ano, setAno] = useState(now.getFullYear());
 
-  const inicio = `${ano}-${String(mes + 1).padStart(2, "0")}-01`;
+  const inicio = ymd(new Date(ano, mes, 1));
+  const fim = ymd(new Date(ano, mes + 1, 0)); // último dia do mês
   const competencia = `${ano}-${String(mes + 1).padStart(2, "0")}`;
-  const nextM = mes === 11 ? 0 : mes + 1;
-  const nextY = mes === 11 ? ano + 1 : ano;
-  const fim = `${nextY}-${String(nextM + 1).padStart(2, "0")}-01`;
 
-  const { data: ordens } = useQuery({
-    queryKey: ["rel-dre-ordens", inicio],
+  // Fonte ÚNICA: get_dre_periodo
+  const { data: dreRaw, isLoading } = useQuery({
+    queryKey: ["rel-dre-canonico", inicio, fim],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ordens_de_servico")
-        .select("valor, valor_total, custo_pecas, status, data_conclusao")
-        .is("deleted_at", null)
-        .in("status", ["pronto", "entregue"])
-        .gte("data_conclusao", inicio)
-        .lt("data_conclusao", fim);
-      if (error) {
-        console.error("rel-dre-ordens falhou:", error);
-        return [];
-      }
-      return data ?? [];
-    },
-  });
-
-  const { data: recebimentos } = useQuery({
-    queryKey: ["rel-dre-receb", inicio],
-    queryFn: async () => {
-      // "Outros recebimentos" do DRE: entradas que NÃO são receita já contabilizada.
-      // Excluídas:
-      // - ordem_id != null → já contam em "Serviços faturados" via ordens_de_servico
-      // - categoria='recebimento_cliente' → pagamento de saldo devedor; a receita
-      //   correspondente já entrou em "Serviços faturados" no mês de conclusão da OS
-      //   original. DRE é regime de competência, não de caixa, então pagamentos
-      //   ficam fora aqui (vão pra Fluxo de Caixa).
-      const { data, error } = await supabase
-        .from("movimentacoes_financeiras")
-        .select("valor, ordem_id, categoria, data, estornada_em")
-        .eq("tipo", "entrada")
-        .is("ordem_id", null)
-        .is("estornada_em", null)
-        .or("categoria.is.null,categoria.neq.recebimento_cliente")
-        .gte("data", inicio)
-        .lt("data", fim);
-      if (error) {
-        console.error("rel-dre-receb falhou:", error);
-        return [];
-      }
-      return data ?? [];
-    },
-  });
-
-  const { data: contas } = useQuery({
-    queryKey: ["rel-dre-contas", competencia],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contas_a_pagar")
-        .select("valor, recorrente, mes_competencia, categoria")
-        .eq("mes_competencia", competencia)
-        .is("deleted_at", null);
-      // Ignora categorias já contadas em "Custos" (Comissões e Prejuízos)
-      return (data ?? []).filter(
-        (c: any) => c.categoria !== "Comissões" && c.categoria !== "Prejuízos"
-      );
-    },
-  });
-
-  const { data: comissoes } = useQuery({
-    queryKey: ["rel-dre-comissoes", inicio],
-    queryFn: async () => {
-      // REGIME DE COMPETÊNCIA: comissão pertence ao mês em que a OS foi concluída
-      // (gerou a receita), NÃO ao mês em que o registro foi criado no banco.
-      // Alinhamento com get_dashboard_summary, que faz o mesmo JOIN.
-      const { data, error } = await supabase
-        .from("comissoes")
-        .select("valor, status, estornada_em, ordens_de_servico!inner(status,data_conclusao,deleted_at)")
-        .is("estornada_em", null)
-        .in("status", ["pendente", "liberada", "paga"])
-        .is("ordens_de_servico.deleted_at", null)
-        .in("ordens_de_servico.status", ["pronto", "entregue"])
-        .gte("ordens_de_servico.data_conclusao", inicio)
-        .lt("ordens_de_servico.data_conclusao", fim);
-      if (error) {
-        console.error("rel-dre-comissoes falhou:", error);
-        return [];
-      }
-      return data ?? [];
-    },
-  });
-
-  const { data: ajustes } = useQuery({
-    queryKey: ["rel-dre-ajustes", inicio],
-    queryFn: async () => {
-      const anoMes = `${ano}-${String(mes + 1).padStart(2, "0")}`;
-      const { data } = await supabase
-        .from("ajustes_mensais")
-        .select("valor, tipo")
-        .eq("ano_mes", anoMes);
-      return data ?? [];
+      const { data, error } = await (supabase as any).rpc("get_dre_periodo", {
+        p_inicio: inicio,
+        p_fim: fim,
+      });
+      if (error) throw error;
+      return data as any;
     },
   });
 
@@ -136,153 +60,62 @@ export function RelDRE() {
     },
   });
 
-  const { data: empresaConfig } = useQuery({
-    queryKey: ["rel-dre-empresa"],
-    queryFn: async () => {
-      const { data } = await supabase.from("empresa_config").select("percentual_reserva_empresa").limit(1).single();
-      return data;
-    },
-  });
-
-  const { data: prejuizosMes } = useQuery({
-    queryKey: ["rel-dre-prejuizos", inicio],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("prejuizos")
-        .select("tipo, valor_centavos, data_evento, origem")
-        .is("deleted_at", null)
-        .gte("data_evento", inicio)
-        .lt("data_evento", fim);
-      if (error) {
-        console.error("rel-dre-prejuizos falhou:", error);
-        return [];
-      }
-      return data ?? [];
-    },
-  });
-
-  // Calculate DRE
+  // Adapta o JSON da RPC pro shape que o componente já usava
   const dre = useMemo(() => {
-    const TIPOS_OPERACIONAIS = ["garantia", "peca_danificada", "cancelamento_com_peca"];
-    const TIPOS_NAO_OPERACIONAIS = ["cliente_sumiu", "fraude_chargeback", "furto_extravio", "outro"];
-
-    const prejuizosOpTotal = (prejuizosMes ?? [])
-      .filter((p: any) => TIPOS_OPERACIONAIS.includes(p.tipo))
-      .reduce((s: number, p: any) => s + Number(p.valor_centavos ?? 0) / 100, 0);
-    const prejuizosNaoOpTotal = (prejuizosMes ?? [])
-      .filter((p: any) => TIPOS_NAO_OPERACIONAIS.includes(p.tipo))
-      .reduce((s: number, p: any) => s + Number(p.valor_centavos ?? 0) / 100, 0);
-
-    const servicosFaturados = (ordens ?? [])
-      .reduce((s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
-    const outrosReceb = (recebimentos ?? []).reduce((s, r: any) => s + Number(r.valor ?? 0), 0);
-    const receitaBruta = servicosFaturados + outrosReceb;
-
-    const impostos = (ajustes ?? []).filter(a => a.tipo === "impostos").reduce((s, a) => s + a.valor, 0);
-    const receitaLiquida = receitaBruta - impostos;
-
-    const custoPecas = (ordens ?? [])
-      .reduce((s, o) => s + (o.custo_pecas ?? 0), 0);
-    const comissoesPagas = (comissoes ?? []).reduce((s, c) => s + c.valor, 0);
-    const lucroBruto = receitaLiquida - custoPecas - comissoesPagas - prejuizosOpTotal;
-
-    const gastosFixos = (contas ?? []).filter(c => c.recorrente === true).reduce((s, c) => s + c.valor, 0);
-    const depreciacao = (ajustes ?? []).filter(a => a.tipo === "depreciacao").reduce((s, a) => s + a.valor, 0);
-    const outrosGastos = (contas ?? []).filter(c => c.recorrente === false).reduce((s, c) => s + c.valor, 0);
-    const ebitda = lucroBruto - gastosFixos - outrosGastos;
-
-    const resultadoNaoOperacional = -prejuizosNaoOpTotal;
-    const lucroLiquido = ebitda - depreciacao + resultadoNaoOperacional;
-    const margem = receitaBruta > 0 ? (lucroLiquido / receitaBruta) * 100 : 0;
-
-    const reservaPct = empresaConfig?.percentual_reserva_empresa ?? 10;
-    const reserva = Math.max(0, lucroLiquido * reservaPct / 100);
-    const distribSocios = Math.max(0, lucroLiquido - reserva);
-    const sociosAtivos = (socios ?? []).filter((s: any) => s.ativo);
-    const partesSocios = sociosAtivos.map((s: any) => {
-      const pct = Number(s.percentual_participacao ?? 0);
-      return {
-        id: s.id,
-        nome: s.nome,
-        percentual: pct,
-        valor: distribSocios * (pct / 100),
-      };
-    });
-    const somaPctSocios = partesSocios.reduce((acc, p) => acc + p.percentual, 0);
-
+    const r = dreRaw ?? {};
+    const receitas = r.receitas ?? {};
+    const deducoes = r.deducoes ?? {};
+    const custos = r.custos ?? {};
+    const despesas = r.despesas ?? {};
+    const resultado = r.resultado ?? {};
+    const distrib = r.distribuicao ?? {};
+    const partes = (distrib.socios ?? []) as Array<{ id: string; nome: string; percentual: number; valor: number }>;
     return {
-      servicosFaturados, outrosReceb, receitaBruta,
-      impostos, receitaLiquida,
-      custoPecas, comissoesPagas, prejuizosOpTotal, lucroBruto,
-      gastosFixos, depreciacao, outrosGastos, ebitda,
-      prejuizosNaoOpTotal, resultadoNaoOperacional,
-      lucroLiquido, margem,
-      reservaPct, reserva, distribSocios, partesSocios, somaPctSocios,
+      servicosFaturados: Number(receitas.servicos_faturados ?? 0),
+      outrosReceb: Number(receitas.outros_recebimentos ?? 0),
+      receitaBruta: Number(receitas.bruta ?? 0),
+      impostos: Number(deducoes.impostos ?? 0),
+      receitaLiquida: Number(deducoes.liquida ?? 0),
+      custoPecas: Number(custos.pecas ?? 0),
+      comissoesPagas: Number(custos.comissoes ?? 0),
+      prejuizosOpTotal: Number(custos.prejuizos ?? 0),
+      lucroBruto: Number(custos.lucro_bruto ?? 0),
+      gastosFixos: Number(despesas.gastos_fixos ?? 0),
+      outrosGastos: Number(despesas.outros ?? 0),
+      ebitda: Number(despesas.ebitda ?? 0),
+      depreciacao: Number(resultado.depreciacao ?? 0),
+      prejuizosNaoOpTotal: 0,
+      resultadoNaoOperacional: 0,
+      lucroLiquido: Number(resultado.lucro_liquido ?? 0),
+      margem: Number(resultado.margem_pct ?? 0),
+      reservaPct: Number(distrib.reserva_pct ?? 10),
+      reserva: Number(distrib.reserva_valor ?? 0),
+      distribSocios: Number(distrib.distribuivel ?? 0),
+      partesSocios: partes,
+      somaPctSocios: partes.reduce((a, p) => a + Number(p.percentual ?? 0), 0),
     };
-  }, [ordens, recebimentos, contas, comissoes, ajustes, socios, empresaConfig, prejuizosMes]);
+  }, [dreRaw]);
 
-  // Last 6 months chart
+  // Chart: últimos 6 meses — chama get_dre_periodo uma vez por mês
   const { data: chartData } = useQuery({
-    queryKey: ["rel-dre-chart-v2", ano, mes],
+    queryKey: ["rel-dre-chart-canonico", ano, mes],
     queryFn: async () => {
-      const results = [];
+      const results: { mes: string; Receita: number; Gastos: number; Lucro: number }[] = [];
       for (let i = 5; i >= 0; i--) {
         let m = mes - i;
         let y = ano;
         while (m < 0) { m += 12; y--; }
-        const ini = `${y}-${String(m + 1).padStart(2, "0")}-01`;
-        const nm = m === 11 ? 0 : m + 1;
-        const ny = m === 11 ? y + 1 : y;
-        const fi = `${ny}-${String(nm + 1).padStart(2, "0")}-01`;
-        const competencia = `${y}-${String(m + 1).padStart(2, "0")}`;
-
-        // MESMA REGRA da receita do mês: status pronto+entregue, filtra por data_conclusao,
-        // usa valor_total (com fallback p/ valor em OS antigas).
-        const [{ data: os }, { data: cp }, { data: prej }] = await Promise.all([
-          supabase
-            .from("ordens_de_servico")
-            .select("valor, valor_total, custo_pecas")
-            .is("deleted_at", null)
-            .in("status", ["pronto", "entregue"])
-            .gte("data_conclusao", ini)
-            .lt("data_conclusao", fi),
-          supabase
-            .from("contas_a_pagar")
-            .select("valor")
-            .eq("mes_competencia", competencia)
-            .is("deleted_at", null),
-          (supabase as any)
-            .from("prejuizos")
-            .select("valor_centavos")
-            .is("deleted_at", null)
-            .gte("data_evento", ini)
-            .lt("data_evento", fi),
-        ]);
-
-        const receita = (os ?? []).reduce(
-          (s, o: any) => s + Number(o.valor_total ?? o.valor ?? 0),
-          0
-        );
-        const custoPecas = (os ?? []).reduce(
-          (s, o: any) => s + Number(o.custo_pecas ?? 0),
-          0
-        );
-        const despesasMes = (cp ?? []).reduce(
-          (s, c: any) => s + Number(c.valor ?? 0),
-          0
-        );
-        const prejuizosMesChart = (prej ?? []).reduce(
-          (s: number, p: any) => s + Number(p.valor_centavos ?? 0) / 100,
-          0
-        );
-        const gastos = custoPecas + despesasMes + prejuizosMesChart;
-
-        results.push({
-          mes: meses[m].substring(0, 3),
-          Receita: receita,
-          Gastos: gastos,
-          Lucro: receita - gastos,
+        const ini = ymd(new Date(y, m, 1));
+        const fi = ymd(new Date(y, m + 1, 0));
+        const { data } = await (supabase as any).rpc("get_dre_periodo", {
+          p_inicio: ini,
+          p_fim: fi,
         });
+        const r = data ?? {};
+        const receita = Number(r?.receitas?.bruta ?? 0);
+        const lucro = Number(r?.resultado?.lucro_liquido ?? 0);
+        const gastos = receita - lucro;
+        results.push({ mes: meses[m].substring(0, 3), Receita: receita, Gastos: gastos, Lucro: lucro });
       }
       return results;
     },
@@ -333,62 +166,67 @@ export function RelDRE() {
       <Card className="print:shadow-none print:border-none">
         <CardHeader><CardTitle>Demonstrativo de Resultado — {meses[mes]} {ano}</CardTitle></CardHeader>
         <CardContent className="font-mono text-sm space-y-4">
-          <div>
-            <p className="font-bold text-muted-foreground mb-1">RECEITAS</p>
-            <LinhaItem label="Serviços faturados" valor={dre.servicosFaturados} />
-            <LinhaItem label="Outros recebimentos" valor={dre.outrosReceb} />
-            <LinhaItem label="= Receita Bruta" valor={dre.receitaBruta} bold />
-          </div>
-          <div>
-            <p className="font-bold text-muted-foreground mb-1">DEDUÇÕES</p>
-            <LinhaItem label="Impostos" valor={dre.impostos} negativo />
-            <LinhaItem label="= Receita Líquida" valor={dre.receitaLiquida} bold />
-          </div>
-          <div>
-            <p className="font-bold text-muted-foreground mb-1">CUSTOS</p>
-            <LinhaItem label="Peças utilizadas" valor={dre.custoPecas} negativo />
-            <LinhaItem label="Comissões" valor={dre.comissoesPagas} negativo />
-            {dre.prejuizosOpTotal > 0 && (
-              <LinhaItem label="Prejuízos operacionais (garantia, peça danificada, etc)" valor={dre.prejuizosOpTotal} negativo />
-            )}
-            <LinhaItem label="= Lucro Bruto" valor={dre.lucroBruto} bold />
-          </div>
-          <div>
-            <p className="font-bold text-muted-foreground mb-1">DESPESAS OPERACIONAIS</p>
-            <LinhaItem label="Gastos fixos" valor={dre.gastosFixos} negativo />
-            <LinhaItem label="Outros gastos" valor={dre.outrosGastos} negativo />
-            <LinhaItem label="= EBITDA" valor={dre.ebitda} bold />
-          </div>
-          <div className="border-t pt-3">
-            <p className="font-bold text-muted-foreground mb-1">RESULTADO</p>
-            <LinhaItem label="Depreciação estimada" valor={dre.depreciacao} negativo />
-            {dre.prejuizosNaoOpTotal > 0 && (
-              <LinhaItem label="Prejuízos não-operacionais (fraude, furto, cliente sumiu)" valor={dre.prejuizosNaoOpTotal} negativo />
-            )}
-            <LinhaItem label="= Lucro Líquido" valor={dre.lucroLiquido} bold />
-            <div className="flex justify-between py-0.5 font-bold">
-              <span>= Margem Líquida</span>
-              <span>{dre.margem.toFixed(1)}%</span>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          </div>
-          {dre.partesSocios.length > 0 && dre.lucroLiquido > 0 && (
-            <div className="border-t pt-3">
-              <p className="font-bold text-muted-foreground mb-1">DISTRIBUIÇÃO</p>
-              <LinhaItem label={`Reserva empresa (${dre.reservaPct}%)`} valor={dre.reserva} />
-              {dre.partesSocios.map(p => (
-                <LinhaItem key={p.id} label={`${p.nome} (${p.percentual.toFixed(2)}%)`} valor={p.valor} />
-              ))}
-              {Math.abs(dre.somaPctSocios - 100) > 0.01 && (
-                <p className="text-[11px] text-amber-600 mt-1">
-                  ⚠ Percentuais somam {dre.somaPctSocios.toFixed(2)}%, ajuste em Configurações &gt; Financeiro
-                </p>
+          ) : (
+            <>
+              <div>
+                <p className="font-bold text-muted-foreground mb-1">RECEITAS</p>
+                <LinhaItem label="Serviços faturados" valor={dre.servicosFaturados} />
+                <LinhaItem label="Outros recebimentos" valor={dre.outrosReceb} />
+                <LinhaItem label="= Receita Bruta" valor={dre.receitaBruta} bold />
+              </div>
+              <div>
+                <p className="font-bold text-muted-foreground mb-1">DEDUÇÕES</p>
+                <LinhaItem label="Impostos" valor={dre.impostos} negativo />
+                <LinhaItem label="= Receita Líquida" valor={dre.receitaLiquida} bold />
+              </div>
+              <div>
+                <p className="font-bold text-muted-foreground mb-1">CUSTOS</p>
+                <LinhaItem label="Peças utilizadas" valor={dre.custoPecas} negativo />
+                <LinhaItem label="Comissões" valor={dre.comissoesPagas} negativo />
+                {dre.prejuizosOpTotal > 0 && (
+                  <LinhaItem label="Prejuízos" valor={dre.prejuizosOpTotal} negativo />
+                )}
+                <LinhaItem label="= Lucro Bruto" valor={dre.lucroBruto} bold />
+              </div>
+              <div>
+                <p className="font-bold text-muted-foreground mb-1">DESPESAS OPERACIONAIS</p>
+                <LinhaItem label="Gastos fixos" valor={dre.gastosFixos} negativo />
+                <LinhaItem label="Outros gastos" valor={dre.outrosGastos} negativo />
+                <LinhaItem label="= EBITDA" valor={dre.ebitda} bold />
+              </div>
+              <div className="border-t pt-3">
+                <p className="font-bold text-muted-foreground mb-1">RESULTADO</p>
+                <LinhaItem label="Depreciação estimada" valor={dre.depreciacao} negativo />
+                <LinhaItem label="= Lucro Líquido" valor={dre.lucroLiquido} bold />
+                <div className="flex justify-between py-0.5 font-bold">
+                  <span>= Margem Líquida</span>
+                  <span>{dre.margem.toFixed(1)}%</span>
+                </div>
+              </div>
+              {dre.partesSocios.length > 0 && dre.lucroLiquido > 0 && (
+                <div className="border-t pt-3">
+                  <p className="font-bold text-muted-foreground mb-1">DISTRIBUIÇÃO</p>
+                  <LinhaItem label={`Reserva empresa (${dre.reservaPct}%)`} valor={dre.reserva} />
+                  {dre.partesSocios.map(p => (
+                    <LinhaItem key={p.id} label={`${p.nome} (${Number(p.percentual).toFixed(2)}%)`} valor={Number(p.valor)} />
+                  ))}
+                  {Math.abs(dre.somaPctSocios - 100) > 0.01 && (
+                    <p className="text-[11px] text-amber-600 mt-1">
+                      ⚠ Percentuais somam {dre.somaPctSocios.toFixed(2)}%, ajuste em Configurações &gt; Financeiro
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
 
-      {/* Chart — wrapper capturado para impressão */}
+      {/* Chart */}
       <div className="dre-charts-print">
         <Card className="print:hidden">
           <CardHeader><CardTitle>Últimos 6 meses</CardTitle></CardHeader>
