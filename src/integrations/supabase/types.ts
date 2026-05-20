@@ -3278,6 +3278,80 @@ export type Database = {
           },
         ]
       }
+      lojista_grupos: {
+        Row: {
+          ativo: boolean | null
+          cnpj_matriz: string | null
+          convite_aceito_em: string | null
+          convite_enviado_em: string | null
+          convite_expira_em: string | null
+          convite_token: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          observacoes: string | null
+          razao_social: string | null
+          responsavel: string | null
+          status_acesso: string | null
+          telefone: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cnpj_matriz?: string | null
+          convite_aceito_em?: string | null
+          convite_enviado_em?: string | null
+          convite_expira_em?: string | null
+          convite_token?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          razao_social?: string | null
+          responsavel?: string | null
+          status_acesso?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cnpj_matriz?: string | null
+          convite_aceito_em?: string | null
+          convite_enviado_em?: string | null
+          convite_expira_em?: string | null
+          convite_token?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          razao_social?: string | null
+          responsavel?: string | null
+          status_acesso?: string | null
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojista_grupos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lojista_usuarios: {
         Row: {
           ativo: boolean | null
@@ -3327,6 +3401,7 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           empresa_id: string | null
+          grupo_id: string | null
           id: string
           nome: string
           observacoes: string | null
@@ -3347,6 +3422,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           empresa_id?: string | null
+          grupo_id?: string | null
           id?: string
           nome: string
           observacoes?: string | null
@@ -3367,6 +3443,7 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           empresa_id?: string | null
+          grupo_id?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
@@ -3383,6 +3460,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lojistas_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "lojista_grupos"
             referencedColumns: ["id"]
           },
         ]
@@ -6048,6 +6132,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      get_lojista_contexto: { Args: never; Returns: Json }
       get_meu_percentual_socio: { Args: never; Returns: number }
       get_minha_sessao_atual: { Args: never; Returns: Json }
       get_my_cliente_lojista: {
