@@ -931,9 +931,24 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => {
-                    if (etiquetaTemplate) {
-                      imprimirEtiquetas(etiquetaTemplate, {
+                  onClick={async () => {
+                    try {
+                      // Buscar template fresco do banco a cada clique (garante config atualizada)
+                      const { data: tplData, error: tplErr } = await supabase
+                        .from("etiqueta_templates" as any)
+                        .select("*")
+                        .is("deleted_at", null)
+                        .eq("ativo", true)
+                        .eq("tipo", "os_entrada")
+                        .eq("e_padrao", true)
+                        .maybeSingle();
+                      if (tplErr) throw tplErr;
+                      const tpl = (tplData as any) || etiquetaTemplate;
+                      if (!tpl) {
+                        toast.error("Nenhum template de etiqueta configurado. Vá em Configurações → Etiquetas.");
+                        return;
+                      }
+                      await imprimirEtiquetas(tpl, {
                         os_numero: `#${ordem.numero}`,
                         nome_empresa: empresa?.nome || "",
                         logo_url: empresa?.logo_url || "",
@@ -948,22 +963,10 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                         valor: ordem.valor != null ? `R$ ${Number(ordem.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "",
                         observacoes: (ordem as any).observacoes || "",
                       });
-                      return;
+                    } catch (e) {
+                      console.error("[etiqueta] erro:", e);
+                      toast.error("Erro ao gerar etiqueta: " + (e instanceof Error ? e.message : "desconhecido"));
                     }
-                    printEtiquetaOS({
-                      numero: ordem.numero,
-                      clienteNome: ordem.aparelhos?.clientes?.nome || "",
-                      clienteTelefone: ordem.aparelhos?.clientes?.telefone || "",
-                      marca: ordem.aparelhos?.marca || "",
-                      modelo: ordem.aparelhos?.modelo || "",
-                      capacidade: ordem.aparelhos?.capacidade || null,
-                      defeitos: ordem.defeito_relatado || "",
-                      dataEntrada: ordem.data_entrada,
-                      previsaoEntrega: ordem.previsao_entrega,
-                      valor: ordem.valor,
-                      imei: ordem.aparelhos?.imei || null,
-                      tecnicoAtribuido: ordem.tecnico || null,
-                    });
                   }}
                 >
                   <Printer className="h-3.5 w-3.5 mr-1" />
