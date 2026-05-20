@@ -1,23 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { useLojaFilter } from "@/contexts/LojistaContext";
 import { cn } from "@/lib/utils";
 import { ShieldCheck } from "lucide-react";
 
 export default function LojistaGarantias() {
-  const { lojistaUser } = useLojistaAuth();
-  const lojistaId = lojistaUser?.lojista_id;
+  const { lojaIds, pronto } = useLojaFilter();
   const today = new Date().toISOString().split("T")[0];
 
   const { data: garantias = [], isLoading } = useQuery({
-    queryKey: ["lojista-garantias-full", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-garantias-full", lojaIds],
+    enabled: pronto,
     queryFn: async () => {
-      // Get all OS for this lojista
       const { data: osData } = await supabase
         .from("ordens_de_servico")
         .select("id, numero, aparelhos(marca, modelo, imei)")
-        .eq("lojista_id", lojistaId!)
+        .in("loja_id", lojaIds)
         .is("deleted_at", null);
 
       if (!osData?.length) return [];
