@@ -159,7 +159,6 @@ export function ConfigGruposLojistasTab() {
           })}
         </div>
       )}
-      )}
 
       <GrupoFormDialog
         open={openForm}
