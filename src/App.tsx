@@ -113,6 +113,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        <LojistaProvider>
         <EmpresaProvider>
           <BrowserRouter>
             <Routes>
