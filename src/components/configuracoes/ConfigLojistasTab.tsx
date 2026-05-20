@@ -167,6 +167,12 @@ export function ConfigLojistasTab() {
                     <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{l.email || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{l.telefone || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge l={l} /></td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell text-xs">
+                      {l.lojista_grupos?.nome ? (
+                        <Badge variant="outline" className="text-xs">{l.lojista_grupos.nome}</Badge>
+                      ) : "—"}
+                    </td>
+
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1 flex-wrap">
                         {(!l.status_convite || l.status_convite === "revogado" || l.status_convite === "expirado") && (
