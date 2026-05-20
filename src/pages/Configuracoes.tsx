@@ -262,7 +262,7 @@ export default function Configuracoes() {
             {active === "fornecedores" && <ConfigFornecedoresTab fornecedores={data.fornecedores} />}
             {active === "financeiro" && <ConfigFinanceiroTab categoriasFinanceiras={data.categoriasFinanceiras} centrosCusto={data.centrosCusto} formasPagamento={data.formasPagamento} />}
             {active === "estoque" && <ConfigEstoqueTab marcas={data.marcas} modelos={data.modelos} cores={data.cores} capacidades={data.capacidades} />}
-            {active === "lojistas" && <ConfigLojistasTab />}
+            {active === "lojistas" && <ConfigLojistasWrapper />}
             {active === "status" && <ConfigStatusTab statusOrdem={data.statusOrdem} />}
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
