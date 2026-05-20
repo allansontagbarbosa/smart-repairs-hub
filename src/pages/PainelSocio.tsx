@@ -47,6 +47,7 @@ const STATUS_FUNC: Record<
 
 export default function PainelSocio() {
   const { data, isLoading, error } = usePainelSocio();
+  useValidaPainel(data);
   const [novaMetaOpen, setNovaMetaOpen] = useState(false);
 
   if (isLoading) {
