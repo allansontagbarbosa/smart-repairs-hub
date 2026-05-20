@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { DittLogo } from "@/components/DittLogo";
 import { Button } from "@/components/ui/button";
 import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { SeletorDeLoja, BannerModoConsolidado } from "@/components/lojista/SeletorDeLoja";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Smartphone, DollarSign, ShieldCheck, History, LogOut,
