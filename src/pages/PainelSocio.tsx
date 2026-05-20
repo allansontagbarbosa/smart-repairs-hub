@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
+import { useValidaPainel } from "@/hooks/useValidaPainel";
 import { NovaMetaDialog } from "@/components/painel-socio/NovaMetaDialog";
 import { FatoresExternosCards } from "@/components/painel-socio/FatoresExternosCards";
 import { InsightsIA } from "@/components/painel-socio/InsightsIA";
