@@ -13,7 +13,7 @@ export function useAtualizarTecnicoServico() {
 
   return useMutation({
     mutationFn: async ({ servicoId, tecnicoId }: Vars) => {
-      const update: Record<string, any> = {
+      const update: any = {
         tecnico_id: tecnicoId,
         motivo_sem_tecnico: tecnicoId === null ? "sem_atribuicao" : null,
         updated_at: new Date().toISOString(),
@@ -48,7 +48,7 @@ export async function atribuirTodaOSAoTecnico(
   ordemId: string,
   tecnicoId: string | null,
 ) {
-  const update: Record<string, any> = {
+  const update: any = {
     tecnico_id: tecnicoId,
     motivo_sem_tecnico: tecnicoId === null ? "sem_atribuicao" : null,
     updated_at: new Date().toISOString(),
