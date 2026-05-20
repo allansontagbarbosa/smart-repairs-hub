@@ -70,6 +70,7 @@ const groups = [
     label: "Documentos",
     items: [
       { id: "documentos", label: "Modelos de Documento", icon: FileText, keywords: ["documento", "laudo", "recibo", "orcamento", "ordem", "template"] },
+      { id: "etiquetas", label: "Etiquetas", icon: Tag, keywords: ["etiqueta", "label", "impressao", "termica", "qr", "barcode", "codigo"] },
     ],
   },
   {
