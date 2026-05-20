@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { useLojaFilter, useLojistaContext } from "@/contexts/LojistaContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
   Clock, CheckCircle2, DollarSign, ShieldCheck, ChevronRight,
