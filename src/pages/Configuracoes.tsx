@@ -15,6 +15,7 @@ import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
 import { ConfigStatusTab } from "@/components/configuracoes/ConfigStatusTab";
 import { ConfigNotificacoesTab } from "@/components/configuracoes/ConfigNotificacoesTab";
 import { ConfigDocumentosTab } from "@/components/configuracoes/ConfigDocumentosTab";
+import { ConfigEtiquetasTab } from "@/components/configuracoes/ConfigEtiquetasTab";
 import { ConfigUsuariosTab } from "@/components/configuracoes/ConfigUsuariosTab";
 import { ConfigListaPrecosTab } from "@/components/configuracoes/ConfigListaPrecosTab";
 import { ConfigExportacaoTab } from "@/components/configuracoes/ConfigExportacaoTab";
