@@ -266,6 +266,7 @@ export default function Configuracoes() {
             {active === "status" && <ConfigStatusTab statusOrdem={data.statusOrdem} />}
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
+            {active === "etiquetas" && <ConfigEtiquetasTab />}
             {active === "exportacao" && <ConfigExportacaoTab />}
           </div>
         </div>
