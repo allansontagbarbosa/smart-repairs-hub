@@ -6304,6 +6304,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      marcar_grupo_aceito: { Args: never; Returns: undefined }
       marcar_notificacao: {
         Args: { p_acao: string; p_notif_id: string }
         Returns: Json
