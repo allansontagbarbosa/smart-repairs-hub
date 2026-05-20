@@ -34,6 +34,13 @@ import {
 const brl = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
 
+function nomeDoMes(dataStr: string | null | undefined): string {
+  if (!dataStr) return "";
+  const meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const d = new Date(dataStr + "T00:00:00");
+  return `${meses[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+}
+
 const STATUS_FUNC: Record<
   string,
   { label: string; bg: string; fg: string }
@@ -102,7 +109,18 @@ export default function PainelSocio() {
                 VOCÊ JÁ TEM · DIA {data.periodo.dias_passados}/{data.periodo.dias_no_mes}
               </div>
               <div className="text-4xl md:text-5xl font-bold mt-2">{brl(m.meu_valor_parcial)}</div>
-              <div className="text-sm opacity-90 mt-2">
+              {variacao && data.mes_passado.meu_valor_periodo > 0 && (
+                <div
+                  className={`text-sm mt-2 ${
+                    variacao.meu_valor_pct >= 0 ? "text-emerald-100" : "text-red-100"
+                  }`}
+                >
+                  {variacao.meu_valor_pct >= 0 ? "↑" : "↓"}{" "}
+                  {Math.abs(variacao.meu_valor_pct).toFixed(1)}% vs mesmo período de{" "}
+                  {nomeDoMes(data.mes_passado.periodo_ate_dia)} ({brl(data.mes_passado.meu_valor_periodo)})
+                </div>
+              )}
+              <div className="text-xs opacity-80 mt-1">
                 Lucro líquido parcial: {brl(m.lucro_liquido)}
               </div>
             </div>
@@ -111,14 +129,15 @@ export default function PainelSocio() {
                 <TrendingUp className="h-3 w-3" /> FECHAMENTO PREVISTO
               </div>
               <div className="text-4xl md:text-5xl font-bold mt-2">{brl(m.fechamento_previsto)}</div>
-              {variacao !== null && (
+              {variacao && data.mes_passado.meu_valor > 0 && (
                 <div
                   className={`text-sm mt-2 ${
-                    variacao >= 0 ? "text-emerald-100" : "text-red-100"
+                    variacao.fechamento_pct >= 0 ? "text-emerald-100" : "text-red-100"
                   }`}
                 >
-                  {variacao >= 0 ? "↑" : "↓"} {Math.abs(variacao).toFixed(1)}% vs mês passado (
-                  {brl(data.mes_passado.meu_valor)})
+                  {variacao.fechamento_pct >= 0 ? "↑" : "↓"}{" "}
+                  {Math.abs(variacao.fechamento_pct).toFixed(1)}% vs{" "}
+                  {nomeDoMes(data.mes_passado.periodo_ate_dia)} fechado ({brl(data.mes_passado.meu_valor)})
                 </div>
               )}
             </div>

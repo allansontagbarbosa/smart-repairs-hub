@@ -36,8 +36,29 @@ export type PainelSocioData = {
     fator_projecao: number;
     confiabilidade_projecao: "baixa" | "média" | "alta";
   };
-  mes_passado: { lucro_liquido: number; meu_valor: number };
-  variacao_mes: number | null;
+  mes_passado: {
+    faturamento: number;
+    custo_pecas: number;
+    custo_terceirizado: number;
+    despesas: number;
+    comissoes: number;
+    lucro_liquido: number;
+    distribuivel: number;
+    meu_valor: number;
+    periodo_ate_dia: string;
+    faturamento_periodo: number;
+    lucro_liquido_periodo: number;
+    distribuivel_periodo: number;
+    meu_valor_periodo: number;
+  };
+  variacao_mes: {
+    meu_valor_pct: number;
+    meu_valor_abs: number;
+    fechamento_pct: number;
+    fechamento_abs: number;
+    faturamento_pct: number;
+    lucro_liquido_pct: number;
+  } | null;
   historico: Array<{
     mes: string;
     mes_inicio: string;
