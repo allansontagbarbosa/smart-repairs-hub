@@ -326,23 +326,22 @@ export default function Dashboard() {
     // pra EBITDA não misturar temporalidades.
     const custosPecasMes = ordensFaturadas.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    const allContasPeriodo = contasPeriodo ?? [];
-    const totalComissoesPeriodo = Number(summary?.comissoes_periodo_total ?? 0);
-    const gastosFixos = allContasPeriodo
-      .filter((c: any) => c.recorrente === true)
-      .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
-    const gastosVariaveis = allContasPeriodo
-      .filter((c: any) => c.recorrente === false)
-      .reduce((s: number, c: any) => s + Number(c.valor ?? 0), 0);
+    const ordensMes = orders;
+    const ordensFaturadas = orders.filter(o => isFaturado(o.status));
+
+    // VALORES FINANCEIROS: vêm da fonte única get_dre_periodo
+    const faturamento = Number(dre?.receitas?.bruta ?? 0);
+    const custosPecasMes = Number(dre?.custos?.pecas ?? 0);
+    const totalComissoesPeriodo = Number(dre?.custos?.comissoes ?? 0);
+    const gastosFixos = Number(dre?.despesas?.gastos_fixos ?? 0);
+    const gastosVariaveis = Number(dre?.despesas?.outros ?? 0);
     const despesasPagasMes = gastosFixos + gastosVariaveis;
-
-    const ebitda = faturamento - custosPecasMes - gastosFixos - gastosVariaveis - totalComissoesPeriodo;
+    const ebitda = Number(dre?.despesas?.ebitda ?? 0);
     const ebitdaMargem = faturamento > 0 ? (ebitda / faturamento) * 100 : 0;
-
-    const depreciacao = 0;
-    const impostos = 0;
-    const ll = ebitda - depreciacao - impostos;
-    const llMargem = faturamento > 0 ? (ll / faturamento) * 100 : 0;
+    const depreciacao = Number(dre?.resultado?.depreciacao ?? 0);
+    const impostos = Number(dre?.deducoes?.impostos ?? 0);
+    const ll = Number(dre?.resultado?.lucro_liquido ?? 0);
+    const llMargem = Number(dre?.resultado?.margem_pct ?? 0);
 
     const ordensComValor = ordensFaturadas.filter(o => Number(o.valor_total ?? o.valor ?? 0) > 0);
     const ticket = ordensComValor.length > 0
@@ -353,15 +352,15 @@ export default function Dashboard() {
 
     const metaGastos = Number(empresaConfig?.meta_gastos_mes ?? 0);
     const metaFaturamento = Number(empresaConfig?.meta_faturamento_mes ?? 0);
-    const reservaPct = Number(empresaConfig?.percentual_reserva_empresa ?? 20);
+    const reservaPct = Number(dre?.distribuicao?.reserva_pct ?? empresaConfig?.percentual_reserva_empresa ?? 20);
     const nSocios = Number(empresaConfig?.numero_socios ?? 2) || 1;
 
     const prevLl = metaFaturamento > 0 && faturamento > 0 ? metaFaturamento * (ll / faturamento) : 0;
     const totalGastos = custosPecasMes + gastosFixos + gastosVariaveis + totalComissoesPeriodo + depreciacao + impostos;
     const metaPct = metaGastos > 0 ? Math.min(100, (totalGastos / metaGastos) * 100) : 0;
 
-    const reservaVal = ll > 0 ? (ll * reservaPct) / 100 : 0;
-    const lucroDistrib = ll > 0 ? ll - reservaVal : 0;
+    const reservaVal = Number(dre?.distribuicao?.reserva_valor ?? 0);
+    const lucroDistrib = Number(dre?.distribuicao?.distribuivel ?? 0);
     const lucroSocio = lucroDistrib / Math.max(1, nSocios);
 
     // Operacional uses ALL orders (not filtered by period) for live status counts
@@ -384,14 +383,11 @@ export default function Dashboard() {
       metaPct, reservaPct, nSocios, reservaVal, lucroDistrib, lucroSocio,
       emAtraso, aguardandoEntrega, aguardandoReparo, emReparo,
       totalOrdensMes: ordensMes.length, totalFaturadas: ordensFaturadas.length,
-      // Novos escopos explícitos:
-      // Recebidas no período = OS criadas com data_entrada no range, exceto canceladas.
-      // Concluídas no período = OS com status pronto/entregue e data_conclusao no range.
       totalRecebidasPeriodo: ordensMes.length,
       totalConcluidasPeriodo: ordensFaturadas.length,
       iphonesReparados,
     };
-  }, [orders, allOrders, contasPeriodo, summary?.comissoes_periodo_total, empresaConfig]);
+  }, [orders, allOrders, dre, empresaConfig]);
 
   // Chart: faturamento últimos 6 meses (always uses allOrders)
   const faturamentoChart = useMemo(() => {
