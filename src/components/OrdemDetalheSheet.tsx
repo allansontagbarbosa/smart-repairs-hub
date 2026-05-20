@@ -931,20 +931,40 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => printEtiquetaOS({
-                    numero: ordem.numero,
-                    clienteNome: ordem.aparelhos?.clientes?.nome || "",
-                    clienteTelefone: ordem.aparelhos?.clientes?.telefone || "",
-                    marca: ordem.aparelhos?.marca || "",
-                    modelo: ordem.aparelhos?.modelo || "",
-                    capacidade: ordem.aparelhos?.capacidade || null,
-                    defeitos: ordem.defeito_relatado || "",
-                    dataEntrada: ordem.data_entrada,
-                    previsaoEntrega: ordem.previsao_entrega,
-                    valor: ordem.valor,
-                    imei: ordem.aparelhos?.imei || null,
-                    tecnicoAtribuido: ordem.tecnico || null,
-                  })}
+                  onClick={() => {
+                    if (etiquetaTemplate) {
+                      imprimirEtiquetas(etiquetaTemplate, {
+                        os_numero: `#${ordem.numero}`,
+                        nome_empresa: empresa?.nome || "",
+                        logo_url: empresa?.logo_url || "",
+                        cliente_nome: ordem.aparelhos?.clientes?.nome || "",
+                        cliente_telefone: ordem.aparelhos?.clientes?.telefone || "",
+                        aparelho: `${ordem.aparelhos?.marca || ""} ${ordem.aparelhos?.modelo || ""} ${ordem.aparelhos?.capacidade || ""}`.trim(),
+                        imei: ordem.aparelhos?.imei || "",
+                        defeito: ordem.defeito_relatado || "",
+                        data_entrada: ordem.data_entrada ? new Date(ordem.data_entrada).toLocaleDateString("pt-BR") : "",
+                        previsao_entrega: ordem.previsao_entrega ? new Date(ordem.previsao_entrega).toLocaleDateString("pt-BR") : "",
+                        tecnico: ordem.tecnico || "",
+                        valor: ordem.valor != null ? `R$ ${Number(ordem.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "",
+                        observacoes: (ordem as any).observacoes || "",
+                      });
+                      return;
+                    }
+                    printEtiquetaOS({
+                      numero: ordem.numero,
+                      clienteNome: ordem.aparelhos?.clientes?.nome || "",
+                      clienteTelefone: ordem.aparelhos?.clientes?.telefone || "",
+                      marca: ordem.aparelhos?.marca || "",
+                      modelo: ordem.aparelhos?.modelo || "",
+                      capacidade: ordem.aparelhos?.capacidade || null,
+                      defeitos: ordem.defeito_relatado || "",
+                      dataEntrada: ordem.data_entrada,
+                      previsaoEntrega: ordem.previsao_entrega,
+                      valor: ordem.valor,
+                      imei: ordem.aparelhos?.imei || null,
+                      tecnicoAtribuido: ordem.tecnico || null,
+                    });
+                  }}
                 >
                   <Printer className="h-3.5 w-3.5 mr-1" />
                   Etiqueta
