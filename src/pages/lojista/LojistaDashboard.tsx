@@ -35,8 +35,8 @@ export default function LojistaDashboard() {
   });
 
   const { data: garantias = [] } = useQuery({
-    queryKey: ["lojista-garantias-count", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-garantias-count", lojaIds, ordens.length],
+    enabled: pronto,
     queryFn: async () => {
       const osIds = ordens.filter(o => o.status === "entregue").map(o => o.id);
       if (!osIds.length) return [];
