@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useLojistaAuth } from "@/hooks/useLojistaAuth";
+import { useLojaFilter } from "@/contexts/LojistaContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,21 +15,20 @@ function fmt(v: number | null | undefined) {
 }
 
 export default function LojistaAparelhos() {
-  const { lojistaUser } = useLojistaAuth();
-  const lojistaId = lojistaUser?.lojista_id;
+  const { lojaIds, pronto } = useLojaFilter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [periodo, setPeriodo] = useState("todos");
   const [selectedOs, setSelectedOs] = useState<any>(null);
 
   const { data: ordens = [] } = useQuery({
-    queryKey: ["lojista-aparelhos", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-aparelhos", lojaIds],
+    enabled: pronto,
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
-        .select("id, numero, status, valor, valor_pago, data_entrada, previsao_entrega, defeito_relatado, diagnostico, servico_realizado, aparelhos(marca, modelo, imei)")
-        .eq("lojista_id", lojistaId!)
+        .select("id, numero, status, valor, valor_pago, data_entrada, previsao_entrega, defeito_relatado, diagnostico, servico_realizado, loja_id, aparelhos(marca, modelo, imei)")
+        .in("loja_id", lojaIds)
         .is("deleted_at", null)
         .order("data_entrada", { ascending: false });
       return data ?? [];
@@ -37,8 +36,8 @@ export default function LojistaAparelhos() {
   });
 
   const { data: garantiasAtivas = [] } = useQuery({
-    queryKey: ["lojista-garantias-ids", lojistaId],
-    enabled: !!lojistaId,
+    queryKey: ["lojista-garantias-ids", lojaIds],
+    enabled: pronto,
     queryFn: async () => {
       const { data } = await supabase
         .from("garantias")
