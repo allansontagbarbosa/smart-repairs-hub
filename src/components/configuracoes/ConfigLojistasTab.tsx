@@ -21,6 +21,8 @@ type LojistaB2B = {
   status_convite: "pendente" | "aceito" | "revogado" | "expirado" | null;
   convite_aceito_em: string | null;
   convite_enviado_em: string | null;
+  grupo_id: string | null;
+  lojista_grupos: { nome: string } | null;
 };
 
 export function ConfigLojistasTab() {
@@ -36,14 +38,15 @@ export function ConfigLojistasTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, email, telefone, status_convite, convite_aceito_em, convite_enviado_em")
+        .select("id, nome, email, telefone, status_convite, convite_aceito_em, convite_enviado_em, grupo_id, lojista_grupos(nome)")
         .eq("tipo_cliente", "lojista_b2b")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as LojistaB2B[];
+      return (data ?? []) as unknown as LojistaB2B[];
     },
   });
+
 
   async function handleEnviarConvite(l: LojistaB2B) {
     if (!l.email) return;
