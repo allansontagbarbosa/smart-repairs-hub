@@ -630,6 +630,7 @@ export type Database = {
           email: string | null
           empresa_id: string | null
           estado: string | null
+          grupo_id: string | null
           id: string
           lojista_id: string | null
           nome: string
@@ -665,6 +666,7 @@ export type Database = {
           email?: string | null
           empresa_id?: string | null
           estado?: string | null
+          grupo_id?: string | null
           id?: string
           lojista_id?: string | null
           nome: string
@@ -700,6 +702,7 @@ export type Database = {
           email?: string | null
           empresa_id?: string | null
           estado?: string | null
+          grupo_id?: string | null
           id?: string
           lojista_id?: string | null
           nome?: string
@@ -723,6 +726,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "lojista_grupos"
             referencedColumns: ["id"]
           },
           {

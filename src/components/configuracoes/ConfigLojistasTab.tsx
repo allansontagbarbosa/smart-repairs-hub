@@ -21,6 +21,8 @@ type LojistaB2B = {
   status_convite: "pendente" | "aceito" | "revogado" | "expirado" | null;
   convite_aceito_em: string | null;
   convite_enviado_em: string | null;
+  grupo_id: string | null;
+  lojista_grupos: { nome: string } | null;
 };
 
 export function ConfigLojistasTab() {
@@ -36,14 +38,15 @@ export function ConfigLojistasTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes")
-        .select("id, nome, email, telefone, status_convite, convite_aceito_em, convite_enviado_em")
+        .select("id, nome, email, telefone, status_convite, convite_aceito_em, convite_enviado_em, grupo_id, lojista_grupos(nome)")
         .eq("tipo_cliente", "lojista_b2b")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as LojistaB2B[];
+      return (data ?? []) as unknown as LojistaB2B[];
     },
   });
+
 
   async function handleEnviarConvite(l: LojistaB2B) {
     if (!l.email) return;
@@ -144,9 +147,11 @@ export function ConfigLojistasTab() {
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden md:table-cell">Email</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden lg:table-cell">Telefone</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">Acesso</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground hidden md:table-cell">Grupo</th>
                 <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
+
             <tbody className="divide-y">
               {lojistas.map((l) => {
                 const busy = busyId === l.id;
@@ -162,6 +167,12 @@ export function ConfigLojistasTab() {
                     <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{l.email || "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">{l.telefone || "—"}</td>
                     <td className="px-4 py-3"><StatusBadge l={l} /></td>
+                    <td className="px-4 py-3 text-muted-foreground hidden md:table-cell text-xs">
+                      {l.lojista_grupos?.nome ? (
+                        <Badge variant="outline" className="text-xs">{l.lojista_grupos.nome}</Badge>
+                      ) : "—"}
+                    </td>
+
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1 flex-wrap">
                         {(!l.status_convite || l.status_convite === "revogado" || l.status_convite === "expirado") && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,11 @@ type Grupo = {
   ativo: boolean;
 };
 
-type Lojista = {
+type LojistaCliente = {
   id: string;
   nome: string;
-  cnpj: string | null;
+  email: string | null;
+  telefone: string | null;
   grupo_id: string | null;
 };
 
@@ -58,16 +59,17 @@ export function ConfigGruposLojistasTab() {
   });
 
   const { data: lojistas = [] } = useQuery({
-    queryKey: ["lojistas-todos", empresaId],
+    queryKey: ["lojistas-clientes-b2b", empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("lojistas")
-        .select("id, nome, cnpj, grupo_id")
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, email, telefone, grupo_id")
+        .eq("tipo_cliente", "lojista_b2b")
         .is("deleted_at", null)
         .order("nome");
       if (error) throw error;
-      return (data ?? []) as Lojista[];
+      return (data ?? []) as LojistaCliente[];
     },
   });
 
@@ -129,7 +131,11 @@ export function ConfigGruposLojistasTab() {
         grupo={editing}
         empresaId={empresaId}
         todosLojistas={lojistas}
-        onSaved={() => { qc.invalidateQueries({ queryKey: ["lojista-grupos"] }); qc.invalidateQueries({ queryKey: ["lojistas-todos"] }); }}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["lojista-grupos"] });
+          qc.invalidateQueries({ queryKey: ["lojistas-clientes-b2b"] });
+          qc.invalidateQueries({ queryKey: ["lojistas-b2b-admin"] });
+        }}
       />
     </div>
   );
@@ -142,7 +148,7 @@ function GrupoFormDialog({
   onOpenChange: (b: boolean) => void;
   grupo: Grupo | null;
   empresaId: string | null | undefined;
-  todosLojistas: Lojista[];
+  todosLojistas: LojistaCliente[];
   onSaved: () => void;
 }) {
   const [nome, setNome] = useState("");
@@ -207,7 +213,7 @@ function GrupoFormDialog({
 
   async function vincular(lojaId: string) {
     if (!grupo || !lojaId) return;
-    const { error } = await (supabase as any).from("lojistas").update({ grupo_id: grupo.id }).eq("id", lojaId);
+    const { error } = await supabase.from("clientes").update({ grupo_id: grupo.id } as any).eq("id", lojaId);
     if (error) { toast.error(error.message); return; }
     toast.success("Loja adicionada ao grupo");
     setAdicionar("");
@@ -215,7 +221,7 @@ function GrupoFormDialog({
   }
 
   async function desvincular(lojaId: string) {
-    const { error } = await (supabase as any).from("lojistas").update({ grupo_id: null }).eq("id", lojaId);
+    const { error } = await supabase.from("clientes").update({ grupo_id: null } as any).eq("id", lojaId);
     if (error) { toast.error(error.message); return; }
     toast.success("Loja removida do grupo");
     onSaved();
@@ -224,7 +230,7 @@ function GrupoFormDialog({
   async function excluir() {
     if (!grupo) return;
     if (!confirm("Excluir este grupo? As lojas vinculadas serão desassociadas.")) return;
-    const { error: e1 } = await (supabase as any).from("lojistas").update({ grupo_id: null }).eq("grupo_id", grupo.id);
+    const { error: e1 } = await supabase.from("clientes").update({ grupo_id: null } as any).eq("grupo_id", grupo.id);
     if (e1) { toast.error(e1.message); return; }
     const { error } = await (supabase as any).from("lojista_grupos").update({ deleted_at: new Date().toISOString(), ativo: false }).eq("id", grupo.id);
     if (error) { toast.error(error.message); return; }
@@ -289,7 +295,7 @@ function GrupoFormDialog({
                       <div className="flex items-center gap-2 text-xs">
                         <Store className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="font-medium">{l.nome}</span>
-                        {l.cnpj && <span className="text-muted-foreground">— {l.cnpj}</span>}
+                        {l.email && <span className="text-muted-foreground">— {l.email}</span>}
                       </div>
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => desvincular(l.id)}>
                         <X className="h-3.5 w-3.5" />
