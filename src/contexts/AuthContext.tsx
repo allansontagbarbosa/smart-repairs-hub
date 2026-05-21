@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -25,7 +25,6 @@ const AUTH_REDIRECT_ROUTES = new Set(["/", "/login", "/cadastro"]);
 const shouldAutoRedirectAfterSignIn = (pathname: string) => AUTH_REDIRECT_ROUTES.has(pathname);
 
 const resolvePostSignInPath = async (userId: string) => {
-  // Verificar se é lojista — nunca redirecionar para /dashboard
   const { data: lojistaCheck } = await supabase
     .from("lojista_usuarios")
     .select("id")
@@ -56,67 +55,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  // Ref pra detectar mudança REAL de user. Evita setState quando só o token
+  // foi renovado (TOKEN_REFRESHED ao voltar pra aba) — senão re-renderiza
+  // a árvore inteira e desmonta modais com state local.
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const handlePostSignInRedirect = async (session: Session | null) => {
-      if (!session?.user) return;
-
+    const handlePostSignInRedirect = async (s: Session | null) => {
+      if (!s?.user) return;
       const currentPath = window.location.pathname;
       if (!shouldAutoRedirectAfterSignIn(currentPath)) return;
-
-      const nextPath = await resolvePostSignInPath(session.user.id);
+      const nextPath = await resolvePostSignInPath(s.user.id);
       if (window.location.pathname !== nextPath) {
         window.location.replace(nextPath);
       }
     };
 
-    let previousUserId: string | null = null;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const newUserId = newSession?.user?.id ?? null;
+      const userChanged = newUserId !== lastUserIdRef.current;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      const newUserId = session?.user?.id ?? null;
-      const userChanged = newUserId !== previousUserId;
+      // TOKEN_REFRESHED: dispara em background ao voltar pra aba. Se o user
+      // é o mesmo, ignorar completamente — token é trocado no client do
+      // Supabase de forma transparente, não precisa propagar pro React.
+      if (event === "TOKEN_REFRESHED" && !userChanged) {
+        return;
+      }
 
-      setSession(session);
-      setUser(session?.user ?? null);
+      // INITIAL_SESSION quando já temos a session inicializada: no-op.
+      if (event === "INITIAL_SESSION" && !userChanged && lastUserIdRef.current !== null) {
+        setLoading(false);
+        return;
+      }
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
       setLoading(false);
 
-      // NÃO invalidar queries em TOKEN_REFRESHED — esse evento dispara ao voltar
-      // pra aba do navegador (auto-refresh do Supabase) e estava fechando modais
-      // por causa da cascata de re-renders. O token é trocado de forma transparente.
-
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        // Só invalidar se o usuário realmente mudou (login de outra conta)
-        if (userChanged && previousUserId !== null) {
+      if (event === "SIGNED_IN") {
+        if (userChanged && lastUserIdRef.current !== null) {
           void queryClient.invalidateQueries();
         }
-        if (event === "SIGNED_IN") {
-          void handlePostSignInRedirect(session);
-        }
+        void handlePostSignInRedirect(newSession);
       }
 
       if (event === "SIGNED_OUT") {
         queryClient.clear();
       }
 
-      previousUserId = newUserId;
+      lastUserIdRef.current = newUserId;
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: initial } }) => {
+      setSession(initial);
+      setUser(initial?.user ?? null);
+      lastUserIdRef.current = initial?.user?.id ?? null;
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, [queryClient]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
+  // Memoizar o value pra evitar recriação a cada render do provider.
+  // Só muda quando user.id ou access_token mudam de verdade.
+  const value = useMemo<AuthContextType>(
+    () => ({ user, session, loading, signOut }),
+    [user?.id, session?.access_token, loading, signOut],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
