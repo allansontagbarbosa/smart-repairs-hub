@@ -6175,6 +6175,7 @@ export type Database = {
         Args: { p_lojista_id: string; p_mes: string }
         Returns: string
       }
+      get_alertas_socio: { Args: never; Returns: Json }
       get_clientes_com_stats: {
         Args: never
         Returns: {
@@ -6228,7 +6229,10 @@ export type Database = {
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_permissoes: { Args: never; Returns: Json }
       get_my_role: { Args: never; Returns: string }
-      get_painel_socio_v1: { Args: never; Returns: Json }
+      get_painel_socio_v1: {
+        Args: { p_meses_historico?: number }
+        Returns: Json
+      }
       get_saldo_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       get_saldos_clientes_resumo: {
         Args: never
