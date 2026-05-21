@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Loader2, Building2, Wrench, Truck, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
-  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone,
+  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone, Database,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
@@ -19,6 +19,7 @@ import { ConfigEtiquetasTab } from "@/components/configuracoes/ConfigEtiquetasTa
 import { ConfigUsuariosTab } from "@/components/configuracoes/ConfigUsuariosTab";
 import { ConfigListaPrecosTab } from "@/components/configuracoes/ConfigListaPrecosTab";
 import { ConfigExportacaoTab } from "@/components/configuracoes/ConfigExportacaoTab";
+import { ConfigBackupTab } from "@/components/configuracoes/ConfigBackupTab";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,7 @@ const groups = [
     label: "Avançado",
     items: [
       { id: "exportacao", label: "Importação / Exportação", icon: FileDown, keywords: ["exportar", "importar", "csv", "planilha"] },
+      { id: "backup", label: "Backup e Restore", icon: Database, keywords: ["backup", "restore", "restaurar", "salvar", "copia", "seguranca"] },
     ],
   },
 ];
@@ -268,6 +270,7 @@ export default function Configuracoes() {
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
             {active === "etiquetas" && <ConfigEtiquetasTab />}
             {active === "exportacao" && <ConfigExportacaoTab />}
+            {active === "backup" && <ConfigBackupTab />}
           </div>
         </div>
       </div>
@@ -291,6 +294,7 @@ function getSubtitle(id: string): string {
     documentos: "Modelos de laudos, recibos e orçamentos",
     etiquetas: "Templates de etiqueta para OS, peças e aparelhos (térmica e A4)",
     exportacao: "Importar e exportar dados do sistema",
+    backup: "Backup completo da empresa por email + restauração via JSON",
   };
   return map[id] || "";
 }
