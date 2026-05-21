@@ -70,17 +70,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    let previousUserId: string | null = null;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id ?? null;
+      const userChanged = newUserId !== previousUserId;
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
 
-      if (event === "TOKEN_REFRESHED") {
-        void queryClient.invalidateQueries();
-      }
+      // NÃO invalidar queries em TOKEN_REFRESHED — esse evento dispara ao voltar
+      // pra aba do navegador (auto-refresh do Supabase) e estava fechando modais
+      // por causa da cascata de re-renders. O token é trocado de forma transparente.
 
       if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        void queryClient.invalidateQueries();
+        // Só invalidar se o usuário realmente mudou (login de outra conta)
+        if (userChanged && previousUserId !== null) {
+          void queryClient.invalidateQueries();
+        }
         if (event === "SIGNED_IN") {
           void handlePostSignInRedirect(session);
         }
@@ -89,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         queryClient.clear();
       }
+
+      previousUserId = newUserId;
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
