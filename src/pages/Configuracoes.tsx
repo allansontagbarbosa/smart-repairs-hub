@@ -270,8 +270,8 @@ export default function Configuracoes() {
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
             {active === "etiquetas" && <ConfigEtiquetasTab />}
             {active === "exportacao" && <ConfigExportacaoTab />}
-            {active === "exportacao" && <ConfigExportacaoTab />}
             {active === "backup" && <ConfigBackupTab />}
+          </div>
         </div>
       </div>
     </div>
@@ -294,7 +294,7 @@ function getSubtitle(id: string): string {
     documentos: "Modelos de laudos, recibos e orçamentos",
     etiquetas: "Templates de etiqueta para OS, peças e aparelhos (térmica e A4)",
     exportacao: "Importar e exportar dados do sistema",
-    exportacao: "Importar e exportar dados do sistema",
     backup: "Backup completo da empresa por email + restauração via JSON",
+  };
   return map[id] || "";
 }
