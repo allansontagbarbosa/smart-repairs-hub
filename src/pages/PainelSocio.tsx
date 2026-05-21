@@ -312,7 +312,7 @@ export default function PainelSocio() {
                     {s.percentual.toFixed(2)}%
                   </span>
                 </div>
-                <span className="font-semibold">{brl(s.valor_estimado)}</span>
+                <span className="font-semibold">{brl(((s as any).valor ?? s.valor_estimado ?? 0))}</span>
               </div>
             ))}
           </CardContent>
