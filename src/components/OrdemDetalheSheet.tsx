@@ -831,7 +831,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   {" em "}{new Date(ordem.created_at).toLocaleDateString("pt-BR")} às {new Date(ordem.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
-            </SheetHeader>
+            </DialogHeader>
 
             {ordem.status === "cancelado" && (
               <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs space-y-1">
