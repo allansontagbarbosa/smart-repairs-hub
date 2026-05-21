@@ -26,6 +26,12 @@ const TIPO_CONFIG = {
   },
 } as const;
 
+const safeStr = (v: any): string => {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  try { return JSON.stringify(v); } catch { return ""; }
+};
+
 export function InsightsIA() {
   const { data, isLoading, error } = useInsightsSocio();
 
