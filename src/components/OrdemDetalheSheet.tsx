@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -788,17 +789,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const nextStatus = ordem ? statusFlow[statusFlow.indexOf(ordem.status) + 1] : null;
 
   return (
-    <Sheet open={!!orderId} onOpenChange={(open) => { if (!open) { setEditing(false); onClose(); } }}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+    <Dialog open={!!orderId} onOpenChange={(open) => { if (!open) { setEditing(false); onClose(); } }}>
+      <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] overflow-y-auto p-6">
         {isLoading || !ordem ? (
           <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
           <>
-            <SheetHeader className="pb-3">
+            <DialogHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <SheetTitle className="text-lg">
+                <DialogTitle className="text-lg text-left">
                   {labelOS((ordem as any).numero, (ordem as any).numero_formatado)}
-                </SheetTitle>
+                </DialogTitle>
               </div>
               <div className="text-xs text-muted-foreground space-y-1 text-left">
                 <p className="truncate">
@@ -830,7 +831,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   {" em "}{new Date(ordem.created_at).toLocaleDateString("pt-BR")} às {new Date(ordem.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
-            </SheetHeader>
+            </DialogHeader>
 
             {ordem.status === "cancelado" && (
               <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs space-y-1">
@@ -1984,7 +1985,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             </div>
           </>
         )}
-      </SheetContent>
+      </DialogContent>
       <ConfirmarEntregaDialog
         entrega={entrega}
         onConfirm={(_orderId, status, data) => {
@@ -2193,7 +2194,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           )}
         </SheetContent>
       </Sheet>
-    </Sheet>
+    </Dialog>
   );
 }
 
