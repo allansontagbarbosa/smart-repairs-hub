@@ -2194,7 +2194,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           )}
         </SheetContent>
       </Sheet>
-    </Sheet>
+    </Dialog>
   );
 }
 
