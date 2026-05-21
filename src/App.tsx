@@ -179,6 +179,15 @@ const App = () => (
                   </SocioGuard>
                 </AuthGuard>
               } />
+              <Route path="/painel-socio/contas" element={
+                <AuthGuard>
+                  <SocioGuard>
+                    <AppLayout>
+                      <PainelSocioContas />
+                    </AppLayout>
+                  </SocioGuard>
+                </AuthGuard>
+              } />
 
               {/* Internal system with sidebar */}
               <Route path="*" element={
