@@ -74,15 +74,8 @@ Deno.serve(async (req) => {
       .single();
     historicoId = hist?.id ?? null;
 
-    // Coletar dados — usa service role para garantir acesso (internal e usuário)
-    const { data: dados, error: rpcErr } = await supabaseAdmin.rpc("coletar_dados_backup_admin", {
-      p_empresa_id: empresaId,
-    }).maybeSingle().then(r => r as any).catch(() => null) || { data: null, error: null };
-
-    // Fallback: usar a função normal via service role bypassa o check de auth.uid()
-    // Como SECURITY DEFINER checa auth.uid(), precisamos chamar via usuário ou criar versão admin.
-    // Vamos coletar diretamente aqui no edge usando service role:
     const dadosColetados = await coletarDadosDireto(supabaseAdmin, empresaId);
+
 
     // XLSX
     const wb = XLSX.utils.book_new();
