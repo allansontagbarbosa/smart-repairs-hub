@@ -26,6 +26,12 @@ const TIPO_CONFIG = {
   },
 } as const;
 
+const safeStr = (v: any): string => {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  try { return JSON.stringify(v); } catch { return ""; }
+};
+
 export function InsightsIA() {
   const { data, isLoading, error } = useInsightsSocio();
 
@@ -76,14 +82,13 @@ export function InsightsIA() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="font-semibold text-sm">{ins.titulo}</div>
+                    <div className="font-semibold text-sm">{safeStr(ins.titulo)}</div>
                     <div className={`text-sm font-bold whitespace-nowrap ${cfg.valor}`}>
-                      {ins.valor_impacto_centavos > 0 ? "" : ""}
-                      {brl(ins.valor_impacto_centavos)}
+                      {brl(Number(ins.valor_impacto_centavos) || 0)}
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{ins.descricao}</p>
-                  <p className="text-xs font-medium mt-2">👉 {ins.acao_sugerida}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{safeStr(ins.descricao)}</p>
+                  <p className="text-xs font-medium mt-2">👉 {safeStr(ins.acao_sugerida)}</p>
                 </div>
               </div>
             );
