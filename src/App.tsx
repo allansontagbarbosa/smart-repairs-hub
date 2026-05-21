@@ -35,6 +35,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { PerfilGuard } from "@/components/PerfilGuard";
 import { SocioGuard } from "@/components/SocioGuard";
 import PainelSocio from "./pages/PainelSocio";
+import PainelSocioContas from "./pages/PainelSocioContas";
 
 const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
 const PERFIS_TECNICO = ["Técnico"];
@@ -174,6 +175,15 @@ const App = () => (
                   <SocioGuard>
                     <AppLayout>
                       <PainelSocio />
+                    </AppLayout>
+                  </SocioGuard>
+                </AuthGuard>
+              } />
+              <Route path="/painel-socio/contas" element={
+                <AuthGuard>
+                  <SocioGuard>
+                    <AppLayout>
+                      <PainelSocioContas />
                     </AppLayout>
                   </SocioGuard>
                 </AuthGuard>
