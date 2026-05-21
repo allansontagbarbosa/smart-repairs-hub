@@ -1985,7 +1985,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
             </div>
           </>
         )}
-      </SheetContent>
+      </DialogContent>
       <ConfirmarEntregaDialog
         entrega={entrega}
         onConfirm={(_orderId, status, data) => {
