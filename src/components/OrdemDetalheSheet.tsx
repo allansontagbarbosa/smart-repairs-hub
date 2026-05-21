@@ -789,17 +789,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const nextStatus = ordem ? statusFlow[statusFlow.indexOf(ordem.status) + 1] : null;
 
   return (
-    <Sheet open={!!orderId} onOpenChange={(open) => { if (!open) { setEditing(false); onClose(); } }}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+    <Dialog open={!!orderId} onOpenChange={(open) => { if (!open) { setEditing(false); onClose(); } }}>
+      <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] overflow-y-auto p-6">
         {isLoading || !ordem ? (
           <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
           <>
-            <SheetHeader className="pb-3">
+            <DialogHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <SheetTitle className="text-lg">
+                <DialogTitle className="text-lg text-left">
                   {labelOS((ordem as any).numero, (ordem as any).numero_formatado)}
-                </SheetTitle>
+                </DialogTitle>
               </div>
               <div className="text-xs text-muted-foreground space-y-1 text-left">
                 <p className="truncate">
