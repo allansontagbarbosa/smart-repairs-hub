@@ -488,6 +488,140 @@ export type Database = {
           },
         ]
       }
+      caixa_empresa: {
+        Row: {
+          created_at: string
+          dia_fechamento: number
+          distribuir_automatico: boolean
+          empresa_id: string
+          id: string
+          reserva_meta_meses: number
+          reserva_percentual: number
+          saldo_a_distribuir_centavos: number
+          saldo_operacional_centavos: number
+          saldo_reserva_centavos: number
+          ultimo_fechamento_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dia_fechamento?: number
+          distribuir_automatico?: boolean
+          empresa_id: string
+          id?: string
+          reserva_meta_meses?: number
+          reserva_percentual?: number
+          saldo_a_distribuir_centavos?: number
+          saldo_operacional_centavos?: number
+          saldo_reserva_centavos?: number
+          ultimo_fechamento_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dia_fechamento?: number
+          distribuir_automatico?: boolean
+          empresa_id?: string
+          id?: string
+          reserva_meta_meses?: number
+          reserva_percentual?: number
+          saldo_a_distribuir_centavos?: number
+          saldo_operacional_centavos?: number
+          saldo_reserva_centavos?: number
+          ultimo_fechamento_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caixa_empresa_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caixa_movimentacoes: {
+        Row: {
+          afeta_distribuir: number | null
+          afeta_operacional: number | null
+          afeta_reserva: number | null
+          aprovado_por_user_id: string | null
+          created_at: string
+          data_movimentacao: string
+          descricao: string
+          empresa_id: string
+          estornada_em: string | null
+          estornada_por: string | null
+          id: string
+          observacoes: string | null
+          referencia_id: string | null
+          referencia_tabela: string | null
+          registrado_por_user_id: string | null
+          socio_id: string | null
+          socio_movimentacao_id: string | null
+          tipo: string
+          valor_centavos: number
+        }
+        Insert: {
+          afeta_distribuir?: number | null
+          afeta_operacional?: number | null
+          afeta_reserva?: number | null
+          aprovado_por_user_id?: string | null
+          created_at?: string
+          data_movimentacao?: string
+          descricao: string
+          empresa_id: string
+          estornada_em?: string | null
+          estornada_por?: string | null
+          id?: string
+          observacoes?: string | null
+          referencia_id?: string | null
+          referencia_tabela?: string | null
+          registrado_por_user_id?: string | null
+          socio_id?: string | null
+          socio_movimentacao_id?: string | null
+          tipo: string
+          valor_centavos: number
+        }
+        Update: {
+          afeta_distribuir?: number | null
+          afeta_operacional?: number | null
+          afeta_reserva?: number | null
+          aprovado_por_user_id?: string | null
+          created_at?: string
+          data_movimentacao?: string
+          descricao?: string
+          empresa_id?: string
+          estornada_em?: string | null
+          estornada_por?: string | null
+          id?: string
+          observacoes?: string | null
+          referencia_id?: string | null
+          referencia_tabela?: string | null
+          registrado_por_user_id?: string | null
+          socio_id?: string | null
+          socio_movimentacao_id?: string | null
+          tipo?: string
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caixa_movimentacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_movimentacoes_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capacidades: {
         Row: {
           ativo: boolean
@@ -1309,6 +1443,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distribuicoes_mensais: {
+        Row: {
+          created_at: string
+          distribuivel_centavos: number
+          empresa_id: string
+          fechado_em: string | null
+          fechado_por: string | null
+          id: string
+          lucro_liquido_centavos: number
+          mes_referencia: string
+          observacoes: string | null
+          reserva_percentual_aplicado: number
+          reserva_valor_centavos: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distribuivel_centavos: number
+          empresa_id: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          lucro_liquido_centavos: number
+          mes_referencia: string
+          observacoes?: string | null
+          reserva_percentual_aplicado: number
+          reserva_valor_centavos: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distribuivel_centavos?: number
+          empresa_id?: string
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          lucro_liquido_centavos?: number
+          mes_referencia?: string
+          observacoes?: string | null
+          reserva_percentual_aplicado?: number
+          reserva_valor_centavos?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribuicoes_mensais_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
@@ -5290,6 +5480,57 @@ export type Database = {
           },
         ]
       }
+      socio_contas: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          saldo_centavos: number
+          socio_id: string
+          total_creditado_ano_centavos: number
+          total_retirado_ano_centavos: number
+          ultima_movimentacao_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          saldo_centavos?: number
+          socio_id: string
+          total_creditado_ano_centavos?: number
+          total_retirado_ano_centavos?: number
+          ultima_movimentacao_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          saldo_centavos?: number
+          socio_id?: string
+          total_creditado_ano_centavos?: number
+          total_retirado_ano_centavos?: number
+          ultima_movimentacao_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socio_contas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "socio_contas_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: true
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       socio_insights_cache: {
         Row: {
           empresa_id: string | null
@@ -5390,6 +5631,88 @@ export type Database = {
           },
           {
             foreignKeyName: "socio_metas_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      socio_movimentacoes: {
+        Row: {
+          aprovado_por_user_id: string | null
+          ata_referencia: string | null
+          caixa_movimentacao_id: string | null
+          created_at: string
+          data_movimentacao: string
+          descricao: string
+          empresa_id: string
+          estornada_em: string | null
+          estornada_por: string | null
+          id: string
+          mes_referencia: string | null
+          observacoes: string | null
+          registrado_por_user_id: string | null
+          saldo_apos_centavos: number
+          socio_id: string
+          tipo: string
+          valor_centavos: number
+        }
+        Insert: {
+          aprovado_por_user_id?: string | null
+          ata_referencia?: string | null
+          caixa_movimentacao_id?: string | null
+          created_at?: string
+          data_movimentacao?: string
+          descricao: string
+          empresa_id: string
+          estornada_em?: string | null
+          estornada_por?: string | null
+          id?: string
+          mes_referencia?: string | null
+          observacoes?: string | null
+          registrado_por_user_id?: string | null
+          saldo_apos_centavos: number
+          socio_id: string
+          tipo: string
+          valor_centavos: number
+        }
+        Update: {
+          aprovado_por_user_id?: string | null
+          ata_referencia?: string | null
+          caixa_movimentacao_id?: string | null
+          created_at?: string
+          data_movimentacao?: string
+          descricao?: string
+          empresa_id?: string
+          estornada_em?: string | null
+          estornada_por?: string | null
+          id?: string
+          mes_referencia?: string | null
+          observacoes?: string | null
+          registrado_por_user_id?: string | null
+          saldo_apos_centavos?: number
+          socio_id?: string
+          tipo?: string
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "socio_movimentacoes_caixa_movimentacao_id_fkey"
+            columns: ["caixa_movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "caixa_movimentacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "socio_movimentacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "socio_movimentacoes_socio_id_fkey"
             columns: ["socio_id"]
             isOneToOne: false
             referencedRelation: "socios"
@@ -6161,6 +6484,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fechar_mes_distribuicao: {
+        Args: { p_mes_referencia: string }
+        Returns: Json
+      }
       gerar_codigo_tv: { Args: never; Returns: string }
       gerar_folha_mensal: { Args: { p_competencia: string }; Returns: Json }
       gerar_folha_mensal_completa: {
@@ -6176,6 +6503,7 @@ export type Database = {
         Returns: string
       }
       get_alertas_socio: { Args: never; Returns: Json }
+      get_caixa_empresa_completo: { Args: never; Returns: Json }
       get_clientes_com_stats: {
         Args: never
         Returns: {
@@ -6192,6 +6520,7 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      get_conta_socio: { Args: { p_socio_id?: string }; Returns: Json }
       get_dashboard_summary: {
         Args: { p_fim?: string; p_inicio?: string }
         Returns: Json
@@ -6498,6 +6827,16 @@ export type Database = {
           p_forma_pagamento?: string
           p_observacoes?: string
           p_valor: number
+        }
+        Returns: Json
+      }
+      registrar_retirada_socio: {
+        Args: {
+          p_ata_referencia?: string
+          p_descricao: string
+          p_socio_id: string
+          p_tipo: string
+          p_valor_centavos: number
         }
         Returns: Json
       }
