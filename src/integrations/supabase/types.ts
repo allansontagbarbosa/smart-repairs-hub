@@ -432,6 +432,62 @@ export type Database = {
           },
         ]
       }
+      backup_historico: {
+        Row: {
+          arquivo_json_bytes: number | null
+          arquivo_xlsx_bytes: number | null
+          concluido_em: string | null
+          contagem_registros: Json | null
+          email_destino: string | null
+          empresa_id: string
+          erro_mensagem: string | null
+          id: string
+          iniciado_em: string | null
+          iniciado_por_user_id: string | null
+          status: string
+          tabelas_incluidas: string[] | null
+          tipo: string
+        }
+        Insert: {
+          arquivo_json_bytes?: number | null
+          arquivo_xlsx_bytes?: number | null
+          concluido_em?: string | null
+          contagem_registros?: Json | null
+          email_destino?: string | null
+          empresa_id: string
+          erro_mensagem?: string | null
+          id?: string
+          iniciado_em?: string | null
+          iniciado_por_user_id?: string | null
+          status: string
+          tabelas_incluidas?: string[] | null
+          tipo: string
+        }
+        Update: {
+          arquivo_json_bytes?: number | null
+          arquivo_xlsx_bytes?: number | null
+          concluido_em?: string | null
+          contagem_registros?: Json | null
+          email_destino?: string | null
+          empresa_id?: string
+          erro_mensagem?: string | null
+          id?: string
+          iniciado_em?: string | null
+          iniciado_por_user_id?: string | null
+          status?: string
+          tabelas_incluidas?: string[] | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backup_historico_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capacidades: {
         Row: {
           ativo: boolean
@@ -1349,6 +1405,11 @@ export type Database = {
       }
       empresa_config: {
         Row: {
+          backup_dia_semana: number | null
+          backup_email_destino: string | null
+          backup_frequencia: string | null
+          backup_hora: number | null
+          backup_ultimo_envio_em: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -1382,6 +1443,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          backup_dia_semana?: number | null
+          backup_email_destino?: string | null
+          backup_frequencia?: string | null
+          backup_hora?: number | null
+          backup_ultimo_envio_em?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -1415,6 +1481,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          backup_dia_semana?: number | null
+          backup_email_destino?: string | null
+          backup_frequencia?: string | null
+          backup_hora?: number | null
+          backup_ultimo_envio_em?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -5873,6 +5944,7 @@ export type Database = {
         }
         Returns: Json
       }
+      coletar_dados_backup: { Args: { p_empresa_id: string }; Returns: Json }
       comissoes_tecnico_periodo: {
         Args: { p_fim: string; p_funcionario_id: string; p_inicio: string }
         Returns: Json
