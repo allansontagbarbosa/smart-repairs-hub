@@ -94,10 +94,17 @@ export default function PainelSocio() {
             </span>
           </h1>
         </div>
-        <Badge variant="outline" className="text-xs">
-          <Sparkles className="h-3 w-3 mr-1" />
-          Atualizado há instantes
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <a href="/painel-socio/contas">
+              <Wallet className="h-3.5 w-3.5 mr-1.5" /> Contas &amp; Caixa
+            </a>
+          </Button>
+          <Badge variant="outline" className="text-xs">
+            <Sparkles className="h-3 w-3 mr-1" />
+            Atualizado há instantes
+          </Badge>
+        </div>
       </div>
 
       {/* HERO */}
