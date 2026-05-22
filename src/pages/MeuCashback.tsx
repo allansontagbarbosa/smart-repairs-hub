@@ -91,7 +91,7 @@ export default function MeuCashback() {
                   {data.taxas_por_categoria.map((t: any) => (
                     <div key={t.categoria} className="flex justify-between items-center p-3 border rounded">
                       <span className="capitalize">{t.categoria.replace(/_/g, " ")}</span>
-                      <Badge variant="default">{t.percentual}%</Badge>
+                      <Badge variant="default">{t.display ?? (t.percentual != null ? `${t.percentual}%` : "")}</Badge>
                     </div>
                   ))}
                 </div>

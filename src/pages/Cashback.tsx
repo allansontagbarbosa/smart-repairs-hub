@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
-import { Wallet, Users, TrendingUp, TrendingDown, Plus, Settings, Power } from "lucide-react";
+import { Wallet, Users, TrendingUp, TrendingDown, Plus, Settings, Power, Cog } from "lucide-react";
 
 const fmtC = (c?: number | null) => formatCurrency((c ?? 0) / 100);
 
@@ -95,13 +95,13 @@ export default function Cashback() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <Wallet className="w-5 h-5 text-primary" />
               <div>
-                <p className="text-xs text-muted-foreground">Saldo total devido</p>
+                <p className="text-xs text-muted-foreground">Saldo devido</p>
                 <p className="text-2xl font-bold">{fmtC(data?.saldo_total_devido_centavos)}</p>
               </div>
             </div>
@@ -136,6 +136,23 @@ export default function Cashback() {
               <div>
                 <p className="text-xs text-muted-foreground">Usado no mês</p>
                 <p className="text-2xl font-bold text-orange-600">{fmtC(data?.usado_mes_centavos)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-muted/50 transition" onClick={() => nav("/configuracoes/cashback/custo-operacional")}>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Cog className="w-5 h-5 text-muted-foreground" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">Custo op./OS</p>
+                  <Badge variant={data?.custo_operacional?.modo === "manual" ? "secondary" : data?.custo_operacional?.modo === "desabilitado" ? "outline" : "default"} className="text-[10px] py-0">
+                    {data?.custo_operacional?.modo === "manual" ? "Manual" : data?.custo_operacional?.modo === "desabilitado" ? "Off" : "Auto"}
+                  </Badge>
+                </div>
+                <p className="text-2xl font-bold">{fmtC(data?.custo_operacional?.valor_centavos)}</p>
+                <p className="text-[10px] text-muted-foreground underline">Configurar</p>
               </div>
             </div>
           </CardContent>
