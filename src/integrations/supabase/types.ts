@@ -6876,14 +6876,7 @@ export type Database = {
         Args: { p_funcionario_id: string; p_mes_competencia: string }
         Returns: undefined
       }
-      test_consistencia_financeira: {
-        Args: never
-        Returns: {
-          detalhes: Json
-          resultado: string
-          teste: string
-        }[]
-      }
+      test_consistencia_financeira: { Args: never; Returns: Json }
       test_painel_socio_invariantes: {
         Args: never
         Returns: {
