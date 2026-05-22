@@ -660,6 +660,259 @@ export type Database = {
           },
         ]
       }
+      cashback_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          notificar_cliente_ao_creditar: boolean
+          permitir_uso_100pct_os: boolean
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          notificar_cliente_ao_creditar?: boolean
+          permitir_uso_100pct_os?: boolean
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          notificar_cliente_ao_creditar?: boolean
+          permitir_uso_100pct_os?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cashback_movimentacoes: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by_user_id: string | null
+          descricao: string
+          empresa_id: string
+          id: string
+          justificativa: string | null
+          ordem_id: string | null
+          percentual_aplicado: number | null
+          regra_id: string | null
+          saldo_apos_centavos: number
+          tipo: string
+          valor_centavos: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by_user_id?: string | null
+          descricao: string
+          empresa_id: string
+          id?: string
+          justificativa?: string | null
+          ordem_id?: string | null
+          percentual_aplicado?: number | null
+          regra_id?: string | null
+          saldo_apos_centavos: number
+          tipo: string
+          valor_centavos: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          descricao?: string
+          empresa_id?: string
+          id?: string
+          justificativa?: string | null
+          ordem_id?: string | null
+          percentual_aplicado?: number | null
+          regra_id?: string | null
+          saldo_apos_centavos?: number
+          tipo?: string
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_movimentacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_movimentacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_movimentacoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_de_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_movimentacoes_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "v_os_pendente_atribuicao"
+            referencedColumns: ["ordem_id"]
+          },
+          {
+            foreignKeyName: "cashback_movimentacoes_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "cashback_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cashback_regras: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by_user_id: string | null
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          percentual: number | null
+          prioridade: number
+          target_cliente_id: string | null
+          target_grupo_id: string | null
+          target_tipo_servico_id: string | null
+          tipo: string
+          updated_at: string
+          valor_fixo_centavos: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by_user_id?: string | null
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          percentual?: number | null
+          prioridade?: number
+          target_cliente_id?: string | null
+          target_grupo_id?: string | null
+          target_tipo_servico_id?: string | null
+          tipo: string
+          updated_at?: string
+          valor_fixo_centavos?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by_user_id?: string | null
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          percentual?: number | null
+          prioridade?: number
+          target_cliente_id?: string | null
+          target_grupo_id?: string | null
+          target_tipo_servico_id?: string | null
+          tipo?: string
+          updated_at?: string
+          valor_fixo_centavos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_regras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_regras_target_cliente_id_fkey"
+            columns: ["target_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_regras_target_grupo_id_fkey"
+            columns: ["target_grupo_id"]
+            isOneToOne: false
+            referencedRelation: "lojista_grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_regras_target_tipo_servico_id_fkey"
+            columns: ["target_tipo_servico_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cashback_saldos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+          saldo_centavos: number
+          total_recebido_centavos: number
+          total_usado_centavos: number
+          ultima_movimentacao_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          saldo_centavos?: number
+          total_recebido_centavos?: number
+          total_usado_centavos?: number
+          ultima_movimentacao_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          saldo_centavos?: number
+          total_recebido_centavos?: number
+          total_usado_centavos?: number
+          ultima_movimentacao_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_saldos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_saldos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_financeiras: {
         Row: {
           ativo: boolean
@@ -6099,6 +6352,14 @@ export type Database = {
     }
     Functions: {
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
+      ajustar_cashback_cliente: {
+        Args: {
+          p_cliente_id: string
+          p_justificativa: string
+          p_valor_centavos: number
+        }
+        Returns: Json
+      }
       alterar_tipo_cliente: {
         Args: { p_cliente_id: string; p_novo_tipo: string }
         Returns: Json
@@ -6110,6 +6371,10 @@ export type Database = {
           p_funcionario_id: string
           p_horas: number
         }
+        Returns: Json
+      }
+      aplicar_cashback_em_os: {
+        Args: { p_ordem_id: string; p_valor_usar_centavos: number }
         Returns: Json
       }
       atribuir_tecnico_os: {
@@ -6252,6 +6517,7 @@ export type Database = {
         Args: { p_competencia: string; p_funcionario_id: string }
         Returns: Json
       }
+      calcular_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       calcular_progresso_meta: { Args: { p_meta_id: string }; Returns: Json }
       cancelar_os: {
@@ -6290,6 +6556,7 @@ export type Database = {
         }
         Returns: Json
       }
+      creditar_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       criar_convite_cliente:
         | { Args: { p_cliente_id: string }; Returns: Json }
         | { Args: { p_cliente_id: string; p_email?: string }; Returns: Json }
@@ -6504,6 +6771,7 @@ export type Database = {
       }
       get_alertas_socio: { Args: never; Returns: Json }
       get_caixa_empresa_completo: { Args: never; Returns: Json }
+      get_cashback_empresa_dashboard: { Args: never; Returns: Json }
       get_clientes_com_stats: {
         Args: never
         Returns: {
@@ -6545,6 +6813,7 @@ export type Database = {
         }[]
       }
       get_lojista_contexto: { Args: never; Returns: Json }
+      get_meu_cashback: { Args: never; Returns: Json }
       get_meu_percentual_socio: { Args: never; Returns: number }
       get_minha_sessao_atual: { Args: never; Returns: Json }
       get_my_cliente_lojista: {
