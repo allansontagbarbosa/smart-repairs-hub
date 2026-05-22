@@ -64,6 +64,7 @@ import TVDisplay from "./pages/TVDisplay";
 import TVEditarLayout from "./pages/TVEditarLayout";
 import Cashback from "./pages/Cashback";
 import CashbackCliente from "./pages/CashbackCliente";
+import CashbackCustoOperacional from "./pages/CashbackCustoOperacional";
 import MeuCashback from "./pages/MeuCashback";
 
 
@@ -209,6 +210,7 @@ const App = () => (
                     <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="faturas_b2b.ver"><FaturasLojistas /></ProtectedRoute>} />
                     <Route path="/cashback" element={<ProtectedRoute permissao="financeiro.ver"><Cashback /></ProtectedRoute>} />
                     <Route path="/cashback/cliente/:id" element={<ProtectedRoute permissao="financeiro.ver"><CashbackCliente /></ProtectedRoute>} />
+                    <Route path="/configuracoes/cashback/custo-operacional" element={<ProtectedRoute permissao="financeiro.ver"><CashbackCustoOperacional /></ProtectedRoute>} />
                     <Route path="/meu-cashback" element={<MeuCashback />} />
                     <Route path="/clientes" element={<ProtectedRoute permissao="clientes.ver"><Clientes /></ProtectedRoute>} />
                     <Route path="/clientes/:id" element={<ProtectedRoute permissao="clientes.ver"><ClientePerfil /></ProtectedRoute>} />
