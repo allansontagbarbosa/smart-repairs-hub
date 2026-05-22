@@ -62,6 +62,8 @@ import TVConfigurar from "./pages/TVConfigurar";
 import TVAcesso from "./pages/TVAcesso";
 import TVDisplay from "./pages/TVDisplay";
 import TVEditarLayout from "./pages/TVEditarLayout";
+import Cashback from "./pages/Cashback";
+import MeuCashback from "./pages/MeuCashback";
 
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
@@ -204,6 +206,8 @@ const App = () => (
                     <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
                     <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
                     <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="faturas_b2b.ver"><FaturasLojistas /></ProtectedRoute>} />
+                    <Route path="/cashback" element={<ProtectedRoute permissao="financeiro.ver"><Cashback /></ProtectedRoute>} />
+                    <Route path="/meu-cashback" element={<MeuCashback />} />
                     <Route path="/clientes" element={<ProtectedRoute permissao="clientes.ver"><Clientes /></ProtectedRoute>} />
                     <Route path="/clientes/:id" element={<ProtectedRoute permissao="clientes.ver"><ClientePerfil /></ProtectedRoute>} />
                     <Route path="/fornecedores" element={<ProtectedRoute permissao="fornecedores.ver"><Fornecedores /></ProtectedRoute>} />

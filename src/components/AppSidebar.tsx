@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -31,6 +31,7 @@ const items = [
   { title: "Fornecedores", url: "/fornecedores", icon: Truck, permissao: "fornecedores" as keyof Permissoes },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, badgeKey: "financeiro" as const, permissao: "financeiro" as keyof Permissoes },
   { title: "Faturas B2B", url: "/financeiro/faturas-lojistas", icon: ReceiptText, permissao: "faturas_b2b" as keyof Permissoes },
+  { title: "Cashback", url: "/cashback", icon: Wallet, permissao: "financeiro" as keyof Permissoes },
   { title: "Relatórios", url: "/relatorios", icon: BarChart2, permissao: "relatorios" as keyof Permissoes },
   { title: "Desempenho técnicos", url: "/tecnicos/desempenho", icon: Trophy, permissao: "desempenho_tecnicos" as keyof Permissoes },
   { title: "Metas", url: "/metas", icon: Target, permissao: "metas" as keyof Permissoes },
