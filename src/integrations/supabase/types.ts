@@ -6451,6 +6451,14 @@ export type Database = {
     }
     Functions: {
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
+      ajustar_cashback_cliente: {
+        Args: {
+          p_cliente_id: string
+          p_justificativa: string
+          p_valor_centavos: number
+        }
+        Returns: Json
+      }
       alterar_tipo_cliente: {
         Args: { p_cliente_id: string; p_novo_tipo: string }
         Returns: Json
@@ -6462,6 +6470,10 @@ export type Database = {
           p_funcionario_id: string
           p_horas: number
         }
+        Returns: Json
+      }
+      aplicar_cashback_em_os: {
+        Args: { p_ordem_id: string; p_valor_usar_centavos: number }
         Returns: Json
       }
       atribuir_tecnico_os: {
@@ -6604,10 +6616,42 @@ export type Database = {
         Args: { p_competencia: string; p_funcionario_id: string }
         Returns: Json
       }
+      calcular_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       calcular_progresso_meta: { Args: { p_meta_id: string }; Returns: Json }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
+        Returns: Json
+      }
+      cashback_ativar_cliente: {
+        Args: {
+          p_ativar?: boolean
+          p_cliente_id: string
+          p_observacoes?: string
+        }
+        Returns: Json
+      }
+      cashback_get_cliente_config: {
+        Args: { p_cliente_id: string }
+        Returns: Json
+      }
+      cashback_recalcular_credito_os: {
+        Args: { p_ordem_id: string }
+        Returns: Json
+      }
+      cashback_recalcular_custo_operacional: { Args: never; Returns: Json }
+      cashback_set_custo_operacional_manual: {
+        Args: { p_modo?: string; p_valor_centavos: number }
+        Returns: Json
+      }
+      cashback_set_taxa_categoria: {
+        Args: {
+          p_categoria: string
+          p_cliente_id: string
+          p_percentual?: number
+          p_tipo_taxa: string
+          p_valor_fixo_centavos?: number
+        }
         Returns: Json
       }
       checar_rate_limit: {
@@ -6642,6 +6686,7 @@ export type Database = {
         }
         Returns: Json
       }
+      creditar_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       criar_convite_cliente:
         | { Args: { p_cliente_id: string }; Returns: Json }
         | { Args: { p_cliente_id: string; p_email?: string }; Returns: Json }
@@ -6856,6 +6901,7 @@ export type Database = {
       }
       get_alertas_socio: { Args: never; Returns: Json }
       get_caixa_empresa_completo: { Args: never; Returns: Json }
+      get_cashback_empresa_dashboard: { Args: never; Returns: Json }
       get_clientes_com_stats: {
         Args: never
         Returns: {
@@ -6897,6 +6943,7 @@ export type Database = {
         }[]
       }
       get_lojista_contexto: { Args: never; Returns: Json }
+      get_meu_cashback: { Args: never; Returns: Json }
       get_meu_percentual_socio: { Args: never; Returns: number }
       get_minha_sessao_atual: { Args: never; Returns: Json }
       get_my_cliente_lojista: {
