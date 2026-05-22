@@ -943,7 +943,9 @@ export type Database = {
           empresa_id: string
           id: string
           percentual: number
+          tipo_taxa: string
           updated_at: string
+          valor_fixo_centavos: number | null
         }
         Insert: {
           ativa?: boolean
@@ -953,7 +955,9 @@ export type Database = {
           empresa_id: string
           id?: string
           percentual: number
+          tipo_taxa?: string
           updated_at?: string
+          valor_fixo_centavos?: number | null
         }
         Update: {
           ativa?: boolean
@@ -963,7 +967,9 @@ export type Database = {
           empresa_id?: string
           id?: string
           percentual?: number
+          tipo_taxa?: string
           updated_at?: string
+          valor_fixo_centavos?: number | null
         }
         Relationships: [
           {
@@ -6605,11 +6611,21 @@ export type Database = {
         Args: { p_cliente_id: string }
         Returns: Json
       }
+      cashback_recalcular_retroativo: {
+        Args: {
+          p_categoria: string
+          p_cliente_id: string
+          p_mes_inicio: string
+        }
+        Returns: Json
+      }
       cashback_set_taxa_categoria: {
         Args: {
           p_categoria: string
           p_cliente_id: string
-          p_percentual: number
+          p_percentual?: number
+          p_tipo_taxa: string
+          p_valor_fixo_centavos?: number
         }
         Returns: Json
       }
