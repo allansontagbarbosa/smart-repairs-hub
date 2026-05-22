@@ -964,9 +964,14 @@ export type Database = {
           categoria: string
           cliente_id: string
           created_at: string
+          data_fim: string | null
+          data_inicio: string | null
           empresa_id: string
           id: string
           percentual: number | null
+          retroativo_aplicado_em: string | null
+          retroativo_qtd_os: number | null
+          retroativo_valor_total_centavos: number | null
           tipo_taxa: string
           updated_at: string
           valor_fixo_centavos: number | null
@@ -976,9 +981,14 @@ export type Database = {
           categoria: string
           cliente_id: string
           created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
           empresa_id: string
           id?: string
           percentual?: number | null
+          retroativo_aplicado_em?: string | null
+          retroativo_qtd_os?: number | null
+          retroativo_valor_total_centavos?: number | null
           tipo_taxa?: string
           updated_at?: string
           valor_fixo_centavos?: number | null
@@ -988,9 +998,14 @@ export type Database = {
           categoria?: string
           cliente_id?: string
           created_at?: string
+          data_fim?: string | null
+          data_inicio?: string | null
           empresa_id?: string
           id?: string
           percentual?: number | null
+          retroativo_aplicado_em?: string | null
+          retroativo_qtd_os?: number | null
+          retroativo_valor_total_centavos?: number | null
           tipo_taxa?: string
           updated_at?: string
           valor_fixo_centavos?: number | null
@@ -6623,6 +6638,14 @@ export type Database = {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
       }
+      cashback_aplicar_retroativo: {
+        Args: {
+          p_categoria: string
+          p_cliente_id: string
+          p_confirmacao?: boolean
+        }
+        Returns: Json
+      }
       cashback_ativar_cliente: {
         Args: {
           p_ativar?: boolean
@@ -6633,6 +6656,10 @@ export type Database = {
       }
       cashback_get_cliente_config: {
         Args: { p_cliente_id: string }
+        Returns: Json
+      }
+      cashback_preview_retroativo: {
+        Args: { p_categoria: string; p_cliente_id: string }
         Returns: Json
       }
       cashback_recalcular_credito_os: {
@@ -6648,6 +6675,8 @@ export type Database = {
         Args: {
           p_categoria: string
           p_cliente_id: string
+          p_data_fim?: string
+          p_data_inicio?: string
           p_percentual?: number
           p_tipo_taxa: string
           p_valor_fixo_centavos?: number
