@@ -669,6 +669,8 @@ export type Database = {
           empresa_id: string
           id: string
           justificativa: string | null
+          tipo_taxa_anterior: string | null
+          tipo_taxa_novo: string | null
           user_id: string | null
           valor_anterior: number | null
           valor_novo: number | null
@@ -681,6 +683,8 @@ export type Database = {
           empresa_id: string
           id?: string
           justificativa?: string | null
+          tipo_taxa_anterior?: string | null
+          tipo_taxa_novo?: string | null
           user_id?: string | null
           valor_anterior?: number | null
           valor_novo?: number | null
@@ -693,6 +697,8 @@ export type Database = {
           empresa_id?: string
           id?: string
           justificativa?: string | null
+          tipo_taxa_anterior?: string | null
+          tipo_taxa_novo?: string | null
           user_id?: string | null
           valor_anterior?: number | null
           valor_novo?: number | null
@@ -772,6 +778,11 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          custo_operacional_atualizado_em: string | null
+          custo_operacional_atualizado_por_user_id: string | null
+          custo_operacional_calculo_decomposicao: Json | null
+          custo_operacional_modo: string | null
+          custo_operacional_por_os_centavos: number | null
           empresa_id: string
           id: string
           notificar_cliente_ao_creditar: boolean
@@ -781,6 +792,11 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          custo_operacional_atualizado_em?: string | null
+          custo_operacional_atualizado_por_user_id?: string | null
+          custo_operacional_calculo_decomposicao?: Json | null
+          custo_operacional_modo?: string | null
+          custo_operacional_por_os_centavos?: number | null
           empresa_id: string
           id?: string
           notificar_cliente_ao_creditar?: boolean
@@ -790,6 +806,11 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          custo_operacional_atualizado_em?: string | null
+          custo_operacional_atualizado_por_user_id?: string | null
+          custo_operacional_calculo_decomposicao?: Json | null
+          custo_operacional_modo?: string | null
+          custo_operacional_por_os_centavos?: number | null
           empresa_id?: string
           id?: string
           notificar_cliente_ao_creditar?: boolean
@@ -808,6 +829,7 @@ export type Database = {
       }
       cashback_movimentacoes: {
         Row: {
+          calc_decomposicao: Json | null
           cliente_id: string
           created_at: string
           created_by_user_id: string | null
@@ -823,6 +845,7 @@ export type Database = {
           valor_centavos: number
         }
         Insert: {
+          calc_decomposicao?: Json | null
           cliente_id: string
           created_at?: string
           created_by_user_id?: string | null
@@ -838,6 +861,7 @@ export type Database = {
           valor_centavos: number
         }
         Update: {
+          calc_decomposicao?: Json | null
           cliente_id?: string
           created_at?: string
           created_by_user_id?: string | null
@@ -942,7 +966,7 @@ export type Database = {
           created_at: string
           empresa_id: string
           id: string
-          percentual: number
+          percentual: number | null
           tipo_taxa: string
           updated_at: string
           valor_fixo_centavos: number | null
@@ -954,7 +978,7 @@ export type Database = {
           created_at?: string
           empresa_id: string
           id?: string
-          percentual: number
+          percentual?: number | null
           tipo_taxa?: string
           updated_at?: string
           valor_fixo_centavos?: number | null
@@ -966,7 +990,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string
           id?: string
-          percentual?: number
+          percentual?: number | null
           tipo_taxa?: string
           updated_at?: string
           valor_fixo_centavos?: number | null
@@ -6427,14 +6451,6 @@ export type Database = {
     }
     Functions: {
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
-      ajustar_cashback_cliente: {
-        Args: {
-          p_cliente_id: string
-          p_justificativa: string
-          p_valor_centavos: number
-        }
-        Returns: Json
-      }
       alterar_tipo_cliente: {
         Args: { p_cliente_id: string; p_novo_tipo: string }
         Returns: Json
@@ -6446,10 +6462,6 @@ export type Database = {
           p_funcionario_id: string
           p_horas: number
         }
-        Returns: Json
-      }
-      aplicar_cashback_em_os: {
-        Args: { p_ordem_id: string; p_valor_usar_centavos: number }
         Returns: Json
       }
       atribuir_tecnico_os: {
@@ -6592,41 +6604,10 @@ export type Database = {
         Args: { p_competencia: string; p_funcionario_id: string }
         Returns: Json
       }
-      calcular_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       calcular_custo_pecas_os: { Args: { p_os_id: string }; Returns: number }
       calcular_progresso_meta: { Args: { p_meta_id: string }; Returns: Json }
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
-        Returns: Json
-      }
-      cashback_ativar_cliente: {
-        Args: {
-          p_ativar?: boolean
-          p_cliente_id: string
-          p_observacoes?: string
-        }
-        Returns: Json
-      }
-      cashback_get_cliente_config: {
-        Args: { p_cliente_id: string }
-        Returns: Json
-      }
-      cashback_recalcular_retroativo: {
-        Args: {
-          p_categoria: string
-          p_cliente_id: string
-          p_mes_inicio: string
-        }
-        Returns: Json
-      }
-      cashback_set_taxa_categoria: {
-        Args: {
-          p_categoria: string
-          p_cliente_id: string
-          p_percentual?: number
-          p_tipo_taxa: string
-          p_valor_fixo_centavos?: number
-        }
         Returns: Json
       }
       checar_rate_limit: {
@@ -6661,7 +6642,6 @@ export type Database = {
         }
         Returns: Json
       }
-      creditar_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       criar_convite_cliente:
         | { Args: { p_cliente_id: string }; Returns: Json }
         | { Args: { p_cliente_id: string; p_email?: string }; Returns: Json }
@@ -6876,7 +6856,6 @@ export type Database = {
       }
       get_alertas_socio: { Args: never; Returns: Json }
       get_caixa_empresa_completo: { Args: never; Returns: Json }
-      get_cashback_empresa_dashboard: { Args: never; Returns: Json }
       get_clientes_com_stats: {
         Args: never
         Returns: {
@@ -6918,7 +6897,6 @@ export type Database = {
         }[]
       }
       get_lojista_contexto: { Args: never; Returns: Json }
-      get_meu_cashback: { Args: never; Returns: Json }
       get_meu_percentual_socio: { Args: never; Returns: number }
       get_minha_sessao_atual: { Args: never; Returns: Json }
       get_my_cliente_lojista: {
