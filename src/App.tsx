@@ -66,6 +66,7 @@ import Cashback from "./pages/Cashback";
 import CashbackCliente from "./pages/CashbackCliente";
 import CashbackCustoOperacional from "./pages/CashbackCustoOperacional";
 import MeuCashback from "./pages/MeuCashback";
+import AdminResetSenhaLojista from "./pages/AdminResetSenhaLojista";
 
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
