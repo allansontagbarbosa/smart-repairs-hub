@@ -6466,6 +6466,10 @@ export type Database = {
     }
     Functions: {
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
+      admin_resetar_senha_lojista: {
+        Args: { p_email_lojista: string }
+        Returns: Json
+      }
       ajustar_cashback_cliente: {
         Args: {
           p_cliente_id: string

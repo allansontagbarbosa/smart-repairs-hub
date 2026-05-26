@@ -66,6 +66,7 @@ import Cashback from "./pages/Cashback";
 import CashbackCliente from "./pages/CashbackCliente";
 import CashbackCustoOperacional from "./pages/CashbackCustoOperacional";
 import MeuCashback from "./pages/MeuCashback";
+import AdminResetSenhaLojista from "./pages/AdminResetSenhaLojista";
 
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
@@ -233,6 +234,7 @@ const App = () => (
                     <Route path="/tv/editar/:painelId" element={<ProtectedRoute permissao="paineis_tv"><TVEditarLayout /></ProtectedRoute>} />
                     <Route path="/assistente" element={<Assistente />} />
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
+                    <Route path="/admin/lojistas/resetar-senha" element={<ProtectedRoute permissao="configuracoes"><AdminResetSenhaLojista /></ProtectedRoute>} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
                     
                     <Route path="*" element={<NotFound />} />
