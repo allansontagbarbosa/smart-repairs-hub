@@ -7187,7 +7187,15 @@ export type Database = {
         Returns: Json
       }
       portal_meus_aparelhos: { Args: never; Returns: Json }
+      portal_minhas_faturas: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       portal_minhas_garantias: { Args: never; Returns: Json }
+      portal_minhas_ordens: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: Json
+      }
       portal_reprovar_orcamento: {
         Args: { p_motivo?: string; p_os_id: string }
         Returns: Json
