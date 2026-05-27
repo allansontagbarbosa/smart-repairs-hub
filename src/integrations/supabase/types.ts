@@ -149,6 +149,51 @@ export type Database = {
           },
         ]
       }
+      aprovacoes_lancamento: {
+        Row: {
+          id: string
+          motivo: string | null
+          socio_id: string
+          solicitacao_id: string
+          user_id: string
+          votado_em: string
+          voto: string
+        }
+        Insert: {
+          id?: string
+          motivo?: string | null
+          socio_id: string
+          solicitacao_id: string
+          user_id: string
+          votado_em?: string
+          voto: string
+        }
+        Update: {
+          id?: string
+          motivo?: string | null
+          socio_id?: string
+          solicitacao_id?: string
+          user_id?: string
+          votado_em?: string
+          voto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aprovacoes_lancamento_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aprovacoes_lancamento_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacoes_lancamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas_digitais: {
         Row: {
           assinatura_base64: string
@@ -4594,6 +4639,66 @@ export type Database = {
           },
         ]
       }
+      notificacoes_socio: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          lida: boolean
+          lida_em: string | null
+          link_interno: string | null
+          mensagem: string
+          ref_id: string | null
+          socio_id: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          link_interno?: string | null
+          mensagem: string
+          ref_id?: string | null
+          socio_id: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          link_interno?: string | null
+          mensagem?: string
+          ref_id?: string | null
+          socio_id?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_socio_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_socio_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordens_de_servico: {
         Row: {
           aparelho_id: string
@@ -6336,6 +6441,86 @@ export type Database = {
           },
         ]
       }
+      solicitacoes_lancamento: {
+        Row: {
+          created_at: string
+          criada_por: string
+          criada_por_socio: string
+          data_referencia: string
+          descricao: string
+          empresa_id: string
+          extrato_id: string | null
+          finalizada_em: string | null
+          id: string
+          socio_destino: string
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          criada_por: string
+          criada_por_socio: string
+          data_referencia: string
+          descricao: string
+          empresa_id: string
+          extrato_id?: string | null
+          finalizada_em?: string | null
+          id?: string
+          socio_destino: string
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          criada_por?: string
+          criada_por_socio?: string
+          data_referencia?: string
+          descricao?: string
+          empresa_id?: string
+          extrato_id?: string | null
+          finalizada_em?: string | null
+          id?: string
+          socio_destino?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_lancamento_criada_por_socio_fkey"
+            columns: ["criada_por_socio"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_lancamento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_lancamento_extrato_id_fkey"
+            columns: ["extrato_id"]
+            isOneToOne: false
+            referencedRelation: "extrato_socio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_lancamento_socio_destino_fkey"
+            columns: ["socio_destino"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       status_ordem_servico: {
         Row: {
           ativo: boolean
@@ -6849,6 +7034,10 @@ export type Database = {
         Args: { p_motivo?: string; p_retirada_id: string }
         Returns: Json
       }
+      cancelar_solicitacao: {
+        Args: { p_solicitacao_id: string }
+        Returns: Json
+      }
       cashback_aplicar_retroativo: {
         Args: {
           p_categoria: string
@@ -7207,6 +7396,10 @@ export type Database = {
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_permissoes: { Args: never; Returns: Json }
       get_my_role: { Args: never; Returns: string }
+      get_notificacoes: {
+        Args: { p_apenas_nao_lidas?: boolean }
+        Returns: Json
+      }
       get_painel_socio_contas: { Args: never; Returns: Json }
       get_painel_socio_v1: {
         Args: { p_meses_historico?: number }
@@ -7226,6 +7419,7 @@ export type Database = {
           ultimo_pagamento_data: string
         }[]
       }
+      get_solicitacoes_pendentes: { Args: never; Returns: Json }
       get_tecnico_kpis_avancado: {
         Args: { p_ano?: number; p_funcionario_id: string; p_mes?: number }
         Returns: Json
@@ -7364,6 +7558,7 @@ export type Database = {
         Args: { p_acao: string; p_notif_id: string }
         Returns: Json
       }
+      marcar_notificacao_lida: { Args: { p_id?: string }; Returns: Json }
       marcar_os_pagas_em_massa: { Args: { p_os_ids: string[] }; Returns: Json }
       marcar_todas_notificacoes_lidas: { Args: never; Returns: Json }
       move_to_dlq: {
@@ -7532,6 +7727,16 @@ export type Database = {
         }
         Returns: Json
       }
+      solicitar_lancamento: {
+        Args: {
+          p_data_referencia: string
+          p_descricao: string
+          p_socio_destino: string
+          p_tipo: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       soltar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       sync_comissao_contas_a_pagar: {
         Args: { p_funcionario_id: string; p_mes_competencia: string }
@@ -7587,6 +7792,10 @@ export type Database = {
           existe: boolean
           status: string
         }[]
+      }
+      votar_solicitacao: {
+        Args: { p_motivo?: string; p_solicitacao_id: string; p_voto: string }
+        Returns: Json
       }
     }
     Enums: {
