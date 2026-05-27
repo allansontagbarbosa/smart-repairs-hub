@@ -133,8 +133,6 @@ export default function PainelSocioContas() {
           </div>
         </div>
 
-        {/* SOLICITAÇÕES PENDENTES (aparece só se houver) */}
-        <SolicitacoesPendentes />
 
         {/* SEÇÃO 1 — Caixa da Empresa */}
         <section className="space-y-3">
