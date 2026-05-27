@@ -84,6 +84,10 @@ export type PainelSocioData = {
     percentual: number;
     valor_estimado: number;
     eh_voce: boolean;
+    valor?: number;
+    valor_mes_passado?: number;
+    valor_ano_acumulado?: number;
+    variacao_pct?: number;
   }>;
   metas: Array<{
     id: string;
