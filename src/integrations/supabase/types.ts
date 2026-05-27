@@ -7186,6 +7186,8 @@ export type Database = {
         Args: { p_status_filter?: string }
         Returns: Json
       }
+      portal_lojas_do_grupo: { Args: never; Returns: Json }
+      portal_meu_perfil: { Args: never; Returns: Json }
       portal_meus_aparelhos: { Args: never; Returns: Json }
       portal_minhas_faturas: {
         Args: { p_limit?: number; p_offset?: number }
