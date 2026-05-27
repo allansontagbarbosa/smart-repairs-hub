@@ -183,6 +183,9 @@ export default function PainelSocioContas() {
           </div>
         </section>
 
+        {/* SOLICITAÇÕES PENDENTES */}
+        <SolicitacoesPendentes />
+
         {/* SEÇÃO 2 — Sócios */}
         <section className="space-y-3">
           <h2 className="text-xs uppercase tracking-wider text-muted-foreground">Contas dos sócios</h2>
