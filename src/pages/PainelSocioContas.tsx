@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Wallet, Shield, TrendingUp, ArrowDownToLine, User, ChevronLeft, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Loader2, Wallet, Shield, TrendingUp, ArrowDownToLine, User, ChevronLeft, RotateCcw, CheckCircle2, Plus, History } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
 import { useContasSocio, useExtratoSocio, type ExtratoFiltro } from "@/hooks/useContasSocio";
 import { NovaRetiradaDialog } from "@/components/painel-socio/NovaRetiradaDialog";
 import { FecharMesDialog } from "@/components/painel-socio/FecharMesDialog";
 import { ReabrirMesDialog } from "@/components/painel-socio/ReabrirMesDialog";
+import { NovoLancamentoDialog } from "@/components/painel-socio/NovoLancamentoDialog";
+import { SolicitacoesPendentes } from "@/components/painel-socio/SolicitacoesPendentes";
 
 const reaisToBRL = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
