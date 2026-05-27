@@ -2788,6 +2788,142 @@ export type Database = {
           },
         ]
       }
+      extrato_socio: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_movimento: string
+          descricao: string
+          empresa_id: string
+          fechamento_id: string | null
+          id: string
+          mes_ref: string | null
+          retirada_id: string | null
+          socio_id: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_movimento?: string
+          descricao: string
+          empresa_id: string
+          fechamento_id?: string | null
+          id?: string
+          mes_ref?: string | null
+          retirada_id?: string | null
+          socio_id: string
+          tipo: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_movimento?: string
+          descricao?: string
+          empresa_id?: string
+          fechamento_id?: string | null
+          id?: string
+          mes_ref?: string | null
+          retirada_id?: string | null
+          socio_id?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extrato_socio_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_socio_fechamento_id_fkey"
+            columns: ["fechamento_id"]
+            isOneToOne: false
+            referencedRelation: "fechamentos_mensais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_socio_retirada_id_fkey"
+            columns: ["retirada_id"]
+            isOneToOne: false
+            referencedRelation: "retiradas_socios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extrato_socio_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fechamentos_mensais: {
+        Row: {
+          comissoes: number
+          created_at: string
+          custo_pecas: number
+          despesas: number
+          distribuivel: number
+          empresa_id: string
+          faturamento: number
+          fechado_em: string
+          fechado_por: string | null
+          id: string
+          lucro_liquido: number
+          mes: string
+          observacoes: string | null
+          reserva_pct: number
+          reserva_val: number
+        }
+        Insert: {
+          comissoes?: number
+          created_at?: string
+          custo_pecas?: number
+          despesas?: number
+          distribuivel?: number
+          empresa_id: string
+          faturamento?: number
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          lucro_liquido?: number
+          mes: string
+          observacoes?: string | null
+          reserva_pct?: number
+          reserva_val?: number
+        }
+        Update: {
+          comissoes?: number
+          created_at?: string
+          custo_pecas?: number
+          despesas?: number
+          distribuivel?: number
+          empresa_id?: string
+          faturamento?: number
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          lucro_liquido?: number
+          mes?: string
+          observacoes?: string | null
+          reserva_pct?: number
+          reserva_val?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fechamentos_mensais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -5795,6 +5931,72 @@ export type Database = {
           },
         ]
       }
+      retiradas_socios: {
+        Row: {
+          cancelado_em: string | null
+          cancelado_por: string | null
+          created_at: string
+          criado_por: string | null
+          data_retirada: string
+          descricao: string | null
+          empresa_id: string
+          forma_pagamento: string
+          id: string
+          motivo_cancelamento: string | null
+          socio_id: string
+          status: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_retirada?: string
+          descricao?: string | null
+          empresa_id: string
+          forma_pagamento?: string
+          id?: string
+          motivo_cancelamento?: string | null
+          socio_id: string
+          status?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_retirada?: string
+          descricao?: string | null
+          empresa_id?: string
+          forma_pagamento?: string
+          id?: string
+          motivo_cancelamento?: string | null
+          socio_id?: string
+          status?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retiradas_socios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retiradas_socios_socio_id_fkey"
+            columns: ["socio_id"]
+            isOneToOne: false
+            referencedRelation: "socios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servico_pecas: {
         Row: {
           created_at: string
@@ -6465,6 +6667,7 @@ export type Database = {
       }
     }
     Functions: {
+      _socio_da_empresa: { Args: { p_empresa_id: string }; Returns: string }
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
       admin_resetar_senha_lojista: {
         Args: { p_email_lojista: string }
@@ -6642,6 +6845,10 @@ export type Database = {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
       }
+      cancelar_retirada: {
+        Args: { p_motivo?: string; p_retirada_id: string }
+        Returns: Json
+      }
       cashback_aplicar_retroativo: {
         Args: {
           p_categoria: string
@@ -6808,6 +7015,14 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_retirada: {
+        Args: {
+          p_data_retirada?: string
+          p_descricao?: string
+          p_valor: number
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -6914,6 +7129,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fechar_mes: { Args: { p_mes: string }; Returns: Json }
       fechar_mes_distribuicao: {
         Args: { p_mes_referencia: string }
         Returns: Json
@@ -6975,6 +7191,7 @@ export type Database = {
           tipo: string
         }[]
       }
+      get_extrato_socio: { Args: { p_filtro?: string }; Returns: Json }
       get_lojista_contexto: { Args: never; Returns: Json }
       get_meu_cashback: { Args: never; Returns: Json }
       get_meu_percentual_socio: { Args: never; Returns: number }
@@ -6990,6 +7207,7 @@ export type Database = {
       get_my_lojista_id: { Args: never; Returns: string }
       get_my_permissoes: { Args: never; Returns: Json }
       get_my_role: { Args: never; Returns: string }
+      get_painel_socio_contas: { Args: never; Returns: Json }
       get_painel_socio_v1: {
         Args: { p_meses_historico?: number }
         Returns: Json
@@ -7221,6 +7439,7 @@ export type Database = {
         Returns: Json
       }
       processar_notificacoes_diarias: { Args: never; Returns: Json }
+      reabrir_mes: { Args: { p_mes: string; p_motivo?: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
