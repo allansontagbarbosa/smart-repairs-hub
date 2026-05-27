@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Wallet, Shield, TrendingUp, ArrowDownToLine, User, ChevronLeft } from "lucide-react";
+import { Loader2, Wallet, Shield, TrendingUp, ArrowDownToLine, User, ChevronLeft, RotateCcw, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
+import { useContasSocio, useExtratoSocio, type ExtratoFiltro } from "@/hooks/useContasSocio";
+import { NovaRetiradaDialog } from "@/components/painel-socio/NovaRetiradaDialog";
+import { FecharMesDialog } from "@/components/painel-socio/FecharMesDialog";
+import { ReabrirMesDialog } from "@/components/painel-socio/ReabrirMesDialog";
 
 const reaisToBRL = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
@@ -28,13 +32,32 @@ const fmtMesLabel = (ym: string) => {
   return `${m}/${y}`;
 };
 
-type Filtro = "todos" | "creditos" | "debitos" | "pro_labore";
+const fmtData = (iso: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso.length <= 10 ? iso + "T00:00:00" : iso);
+  return d.toLocaleDateString("pt-BR");
+};
+
+const tipoLabel: Record<string, { label: string; credito: boolean }> = {
+  credito_fechamento: { label: "Crédito", credito: true },
+  debito_retirada: { label: "Débito", credito: false },
+  estorno_fechamento: { label: "Estorno", credito: false },
+  estorno_retirada: { label: "Estorno", credito: true },
+  pro_labore: { label: "Pró-labore", credito: false },
+  ajuste: { label: "Ajuste", credito: true },
+};
 
 export default function PainelSocioContas() {
-  const [filtro, setFiltro] = useState<Filtro>("todos");
-  const { data, isLoading } = usePainelSocio();
+  const [filtro, setFiltro] = useState<ExtratoFiltro>("todos");
+  const [retirarOpen, setRetirarOpen] = useState(false);
+  const [fecharOpen, setFecharOpen] = useState(false);
+  const [reabrirMes, setReabrirMes] = useState<string | null>(null);
 
-  if (isLoading) {
+  const { data, isLoading } = usePainelSocio();
+  const { data: contas, isLoading: loadingContas } = useContasSocio();
+  const { data: extrato } = useExtratoSocio(filtro);
+
+  if (isLoading || loadingContas) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -52,14 +75,26 @@ export default function PainelSocioContas() {
   const mesesCobertura = gastosFixosCentavos > 0 ? (saldoCaixaCentavos / gastosFixosCentavos).toFixed(1) : "—";
 
   const distribuivel = Number(data.mes_atual.distribuivel ?? 0);
-  const socios = data.socios || [];
-  const historico = data.historico || [];
-  const temHistorico = historico.some((h) => Number(h.lucro_liquido) > 0);
+  const sociosContas = contas?.socios || [];
+  const fechamentos = contas?.fechamentos || [];
+  const mesesDisponiveis = contas?.meses_disponiveis_pra_fechar || [];
+  const proximoMesFechar = mesesDisponiveis[0];
 
-  // Próximo mês a fechar (mês anterior)
-  const hoje = new Date();
-  const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-  const mesAnteriorYM = `${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth() + 1).padStart(2, "0")}`;
+  // Sócio logado
+  const meuSocio = sociosContas.find((s) => s.eh_voce);
+  const meuSaldo = Number(meuSocio?.saldo_a_retirar ?? 0);
+
+  // Preview do fechamento: usa dados de mes_atual (ou histórico se for mês anterior)
+  const mesAtual = data.mes_atual;
+  const histMes = data.historico?.find((h) => h.mes_inicio?.startsWith(proximoMesFechar || "__"));
+  const previewFat = histMes ? Number(histMes.faturamento) : Number(mesAtual.faturamento);
+  const previewPecas = histMes ? Number(histMes.custo_pecas) : Number(mesAtual.custo_pecas);
+  const previewCom = histMes ? Number(histMes.comissoes) : Number(mesAtual.comissoes);
+  const previewDesp = histMes ? Number(histMes.despesas) : Number(mesAtual.despesas);
+  const previewLL = histMes ? Number(histMes.lucro_liquido) : Number(mesAtual.lucro_liquido);
+  const reservaPct = Number(mesAtual.reserva_pct ?? 10);
+
+  const ultimoFechamento = fechamentos[0]; // ordenados desc
 
   return (
     <TooltipProvider>
@@ -78,14 +113,11 @@ export default function PainelSocioContas() {
               Saldos da empresa, reserva e conta corrente de cada sócio
             </p>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button disabled>Fechar mês {fmtMesLabel(mesAnteriorYM)}</Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Em desenvolvimento — Fase 2</TooltipContent>
-          </Tooltip>
+          {proximoMesFechar && (
+            <Button onClick={() => setFecharOpen(true)}>
+              Fechar mês {fmtMesLabel(proximoMesFechar)}
+            </Button>
+          )}
         </div>
 
         {/* SEÇÃO 1 — Caixa da Empresa */}
@@ -141,7 +173,7 @@ export default function PainelSocioContas() {
         <section className="space-y-3">
           <h2 className="text-xs uppercase tracking-wider text-muted-foreground">Contas dos sócios</h2>
           <div className="grid md:grid-cols-3 gap-4">
-            {socios.map((s) => (
+            {sociosContas.map((s) => (
               <Card key={s.id} className={s.eh_voce ? "ring-1 ring-primary/40" : ""}>
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-start justify-between">
@@ -166,28 +198,23 @@ export default function PainelSocioContas() {
                       Saldo a retirar
                     </div>
                     <div className="text-2xl font-bold tabular-nums">
-                      {reaisToBRL(0)}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground italic mt-0.5">
-                      Em desenvolvimento
+                      {reaisToBRL(s.saldo_a_retirar)}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      Creditado no ano: {reaisToBRL(s.valor_ano_acumulado)} · Retirado: {reaisToBRL(0)}
+                      Creditado no ano: {reaisToBRL(s.creditado_no_ano)} · Retirado: {reaisToBRL(s.total_retirado)}
                     </div>
                   </div>
 
                   {s.eh_voce && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span tabIndex={0} className="block">
-                          <Button size="sm" className="w-full" disabled>
-                            <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
-                            Retirar
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>Em desenvolvimento — Fase 2</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={meuSaldo <= 0}
+                      onClick={() => setRetirarOpen(true)}
+                    >
+                      <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
+                      Retirar
+                    </Button>
                   )}
                 </CardContent>
               </Card>
@@ -202,7 +229,7 @@ export default function PainelSocioContas() {
               Meu extrato · {data.socio?.nome}
             </h2>
             <div className="flex gap-1 text-xs">
-              {(["todos", "creditos", "debitos", "pro_labore"] as Filtro[]).map((f) => (
+              {(["todos", "creditos", "debitos", "pro_labore"] as ExtratoFiltro[]).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFiltro(f)}
@@ -232,11 +259,34 @@ export default function PainelSocioContas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      Nenhuma movimentação ainda.
-                    </TableCell>
-                  </TableRow>
+                  {(!extrato?.movimentos || extrato.movimentos.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                        Nenhuma movimentação ainda.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {extrato?.movimentos?.map((m) => {
+                    const meta = tipoLabel[m.tipo] || { label: m.tipo, credito: m.valor >= 0 };
+                    const credito = m.valor >= 0;
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell className="whitespace-nowrap">{fmtData(m.data_movimento)}</TableCell>
+                        <TableCell>{m.descricao}</TableCell>
+                        <TableCell>
+                          <Badge variant={credito ? "secondary" : "outline"} className="text-[10px]">
+                            {meta.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className={`text-right tabular-nums font-semibold ${credito ? "text-emerald-600" : "text-rose-600"}`}>
+                          {credito ? "+" : "−"}{reaisToBRL(Math.abs(m.valor))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {reaisToBRL(m.saldo_apos)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -254,34 +304,83 @@ export default function PainelSocioContas() {
                     <TableHead>Mês</TableHead>
                     <TableHead className="text-right">Faturamento</TableHead>
                     <TableHead className="text-right">Lucro líquido</TableHead>
+                    <TableHead className="text-right">Distribuído</TableHead>
                     <TableHead className="text-right">Meu valor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!temHistorico && (
+                  {fechamentos.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
                         Nenhum mês fechado ainda.
                       </TableCell>
                     </TableRow>
                   )}
-                  {temHistorico &&
-                    historico.map((h) => (
-                      <TableRow key={h.mes}>
-                        <TableCell className="font-medium">{fmtMesLabel(h.mes)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{reaisToBRL(h.faturamento)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{reaisToBRL(h.lucro_liquido)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-semibold">
-                          {reaisToBRL(h.meu_valor)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                  {fechamentos.map((f, idx) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-medium">{fmtMesLabel(f.mes)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{reaisToBRL(f.faturamento)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{reaisToBRL(f.lucro_liquido)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{reaisToBRL(f.distribuivel)}</TableCell>
+                      <TableCell className="text-right tabular-nums font-semibold">
+                        {reaisToBRL(f.meu_valor)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/20 border-0">
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Fechado
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {idx === 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setReabrirMes(f.mes)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reabrir
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </section>
       </div>
+
+      {/* Dialogs */}
+      {meuSocio && (
+        <NovaRetiradaDialog
+          open={retirarOpen}
+          onOpenChange={setRetirarOpen}
+          saldoDisponivel={meuSaldo}
+        />
+      )}
+      {proximoMesFechar && (
+        <FecharMesDialog
+          open={fecharOpen}
+          onOpenChange={setFecharOpen}
+          mes={proximoMesFechar}
+          faturamento={previewFat}
+          custoPecas={previewPecas}
+          comissoes={previewCom}
+          despesas={previewDesp}
+          lucroLiquido={previewLL}
+          reservaPct={reservaPct}
+          socios={sociosContas.map((s) => ({ id: s.id, nome: s.nome, percentual: s.percentual }))}
+        />
+      )}
+      {reabrirMes && (
+        <ReabrirMesDialog
+          open={!!reabrirMes}
+          onOpenChange={(v) => !v && setReabrirMes(null)}
+          mes={reabrirMes}
+        />
+      )}
     </TooltipProvider>
   );
 }
