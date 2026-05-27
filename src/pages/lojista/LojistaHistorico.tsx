@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useLojaFilter } from "@/contexts/LojistaContext";
+import { useLojistaContext } from "@/contexts/LojistaContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,27 +15,34 @@ function fmt(v: number | null | undefined) {
 const PAGE_SIZE = 50;
 
 export default function LojistaHistorico() {
-  const { lojaIds, pronto } = useLojaFilter();
+  const { lojas, lojaAtivaId, tipo } = useLojistaContext();
+  const todasLojaIds = useMemo(() => lojas.map(l => l.id), [lojas]);
+  const pronto = todasLojaIds.length > 0 && (tipo === "grupo" || tipo === "individual");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [page, setPage] = useState(0);
 
+  // Sempre busca todas as OSs do grupo (ou da loja única no caso individual).
+  // O filtro por loja específica é aplicado client-side, para que a paginação
+  // reflita corretamente o total filtrado.
   const { data: ordens = [] } = useQuery({
-    queryKey: ["lojista-historico", lojaIds],
+    queryKey: ["lojista-historico", todasLojaIds],
     enabled: pronto,
     queryFn: async () => {
       const { data } = await supabase
         .from("ordens_de_servico")
         .select("id, numero, status, valor, data_entrada, loja_id, aparelhos(marca, modelo, imei)")
-        .in("loja_id", lojaIds)
+        .in("loja_id", todasLojaIds)
         .is("deleted_at", null)
-        .order("data_entrada", { ascending: false });
+        .order("data_entrada", { ascending: false })
+        .limit(2000);
       return data ?? [];
     },
   });
 
   const filtered = useMemo(() => {
     let list = ordens;
+    if (lojaAtivaId) list = list.filter(o => o.loja_id === lojaAtivaId);
     if (statusFilter !== "todos") list = list.filter(o => o.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -46,13 +53,20 @@ export default function LojistaHistorico() {
       );
     }
     return list;
-  }, [ordens, statusFilter, search]);
+  }, [ordens, lojaAtivaId, statusFilter, search]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  // Reset de página ao trocar loja ativa
+  useEffect(() => { setPage(0); }, [lojaAtivaId]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const totalAtendidos = ordens.length;
-  const totalGasto = ordens.reduce((s, o) => s + (o.valor ?? 0), 0);
+  const escopoOrdens = useMemo(
+    () => (lojaAtivaId ? ordens.filter(o => o.loja_id === lojaAtivaId) : ordens),
+    [ordens, lojaAtivaId]
+  );
+  const totalAtendidos = escopoOrdens.length;
+  const totalGasto = escopoOrdens.reduce((s, o) => s + (o.valor ?? 0), 0);
 
   return (
     <div className="space-y-4">
