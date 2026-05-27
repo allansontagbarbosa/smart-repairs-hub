@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Wallet, Shield, TrendingUp, ArrowDownToLine, User, ChevronLeft, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Loader2, Wallet, Shield, TrendingUp, ArrowDownToLine, User, ChevronLeft, RotateCcw, CheckCircle2, Plus, History } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
 import { useContasSocio, useExtratoSocio, type ExtratoFiltro } from "@/hooks/useContasSocio";
 import { NovaRetiradaDialog } from "@/components/painel-socio/NovaRetiradaDialog";
 import { FecharMesDialog } from "@/components/painel-socio/FecharMesDialog";
 import { ReabrirMesDialog } from "@/components/painel-socio/ReabrirMesDialog";
+import { NovoLancamentoDialog } from "@/components/painel-socio/NovoLancamentoDialog";
+import { SolicitacoesPendentes } from "@/components/painel-socio/SolicitacoesPendentes";
 
 const reaisToBRL = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
@@ -52,6 +54,7 @@ export default function PainelSocioContas() {
   const [retirarOpen, setRetirarOpen] = useState(false);
   const [fecharOpen, setFecharOpen] = useState(false);
   const [reabrirMes, setReabrirMes] = useState<string | null>(null);
+  const [novoLancOpen, setNovoLancOpen] = useState(false);
 
   const { data, isLoading } = usePainelSocio();
   const { data: contas, isLoading: loadingContas } = useContasSocio();
@@ -113,12 +116,23 @@ export default function PainelSocioContas() {
               Saldos da empresa, reserva e conta corrente de cada sócio
             </p>
           </div>
-          {proximoMesFechar && (
-            <Button onClick={() => setFecharOpen(true)}>
-              Fechar mês {fmtMesLabel(proximoMesFechar)}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+              onClick={() => setNovoLancOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Novo lançamento
             </Button>
-          )}
+            {proximoMesFechar && (
+              <Button onClick={() => setFecharOpen(true)}>
+                Fechar mês {fmtMesLabel(proximoMesFechar)}
+              </Button>
+            )}
+          </div>
         </div>
+
 
         {/* SEÇÃO 1 — Caixa da Empresa */}
         <section className="space-y-3">
@@ -168,6 +182,9 @@ export default function PainelSocioContas() {
             </Card>
           </div>
         </section>
+
+        {/* SOLICITAÇÕES PENDENTES */}
+        <SolicitacoesPendentes />
 
         {/* SEÇÃO 2 — Sócios */}
         <section className="space-y-3">
@@ -272,7 +289,19 @@ export default function PainelSocioContas() {
                     return (
                       <TableRow key={m.id}>
                         <TableCell className="whitespace-nowrap">{fmtData(m.data_movimento)}</TableCell>
-                        <TableCell>{m.descricao}</TableCell>
+                        <TableCell>
+                          {m.descricao?.startsWith("[Retroativo]") ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Badge variant="outline" className="text-[9px] gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                                <History className="h-2.5 w-2.5" />
+                                RETROATIVO
+                              </Badge>
+                              <span>{m.descricao.replace(/^\[Retroativo\]\s*/, "")}</span>
+                            </span>
+                          ) : (
+                            m.descricao
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={credito ? "secondary" : "outline"} className="text-[10px]">
                             {meta.label}
@@ -381,6 +410,11 @@ export default function PainelSocioContas() {
           mes={reabrirMes}
         />
       )}
+      <NovoLancamentoDialog
+        open={novoLancOpen}
+        onOpenChange={setNovoLancOpen}
+        socios={sociosContas.map((s) => ({ id: s.id, nome: s.nome }))}
+      />
     </TooltipProvider>
   );
 }
