@@ -159,6 +159,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
 
+              <SocioNotificacoesSino />
               <NotificacoesSino />
 
               {/* Mobile: avatar com menu de perfil/sair */}
