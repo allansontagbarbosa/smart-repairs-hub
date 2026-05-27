@@ -116,12 +116,25 @@ export default function PainelSocioContas() {
               Saldos da empresa, reserva e conta corrente de cada sócio
             </p>
           </div>
-          {proximoMesFechar && (
-            <Button onClick={() => setFecharOpen(true)}>
-              Fechar mês {fmtMesLabel(proximoMesFechar)}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+              onClick={() => setNovoLancOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Novo lançamento
             </Button>
-          )}
+            {proximoMesFechar && (
+              <Button onClick={() => setFecharOpen(true)}>
+                Fechar mês {fmtMesLabel(proximoMesFechar)}
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* SOLICITAÇÕES PENDENTES (aparece só se houver) */}
+        <SolicitacoesPendentes />
 
         {/* SEÇÃO 1 — Caixa da Empresa */}
         <section className="space-y-3">
