@@ -289,7 +289,19 @@ export default function PainelSocioContas() {
                     return (
                       <TableRow key={m.id}>
                         <TableCell className="whitespace-nowrap">{fmtData(m.data_movimento)}</TableCell>
-                        <TableCell>{m.descricao}</TableCell>
+                        <TableCell>
+                          {m.descricao?.startsWith("[Retroativo]") ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Badge variant="outline" className="text-[9px] gap-1 border-amber-500/40 text-amber-700 dark:text-amber-400">
+                                <History className="h-2.5 w-2.5" />
+                                RETROATIVO
+                              </Badge>
+                              <span>{m.descricao.replace(/^\[Retroativo\]\s*/, "")}</span>
+                            </span>
+                          ) : (
+                            m.descricao
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={credito ? "secondary" : "outline"} className="text-[10px]">
                             {meta.label}
