@@ -54,6 +54,7 @@ export default function PainelSocioContas() {
   const [retirarOpen, setRetirarOpen] = useState(false);
   const [fecharOpen, setFecharOpen] = useState(false);
   const [reabrirMes, setReabrirMes] = useState<string | null>(null);
+  const [novoLancOpen, setNovoLancOpen] = useState(false);
 
   const { data, isLoading } = usePainelSocio();
   const { data: contas, isLoading: loadingContas } = useContasSocio();
