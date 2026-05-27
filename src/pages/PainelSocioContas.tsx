@@ -398,6 +398,11 @@ export default function PainelSocioContas() {
           mes={reabrirMes}
         />
       )}
+      <NovoLancamentoDialog
+        open={novoLancOpen}
+        onOpenChange={setNovoLancOpen}
+        socios={sociosContas.map((s) => ({ id: s.id, nome: s.nome }))}
+      />
     </TooltipProvider>
   );
 }
