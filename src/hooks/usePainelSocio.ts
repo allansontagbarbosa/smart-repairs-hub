@@ -104,6 +104,9 @@ export type PainelSocioData = {
     inadimplencia_qtd: number;
     inadimplencia_dias_max: number;
     gastos_fixos_mes_centavos: number;
+    saldo_caixa_centavos?: number;
+    capital_giro_centavos?: number;
+    dias_runway?: number;
   };
 };
 
