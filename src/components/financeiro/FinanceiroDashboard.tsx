@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { RegimeBadge } from "./RegimeBadge";
 
 const fmtCurrency = (v: number) =>
-  `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  `R$ ${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const COLORS = [
   "hsl(var(--primary))",
