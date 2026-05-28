@@ -1745,19 +1745,92 @@ export default function Assistencia() {
     );
   }
 
+  // ── LISTA MOBILE (cards verticais) ────────────────────────────────────────
+
+  function MobileList({ items }: { items: typeof sorted }) {
+    if (items.length === 0) {
+      return (
+        <div className="sm:hidden text-center py-12 text-sm text-muted-foreground">
+          Nenhuma OS encontrada
+        </div>
+      );
+    }
+    return (
+      <div className="sm:hidden space-y-2">
+        {items.map((order) => {
+          const valor = Number(order.valor_total ?? order.valor ?? 0);
+          const isCancelada = order.status === "cancelado";
+          const isCritica = order.prioridade.nivel === "critica";
+          return (
+            <button
+              key={order.id}
+              onClick={() => setSelectedOrderId(order.id)}
+              className={`w-full text-left bg-card border rounded-lg p-3 active:scale-[0.99] transition-transform ${
+                isCritica ? "border-destructive/40 bg-destructive/5" : ""
+              } ${isCancelada ? "opacity-60" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate">
+                    {order.aparelhos?.clientes?.nome ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {[order.aparelhos?.marca, order.aparelhos?.modelo].filter(Boolean).join(" ") || "—"}
+                  </p>
+                </div>
+                <span className="font-mono text-[11px] text-info shrink-0 tabular-nums">
+                  #{formatNumeroOS(order.numero, order.numero_formatado)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 text-[11px]">
+                  <StatusDot status={order.status as Status} />
+                  {statusLabels[order.status as Status] ?? order.status}
+                </span>
+                {order.prioridade.nivel !== "normal" && (
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                    order.prioridade.nivel === "critica"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-warning/10 text-warning"
+                  }`}>
+                    {order.prioridade.nivel}
+                  </span>
+                )}
+                {order.previsao_entrega && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3 w-3" />
+                    {format(new Date(order.previsao_entrega), "dd/MM")}
+                  </span>
+                )}
+                {valor > 0 && (
+                  <span className="ml-auto text-sm font-semibold tabular-nums">
+                    {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+
+
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER PRINCIPAL
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex-1 min-w-0">
           <h1 className="text-[18px] font-medium leading-6">Serviços</h1>
           <p className="text-[13px] text-muted-foreground">{totalOrders} ordens</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Desktop: ações em linha */}
+        <div className="hidden sm:flex items-center gap-2">
           {can("assistencia", "excluir") && (
             <Button asChild variant="outline" size="sm" className="text-destructive hover:text-destructive">
               <Link to="/assistencia/exclusao-canceladas">
@@ -1781,7 +1854,7 @@ export default function Assistencia() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="hidden sm:inline-flex items-center rounded-md border bg-card p-0.5">
+          <div className="inline-flex items-center rounded-md border bg-card p-0.5">
             <span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1 text-[12px] font-medium text-foreground cursor-default">
               <List className="h-3.5 w-3.5" /> Lista
             </span>
@@ -1799,6 +1872,35 @@ export default function Assistencia() {
             </Button>
           )}
         </div>
+
+        {/* Mobile: kebab menu (Nova OS já é FAB do bottom nav) */}
+        <div className="sm:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-10 w-10" aria-label="Mais ações">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport("csv")} disabled={isExporting}>
+                <Download className="h-4 w-4 mr-2" /> Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport("xlsx")} disabled={isExporting}>
+                <Download className="h-4 w-4 mr-2" /> Exportar Excel
+              </DropdownMenuItem>
+              {can("assistencia", "excluir") && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
+                    <Link to="/assistencia/exclusao-canceladas">
+                      <Trash2 className="h-4 w-4 mr-2" /> Excluir canceladas
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <NovaOrdemDialog open={dialogOpen} onOpenChange={setDialogOpen}
@@ -1815,12 +1917,12 @@ export default function Assistencia() {
 
         <TabsContent value="ordens" className="space-y-4">
           <BannerOSPendentes onAbrirOS={(id) => setSelectedOrderId(id)} />
-          <div className="flex items-center gap-2 rounded-md border-[0.5px] border-border/70 bg-card p-2">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-md border-[0.5px] border-border/70 bg-card p-2">
+            <div className="relative w-full sm:flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder='Cliente, modelo, defeito, IMEI, #1234, imei:359, tel:991, @reparo…'
-                className="h-9 border-0 bg-transparent pl-9 pr-20 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder='Cliente, modelo, IMEI, #1234…'
+                className="h-10 sm:h-9 border-0 bg-transparent pl-9 pr-20 text-[13px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Busca avançada de ordens de serviço"
@@ -1832,61 +1934,65 @@ export default function Assistencia() {
               )}
             </div>
 
-            <FiltrosAvancados
-              filters={filters}
-              clienteSearch={clienteSearch}
-              setClienteSearch={setClienteSearch}
-              clientes={clientesFiltro}
-              funcionarios={funcionariosFiltro}
-              marcas={marcasFiltro}
-              modelos={modelosFiltro}
-              onSetFilter={setAdvancedFilter}
-              onClearAll={clearAdvancedFilters}
-            />
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-[13px] font-normal">
-                  {getPeriodLabel(period)}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <FiltroPeriodo
-                  period={period}
-                  onPresetChange={handlePeriodPresetChange}
-                  onCustomChange={handleCustomPeriodChange}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex-1 sm:flex-initial">
+                <FiltrosAvancados
+                  filters={filters}
+                  clienteSearch={clienteSearch}
+                  setClienteSearch={setClienteSearch}
+                  clientes={clientesFiltro}
+                  funcionarios={funcionariosFiltro}
+                  marcas={marcasFiltro}
+                  modelos={modelosFiltro}
+                  onSetFilter={setAdvancedFilter}
+                  onClearAll={clearAdvancedFilters}
                 />
-              </PopoverContent>
-            </Popover>
+              </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-[30px] w-[30px]">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setAgrupar((v) => !v)}>
-                  {agrupar ? "Desagrupar" : "Agrupar por data"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => refetch()} disabled={isFetching}>
-                  <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
-                </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/assistencia/exclusao-canceladas"><Trash2 className="mr-2 h-4 w-4" /> Excluir canceladas</Link>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-[13px] font-normal flex-1 sm:flex-initial h-10 sm:h-9">
+                    {getPeriodLabel(period)}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <FiltroPeriodo
+                    period={period}
+                    onPresetChange={handlePeriodPresetChange}
+                    onCustomChange={handleCustomPeriodChange}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-10 w-10 sm:h-[30px] sm:w-[30px] shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setAgrupar((v) => !v)}>
+                    {agrupar ? "Desagrupar" : "Agrupar por data"}
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="sm:hidden">
-                  <Link to="/assistencia/fluxo"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem onClick={() => refetch()} disabled={isFetching}>
+                    <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`} /> Atualizar
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/assistencia/exclusao-canceladas"><Trash2 className="mr-2 h-4 w-4" /> Excluir canceladas</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/assistencia/fila-ia"><Brain className="mr-2 h-4 w-4" /> Fila IA</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="sm:hidden">
+                    <Link to="/assistencia/fluxo"><LayoutGrid className="mr-2 h-4 w-4" /> Kanban</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {activeFilterPills.length > 0 && (
@@ -1947,12 +2053,16 @@ export default function Assistencia() {
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-sm font-semibold text-foreground">{grupo} ({items.length})</h3>
                   </div>
-                  <Tabela items={items} />
+                  <div className="hidden sm:block"><Tabela items={items} /></div>
+                  <MobileList items={items} />
                 </div>
               ))}
             </div>
           ) : (
-            <Tabela items={paginatedSorted} />
+            <>
+              <div className="hidden sm:block"><Tabela items={paginatedSorted} /></div>
+              <MobileList items={paginatedSorted} />
+            </>
           )}
 
           {!isLoading && (

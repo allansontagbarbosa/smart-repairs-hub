@@ -31,7 +31,7 @@ export default function Compras() {
       </div>
 
       <Tabs defaultValue="recebidas" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-2 max-w-md h-10 sm:h-9">
           <TabsTrigger value="pedidos">Pedidos de compra</TabsTrigger>
           <TabsTrigger value="recebidas">Compras recebidas</TabsTrigger>
         </TabsList>

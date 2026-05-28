@@ -97,42 +97,72 @@ export function EntradasEstoque({ itens, preSelectedItemId, onClearPreSelected }
       ) : entradas.length === 0 ? (
         <div className="text-center py-10 text-sm text-muted-foreground">Nenhuma compra registrada.</div>
       ) : (
-        <div className="section-card">
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Fornecedor</th>
-                  <th className="hidden sm:table-cell">Nº Nota</th>
-                  <th className="text-center">Itens</th>
-                  <th className="text-right">Valor Total</th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {entradas.map((e: any) => (
-                  <tr key={e.id}>
-                    <td className="text-sm">{fmtDate(e.data_compra)}</td>
-                    <td className="text-sm">{e.fornecedor_nome || "—"}</td>
-                    <td className="hidden sm:table-cell text-sm text-muted-foreground">{e.numero_nota || "—"}</td>
-                    <td className="text-center">
-                      <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
-                        {e.entradas_estoque_itens?.length ?? 0}
-                      </span>
-                    </td>
-                    <td className="text-right text-sm font-medium">{e.valor_total ? fmtBRL(e.valor_total) : "—"}</td>
-                    <td>
-                      <button onClick={() => setDetailEntradaId(e.id)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
-                        <Eye className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile: cards verticais */}
+          <div className="sm:hidden space-y-2">
+            {entradas.map((e: any) => (
+              <button
+                key={e.id}
+                onClick={() => setDetailEntradaId(e.id)}
+                className="w-full text-left bg-card border rounded-lg p-3 active:scale-[0.99] transition-transform"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{e.fornecedor_nome || "—"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{fmtDate(e.data_compra)}</p>
+                  </div>
+                  <span className="font-semibold text-sm tabular-nums shrink-0">
+                    {e.valor_total ? fmtBRL(e.valor_total) : "—"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="bg-secondary px-2 py-0.5 rounded-full">
+                    {e.entradas_estoque_itens?.length ?? 0} {(e.entradas_estoque_itens?.length ?? 0) === 1 ? "item" : "itens"}
+                  </span>
+                  {e.numero_nota && <span>NF {e.numero_nota}</span>}
+                </div>
+              </button>
+            ))}
           </div>
-        </div>
+
+          {/* Desktop: tabela */}
+          <div className="hidden sm:block section-card">
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Fornecedor</th>
+                    <th className="hidden sm:table-cell">Nº Nota</th>
+                    <th className="text-center">Itens</th>
+                    <th className="text-right">Valor Total</th>
+                    <th className="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entradas.map((e: any) => (
+                    <tr key={e.id}>
+                      <td className="text-sm">{fmtDate(e.data_compra)}</td>
+                      <td className="text-sm">{e.fornecedor_nome || "—"}</td>
+                      <td className="hidden sm:table-cell text-sm text-muted-foreground">{e.numero_nota || "—"}</td>
+                      <td className="text-center">
+                        <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">
+                          {e.entradas_estoque_itens?.length ?? 0}
+                        </span>
+                      </td>
+                      <td className="text-right text-sm font-medium">{e.valor_total ? fmtBRL(e.valor_total) : "—"}</td>
+                      <td>
+                        <button onClick={() => setDetailEntradaId(e.id)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       <NovaCompraDialog
