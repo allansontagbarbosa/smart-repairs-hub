@@ -1745,6 +1745,78 @@ export default function Assistencia() {
     );
   }
 
+  // ── LISTA MOBILE (cards verticais) ────────────────────────────────────────
+
+  function MobileList({ items }: { items: typeof sorted }) {
+    if (items.length === 0) {
+      return (
+        <div className="sm:hidden text-center py-12 text-sm text-muted-foreground">
+          Nenhuma OS encontrada
+        </div>
+      );
+    }
+    return (
+      <div className="sm:hidden space-y-2">
+        {items.map((order) => {
+          const valor = Number(order.valor_total ?? order.valor ?? 0);
+          const isCancelada = order.status === "cancelado";
+          const isCritica = order.prioridade.nivel === "critica";
+          return (
+            <button
+              key={order.id}
+              onClick={() => setSelectedOrderId(order.id)}
+              className={`w-full text-left bg-card border rounded-lg p-3 active:scale-[0.99] transition-transform ${
+                isCritica ? "border-destructive/40 bg-destructive/5" : ""
+              } ${isCancelada ? "opacity-60" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm truncate">
+                    {order.aparelhos?.clientes?.nome ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {[order.aparelhos?.marca, order.aparelhos?.modelo].filter(Boolean).join(" ") || "—"}
+                  </p>
+                </div>
+                <span className="font-mono text-[11px] text-info shrink-0 tabular-nums">
+                  #{formatNumeroOS(order.numero, order.numero_formatado)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 text-[11px]">
+                  <StatusDot status={order.status as Status} />
+                  {statusLabels[order.status as Status] ?? order.status}
+                </span>
+                {order.prioridade.nivel !== "normal" && (
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                    order.prioridade.nivel === "critica"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-warning/10 text-warning"
+                  }`}>
+                    {order.prioridade.nivel}
+                  </span>
+                )}
+                {order.previsao_entrega && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3 w-3" />
+                    {format(new Date(order.previsao_entrega), "dd/MM")}
+                  </span>
+                )}
+                {valor > 0 && (
+                  <span className="ml-auto text-sm font-semibold tabular-nums">
+                    {valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+
+
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER PRINCIPAL
   // ─────────────────────────────────────────────────────────────────────────
