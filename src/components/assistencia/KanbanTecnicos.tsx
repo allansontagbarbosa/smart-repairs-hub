@@ -171,8 +171,7 @@ export default function KanbanTecnicos() {
           id, ordem_id, tecnico_id, status, nome, valor, iniciado_em, concluido_em, updated_at,
           ordens_de_servico!inner (
             numero, status, defeito_relatado, previsao_entrega, prioridade, data_entrada, valor, deleted_at, empresa_id,
-            clientes ( nome ),
-            aparelhos ( marca, modelo )
+            aparelhos ( marca, modelo, clientes ( nome ) )
           )
         `)
         .eq("empresa_id", empresaId!);
@@ -209,7 +208,7 @@ export default function KanbanTecnicos() {
           prioridade: o.prioridade,
           data_entrada: o.data_entrada,
           os_valor_total: Number(o.valor) || 0,
-          cliente_nome: o.clientes?.nome ?? null,
+          cliente_nome: o.aparelhos?.clientes?.nome ?? null,
           aparelho_modelo: o.aparelhos?.modelo ?? null,
           aparelho_marca: o.aparelhos?.marca ?? null,
           total_servicos_na_os: countByOrdem[r.ordem_id] ?? 1,
