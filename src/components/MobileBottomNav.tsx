@@ -27,7 +27,7 @@ export function MobileBottomNav({ onNewOS, onMoreClick }: Props) {
 
   return (
     <nav
-      className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="relative flex items-stretch h-16 max-w-md mx-auto px-1">

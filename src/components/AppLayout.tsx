@@ -74,19 +74,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         {/* Sidebar oculta no mobile (substituída por bottom nav) */}
-        <div className="hidden sm:flex">
+        <div className="hidden lg:flex">
           <AppSidebar />
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 sm:h-12 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 sticky top-0 z-30 gap-1.5 sm:gap-2" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <header className="h-14 lg:h-12 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 lg:px-4 sticky top-0 z-30 gap-1.5 lg:gap-2" style={{ paddingTop: "env(safe-area-inset-top)" }}>
             {/* Mobile: logo Ditt à esquerda */}
-            <div className="sm:hidden flex items-center">
+            <div className="lg:hidden flex items-center">
               <DittLogo size="sm" variant={resolvedTheme === "dark" ? "white" : "default"} />
             </div>
 
             {/* Desktop: trigger + atalhos */}
-            <div className="hidden sm:flex items-center gap-2 flex-1">
+            <div className="hidden lg:flex items-center gap-2 flex-1">
               <SidebarTrigger />
               <div className="h-5 w-px bg-border mx-1" />
               <div className="flex items-center gap-1.5 overflow-x-auto">
@@ -121,8 +121,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setSearchOpen(true)}
                 >
                   <Search className="h-3 w-3" />
-                  <span className="hidden lg:inline">Buscar</span>
-                  <kbd className="hidden lg:inline ml-1 rounded border bg-muted px-1 text-[10px] font-mono">⌘K</kbd>
+                  <span className="hidden xl:inline">Buscar</span>
+                  <kbd className="hidden xl:inline ml-1 rounded border bg-muted px-1 text-[10px] font-mono">⌘K</kbd>
                 </Button>
               </div>
             </div>
@@ -133,7 +133,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 sm:hidden"
+                className="h-9 w-9 lg:hidden"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Buscar"
               >
@@ -144,7 +144,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hidden sm:inline-flex"
+                className="h-8 w-8 hidden lg:inline-flex"
                 onClick={() => setShortcutsOpen(true)}
                 title="Atalhos de teclado"
               >
@@ -153,7 +153,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hidden sm:inline-flex"
+                className="h-8 w-8 hidden lg:inline-flex"
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
                 {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -163,7 +163,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <NotificacoesSino />
 
               {/* Mobile: avatar com menu de perfil/sair */}
-              <div className="sm:hidden">
+              <div className="lg:hidden">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -201,7 +201,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto pb-24 sm:pb-4">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto pb-24 lg:pb-4">
             <div className="max-w-6xl mx-auto">
               {children}
             </div>
