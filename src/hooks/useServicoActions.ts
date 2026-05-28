@@ -21,6 +21,7 @@ export function useIniciarServico() {
       toast.success("Serviço iniciado");
       qc.invalidateQueries({ queryKey: ["servicos-disponiveis"] });
       qc.invalidateQueries({ queryKey: ["meus-servicos-em-andamento"] });
+      qc.invalidateQueries({ queryKey: ["meus-servicos-atribuidos"] });
       qc.invalidateQueries({ queryKey: ["tecnico-minhas-os"] });
       qc.invalidateQueries({ queryKey: ["tecnico-os"] });
     },
@@ -64,6 +65,7 @@ export function useSoltarServico() {
       toast.success("Serviço devolvido para a fila");
       qc.invalidateQueries({ queryKey: ["servicos-disponiveis"] });
       qc.invalidateQueries({ queryKey: ["meus-servicos-em-andamento"] });
+      qc.invalidateQueries({ queryKey: ["meus-servicos-atribuidos"] });
       qc.invalidateQueries({ queryKey: ["tecnico-minhas-os"] });
       qc.invalidateQueries({ queryKey: ["tecnico-os"] });
     },
