@@ -133,7 +133,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 sm:hidden"
+                className="h-9 w-9 lg:hidden"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Buscar"
               >
