@@ -4699,6 +4699,66 @@ export type Database = {
           },
         ]
       }
+      notificacoes_tecnico: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          lida: boolean
+          lida_em: string | null
+          link_interno: string | null
+          mensagem: string
+          ref_id: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          link_interno?: string | null
+          mensagem: string
+          ref_id?: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          link_interno?: string | null
+          mensagem?: string
+          ref_id?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_tecnico_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_tecnico_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordens_de_servico: {
         Row: {
           aparelho_id: string
@@ -7400,6 +7460,10 @@ export type Database = {
         Args: { p_apenas_nao_lidas?: boolean }
         Returns: Json
       }
+      get_notificacoes_tecnico: {
+        Args: { p_apenas_nao_lidas?: boolean }
+        Returns: Json
+      }
       get_painel_socio_contas: { Args: never; Returns: Json }
       get_painel_socio_v1: {
         Args: { p_meses_historico?: number }
@@ -7559,6 +7623,10 @@ export type Database = {
         Returns: Json
       }
       marcar_notificacao_lida: { Args: { p_id?: string }; Returns: Json }
+      marcar_notificacao_tecnico_lida: {
+        Args: { p_id?: string }
+        Returns: Json
+      }
       marcar_os_pagas_em_massa: { Args: { p_os_ids: string[] }; Returns: Json }
       marcar_todas_notificacoes_lidas: { Args: never; Returns: Json }
       move_to_dlq: {
