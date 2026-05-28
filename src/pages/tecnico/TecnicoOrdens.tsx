@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useTecnicoIdentidade } from "@/hooks/useTecnico";
 import { useMeusServicosEmAndamento, useServicosDisponiveis } from "@/hooks/useServicosDisponiveis";
+import { useMeusServicosAtribuidos } from "@/hooks/useMeusServicosAtribuidos";
+import { useDevolverServicoAtribuido } from "@/hooks/useDevolverServicoAtribuido";
 import { useConcluirServico, useIniciarServico, useSoltarServico } from "@/hooks/useServicoActions";
-import { Clock, ExternalLink, Loader2, Play, RotateCcw, CheckCircle2, Search } from "lucide-react";
+import { Bell, Clock, ExternalLink, Loader2, Play, RotateCcw, CheckCircle2, Search, Undo2 } from "lucide-react";
 import { startOfDay, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -58,12 +60,23 @@ export default function TecnicoOrdens() {
   const { data: identidade } = useTecnicoIdentidade();
   const { data: disponiveis = [], isLoading: loadingDisp } = useServicosDisponiveis(identidade?.empresa_id);
   const { data: andamento = [], isLoading: loadingAndamento } = useMeusServicosEmAndamento(identidade?.funcionario_id);
+  const { data: atribuidos = [], isLoading: loadingAtrib } = useMeusServicosAtribuidos(identidade?.funcionario_id);
   const iniciar = useIniciarServico();
   const concluir = useConcluirServico();
   const soltar = useSoltarServico();
+  const devolver = useDevolverServicoAtribuido();
   const [tab, setTab] = useState("disponiveis");
   const [busca, setBusca] = useState("");
   const [filtroPrio, setFiltroPrio] = useState<"todas" | "alta" | "urgente">("todas");
+
+  // Pular automaticamente pra "Atribuídos" quando chegar uma atribuição nova (0 → >0)
+  const [prevAtribCount, setPrevAtribCount] = useState(0);
+  useEffect(() => {
+    if (prevAtribCount === 0 && atribuidos.length > 0) {
+      setTab("atribuidos");
+    }
+    setPrevAtribCount(atribuidos.length);
+  }, [atribuidos.length, prevAtribCount]);
 
   const filtraServicos = (lista: any[]) => {
     const q = busca.toLowerCase().trim();
@@ -89,6 +102,7 @@ export default function TecnicoOrdens() {
 
   const disponiveisFiltrados = useMemo(() => filtraServicos(disponiveis), [disponiveis, busca, filtroPrio]);
   const andamentoFiltrados = useMemo(() => filtraServicos(andamento), [andamento, busca, filtroPrio]);
+  const atribuidosFiltrados = useMemo(() => filtraServicos(atribuidos), [atribuidos, busca, filtroPrio]);
 
   return (
     <div className="space-y-4">
