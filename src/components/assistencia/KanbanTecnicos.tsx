@@ -28,10 +28,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, Clock, Loader2, MoreVertical, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { AlertTriangle, CheckCircle2, Clock, Loader2, MoreVertical, ExternalLink, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 const STATUS_ABERTOS: Status[] = [
   "recebido",
