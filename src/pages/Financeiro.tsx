@@ -53,10 +53,10 @@ export default function Financeiro() {
       </div>
 
       <Tabs defaultValue="fluxo" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 lg:max-w-6xl h-auto">
-          <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
-          <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
-          <TabsTrigger value="contas">
+        <TabsList className="flex w-full justify-start overflow-x-auto no-scrollbar sm:grid sm:grid-cols-4 lg:grid-cols-8 lg:max-w-6xl h-auto -mx-4 px-4 sm:mx-0 sm:px-1">
+          <TabsTrigger value="fluxo" className="shrink-0">Fluxo de Caixa</TabsTrigger>
+          <TabsTrigger value="dashboard" className="shrink-0">Visão Geral</TabsTrigger>
+          <TabsTrigger value="contas" className="shrink-0">
             Contas
             {kpis.contasVencidas > 0 && (
               <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold h-4 min-w-4 px-1">
@@ -64,8 +64,8 @@ export default function Financeiro() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="recebimentos">Recebimentos</TabsTrigger>
-          <TabsTrigger value="comissoes">
+          <TabsTrigger value="recebimentos" className="shrink-0">Recebimentos</TabsTrigger>
+          <TabsTrigger value="comissoes" className="shrink-0">
             Comissões
             {kpis.comissoesPendentesCount > 0 && (
               <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-warning text-warning-foreground text-[10px] font-bold h-4 min-w-4 px-1">
@@ -73,9 +73,9 @@ export default function Financeiro() {
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="saldo-clientes">Saldo de Clientes</TabsTrigger>
-          <TabsTrigger value="dre">DRE</TabsTrigger>
-          <TabsTrigger value="prejuizos">Prejuízos</TabsTrigger>
+          <TabsTrigger value="saldo-clientes" className="shrink-0">Saldo de Clientes</TabsTrigger>
+          <TabsTrigger value="dre" className="shrink-0">DRE</TabsTrigger>
+          <TabsTrigger value="prejuizos" className="shrink-0">Prejuízos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fluxo">
