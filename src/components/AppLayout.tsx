@@ -79,7 +79,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 sm:h-12 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 sticky top-0 z-30 gap-2">
+          <header className="h-14 sm:h-12 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 sticky top-0 z-30 gap-1.5 sm:gap-2" style={{ paddingTop: "env(safe-area-inset-top)" }}>
             {/* Mobile: logo Ditt à esquerda */}
             <div className="sm:hidden flex items-center">
               <DittLogo size="sm" variant={resolvedTheme === "dark" ? "white" : "default"} />
@@ -201,7 +201,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto pb-20 sm:pb-4">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto pb-24 sm:pb-4">
             <div className="max-w-6xl mx-auto">
               {children}
             </div>

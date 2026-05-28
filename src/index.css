@@ -262,6 +262,10 @@ body.compact .section-header {
   height: 12px;
 }
 
+/* Hide scrollbar utility (for horizontal tab scroll on mobile) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+
 /* Print: always white background */
 @media print {
   .dark {

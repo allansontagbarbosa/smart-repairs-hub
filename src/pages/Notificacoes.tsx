@@ -73,25 +73,31 @@ export default function NotificacoesPage() {
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-4 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger />
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Notificações</h1>
-          <p className="text-sm text-muted-foreground">Alertas e eventos do sistema</p>
+      <div className="space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger className="md:hidden" />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Notificações</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Alertas e eventos do sistema</p>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleAtualizar} disabled={processar.isPending}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${processar.isPending ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => marcarTodas.mutate()}>
-          <CheckCheck className="h-4 w-4 mr-2" />
-          Tudo lido
-        </Button>
+        <div className="flex gap-2 sm:ml-auto">
+          <Button variant="outline" size="sm" onClick={handleAtualizar} disabled={processar.isPending}
+                  className="flex-1 sm:flex-initial h-10 sm:h-9">
+            <RefreshCw className={`h-4 w-4 sm:mr-2 ${processar.isPending ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Atualizar</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => marcarTodas.mutate()}
+                  className="flex-1 sm:flex-initial h-10 sm:h-9">
+            <CheckCheck className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Tudo lido</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
         <Select value={filterSev} onValueChange={(v) => setFilterSev(v as SevFilter)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px] h-10 sm:h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -103,7 +109,7 @@ export default function NotificacoesPage() {
           </SelectContent>
         </Select>
         <Select value={filterLida} onValueChange={(v) => setFilterLida(v as LidaFilter)}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px] h-10 sm:h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -138,16 +144,16 @@ export default function NotificacoesPage() {
                   <div className={`p-2 rounded-md shrink-0 ${sev.bg}`}>
                     <Icon className={`h-4 w-4 ${sev.color}`} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm">{n.titulo}</p>
-                        <p className="text-sm text-muted-foreground mt-0.5">{n.mensagem}</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {new Date(n.created_at).toLocaleString("pt-BR")}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium text-sm break-words flex-1 min-w-0">{n.titulo}</p>
+                      <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                        {new Date(n.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                        {" "}
+                        {new Date(n.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
+                    <p className="text-sm text-muted-foreground break-words leading-relaxed">{n.mensagem}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {!n.lida && (

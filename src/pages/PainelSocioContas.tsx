@@ -116,17 +116,18 @@ export default function PainelSocioContas() {
               Saldos da empresa, reserva e conta corrente de cada sócio
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center sm:flex-wrap gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
-              className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+              size="sm"
+              className="h-10 sm:h-9 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
               onClick={() => setNovoLancOpen(true)}
             >
               <Plus className="h-4 w-4 mr-1.5" />
               Novo lançamento
             </Button>
             {proximoMesFechar && (
-              <Button onClick={() => setFecharOpen(true)}>
+              <Button size="sm" className="h-10 sm:h-9" onClick={() => setFecharOpen(true)}>
                 Fechar mês {fmtMesLabel(proximoMesFechar)}
               </Button>
             )}
