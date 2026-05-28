@@ -131,6 +131,11 @@
   h1, h2, h3 {
     letter-spacing: -0.025em;
   }
+
+  /* iOS: rolar input em foco pra cima do teclado virtual */
+  input:focus, textarea:focus, select:focus {
+    scroll-margin-bottom: 80px;
+  }
 }
 
 @layer components {
