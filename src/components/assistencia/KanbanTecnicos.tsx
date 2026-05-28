@@ -28,10 +28,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle2, Clock, Loader2, MoreVertical, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { AlertTriangle, CheckCircle2, Clock, Loader2, MoreVertical, ExternalLink, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 const STATUS_ABERTOS: Status[] = [
   "recebido",
@@ -275,6 +277,90 @@ export default function KanbanTecnicos() {
       <div className="flex justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  if (isMobile) {
+    return (
+      <>
+        <div className="space-y-2 pb-4">
+          {/* Sem técnico - sempre aberto */}
+          <Collapsible defaultOpen>
+            <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-400/40 rounded-lg active:scale-[0.99] transition-transform">
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+                <span className="text-sm font-semibold truncate">Sem técnico</span>
+                <span className="text-[11px] bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                  {abertosPorCol.__sem__.length}
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 space-y-2">
+              {abertosPorCol.__sem__.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/60 italic px-3 py-2">Tudo distribuído ✨</p>
+              ) : (
+                abertosPorCol.__sem__.map((s) => (
+                  <MobileServicoCard key={s.servico_id} srv={s} tecnicos={tecnicos} onSelect={setSelectedOrderId} mutate={atualizar.mutate} />
+                ))
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Cada técnico */}
+          {tecnicos.map((t) => {
+            const items = abertosPorCol[t.id] ?? [];
+            const avatarColor = AVATAR_COLORS[hashIdx(t.nome, AVATAR_COLORS.length)];
+            return (
+              <Collapsible key={t.id} defaultOpen={items.length > 0}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-3 bg-card border rounded-lg active:scale-[0.99] transition-transform">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar className="h-6 w-6 shrink-0">
+                      <AvatarFallback className={cn("text-[10px] text-white font-semibold", avatarColor)}>
+                        {t.nome.slice(0, 1).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-semibold truncate">{t.nome}</span>
+                    <span className="text-[11px] bg-muted rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                      {items.length}
+                    </span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2 space-y-2">
+                  {items.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/60 italic px-3 py-2">Sem serviços atribuídos</p>
+                  ) : (
+                    items.map((s) => (
+                      <MobileServicoCard key={s.servico_id} srv={s} tecnicos={tecnicos} onSelect={setSelectedOrderId} mutate={atualizar.mutate} />
+                    ))
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+
+          {/* Concluídas - link pra arquivo */}
+          <button
+            onClick={() => navigate('/assistencia?status=entregue')}
+            className="w-full flex items-center justify-between px-3 py-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-400/40 rounded-lg active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span className="text-sm font-semibold truncate">Concluídas no mês</span>
+              <span className="text-[11px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                {concluidasMes.length}
+              </span>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+          </button>
+        </div>
+
+        <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
+      </>
     );
   }
 
@@ -578,5 +664,81 @@ function CardMenu({ srv, tecnicos, onSelect, mutate }: { srv: ServicoCard; tecni
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function MobileServicoCard({ srv, tecnicos, onSelect, mutate }: {
+  srv: ServicoCard;
+  tecnicos: Tecnico[];
+  onSelect: (id: string) => void;
+  mutate: ReturnType<typeof useAtualizarTecnicoServico>["mutate"];
+}) {
+  const diasPrazo = srv.previsao_entrega
+    ? Math.ceil((new Date(srv.previsao_entrega).getTime() - Date.now()) / 86400000)
+    : null;
+  const prazoAtrasado = diasPrazo !== null && diasPrazo < 0;
+  const naColunaDesde = srv.iniciado_em ?? srv.updated_at ?? srv.data_entrada ?? null;
+  const diasColuna = daysBetween(naColunaDesde);
+  const paradoMuito = diasColuna !== null && diasColuna >= 5;
+  const defeitoLinha = (srv.defeito_relatado ?? "").split("\n")[0]?.trim();
+
+  return (
+    <div
+      onClick={() => onSelect(srv.ordem_id)}
+      className={cn(
+        "bg-card rounded-lg border p-3 space-y-1.5 active:scale-[0.99] transition-transform cursor-pointer",
+        paradoMuito && "border-l-2 border-l-amber-400",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-sm font-medium leading-tight truncate">{srv.cliente_nome ?? "—"}</span>
+            <span className="text-[10px] font-mono text-muted-foreground shrink-0">#{String(srv.os_numero).padStart(5, "0")}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">{srv.aparelho_marca} {srv.aparelho_modelo}</p>
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <CardMenu srv={srv} tecnicos={tecnicos} onSelect={onSelect} mutate={mutate} />
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80 truncate">
+        {srv.servico_nome ?? "Serviço"}
+      </p>
+
+      {defeitoLinha && (
+        <p className="text-[11px] text-muted-foreground line-clamp-1">{defeitoLinha}</p>
+      )}
+
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Badge variant="outline" className="text-[10px] py-0 h-4">
+          {statusLabels[srv.os_status]}
+        </Badge>
+        {srv.previsao_entrega && (
+          <span className={cn(
+            "inline-flex items-center gap-0.5 text-[10px]",
+            prazoAtrasado ? "text-destructive font-semibold" : (diasPrazo ?? 0) <= 1 ? "text-warning font-medium" : "text-muted-foreground"
+          )}>
+            <Clock className="h-2.5 w-2.5" />
+            {prazoAtrasado ? `Atrasado ${Math.abs(diasPrazo ?? 0)}d` : `Prazo ${diasPrazo}d`}
+          </span>
+        )}
+        {srv.total_servicos_na_os > 1 && (
+          <span className="text-[10px] text-muted-foreground italic">
+            ({srv.total_servicos_na_os} serviços)
+          </span>
+        )}
+        {srv.servico_valor > 0 && (
+          <span className="ml-auto text-[11px] font-semibold">{fmtBRL(srv.servico_valor)}</span>
+        )}
+      </div>
+
+      {paradoMuito && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+          parado há {diasColuna}d
+        </p>
+      )}
+    </div>
   );
 }

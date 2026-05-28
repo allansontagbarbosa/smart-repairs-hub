@@ -12,8 +12,9 @@ import {
   Plus, AlertTriangle, Clock, CheckCircle, TrendingUp,
   TrendingDown, Wrench, Smartphone, DollarSign, Package,
   Users, Target, AlertCircle, ChevronRight,
-  Settings, Loader2, Receipt, CreditCard,
+  Settings, Loader2, Receipt, CreditCard, Info,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -496,13 +497,25 @@ export default function Dashboard() {
       ══════════════════════════════════════════════════════════════════════ */}
       {can("financeiro", "ver") && (
       <div>
-        <SectionTitle>Financeiro do período</SectionTitle>
-        <p className="text-[11px] text-muted-foreground -mt-1">
-          Faturamento e lucro contam OS <strong>concluídas</strong> (status Pronto ou Entregue) com data de conclusão dentro do período selecionado.
-        </p>
-        <p className="text-xs text-muted-foreground mb-3">
-          Período: {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")}
-        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <SectionTitle>Financeiro do período</SectionTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 -ml-1 text-muted-foreground">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="start" className="w-72 text-xs space-y-2">
+              <p>
+                Faturamento e lucro contam OS <strong>concluídas</strong> (status Pronto ou Entregue) com data de conclusão dentro do período selecionado.
+              </p>
+              <p className="text-muted-foreground">
+                Período: {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")}
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
+
 
         {/* ── MOBILE: hierarquia destacada ── */}
         <div className="grid grid-cols-1 gap-3 sm:hidden">
@@ -668,24 +681,54 @@ export default function Dashboard() {
 
         {/* Fórmula resumida */}
         <Card className="mt-3">
-          <CardContent className="p-3 space-y-1">
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="p-3 space-y-2">
+            {/* Desktop: fórmula em linha */}
+            <p className="hidden sm:block text-xs text-muted-foreground">
               <strong>EBITDA:</strong>{" "}
               {brl(kpis.faturamento)} − Peças ({brl(kpis.custosPecasMes)}) − Fixos ({brl(kpis.gastosFixos)}) − Variáveis ({brl(kpis.gastosVariaveis)}) − Comissões ({brl(kpis.totalComissoesPeriodo)}) ={" "}
               <strong className={kpis.ebitda >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ebitda)}</strong>
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="hidden sm:block text-xs text-muted-foreground">
               <strong>Lucro líquido:</strong>{" "}
               EBITDA ({brl(kpis.ebitda)}) − Depreciação ({brl(kpis.depreciacao)}) − Impostos ({brl(kpis.impostos)}) ={" "}
               <strong className={kpis.ll >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ll)}</strong>
             </p>
+
+            {/* Mobile: lista vertical */}
+            <div className="sm:hidden space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">EBITDA</p>
+              <dl className="text-xs space-y-1 tabular-nums">
+                <div className="flex justify-between"><dt className="text-muted-foreground">Faturamento</dt><dd>{brl(kpis.faturamento)}</dd></div>
+                <div className="flex justify-between"><dt className="text-muted-foreground">(–) Peças</dt><dd>{brl(kpis.custosPecasMes)}</dd></div>
+                <div className="flex justify-between"><dt className="text-muted-foreground">(–) Fixos</dt><dd>{brl(kpis.gastosFixos)}</dd></div>
+                <div className="flex justify-between"><dt className="text-muted-foreground">(–) Variáveis</dt><dd>{brl(kpis.gastosVariaveis)}</dd></div>
+                <div className="flex justify-between"><dt className="text-muted-foreground">(–) Comissões</dt><dd>{brl(kpis.totalComissoesPeriodo)}</dd></div>
+                <div className="flex justify-between border-t pt-1 mt-1 font-semibold">
+                  <dt>= EBITDA</dt>
+                  <dd className={kpis.ebitda >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ebitda)}</dd>
+                </div>
+              </dl>
+
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pt-2">Lucro líquido</p>
+              <dl className="text-xs space-y-1 tabular-nums">
+                <div className="flex justify-between"><dt className="text-muted-foreground">EBITDA</dt><dd>{brl(kpis.ebitda)}</dd></div>
+                <div className="flex justify-between"><dt className="text-muted-foreground">(–) Depreciação</dt><dd>{brl(kpis.depreciacao)}</dd></div>
+                <div className="flex justify-between"><dt className="text-muted-foreground">(–) Impostos</dt><dd>{brl(kpis.impostos)}</dd></div>
+                <div className="flex justify-between border-t pt-1 mt-1 font-semibold">
+                  <dt>= Lucro líquido</dt>
+                  <dd className={kpis.ll >= 0 ? "text-green-600" : "text-red-600"}>{brl(kpis.ll)}</dd>
+                </div>
+              </dl>
+            </div>
+
             {competenciaInfo.fracao && (
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-2 break-words">
                 ⓘ Faturamento, peças e comissões respeitam o range exato de datas. Gastos fixos e variáveis sempre contam o mês inteiro de competência ({competenciaInfo.meses.join(", ")}) — por isso o EBITDA pode parecer mais negativo em filtros de fração de mês.
               </p>
             )}
           </CardContent>
         </Card>
+
 
         {/* Card: Meta mensal de faturamento */}
         <Card className="mt-3">
