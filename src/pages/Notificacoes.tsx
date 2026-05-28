@@ -163,7 +163,7 @@ export default function NotificacoesPage() {
                         {new Date(n.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground break-words leading-relaxed">{n.mensagem}</p>
+                    <p className="text-sm text-muted-foreground break-words leading-relaxed">{formatarMensagem(n.mensagem)}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {!n.lida && (
