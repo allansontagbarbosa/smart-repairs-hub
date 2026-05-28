@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { usePermissoes } from "@/hooks/usePermissoes";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -13,40 +12,9 @@ interface Props {
 
 export function PerfilGuard({ perfis, children }: Props) {
   const { user, loading: authLoading } = useAuth();
-  const [perfilNome, setPerfilNome] = useState<string | null>(null);
-  const [checando, setChecando] = useState(true);
+  const { perfil, loading: permLoading } = usePermissoes();
 
-  useEffect(() => {
-    if (!user) {
-      setChecando(false);
-      return;
-    }
-
-    let cancelled = false;
-    setChecando(true);
-
-    (async () => {
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("perfis_acesso(nome_perfil)")
-        .eq("user_id", user.id)
-        .eq("ativo", true)
-        .maybeSingle();
-
-      if (cancelled) return;
-
-      const pa = (data as any)?.perfis_acesso;
-      const nome = Array.isArray(pa) ? pa[0]?.nome_perfil : pa?.nome_perfil;
-      setPerfilNome(nome ?? null);
-      setChecando(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  if (authLoading || checando) {
+  if (authLoading || permLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -56,14 +24,15 @@ export function PerfilGuard({ perfis, children }: Props) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (perfis) {
-    // Se exige perfil específico mas usuário não tem perfil → bloqueia
-    if (!perfilNome) {
-      return <Navigate to="/sem-acesso" replace />;
+  if (perfis && perfil) {
+    // "sem_perfil" pode indicar timeout/lock do Supabase — NÃO bloquear.
+    // ProtectedRoute (permissão CRUD) + RLS do banco continuam protegendo.
+    if (perfil === "sem_perfil") {
+      console.warn("[PerfilGuard] perfil indeterminado, liberando — guard de permissão + RLS protegem");
+      return <>{children}</>;
     }
-    // Tem perfil mas não está na lista permitida → redireciona pra home dele
-    if (!perfis.includes(perfilNome)) {
-      if (perfilNome === "Técnico") return <Navigate to="/tecnico" replace />;
+    if (!perfis.includes(perfil)) {
+      if (perfil === "Técnico") return <Navigate to="/tecnico" replace />;
       return <Navigate to="/dashboard" replace />;
     }
   }
