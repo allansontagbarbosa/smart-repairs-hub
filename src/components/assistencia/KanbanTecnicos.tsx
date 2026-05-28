@@ -508,8 +508,15 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
       </div>
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className="text-[10px] text-muted-foreground">
-          {tecAtual && diasColuna !== null ? `com ${tecAtual.nome.split(" ")[0]} há ${diasColuna}d` : naColunaDesde ? `há ${diasColuna}d` : ""}
+        <span className={cn(
+          "text-[10px]",
+          paradoMuito ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"
+        )}>
+          {paradoMuito
+            ? `parado há ${diasColuna}d`
+            : tecAtual && diasColuna !== null
+              ? `com ${tecAtual.nome.split(" ")[0]} há ${diasColuna}d`
+              : naColunaDesde ? `há ${diasColuna}d` : ""}
         </span>
         {srv.servico_valor > 0 && (
           <span className="text-[11px] font-semibold">{fmtBRL(srv.servico_valor)}</span>
