@@ -74,14 +74,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         {/* Sidebar oculta no mobile (substituída por bottom nav) */}
-        <div className="hidden sm:flex">
+        <div className="hidden lg:flex">
           <AppSidebar />
         </div>
 
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 sm:h-12 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 sticky top-0 z-30 gap-1.5 sm:gap-2" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <header className="h-14 lg:h-12 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 lg:px-4 sticky top-0 z-30 gap-1.5 lg:gap-2" style={{ paddingTop: "env(safe-area-inset-top)" }}>
             {/* Mobile: logo Ditt à esquerda */}
-            <div className="sm:hidden flex items-center">
+            <div className="lg:hidden flex items-center">
               <DittLogo size="sm" variant={resolvedTheme === "dark" ? "white" : "default"} />
             </div>
 
