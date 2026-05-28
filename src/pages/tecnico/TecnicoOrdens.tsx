@@ -145,10 +145,76 @@ export default function TecnicoOrdens() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-2 w-full">
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="atribuidos" className="relative">
+            <Bell className="h-3.5 w-3.5 mr-1.5" />
+            Atribuídos ({atribuidosFiltrados.length})
+            {atribuidos.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
+            )}
+          </TabsTrigger>
           <TabsTrigger value="disponiveis">Disponíveis ({disponiveisFiltrados.length})</TabsTrigger>
           <TabsTrigger value="andamento">Em andamento ({andamentoFiltrados.length})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="atribuidos" className="space-y-2 pt-3">
+          {loadingAtrib ? (
+            <Loading />
+          ) : atribuidosFiltrados.length === 0 ? (
+            <Empty text={busca || filtroPrio !== "todas" ? "Nenhum serviço corresponde ao filtro" : "Nenhum serviço atribuído a você no momento"} />
+          ) : (
+            atribuidosFiltrados.map((servico: any) => {
+              const os = servico.ordens_de_servico;
+              return (
+                <Card key={servico.id} className="border-warning/50 bg-warning/5">
+                  <CardContent className="p-3 space-y-3">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[10px] border-warning text-warning bg-warning/10">
+                          <Bell className="h-2.5 w-2.5 mr-1" /> Atribuído a você
+                        </Badge>
+                        <span className="text-xs font-mono text-muted-foreground">#{os?.numero_formatado || os?.numero}</span>
+                        {os?.prioridade === "alta" || os?.prioridade === "urgente" ? <Badge variant="destructive" className="text-[10px]">Alta</Badge> : null}
+                      </div>
+                      <p className="text-sm font-semibold truncate mt-1">{aparelhoLabel(servico)}</p>
+                      <p className="text-sm text-muted-foreground truncate">{servico.nome}</p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <PrazoBadge previsao={os?.previsao_entrega} />
+                      <span className="font-semibold text-warning">Comissão {brl(servico.comissao)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button size="sm" onClick={() => iniciar.mutate(servico.id)} disabled={iniciar.isPending}>
+                        {iniciar.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Play className="h-3.5 w-3.5 mr-1" />}
+                        Aceitar e iniciar
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" disabled={devolver.isPending}>
+                            <Undo2 className="h-3.5 w-3.5 mr-1" /> Devolver
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Devolver serviço?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O serviço voltará para "Sem técnico" no kanban do admin e ficará disponível pra qualquer técnico pegar.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => devolver.mutate(servico.id)}>Devolver</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </TabsContent>
+
 
         <TabsContent value="disponiveis" className="space-y-2 pt-3">
           {loadingDisp ? (
