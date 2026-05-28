@@ -40,6 +40,16 @@ const SEVERIDADE_INFO = {
 type SevFilter = "all" | "critical" | "warning" | "info" | "success";
 type LidaFilter = "all" | "nao_lidas" | "lidas";
 
+function formatarMensagem(msg: string | null | undefined): string {
+  if (!msg) return msg ?? "";
+  // "R$ 55.0000000000000000" -> "R$ 55,00"
+  return msg.replace(/R\$\s*(-?\d+(?:[.,]\d+)?)/g, (_, valStr: string) => {
+    const num = parseFloat(valStr.replace(/\./g, "").replace(",", "."));
+    if (isNaN(num)) return `R$ ${valStr}`;
+    return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  });
+}
+
 export default function NotificacoesPage() {
   const navigate = useNavigate();
   const [filterSev, setFilterSev] = useState<SevFilter>("all");
