@@ -86,7 +86,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Desktop: trigger + atalhos */}
-            <div className="hidden sm:flex items-center gap-2 flex-1">
+            <div className="hidden lg:flex items-center gap-2 flex-1">
               <SidebarTrigger />
               <div className="h-5 w-px bg-border mx-1" />
               <div className="flex items-center gap-1.5 overflow-x-auto">
