@@ -146,6 +146,10 @@
     @apply text-sm text-muted-foreground mt-0.5;
   }
 
+  .kpi-grid {
+    @apply grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4;
+  }
+
   .stat-card {
     @apply bg-card rounded-xl border p-4 md:p-5 transition-all duration-200;
   }
