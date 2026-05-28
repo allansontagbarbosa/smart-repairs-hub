@@ -144,7 +144,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hidden sm:inline-flex"
+                className="h-8 w-8 hidden lg:inline-flex"
                 onClick={() => setShortcutsOpen(true)}
                 title="Atalhos de teclado"
               >
