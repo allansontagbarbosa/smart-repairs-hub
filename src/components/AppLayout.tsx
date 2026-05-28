@@ -163,7 +163,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <NotificacoesSino />
 
               {/* Mobile: avatar com menu de perfil/sair */}
-              <div className="sm:hidden">
+              <div className="lg:hidden">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
