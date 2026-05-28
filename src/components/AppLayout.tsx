@@ -121,8 +121,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   onClick={() => setSearchOpen(true)}
                 >
                   <Search className="h-3 w-3" />
-                  <span className="hidden lg:inline">Buscar</span>
-                  <kbd className="hidden lg:inline ml-1 rounded border bg-muted px-1 text-[10px] font-mono">⌘K</kbd>
+                  <span className="hidden xl:inline">Buscar</span>
+                  <kbd className="hidden xl:inline ml-1 rounded border bg-muted px-1 text-[10px] font-mono">⌘K</kbd>
                 </Button>
               </div>
             </div>
