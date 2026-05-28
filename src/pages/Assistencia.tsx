@@ -2053,12 +2053,16 @@ export default function Assistencia() {
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-sm font-semibold text-foreground">{grupo} ({items.length})</h3>
                   </div>
-                  <Tabela items={items} />
+                  <div className="hidden sm:block"><Tabela items={items} /></div>
+                  <MobileList items={items} />
                 </div>
               ))}
             </div>
           ) : (
-            <Tabela items={paginatedSorted} />
+            <>
+              <div className="hidden sm:block"><Tabela items={paginatedSorted} /></div>
+              <MobileList items={paginatedSorted} />
+            </>
           )}
 
           {!isLoading && (
