@@ -32,12 +32,12 @@ export default function Relatorios() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
-          <TabsTrigger value="dre">DRE</TabsTrigger>
-          <TabsTrigger value="tecnicos">Técnicos</TabsTrigger>
-          <TabsTrigger value="defeitos">Serviços</TabsTrigger>
-          <TabsTrigger value="prejuizos">Prejuízos</TabsTrigger>
-          <TabsTrigger value="exportacao">Exportação</TabsTrigger>
+        <TabsList className="w-full justify-start overflow-x-auto flex sm:grid sm:grid-cols-5 sm:max-w-2xl no-scrollbar">
+          <TabsTrigger value="dre" className="shrink-0">DRE</TabsTrigger>
+          <TabsTrigger value="tecnicos" className="shrink-0">Técnicos</TabsTrigger>
+          <TabsTrigger value="defeitos" className="shrink-0">Serviços</TabsTrigger>
+          <TabsTrigger value="prejuizos" className="shrink-0">Prejuízos</TabsTrigger>
+          <TabsTrigger value="exportacao" className="shrink-0">Exportação</TabsTrigger>
         </TabsList>
         <TabsContent value="dre">
           <p className="text-[11px] text-muted-foreground mb-3 px-1">

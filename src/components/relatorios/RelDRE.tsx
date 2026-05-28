@@ -165,7 +165,7 @@ export function RelDRE() {
       {/* DRE Card */}
       <Card className="print:shadow-none print:border-none">
         <CardHeader><CardTitle>Demonstrativo de Resultado — {meses[mes]} {ano}</CardTitle></CardHeader>
-        <CardContent className="font-mono text-sm space-y-4">
+        <CardContent className="text-sm space-y-4 tabular-nums">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
