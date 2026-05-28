@@ -153,7 +153,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hidden sm:inline-flex"
+                className="h-8 w-8 hidden lg:inline-flex"
                 onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               >
                 {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
