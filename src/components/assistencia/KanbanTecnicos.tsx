@@ -104,6 +104,33 @@ interface ServicoCard {
   total_servicos_na_os: number;
 }
 
+function scoreUrgencia(s: ServicoCard): number {
+  // menor score = mais urgente = topo
+  const agora = Date.now();
+  const prazo = s.previsao_entrega ? new Date(s.previsao_entrega).getTime() : null;
+
+  // Faixa 0: atrasados — quanto mais atrasado, mais negativo
+  if (prazo !== null && prazo < agora) {
+    const diasAtraso = Math.floor((agora - prazo) / 86400000);
+    return -100000 - diasAtraso;
+  }
+
+  // Faixa 1: vence em <= 1 dia
+  if (prazo !== null && (prazo - agora) <= 86400000) {
+    return 0;
+  }
+
+  // Faixa 2: por prioridade, desempate por idade na fila (FIFO)
+  const prioridadeRank: Record<string, number> = {
+    urgente: 10, alta: 20, normal: 30, baixa: 40,
+  };
+  const pr = prioridadeRank[(s.prioridade ?? "normal").toLowerCase()] ?? 30;
+  const entrada = s.data_entrada ? new Date(s.data_entrada).getTime() : agora;
+  const idadeDias = Math.floor((agora - entrada) / 86400000);
+  return 1000 + pr * 100 - idadeDias;
+}
+
+
 export default function KanbanTecnicos() {
   const { empresaId } = useEmpresa();
   const queryClient = useQueryClient();
@@ -223,6 +250,10 @@ export default function KanbanTecnicos() {
       else ab.__sem__.push(s); // técnico inativo
     });
     concl.sort((a, b) => (b.concluido_em ?? "").localeCompare(a.concluido_em ?? ""));
+    // Ordenar colunas de trabalho ativo por urgência
+    Object.keys(ab).forEach(col => {
+      ab[col].sort((a, b) => scoreUrgencia(a) - scoreUrgencia(b));
+    });
     return { abertosPorCol: ab, concluidasMes: concl.slice(0, 20) };
   }, [servicos, tecnicos]);
 
@@ -418,6 +449,8 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 50 }
     : {};
 
+  const paradoMuito = diasColuna !== null && diasColuna >= 5;
+
   return (
     <div
       ref={setNodeRef}
@@ -425,6 +458,7 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
       className={cn(
         "bg-card rounded-lg border p-2.5 space-y-1.5 transition-shadow hover:shadow-md select-none touch-none",
         isDragging && "opacity-50 shadow-lg",
+        paradoMuito && "border-l-2 border-l-amber-400",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -474,8 +508,15 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
       </div>
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className="text-[10px] text-muted-foreground">
-          {tecAtual && diasColuna !== null ? `com ${tecAtual.nome.split(" ")[0]} há ${diasColuna}d` : naColunaDesde ? `há ${diasColuna}d` : ""}
+        <span className={cn(
+          "text-[10px]",
+          paradoMuito ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"
+        )}>
+          {paradoMuito
+            ? `parado há ${diasColuna}d`
+            : tecAtual && diasColuna !== null
+              ? `com ${tecAtual.nome.split(" ")[0]} há ${diasColuna}d`
+              : naColunaDesde ? `há ${diasColuna}d` : ""}
         </span>
         {srv.servico_valor > 0 && (
           <span className="text-[11px] font-semibold">{fmtBRL(srv.servico_valor)}</span>
