@@ -10,7 +10,7 @@ export function BotaoFlutuanteIA() {
       {!aberto && (
         <button
           onClick={() => setAberto(true)}
-          className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#00C896] text-white shadow-lg shadow-[#00C896]/30 hover:scale-105 active:scale-95 transition-transform"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-6 right-4 sm:right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#00C896] text-white shadow-lg shadow-[#00C896]/30 hover:scale-105 active:scale-95 transition-transform"
           aria-label="Abrir assistente IA"
         >
           <Sparkles className="h-6 w-6" />

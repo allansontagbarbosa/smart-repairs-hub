@@ -131,6 +131,11 @@
   h1, h2, h3 {
     letter-spacing: -0.025em;
   }
+
+  /* iOS: rolar input em foco pra cima do teclado virtual */
+  input:focus, textarea:focus, select:focus {
+    scroll-margin-bottom: 80px;
+  }
 }
 
 @layer components {
@@ -144,6 +149,10 @@
 
   .page-subtitle {
     @apply text-sm text-muted-foreground mt-0.5;
+  }
+
+  .kpi-grid {
+    @apply grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4;
   }
 
   .stat-card {

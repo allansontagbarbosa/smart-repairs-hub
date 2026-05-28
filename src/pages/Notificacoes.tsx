@@ -40,6 +40,16 @@ const SEVERIDADE_INFO = {
 type SevFilter = "all" | "critical" | "warning" | "info" | "success";
 type LidaFilter = "all" | "nao_lidas" | "lidas";
 
+function formatarMensagem(msg: string | null | undefined): string {
+  if (!msg) return msg ?? "";
+  // "R$ 55.0000000000000000" -> "R$ 55,00"
+  return msg.replace(/R\$\s*(-?\d+(?:[.,]\d+)?)/g, (_, valStr: string) => {
+    const num = parseFloat(valStr.replace(/\./g, "").replace(",", "."));
+    if (isNaN(num)) return `R$ ${valStr}`;
+    return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  });
+}
+
 export default function NotificacoesPage() {
   const navigate = useNavigate();
   const [filterSev, setFilterSev] = useState<SevFilter>("all");
@@ -153,7 +163,7 @@ export default function NotificacoesPage() {
                         {new Date(n.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground break-words leading-relaxed">{n.mensagem}</p>
+                    <p className="text-sm text-muted-foreground break-words leading-relaxed">{formatarMensagem(n.mensagem)}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {!n.lida && (
