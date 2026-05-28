@@ -206,28 +206,50 @@ export default function Configuracoes() {
 
   return (
     <div className="h-full">
-      {/* Mobile header */}
-      <div className="md:hidden flex items-center gap-3 mb-4">
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="shrink-0 h-9 w-9">
-              <Menu className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold text-sm flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Configurações
-              </h2>
-            </div>
-            {navContent}
-          </SheetContent>
-        </Sheet>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold truncate">{activeItem?.label}</h1>
+      {/* Mobile header: chips horizontais ao invés de hambúrguer */}
+      <div className="md:hidden mb-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold truncate flex-1 min-w-0">{activeItem?.label}</h1>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0 h-9 w-9" aria-label="Buscar configuração">
+                <Search className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <div className="p-4 border-b">
+                <h2 className="font-semibold text-sm flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Configurações
+                </h2>
+              </div>
+              {navContent}
+            </SheetContent>
+          </Sheet>
+        </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 pb-1">
+          {allItems.map((item) => {
+            const isActive = active === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActive(item.id)}
+                className={cn(
+                  "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition-colors active:scale-[0.98]",
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
+
 
       {/* Desktop layout */}
       <div className="flex gap-0 h-full">
