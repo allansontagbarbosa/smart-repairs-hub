@@ -666,3 +666,79 @@ function CardMenu({ srv, tecnicos, onSelect, mutate }: { srv: ServicoCard; tecni
     </DropdownMenu>
   );
 }
+
+function MobileServicoCard({ srv, tecnicos, onSelect, mutate }: {
+  srv: ServicoCard;
+  tecnicos: Tecnico[];
+  onSelect: (id: string) => void;
+  mutate: ReturnType<typeof useAtualizarTecnicoServico>["mutate"];
+}) {
+  const diasPrazo = srv.previsao_entrega
+    ? Math.ceil((new Date(srv.previsao_entrega).getTime() - Date.now()) / 86400000)
+    : null;
+  const prazoAtrasado = diasPrazo !== null && diasPrazo < 0;
+  const naColunaDesde = srv.iniciado_em ?? srv.updated_at ?? srv.data_entrada ?? null;
+  const diasColuna = daysBetween(naColunaDesde);
+  const paradoMuito = diasColuna !== null && diasColuna >= 5;
+  const defeitoLinha = (srv.defeito_relatado ?? "").split("\n")[0]?.trim();
+
+  return (
+    <div
+      onClick={() => onSelect(srv.ordem_id)}
+      className={cn(
+        "bg-card rounded-lg border p-3 space-y-1.5 active:scale-[0.99] transition-transform cursor-pointer",
+        paradoMuito && "border-l-2 border-l-amber-400",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="text-sm font-medium leading-tight truncate">{srv.cliente_nome ?? "—"}</span>
+            <span className="text-[10px] font-mono text-muted-foreground shrink-0">#{String(srv.os_numero).padStart(5, "0")}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">{srv.aparelho_marca} {srv.aparelho_modelo}</p>
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <CardMenu srv={srv} tecnicos={tecnicos} onSelect={onSelect} mutate={mutate} />
+        </div>
+      </div>
+
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80 truncate">
+        {srv.servico_nome ?? "Serviço"}
+      </p>
+
+      {defeitoLinha && (
+        <p className="text-[11px] text-muted-foreground line-clamp-1">{defeitoLinha}</p>
+      )}
+
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Badge variant="outline" className="text-[10px] py-0 h-4">
+          {statusLabels[srv.os_status]}
+        </Badge>
+        {srv.previsao_entrega && (
+          <span className={cn(
+            "inline-flex items-center gap-0.5 text-[10px]",
+            prazoAtrasado ? "text-destructive font-semibold" : (diasPrazo ?? 0) <= 1 ? "text-warning font-medium" : "text-muted-foreground"
+          )}>
+            <Clock className="h-2.5 w-2.5" />
+            {prazoAtrasado ? `Atrasado ${Math.abs(diasPrazo ?? 0)}d` : `Prazo ${diasPrazo}d`}
+          </span>
+        )}
+        {srv.total_servicos_na_os > 1 && (
+          <span className="text-[10px] text-muted-foreground italic">
+            ({srv.total_servicos_na_os} serviços)
+          </span>
+        )}
+        {srv.servico_valor > 0 && (
+          <span className="ml-auto text-[11px] font-semibold">{fmtBRL(srv.servico_valor)}</span>
+        )}
+      </div>
+
+      {paradoMuito && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+          parado há {diasColuna}d
+        </p>
+      )}
+    </div>
+  );
+}
