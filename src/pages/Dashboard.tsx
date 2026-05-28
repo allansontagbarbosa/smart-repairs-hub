@@ -497,13 +497,25 @@ export default function Dashboard() {
       ══════════════════════════════════════════════════════════════════════ */}
       {can("financeiro", "ver") && (
       <div>
-        <SectionTitle>Financeiro do período</SectionTitle>
-        <p className="text-[11px] text-muted-foreground -mt-1">
-          Faturamento e lucro contam OS <strong>concluídas</strong> (status Pronto ou Entregue) com data de conclusão dentro do período selecionado.
-        </p>
-        <p className="text-xs text-muted-foreground mb-3">
-          Período: {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")}
-        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <SectionTitle>Financeiro do período</SectionTitle>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 -ml-1 text-muted-foreground">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="start" className="w-72 text-xs space-y-2">
+              <p>
+                Faturamento e lucro contam OS <strong>concluídas</strong> (status Pronto ou Entregue) com data de conclusão dentro do período selecionado.
+              </p>
+              <p className="text-muted-foreground">
+                Período: {format(periodRange.from, "dd/MM/yyyy")} – {format(periodRange.to, "dd/MM/yyyy")}
+              </p>
+            </PopoverContent>
+          </Popover>
+        </div>
+
 
         {/* ── MOBILE: hierarquia destacada ── */}
         <div className="grid grid-cols-1 gap-3 sm:hidden">
