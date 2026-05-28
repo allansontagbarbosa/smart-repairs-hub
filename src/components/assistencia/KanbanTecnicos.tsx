@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 
 const STATUS_ABERTOS: Status[] = [
+  "recebido",
   "em_analise",
   "aguardando_aprovacao",
   "aprovado",
