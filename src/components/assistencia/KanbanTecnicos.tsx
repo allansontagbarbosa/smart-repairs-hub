@@ -280,6 +280,90 @@ export default function KanbanTecnicos() {
     );
   }
 
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  if (isMobile) {
+    return (
+      <>
+        <div className="space-y-2 pb-4">
+          {/* Sem técnico - sempre aberto */}
+          <Collapsible defaultOpen>
+            <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-400/40 rounded-lg active:scale-[0.99] transition-transform">
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+                <span className="text-sm font-semibold truncate">Sem técnico</span>
+                <span className="text-[11px] bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                  {abertosPorCol.__sem__.length}
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 space-y-2">
+              {abertosPorCol.__sem__.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/60 italic px-3 py-2">Tudo distribuído ✨</p>
+              ) : (
+                abertosPorCol.__sem__.map((s) => (
+                  <MobileServicoCard key={s.servico_id} srv={s} tecnicos={tecnicos} onSelect={setSelectedOrderId} mutate={atualizar.mutate} />
+                ))
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Cada técnico */}
+          {tecnicos.map((t) => {
+            const items = abertosPorCol[t.id] ?? [];
+            const avatarColor = AVATAR_COLORS[hashIdx(t.nome, AVATAR_COLORS.length)];
+            return (
+              <Collapsible key={t.id} defaultOpen={items.length > 0}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between px-3 py-3 bg-card border rounded-lg active:scale-[0.99] transition-transform">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar className="h-6 w-6 shrink-0">
+                      <AvatarFallback className={cn("text-[10px] text-white font-semibold", avatarColor)}>
+                        {t.nome.slice(0, 1).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-semibold truncate">{t.nome}</span>
+                    <span className="text-[11px] bg-muted rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                      {items.length}
+                    </span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform data-[state=open]:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2 space-y-2">
+                  {items.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/60 italic px-3 py-2">Sem serviços atribuídos</p>
+                  ) : (
+                    items.map((s) => (
+                      <MobileServicoCard key={s.servico_id} srv={s} tecnicos={tecnicos} onSelect={setSelectedOrderId} mutate={atualizar.mutate} />
+                    ))
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+
+          {/* Concluídas - link pra arquivo */}
+          <button
+            onClick={() => navigate('/assistencia?status=entregue')}
+            className="w-full flex items-center justify-between px-3 py-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-400/40 rounded-lg active:scale-[0.99] transition-transform"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span className="text-sm font-semibold truncate">Concluídas no mês</span>
+              <span className="text-[11px] bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                {concluidasMes.length}
+              </span>
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+          </button>
+        </div>
+
+        <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
+      </>
+    );
+  }
+
   return (
     <>
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
