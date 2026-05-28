@@ -12,8 +12,9 @@ import {
   Plus, AlertTriangle, Clock, CheckCircle, TrendingUp,
   TrendingDown, Wrench, Smartphone, DollarSign, Package,
   Users, Target, AlertCircle, ChevronRight,
-  Settings, Loader2, Receipt, CreditCard,
+  Settings, Loader2, Receipt, CreditCard, Info,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
