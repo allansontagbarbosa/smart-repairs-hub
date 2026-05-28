@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBellTecnico } from "@/components/tecnico/NotificationBellTecnico";
 
 export function TecnicoGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -116,6 +117,7 @@ export function TecnicoLayout({ children }: { children: ReactNode }) {
             </div>
           </Link>
           <div className="flex items-center gap-1">
+            <NotificationBellTecnico />
             <ThemeToggle />
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs">{initials}</AvatarFallback>
@@ -177,6 +179,7 @@ export function TecnicoLayout({ children }: { children: ReactNode }) {
               <p className="text-xs font-medium truncate">{identidade?.nome}</p>
               <p className="text-[10px] text-muted-foreground truncate">{identidade?.cargo || "Técnico"}</p>
             </div>
+            <NotificationBellTecnico />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sair">
               <LogOut className="h-4 w-4" />
