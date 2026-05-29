@@ -96,7 +96,7 @@ export default function LojaAparelhos() {
             Comece cadastrando um aparelho novo ou importando uma NF-e (XML).
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
-            <Button><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
+            <Button onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
             <Button variant="outline"><FileDown className="h-4 w-4 mr-2" /> Importar XML NF-e</Button>
           </div>
         </div>
