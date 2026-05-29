@@ -8,6 +8,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskCPF } from "@/lib/utils";
+import { NovoClienteDialog } from "@/components/loja/NovoClienteDialog";
 
 type Tag = "vip" | "regular" | "problema" | "blacklist" | "novo";
 type TabValue = "todos" | Tag;
@@ -33,7 +34,7 @@ export default function LojaClientes() {
   const { empresaId } = useEmpresa();
   const [tab, setTab] = useState<TabValue>("todos");
   const [busca, setBusca] = useState("");
-  const [, setNovoOpen] = useState(false);
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["loja-clientes", empresaId, tab, busca],
@@ -185,6 +186,8 @@ export default function LojaClientes() {
           </div>
         </div>
       )}
+
+      <NovoClienteDialog open={novoOpen} onOpenChange={setNovoOpen} />
     </div>
   );
 }
