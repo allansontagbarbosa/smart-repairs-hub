@@ -1,10 +1,11 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNotificacoes } from "@/hooks/useNotificacoes";
 import { usePermissoes, type Permissoes } from "@/hooks/usePermissoes";
 import { useEstoqueBaixoCount } from "@/hooks/useEstoqueBaixoCount";
+import { useModulos } from "@/hooks/useModulos";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +17,7 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -41,6 +43,23 @@ const items = [
   { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
 ];
 
+const itemsLoja = [
+  { title: "Dashboard Loja", url: "/loja/dashboard", icon: LayoutDashboard, permissao: "loja_dashboard" as keyof Permissoes },
+  { title: "PDV", url: "/loja/pdv", icon: Zap, permissao: "loja_pdv" as keyof Permissoes },
+  { title: "Vendas", url: "/loja/vendas", icon: ClipboardList, permissao: "loja_vendas" as keyof Permissoes },
+  { title: "Aparelhos Loja", url: "/loja/aparelhos", icon: Store, permissao: "loja_aparelhos" as keyof Permissoes },
+  { title: "Compras Loja", url: "/loja/compras", icon: ShoppingBag, permissao: "loja_compras" as keyof Permissoes },
+  { title: "Trade-in", url: "/loja/trade-in", icon: ArrowLeftRight, permissao: "loja_trade_in" as keyof Permissoes },
+  { title: "Crediário", url: "/loja/crediario", icon: CreditCard, permissao: "loja_crediario" as keyof Permissoes },
+  { title: "Vendedores", url: "/loja/vendedores", icon: Briefcase, permissao: "loja_vendedores" as keyof Permissoes },
+  { title: "Metas Loja", url: "/loja/metas", icon: Target, permissao: "loja_metas" as keyof Permissoes },
+  { title: "Telão Loja", url: "/loja/tv", icon: Tv2, permissao: "loja_tv" as keyof Permissoes },
+  { title: "Financeiro Loja", url: "/loja/financeiro", icon: DollarSign, permissao: "loja_financeiro" as keyof Permissoes },
+  { title: "Relatórios Loja", url: "/loja/relatorios", icon: BarChart2, permissao: "loja_relatorios" as keyof Permissoes },
+  { title: "Clientes Loja", url: "/loja/clientes", icon: Users, permissao: "loja_clientes" as keyof Permissoes },
+  { title: "Config. Loja", url: "/loja/configuracoes", icon: Settings, permissao: "loja_configuracoes" as keyof Permissoes },
+];
+
 function getInitials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
@@ -50,6 +69,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { badgeCounts } = useNotificacoes();
   const { can } = usePermissoes();
+  const { lojaAtivo, assistenciaAtivo } = useModulos();
   const estoqueBaixoCount = useEstoqueBaixoCount();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -92,7 +112,8 @@ export function AppSidebar() {
     navigate("/login");
   };
 
-  const visibleItems = items.filter((item) => can(item.permissao, "ver"));
+  const visibleItems = assistenciaAtivo ? items.filter((item) => can(item.permissao, "ver")) : [];
+  const visibleItemsLoja = lojaAtivo ? itemsLoja.filter((item) => can(item.permissao, "ver")) : [];
 
   return (
     <Sidebar collapsible="icon">
@@ -161,6 +182,34 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {visibleItemsLoja.length > 0 && (
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+                Loja
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleItemsLoja.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      >
+                        <item.icon className="h-[18px] w-[18px] shrink-0" />
+                        {!collapsed && <span className="flex-1">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Bottom section — user + theme + logout */}
         <div className="border-t border-sidebar-border px-3 pb-3 pt-3 space-y-2">

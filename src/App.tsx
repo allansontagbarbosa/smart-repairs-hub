@@ -68,6 +68,24 @@ import CashbackCustoOperacional from "./pages/CashbackCustoOperacional";
 import MeuCashback from "./pages/MeuCashback";
 import AdminResetSenhaLojista from "./pages/AdminResetSenhaLojista";
 
+// Módulo Loja
+import { ModuloLojaGuard } from "@/components/ModuloLojaGuard";
+import LojaDashboard from "./pages/loja/LojaDashboard";
+import LojaPDV from "./pages/loja/LojaPDV";
+import LojaVendas from "./pages/loja/LojaVendas";
+import LojaAparelhos from "./pages/loja/LojaAparelhos";
+import LojaCompras from "./pages/loja/LojaCompras";
+import LojaTradeIn from "./pages/loja/LojaTradeIn";
+import LojaCrediario from "./pages/loja/LojaCrediario";
+import LojaClientes from "./pages/loja/LojaClientes";
+import LojaVendedores from "./pages/loja/LojaVendedores";
+import LojaMetas from "./pages/loja/LojaMetas";
+import LojaTV from "./pages/loja/LojaTV";
+import LojaFinanceiro from "./pages/loja/LojaFinanceiro";
+import LojaRelatorios from "./pages/loja/LojaRelatorios";
+import LojaConfiguracoes from "./pages/loja/LojaConfiguracoes";
+
+
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
 import LojistaLogin from "./pages/lojista/LojistaLogin";
@@ -236,8 +254,25 @@ const App = () => (
                     <Route path="/notificacoes" element={<NotificacoesPage />} />
                     <Route path="/admin/lojistas/resetar-senha" element={<ProtectedRoute permissao="configuracoes"><AdminResetSenhaLojista /></ProtectedRoute>} />
                     <Route path="/sem-acesso" element={<SemAcesso />} />
-                    
+
+                    {/* Módulo Loja — protegido por ModuloLojaGuard */}
+                    <Route path="/loja/dashboard" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_dashboard"><LojaDashboard /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/pdv" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_pdv"><LojaPDV /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/vendas" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_vendas"><LojaVendas /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/aparelhos" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_aparelhos"><LojaAparelhos /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/compras" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_compras"><LojaCompras /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/trade-in" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_trade_in"><LojaTradeIn /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/crediario" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_crediario"><LojaCrediario /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/clientes" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_clientes"><LojaClientes /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/vendedores" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_vendedores"><LojaVendedores /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/metas" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_metas"><LojaMetas /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/tv" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_tv"><LojaTV /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/financeiro" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_financeiro"><LojaFinanceiro /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/relatorios" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_relatorios"><LojaRelatorios /></ProtectedRoute></ModuloLojaGuard>} />
+                    <Route path="/loja/configuracoes" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_configuracoes"><LojaConfiguracoes /></ProtectedRoute></ModuloLojaGuard>} />
+
                     <Route path="*" element={<NotFound />} />
+
                   </Routes>
                 </AppLayout>
                 </AuthGuard>
