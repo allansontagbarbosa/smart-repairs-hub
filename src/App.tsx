@@ -85,6 +85,9 @@ import LojaFinanceiro from "@/pages/loja/LojaFinanceiro";
 import LojaRelatorios from "@/pages/loja/LojaRelatorios";
 import LojaConfiguracoes from "@/pages/loja/LojaConfiguracoes";
 import LojaPainelSocio from "@/pages/loja/LojaPainelSocio";
+import ComboDashboard from "@/pages/combo/ComboDashboard";
+import ComboPainelSocio from "@/pages/combo/ComboPainelSocio";
+import { ModuloComboGuard } from "@/components/ModuloComboGuard";
 
 
 
