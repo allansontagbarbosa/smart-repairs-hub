@@ -4080,6 +4080,92 @@ export type Database = {
           },
         ]
       }
+      loja_clientes: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          deleted_at: string | null
+          email: string | null
+          empresa_id: string
+          id: string
+          limite_credito: number | null
+          logradouro: string | null
+          nome: string
+          numero: string | null
+          observacoes: string | null
+          renda: number | null
+          rg: string | null
+          score_interno: number
+          tag: string
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id: string
+          id?: string
+          limite_credito?: number | null
+          logradouro?: string | null
+          nome: string
+          numero?: string | null
+          observacoes?: string | null
+          renda?: number | null
+          rg?: string | null
+          score_interno?: number
+          tag?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id?: string
+          id?: string
+          limite_credito?: number | null
+          logradouro?: string | null
+          nome?: string
+          numero?: string | null
+          observacoes?: string | null
+          renda?: number | null
+          rg?: string | null
+          score_interno?: number
+          tag?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_clientes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loja_crediario: {
         Row: {
           cliente_id: string
@@ -4199,6 +4285,69 @@ export type Database = {
             columns: ["crediario_id"]
             isOneToOne: false
             referencedRelation: "loja_crediario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_metas: {
+        Row: {
+          bonus_pago: number | null
+          competencia_ano: number
+          competencia_mes: number
+          created_at: string
+          empresa_id: string
+          fechada: boolean
+          funcionario_id: string | null
+          id: string
+          observacoes: string | null
+          tipo: string
+          updated_at: string
+          valor_meta: number
+          valor_realizado: number | null
+        }
+        Insert: {
+          bonus_pago?: number | null
+          competencia_ano: number
+          competencia_mes: number
+          created_at?: string
+          empresa_id: string
+          fechada?: boolean
+          funcionario_id?: string | null
+          id?: string
+          observacoes?: string | null
+          tipo: string
+          updated_at?: string
+          valor_meta: number
+          valor_realizado?: number | null
+        }
+        Update: {
+          bonus_pago?: number | null
+          competencia_ano?: number
+          competencia_mes?: number
+          created_at?: string
+          empresa_id?: string
+          fechada?: boolean
+          funcionario_id?: string | null
+          id?: string
+          observacoes?: string | null
+          tipo?: string
+          updated_at?: string
+          valor_meta?: number
+          valor_realizado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_metas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_metas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
         ]
