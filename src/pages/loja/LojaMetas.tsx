@@ -115,7 +115,7 @@ export default function LojaMetas() {
           <p className="text-sm text-muted-foreground max-w-md mb-4">
             Defina a meta de faturamento da loja pra este mês. Quando bater 100%, libera bônus pros vendedores.
           </p>
-          <Button>
+          <Button onClick={() => setDefMetaOpen(true)}>
             <Target className="h-4 w-4 mr-2" />
             Definir meta de {hoje.toLocaleDateString("pt-BR", { month: "long" })}
           </Button>
