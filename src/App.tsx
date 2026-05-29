@@ -180,6 +180,9 @@ const App = () => (
               {/* Rota paralela pra validar mudanças (animações + realtime) sem afetar TVs em produção */}
               <Route path="/tv/preview/:codigo" element={<TVDisplay />} />
 
+              {/* Telão Loja — fullscreen, sem AppLayout */}
+              <Route path="/loja/tv" element={<AuthGuard><ModuloLojaGuard><LojaTV /></ModuloLojaGuard></AuthGuard>} />
+
               {/* Portal do Técnico */}
               <Route path="/tecnico" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoHome /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
               <Route path="/tecnico/ordens" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoOrdens /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
@@ -266,7 +269,7 @@ const App = () => (
                     <Route path="/loja/clientes" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_clientes"><LojaClientes /></ProtectedRoute></ModuloLojaGuard>} />
                     <Route path="/loja/vendedores" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_vendedores"><LojaVendedores /></ProtectedRoute></ModuloLojaGuard>} />
                     <Route path="/loja/metas" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_metas"><LojaMetas /></ProtectedRoute></ModuloLojaGuard>} />
-                    <Route path="/loja/tv" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_tv"><LojaTV /></ProtectedRoute></ModuloLojaGuard>} />
+                    {/* /loja/tv é rota fullscreen — declarada fora do AppLayout */}
                     <Route path="/loja/financeiro" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_financeiro"><LojaFinanceiro /></ProtectedRoute></ModuloLojaGuard>} />
                     <Route path="/loja/relatorios" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_relatorios"><LojaRelatorios /></ProtectedRoute></ModuloLojaGuard>} />
                     <Route path="/loja/configuracoes" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_configuracoes"><LojaConfiguracoes /></ProtectedRoute></ModuloLojaGuard>} />
