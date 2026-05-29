@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Edit, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
+import { DefinirMetaDialog } from "@/components/loja/DefinirMetaDialog";
 
 function Termo({ cor, range, label }: { cor: string; range: string; label: string }) {
   return (
@@ -21,6 +23,7 @@ export default function LojaMetas() {
   const hoje = new Date();
   const ano = hoje.getFullYear();
   const mes = hoje.getMonth() + 1;
+  const [defMetaOpen, setDefMetaOpen] = useState(false);
 
   const { data: meta } = useQuery({
     queryKey: ["loja-meta-atual", empresaId, ano, mes],
@@ -97,9 +100,9 @@ export default function LojaMetas() {
             Meta da loja e individuais · {hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => setDefMetaOpen(true)}>
           <Edit className="h-4 w-4 mr-2" />
-          Editar meta
+          {meta ? "Editar meta" : "Definir meta"}
         </Button>
       </div>
 
@@ -112,7 +115,7 @@ export default function LojaMetas() {
           <p className="text-sm text-muted-foreground max-w-md mb-4">
             Defina a meta de faturamento da loja pra este mês. Quando bater 100%, libera bônus pros vendedores.
           </p>
-          <Button>
+          <Button onClick={() => setDefMetaOpen(true)}>
             <Target className="h-4 w-4 mr-2" />
             Definir meta de {hoje.toLocaleDateString("pt-BR", { month: "long" })}
           </Button>
@@ -209,6 +212,8 @@ export default function LojaMetas() {
           )}
         </>
       )}
+
+      <DefinirMetaDialog open={defMetaOpen} onOpenChange={setDefMetaOpen} ano={ano} mes={mes} />
     </div>
   );
 }
