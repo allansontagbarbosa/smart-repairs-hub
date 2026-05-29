@@ -8,13 +8,17 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskIMEI } from "@/lib/utils";
-import { NovoAparelhoDialog } from "@/components/loja/NovoAparelhoDialog";
+import { AparelhoDialog } from "@/components/loja/AparelhoDialog";
 
 export default function LojaAparelhos() {
   const { empresaId } = useEmpresa();
   const [tab, setTab] = useState<"novo" | "seminovo" | "vitrine" | "vendido">("novo");
   const [busca, setBusca] = useState("");
-  const [novoOpen, setNovoOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [aparelhoSelecionado, setAparelhoSelecionado] = useState<string | null>(null);
+
+  const abrirNovo = () => { setAparelhoSelecionado(null); setDialogOpen(true); };
+  const abrirEdicao = (id: string) => { setAparelhoSelecionado(id); setDialogOpen(true); };
 
   const { data: aparelhos = [], isLoading } = useQuery({
     queryKey: ["loja-aparelhos", empresaId, tab, busca],
@@ -73,7 +77,7 @@ export default function LojaAparelhos() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm"><Tag className="h-4 w-4 mr-2" /> Gerar etiquetas</Button>
           <Button variant="outline" size="sm"><FileDown className="h-4 w-4 mr-2" /> Importar XML</Button>
-          <Button size="sm" onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Entrada de aparelho</Button>
+          <Button size="sm" onClick={abrirNovo}><Plus className="h-4 w-4 mr-2" /> Entrada de aparelho</Button>
         </div>
       </div>
 
@@ -96,7 +100,7 @@ export default function LojaAparelhos() {
             Comece cadastrando um aparelho novo ou importando uma NF-e (XML).
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
-            <Button onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
+            <Button onClick={abrirNovo}><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
             <Button variant="outline"><FileDown className="h-4 w-4 mr-2" /> Importar XML NF-e</Button>
           </div>
         </div>
@@ -128,7 +132,7 @@ export default function LojaAparelhos() {
                   const margem = custo > 0 ? ((preco - custo) / custo) * 100 : 0;
                   const dias = ap.data_entrada ? Math.floor((Date.now() - new Date(ap.data_entrada).getTime()) / 86400000) : 0;
                   return (
-                    <tr key={ap.id} className="border-t hover:bg-muted/30">
+                    <tr key={ap.id} onClick={() => abrirEdicao(ap.id)} className="border-t hover:bg-muted/40 cursor-pointer transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-3">
                           <div className="text-xl">📱</div>
@@ -157,7 +161,7 @@ export default function LojaAparelhos() {
         </div>
       )}
 
-      <NovoAparelhoDialog open={novoOpen} onOpenChange={setNovoOpen} />
+      <AparelhoDialog open={dialogOpen} onOpenChange={setDialogOpen} aparelhoId={aparelhoSelecionado} />
     </div>
   );
 }
