@@ -23,6 +23,7 @@ export default function LojaMetas() {
   const hoje = new Date();
   const ano = hoje.getFullYear();
   const mes = hoje.getMonth() + 1;
+  const [defMetaOpen, setDefMetaOpen] = useState(false);
 
   const { data: meta } = useQuery({
     queryKey: ["loja-meta-atual", empresaId, ano, mes],
