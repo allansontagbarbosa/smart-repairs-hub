@@ -77,7 +77,7 @@ export default function LojaTV() {
       return acc;
     }, {}),
   )
-    .map(([id, info]) => ({ id, ...info }))
+    .map(([id, info]) => ({ id, ...(info as { nome: string; total: number; qtd: number }) }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 3);
 
@@ -92,7 +92,7 @@ export default function LojaTV() {
     <div className="fixed inset-0 z-50 bg-background text-foreground overflow-hidden flex flex-col p-6 lg:p-10 font-[Manrope]">
       <header className="flex items-center justify-between mb-6 lg:mb-10">
         <div className="flex items-center gap-4">
-          <DittLogo className="h-10 lg:h-12 w-auto" />
+          <DittLogo size="lg" />
           <span className="text-lg lg:text-2xl font-semibold text-muted-foreground">
             Loja · Telão
           </span>
