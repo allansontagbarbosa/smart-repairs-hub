@@ -22,6 +22,7 @@ export default function LojaPDV() {
   const { empresaId } = useEmpresa();
   const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<CartItem[]>([]);
+  const [novoAparelhoOpen, setNovoAparelhoOpen] = useState(false);
   const [tradeIn] = useState(0);
   const [desconto] = useState(0);
   const [formaPagto, setFormaPagto] = useState<"dinheiro" | "pix" | "cartao" | "crediario">("pix");
