@@ -8,11 +8,13 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskIMEI } from "@/lib/utils";
+import { NovoAparelhoDialog } from "@/components/loja/NovoAparelhoDialog";
 
 export default function LojaAparelhos() {
   const { empresaId } = useEmpresa();
   const [tab, setTab] = useState<"novo" | "seminovo" | "vitrine" | "vendido">("novo");
   const [busca, setBusca] = useState("");
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: aparelhos = [], isLoading } = useQuery({
     queryKey: ["loja-aparelhos", empresaId, tab, busca],
@@ -71,7 +73,7 @@ export default function LojaAparelhos() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm"><Tag className="h-4 w-4 mr-2" /> Gerar etiquetas</Button>
           <Button variant="outline" size="sm"><FileDown className="h-4 w-4 mr-2" /> Importar XML</Button>
-          <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Entrada de aparelho</Button>
+          <Button size="sm" onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Entrada de aparelho</Button>
         </div>
       </div>
 
@@ -94,7 +96,7 @@ export default function LojaAparelhos() {
             Comece cadastrando um aparelho novo ou importando uma NF-e (XML).
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
-            <Button><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
+            <Button onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
             <Button variant="outline"><FileDown className="h-4 w-4 mr-2" /> Importar XML NF-e</Button>
           </div>
         </div>
@@ -154,6 +156,8 @@ export default function LojaAparelhos() {
           </div>
         </div>
       )}
+
+      <NovoAparelhoDialog open={novoOpen} onOpenChange={setNovoOpen} />
     </div>
   );
 }

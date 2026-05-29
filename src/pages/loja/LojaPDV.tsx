@@ -8,6 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { NovoAparelhoDialog } from "@/components/loja/NovoAparelhoDialog";
 
 interface CartItem {
   aparelho_id: string;
@@ -20,6 +22,7 @@ export default function LojaPDV() {
   const { empresaId } = useEmpresa();
   const [busca, setBusca] = useState("");
   const [carrinho, setCarrinho] = useState<CartItem[]>([]);
+  const [novoAparelhoOpen, setNovoAparelhoOpen] = useState(false);
   const [tradeIn] = useState(0);
   const [desconto] = useState(0);
   const [formaPagto, setFormaPagto] = useState<"dinheiro" | "pix" | "cartao" | "crediario">("pix");
@@ -104,7 +107,7 @@ export default function LojaPDV() {
               <p className="text-sm text-muted-foreground max-w-md mb-6">
                 Cadastre aparelhos na seção Aparelhos pra começar a vender.
               </p>
-              <Button asChild><Link to="/loja/aparelhos">Cadastrar aparelho</Link></Button>
+              <Button onClick={() => setNovoAparelhoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -200,6 +203,8 @@ export default function LojaPDV() {
           )}
         </div>
       </div>
+
+      <NovoAparelhoDialog open={novoAparelhoOpen} onOpenChange={setNovoAparelhoOpen} />
     </div>
   );
 }
