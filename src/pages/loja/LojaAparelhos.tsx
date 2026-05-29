@@ -73,7 +73,7 @@ export default function LojaAparelhos() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm"><Tag className="h-4 w-4 mr-2" /> Gerar etiquetas</Button>
           <Button variant="outline" size="sm"><FileDown className="h-4 w-4 mr-2" /> Importar XML</Button>
-          <Button size="sm"><Plus className="h-4 w-4 mr-2" /> Entrada de aparelho</Button>
+          <Button size="sm" onClick={() => setNovoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Entrada de aparelho</Button>
         </div>
       </div>
 
