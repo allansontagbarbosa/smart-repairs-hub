@@ -107,7 +107,7 @@ export default function LojaPDV() {
               <p className="text-sm text-muted-foreground max-w-md mb-6">
                 Cadastre aparelhos na seção Aparelhos pra começar a vender.
               </p>
-              <Button asChild><Link to="/loja/aparelhos">Cadastrar aparelho</Link></Button>
+              <Button onClick={() => setNovoAparelhoOpen(true)}><Plus className="h-4 w-4 mr-2" /> Cadastrar aparelho</Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
