@@ -351,7 +351,7 @@ export default function LojaPDV() {
         </div>
       </div>
 
-      <NovoAparelhoDialog open={novoAparelhoOpen} onOpenChange={setNovoAparelhoOpen} />
+      <AparelhoDialog open={novoAparelhoOpen} onOpenChange={setNovoAparelhoOpen} />
 
       <ClienteSelectDialog
         open={clienteOpen}
