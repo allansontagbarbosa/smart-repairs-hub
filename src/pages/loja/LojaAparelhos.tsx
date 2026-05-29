@@ -156,6 +156,8 @@ export default function LojaAparelhos() {
           </div>
         </div>
       )}
+
+      <NovoAparelhoDialog open={novoOpen} onOpenChange={setNovoOpen} />
     </div>
   );
 }
