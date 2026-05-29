@@ -70,20 +70,20 @@ import AdminResetSenhaLojista from "./pages/AdminResetSenhaLojista";
 
 // Módulo Loja
 import { ModuloLojaGuard } from "@/components/ModuloLojaGuard";
-import LojaDashboard from "./pages/loja/LojaDashboard";
-import LojaPDV from "./pages/loja/LojaPDV";
-import LojaVendas from "./pages/loja/LojaVendas";
-import LojaAparelhos from "./pages/loja/LojaAparelhos";
-import LojaCompras from "./pages/loja/LojaCompras";
-import LojaTradeIn from "./pages/loja/LojaTradeIn";
-import LojaCrediario from "./pages/loja/LojaCrediario";
-import LojaClientes from "./pages/loja/LojaClientes";
-import LojaVendedores from "./pages/loja/LojaVendedores";
-import LojaMetas from "./pages/loja/LojaMetas";
-import LojaTV from "./pages/loja/LojaTV";
-import LojaFinanceiro from "./pages/loja/LojaFinanceiro";
-import LojaRelatorios from "./pages/loja/LojaRelatorios";
-import LojaConfiguracoes from "./pages/loja/LojaConfiguracoes";
+import LojaDashboard from "@/pages/loja/LojaDashboard";
+import LojaPDV from "@/pages/loja/LojaPDV";
+import LojaVendas from "@/pages/loja/LojaVendas";
+import LojaAparelhos from "@/pages/loja/LojaAparelhos";
+import LojaCompras from "@/pages/loja/LojaCompras";
+import LojaTradeIn from "@/pages/loja/LojaTradeIn";
+import LojaCrediario from "@/pages/loja/LojaCrediario";
+import LojaClientes from "@/pages/loja/LojaClientes";
+import LojaVendedores from "@/pages/loja/LojaVendedores";
+import LojaMetas from "@/pages/loja/LojaMetas";
+import LojaTV from "@/pages/loja/LojaTV";
+import LojaFinanceiro from "@/pages/loja/LojaFinanceiro";
+import LojaRelatorios from "@/pages/loja/LojaRelatorios";
+import LojaConfiguracoes from "@/pages/loja/LojaConfiguracoes";
 
 
 
