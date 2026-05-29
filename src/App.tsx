@@ -278,6 +278,8 @@ const App = () => (
                     <Route path="/loja/relatorios" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_relatorios"><LojaRelatorios /></ProtectedRoute></ModuloLojaGuard>} />
                     <Route path="/loja/configuracoes" element={<ModuloLojaGuard><ProtectedRoute permissao="loja_configuracoes"><LojaConfiguracoes /></ProtectedRoute></ModuloLojaGuard>} />
                     <Route path="/loja/painel-socio" element={<ModuloLojaGuard><LojaPainelSocio /></ModuloLojaGuard>} />
+                    <Route path="/combo/dashboard" element={<ModuloComboGuard><ComboDashboard /></ModuloComboGuard>} />
+                    <Route path="/combo/painel-socio" element={<ModuloComboGuard><ComboPainelSocio /></ModuloComboGuard>} />
 
                     <Route path="*" element={<NotFound />} />
 
