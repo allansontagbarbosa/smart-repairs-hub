@@ -17,21 +17,33 @@ export interface Permissoes {
   relatorios: boolean;
   configuracoes: boolean;
   fila_ia: boolean;
-  // Módulos CRUD existentes
   assistencia: PermissaoModulo;
   financeiro: PermissaoModulo;
   pecas: PermissaoModulo;
   clientes: PermissaoModulo;
-  // Novos módulos CRUD
   aparelhos: PermissaoModulo;
   compras: PermissaoModulo;
   fornecedores: PermissaoModulo;
   faturas_b2b: PermissaoModulo;
   metas: PermissaoModulo;
   rh: PermissaoModulo;
-  // Novos módulos booleanos
   desempenho_tecnicos: boolean;
   paineis_tv: boolean;
+  // Módulo Loja (booleanos)
+  loja_dashboard: boolean;
+  loja_pdv: boolean;
+  loja_vendas: boolean;
+  loja_aparelhos: boolean;
+  loja_compras: boolean;
+  loja_trade_in: boolean;
+  loja_crediario: boolean;
+  loja_clientes: boolean;
+  loja_vendedores: boolean;
+  loja_metas: boolean;
+  loja_tv: boolean;
+  loja_financeiro: boolean;
+  loja_relatorios: boolean;
+  loja_configuracoes: boolean;
 }
 
 const FULL_MODULO: PermissaoModulo = { ver: true, criar: true, editar: true, excluir: true };
@@ -53,6 +65,20 @@ const ADMIN_PERMISSOES: Permissoes = {
   rh: FULL_MODULO,
   desempenho_tecnicos: true,
   paineis_tv: true,
+  loja_dashboard: true,
+  loja_pdv: true,
+  loja_vendas: true,
+  loja_aparelhos: true,
+  loja_compras: true,
+  loja_trade_in: true,
+  loja_crediario: true,
+  loja_clientes: true,
+  loja_vendedores: true,
+  loja_metas: true,
+  loja_tv: true,
+  loja_financeiro: true,
+  loja_relatorios: true,
+  loja_configuracoes: true,
 };
 
 const EMPTY_MODULO: PermissaoModulo = { ver: false, criar: false, editar: false, excluir: false };
@@ -74,6 +100,20 @@ const DEFAULT_PERMISSOES: Permissoes = {
   rh: EMPTY_MODULO,
   desempenho_tecnicos: false,
   paineis_tv: false,
+  loja_dashboard: false,
+  loja_pdv: false,
+  loja_vendas: false,
+  loja_aparelhos: false,
+  loja_compras: false,
+  loja_trade_in: false,
+  loja_crediario: false,
+  loja_clientes: false,
+  loja_vendedores: false,
+  loja_metas: false,
+  loja_tv: false,
+  loja_financeiro: false,
+  loja_relatorios: false,
+  loja_configuracoes: false,
 };
 
 function parsePermissoes(raw: any): Permissoes {
@@ -100,6 +140,20 @@ function parsePermissoes(raw: any): Permissoes {
     rh: ensureModulo(raw.rh),
     desempenho_tecnicos: !!raw.desempenho_tecnicos,
     paineis_tv: !!raw.paineis_tv,
+    loja_dashboard: !!raw.loja_dashboard,
+    loja_pdv: !!raw.loja_pdv,
+    loja_vendas: !!raw.loja_vendas,
+    loja_aparelhos: !!raw.loja_aparelhos,
+    loja_compras: !!raw.loja_compras,
+    loja_trade_in: !!raw.loja_trade_in,
+    loja_crediario: !!raw.loja_crediario,
+    loja_clientes: !!raw.loja_clientes,
+    loja_vendedores: !!raw.loja_vendedores,
+    loja_metas: !!raw.loja_metas,
+    loja_tv: !!raw.loja_tv,
+    loja_financeiro: !!raw.loja_financeiro,
+    loja_relatorios: !!raw.loja_relatorios,
+    loja_configuracoes: !!raw.loja_configuracoes,
   };
 }
 
