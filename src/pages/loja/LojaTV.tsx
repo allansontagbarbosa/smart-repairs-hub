@@ -161,7 +161,7 @@ export default function LojaTV() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <DittLogo className="h-8 w-auto" />
+            <DittLogo size="md" />
             <span className="text-sm text-muted-foreground uppercase tracking-widest">Loja · Telão</span>
             {qtd > 0 && (
               <span className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-success/15 text-success border border-success/30">
