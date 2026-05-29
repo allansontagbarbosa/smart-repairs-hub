@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskCPF } from "@/lib/utils";
 import { NovoClienteDialog } from "@/components/loja/NovoClienteDialog";
+import { ClienteDetalheDrawer } from "@/components/loja/ClienteDetalheDrawer";
 
 type Tag = "vip" | "regular" | "problema" | "blacklist" | "novo";
 type TabValue = "todos" | Tag;
@@ -35,6 +36,9 @@ export default function LojaClientes() {
   const [tab, setTab] = useState<TabValue>("todos");
   const [busca, setBusca] = useState("");
   const [novoOpen, setNovoOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [clienteSelecionado, setClienteSelecionado] = useState<string | null>(null);
+
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["loja-clientes", empresaId, tab, busca],
@@ -160,7 +164,11 @@ export default function LojaClientes() {
               </thead>
               <tbody>
                 {clientes.map((c: any) => (
-                  <tr key={c.id} className="border-t border-border hover:bg-muted/30">
+                  <tr
+                    key={c.id}
+                    onClick={() => { setClienteSelecionado(c.id); setDrawerOpen(true); }}
+                    className="border-t border-border hover:bg-muted/40 cursor-pointer transition-colors"
+                  >
                     <td className="p-3 font-medium">{c.nome}</td>
                     <td className="p-3 text-muted-foreground font-mono text-xs">{maskCPF(c.cpf ?? "")}</td>
                     <td className="p-3 text-muted-foreground">{c.telefone ?? "—"}</td>
@@ -174,10 +182,8 @@ export default function LojaClientes() {
                     <td className="p-3">
                       <TagBadge tag={c.tag as Tag} />
                     </td>
-                    <td className="p-3">
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                    <td className="p-3 text-right">
+                      <Eye className="h-4 w-4 text-muted-foreground inline" />
                     </td>
                   </tr>
                 ))}
@@ -188,6 +194,12 @@ export default function LojaClientes() {
       )}
 
       <NovoClienteDialog open={novoOpen} onOpenChange={setNovoOpen} />
+
+      <ClienteDetalheDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        clienteId={clienteSelecionado}
+      />
     </div>
   );
 }
