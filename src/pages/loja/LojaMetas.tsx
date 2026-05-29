@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Edit, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
+import { DefinirMetaDialog } from "@/components/loja/DefinirMetaDialog";
 
 function Termo({ cor, range, label }: { cor: string; range: string; label: string }) {
   return (
