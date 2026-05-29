@@ -34,7 +34,7 @@ export default function LojaClientes() {
   const { empresaId } = useEmpresa();
   const [tab, setTab] = useState<TabValue>("todos");
   const [busca, setBusca] = useState("");
-  const [, setNovoOpen] = useState(false);
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["loja-clientes", empresaId, tab, busca],
