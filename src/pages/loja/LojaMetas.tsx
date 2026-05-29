@@ -100,9 +100,9 @@ export default function LojaMetas() {
             Meta da loja e individuais · {hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => setDefMetaOpen(true)}>
           <Edit className="h-4 w-4 mr-2" />
-          Editar meta
+          {meta ? "Editar meta" : "Definir meta"}
         </Button>
       </div>
 
