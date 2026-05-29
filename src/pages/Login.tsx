@@ -20,10 +20,9 @@ const DEMO_PASSWORD = "Demo@123";
 type Mode = "login" | "signup" | "forgot";
 
 async function getRotaInicial(userId: string): Promise<string> {
-  // Busca ESPECIFICAMENTE por user_id (não usa OR ambíguo)
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("perfil_id, perfis_acesso(nome_perfil)")
+    .select("perfil_id, empresa_id, perfis_acesso(nome_perfil)")
     .eq("user_id", userId)
     .eq("ativo", true)
     .maybeSingle();
@@ -39,10 +38,20 @@ async function getRotaInicial(userId: string): Promise<string> {
 
   const pa = (data as any).perfis_acesso;
   const perfilNome = Array.isArray(pa) ? pa[0]?.nome_perfil : pa?.nome_perfil;
-
-  console.log("[getRotaInicial] perfilNome:", perfilNome);
-
   if (perfilNome === "Técnico") return "/tecnico";
+
+  const empresaId = (data as any).empresa_id;
+  if (empresaId) {
+    const { data: emp } = await supabase
+      .from("empresas")
+      .select("modulo_loja_ativo, modulo_assistencia_ativo")
+      .eq("id", empresaId)
+      .maybeSingle();
+    const loja = !!emp?.modulo_loja_ativo;
+    const assist = emp?.modulo_assistencia_ativo ?? true;
+    if (loja && assist) return "/combo/dashboard";
+    if (loja && !assist) return "/loja/dashboard";
+  }
   return "/dashboard";
 }
 

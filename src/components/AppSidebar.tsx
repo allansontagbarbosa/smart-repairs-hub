@@ -225,6 +225,46 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
+        {lojaAtivo && assistenciaAtivo && (
+          <SidebarGroup>
+            {!collapsed && (
+              <SidebarGroupLabel className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+                Visão Combinada
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/combo/dashboard"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    >
+                      <LayoutDashboard className="h-[18px] w-[18px] shrink-0" />
+                      {!collapsed && <span className="flex-1">Dashboard Combo</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {ehSocio && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/combo/painel-socio"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      >
+                        <PiggyBank className="h-[18px] w-[18px] shrink-0" />
+                        {!collapsed && <span className="flex-1">Painel Sócio Combo</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {/* Bottom section — user + theme + logout */}
         <div className="border-t border-sidebar-border px-3 pb-3 pt-3 space-y-2">
           {!collapsed ? (
