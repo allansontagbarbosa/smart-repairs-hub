@@ -8,6 +8,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskCPF } from "@/lib/utils";
+import { NovoClienteDialog } from "@/components/loja/NovoClienteDialog";
 
 type Tag = "vip" | "regular" | "problema" | "blacklist" | "novo";
 type TabValue = "todos" | Tag;
