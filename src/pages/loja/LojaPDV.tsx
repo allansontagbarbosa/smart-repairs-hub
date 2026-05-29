@@ -8,6 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { NovoAparelhoDialog } from "@/components/loja/NovoAparelhoDialog";
 
 interface CartItem {
   aparelho_id: string;
