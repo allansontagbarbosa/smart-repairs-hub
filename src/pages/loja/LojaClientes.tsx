@@ -186,6 +186,8 @@ export default function LojaClientes() {
           </div>
         </div>
       )}
+
+      <NovoClienteDialog open={novoOpen} onOpenChange={setNovoOpen} />
     </div>
   );
 }
