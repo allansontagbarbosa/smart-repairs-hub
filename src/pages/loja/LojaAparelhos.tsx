@@ -8,11 +8,13 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskIMEI } from "@/lib/utils";
+import { NovoAparelhoDialog } from "@/components/loja/NovoAparelhoDialog";
 
 export default function LojaAparelhos() {
   const { empresaId } = useEmpresa();
   const [tab, setTab] = useState<"novo" | "seminovo" | "vitrine" | "vendido">("novo");
   const [busca, setBusca] = useState("");
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: aparelhos = [], isLoading } = useQuery({
     queryKey: ["loja-aparelhos", empresaId, tab, busca],
