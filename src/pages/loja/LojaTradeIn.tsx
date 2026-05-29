@@ -6,6 +6,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskIMEI } from "@/lib/utils";
+import { TradeInWizardDialog } from "@/components/loja/TradeInWizardDialog";
 
 function StatusTradeBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -23,7 +24,7 @@ function StatusTradeBadge({ status }: { status: string }) {
 
 export default function LojaTradeIn() {
   const { empresaId } = useEmpresa();
-  const [, setWizardOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const { data: tradeIns = [], isLoading } = useQuery({
     queryKey: ["loja-trade-in", empresaId],
@@ -137,6 +138,8 @@ export default function LojaTradeIn() {
           </div>
         </div>
       )}
+
+      <TradeInWizardDialog open={wizardOpen} onOpenChange={setWizardOpen} />
     </div>
   );
 }
