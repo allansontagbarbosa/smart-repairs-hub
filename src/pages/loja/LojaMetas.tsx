@@ -212,6 +212,8 @@ export default function LojaMetas() {
           )}
         </>
       )}
+
+      <DefinirMetaDialog open={defMetaOpen} onOpenChange={setDefMetaOpen} ano={ano} mes={mes} />
     </div>
   );
 }
