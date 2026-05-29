@@ -8507,6 +8507,23 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_venda_loja: {
+        Args: {
+          p_cliente_id: string
+          p_desconto?: number
+          p_empresa_id: string
+          p_itens: Json
+          p_observacoes?: string
+          p_pagamentos: Json
+          p_trade_in_id?: string
+          p_trade_in_valor?: number
+          p_vendedor_id: string
+        }
+        Returns: {
+          numero_venda: number
+          venda_id: string
+        }[]
+      }
       replicar_contas_recorrentes: {
         Args: { p_destino: string; p_origem: string }
         Returns: {
