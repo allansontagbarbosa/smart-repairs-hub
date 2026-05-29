@@ -2146,6 +2146,8 @@ export type Database = {
           latitude: number | null
           logo_url: string | null
           longitude: number | null
+          modulo_assistencia_ativo: boolean
+          modulo_loja_ativo: boolean
           nome: string
           numero: string | null
           owner_id: string
@@ -2171,6 +2173,8 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          modulo_assistencia_ativo?: boolean
+          modulo_loja_ativo?: boolean
           nome: string
           numero?: string | null
           owner_id: string
@@ -2196,6 +2200,8 @@ export type Database = {
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
+          modulo_assistencia_ativo?: boolean
+          modulo_loja_ativo?: boolean
           nome?: string
           numero?: string | null
           owner_id?: string
@@ -3971,6 +3977,572 @@ export type Database = {
             columns: ["lista_id"]
             isOneToOne: false
             referencedRelation: "listas_preco"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_aparelhos: {
+        Row: {
+          avaria: string | null
+          capacidade: string | null
+          condicao: string
+          cor: string | null
+          created_at: string | null
+          custo: number
+          data_entrada: string | null
+          data_venda: string | null
+          deleted_at: string | null
+          empresa_id: string
+          fornecedor_id: string | null
+          garantia_fabricante: boolean | null
+          garantia_loja_meses: number | null
+          id: string
+          imei_1: string | null
+          imei_2: string | null
+          modelo: string
+          observacoes: string | null
+          origem: string | null
+          preco_promocional: number | null
+          preco_venda: number
+          status: string
+          trade_in_id: string | null
+          updated_at: string | null
+          venda_id: string | null
+        }
+        Insert: {
+          avaria?: string | null
+          capacidade?: string | null
+          condicao?: string
+          cor?: string | null
+          created_at?: string | null
+          custo: number
+          data_entrada?: string | null
+          data_venda?: string | null
+          deleted_at?: string | null
+          empresa_id: string
+          fornecedor_id?: string | null
+          garantia_fabricante?: boolean | null
+          garantia_loja_meses?: number | null
+          id?: string
+          imei_1?: string | null
+          imei_2?: string | null
+          modelo: string
+          observacoes?: string | null
+          origem?: string | null
+          preco_promocional?: number | null
+          preco_venda: number
+          status?: string
+          trade_in_id?: string | null
+          updated_at?: string | null
+          venda_id?: string | null
+        }
+        Update: {
+          avaria?: string | null
+          capacidade?: string | null
+          condicao?: string
+          cor?: string | null
+          created_at?: string | null
+          custo?: number
+          data_entrada?: string | null
+          data_venda?: string | null
+          deleted_at?: string | null
+          empresa_id?: string
+          fornecedor_id?: string | null
+          garantia_fabricante?: boolean | null
+          garantia_loja_meses?: number | null
+          id?: string
+          imei_1?: string | null
+          imei_2?: string | null
+          modelo?: string
+          observacoes?: string | null
+          origem?: string | null
+          preco_promocional?: number | null
+          preco_venda?: number
+          status?: string
+          trade_in_id?: string | null
+          updated_at?: string | null
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_aparelhos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_aparelhos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_crediario: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          data_quitacao: string | null
+          empresa_id: string
+          entrada: number | null
+          id: string
+          numero_contrato: string
+          observacoes: string | null
+          parcelas: number
+          primeiro_vencimento: string
+          status: string
+          taxa_juros: number | null
+          total: number
+          valor_parcela: number
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          data_quitacao?: string | null
+          empresa_id: string
+          entrada?: number | null
+          id?: string
+          numero_contrato: string
+          observacoes?: string | null
+          parcelas: number
+          primeiro_vencimento: string
+          status?: string
+          taxa_juros?: number | null
+          total: number
+          valor_parcela: number
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          data_quitacao?: string | null
+          empresa_id?: string
+          entrada?: number | null
+          id?: string
+          numero_contrato?: string
+          observacoes?: string | null
+          parcelas?: number
+          primeiro_vencimento?: string
+          status?: string
+          taxa_juros?: number | null
+          total?: number
+          valor_parcela?: number
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_crediario_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_crediario_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_crediario_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "loja_vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_crediario_parcelas: {
+        Row: {
+          crediario_id: string
+          data_pagamento: string | null
+          id: string
+          juros: number | null
+          multa: number | null
+          numero_parcela: number
+          status: string
+          valor: number
+          valor_pago: number | null
+          vencimento: string
+        }
+        Insert: {
+          crediario_id: string
+          data_pagamento?: string | null
+          id?: string
+          juros?: number | null
+          multa?: number | null
+          numero_parcela: number
+          status?: string
+          valor: number
+          valor_pago?: number | null
+          vencimento: string
+        }
+        Update: {
+          crediario_id?: string
+          data_pagamento?: string | null
+          id?: string
+          juros?: number | null
+          multa?: number | null
+          numero_parcela?: number
+          status?: string
+          valor?: number
+          valor_pago?: number | null
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_crediario_parcelas_crediario_id_fkey"
+            columns: ["crediario_id"]
+            isOneToOne: false
+            referencedRelation: "loja_crediario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_pagamentos: {
+        Row: {
+          adquirente: string | null
+          bandeira: string | null
+          created_at: string | null
+          data_recebimento: string | null
+          forma: string
+          id: string
+          nsu: string | null
+          parcelas: number | null
+          pix_qrcode: string | null
+          pix_txid: string | null
+          status: string
+          taxa_aplicada: number | null
+          valor: number
+          venda_id: string
+        }
+        Insert: {
+          adquirente?: string | null
+          bandeira?: string | null
+          created_at?: string | null
+          data_recebimento?: string | null
+          forma: string
+          id?: string
+          nsu?: string | null
+          parcelas?: number | null
+          pix_qrcode?: string | null
+          pix_txid?: string | null
+          status?: string
+          taxa_aplicada?: number | null
+          valor: number
+          venda_id: string
+        }
+        Update: {
+          adquirente?: string | null
+          bandeira?: string | null
+          created_at?: string | null
+          data_recebimento?: string | null
+          forma?: string
+          id?: string
+          nsu?: string | null
+          parcelas?: number | null
+          pix_qrcode?: string | null
+          pix_txid?: string | null
+          status?: string
+          taxa_aplicada?: number | null
+          valor?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_pagamentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "loja_vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_trade_in: {
+        Row: {
+          aparelho_id: string | null
+          capacidade: string | null
+          checklist: Json | null
+          cliente_id: string | null
+          condicao: string
+          cor: string | null
+          created_at: string | null
+          descontos_aplicados: Json | null
+          empresa_id: string
+          forma_pagamento: string | null
+          id: string
+          imei_1: string | null
+          imei_2: string | null
+          modelo: string
+          observacoes: string | null
+          status: string
+          updated_at: string | null
+          valor_avaliado: number
+          valor_sugerido: number
+          venda_id: string | null
+        }
+        Insert: {
+          aparelho_id?: string | null
+          capacidade?: string | null
+          checklist?: Json | null
+          cliente_id?: string | null
+          condicao: string
+          cor?: string | null
+          created_at?: string | null
+          descontos_aplicados?: Json | null
+          empresa_id: string
+          forma_pagamento?: string | null
+          id?: string
+          imei_1?: string | null
+          imei_2?: string | null
+          modelo: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_avaliado: number
+          valor_sugerido: number
+          venda_id?: string | null
+        }
+        Update: {
+          aparelho_id?: string | null
+          capacidade?: string | null
+          checklist?: Json | null
+          cliente_id?: string | null
+          condicao?: string
+          cor?: string | null
+          created_at?: string | null
+          descontos_aplicados?: Json | null
+          empresa_id?: string
+          forma_pagamento?: string | null
+          id?: string
+          imei_1?: string | null
+          imei_2?: string | null
+          modelo?: string
+          observacoes?: string | null
+          status?: string
+          updated_at?: string | null
+          valor_avaliado?: number
+          valor_sugerido?: number
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_trade_in_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "loja_aparelhos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_trade_in_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_trade_in_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_trade_in_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "loja_vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_vendas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          desconto: number | null
+          empresa_id: string
+          id: string
+          motivo_estorno: string | null
+          nfc_e_chave: string | null
+          nfc_e_emitida: boolean | null
+          numero_venda: number
+          observacoes: string | null
+          status: string
+          subtotal: number
+          total: number
+          trade_in_id: string | null
+          trade_in_valor: number | null
+          updated_at: string | null
+          vendedor_id: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          desconto?: number | null
+          empresa_id: string
+          id?: string
+          motivo_estorno?: string | null
+          nfc_e_chave?: string | null
+          nfc_e_emitida?: boolean | null
+          numero_venda?: number
+          observacoes?: string | null
+          status?: string
+          subtotal: number
+          total: number
+          trade_in_id?: string | null
+          trade_in_valor?: number | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          desconto?: number | null
+          empresa_id?: string
+          id?: string
+          motivo_estorno?: string | null
+          nfc_e_chave?: string | null
+          nfc_e_emitida?: boolean | null
+          numero_venda?: number
+          observacoes?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          trade_in_id?: string | null
+          trade_in_valor?: number | null
+          updated_at?: string | null
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_vendas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_vendas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_vendas_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_vendas_itens: {
+        Row: {
+          aparelho_id: string
+          desconto_item: number | null
+          id: string
+          preco_unitario: number
+          total_item: number
+          venda_id: string
+        }
+        Insert: {
+          aparelho_id: string
+          desconto_item?: number | null
+          id?: string
+          preco_unitario: number
+          total_item: number
+          venda_id: string
+        }
+        Update: {
+          aparelho_id?: string
+          desconto_item?: number | null
+          id?: string
+          preco_unitario?: number
+          total_item?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_vendas_itens_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "loja_aparelhos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_vendas_itens_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "loja_vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_vendedor_config: {
+        Row: {
+          ativo: boolean | null
+          bonus_meta: number | null
+          comissao_acessorio: number | null
+          comissao_novo: number | null
+          comissao_seminovo: number | null
+          comissao_trade_in: number | null
+          created_at: string | null
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          meta_mensal: number | null
+          super_bonus: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bonus_meta?: number | null
+          comissao_acessorio?: number | null
+          comissao_novo?: number | null
+          comissao_seminovo?: number | null
+          comissao_trade_in?: number | null
+          created_at?: string | null
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          meta_mensal?: number | null
+          super_bonus?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bonus_meta?: number | null
+          comissao_acessorio?: number | null
+          comissao_novo?: number | null
+          comissao_seminovo?: number | null
+          comissao_trade_in?: number | null
+          created_at?: string | null
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          meta_mensal?: number | null
+          super_bonus?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loja_vendedor_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loja_vendedor_config_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
         ]
@@ -7153,6 +7725,16 @@ export type Database = {
         Returns: Json
       }
       coletar_dados_backup: { Args: { p_empresa_id: string }; Returns: Json }
+      combo_dashboard_kpis: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: {
+          faturamento_assistencia: number
+          faturamento_loja: number
+          faturamento_total: number
+          os_concluidas: number
+          vendas_loja: number
+        }[]
+      }
       comissoes_tecnico_periodo: {
         Args: { p_fim: string; p_funcionario_id: string; p_inicio: string }
         Returns: Json
@@ -7488,6 +8070,7 @@ export type Database = {
         Args: { p_ano?: number; p_funcionario_id: string; p_mes?: number }
         Returns: Json
       }
+      get_user_empresa_id: { Args: never; Returns: string }
       has_permissao: {
         Args: { p_acao?: string; p_modulo: string }
         Returns: boolean
@@ -7607,6 +8190,17 @@ export type Database = {
         Returns: Json
       }
       listar_todos_funcionarios: { Args: never; Returns: Json }
+      loja_dashboard_kpis: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: {
+          custo_total: number
+          faturamento: number
+          lucro_bruto: number
+          margem: number
+          ticket_medio: number
+          vendas_qtd: number
+        }[]
+      }
       lojista_verificar_acesso: {
         Args: { email_input: string }
         Returns: {
