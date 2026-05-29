@@ -7877,11 +7877,27 @@ export type Database = {
       combo_dashboard_kpis: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
-          faturamento_assistencia: number
+          faturamento_assist: number
+          faturamento_assist_anterior: number
           faturamento_loja: number
+          faturamento_loja_anterior: number
           faturamento_total: number
-          os_concluidas: number
-          vendas_loja: number
+          os_assist_qtd: number
+          ticket_assist: number
+          ticket_loja: number
+          transacoes_total: number
+          variacao_assist_pct: number
+          variacao_loja_pct: number
+          vendas_loja_qtd: number
+        }[]
+      }
+      combo_serie_diaria: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: {
+          dia: string
+          faturamento_assist: number
+          faturamento_loja: number
+          total: number
         }[]
       }
       comissoes_tecnico_periodo: {
