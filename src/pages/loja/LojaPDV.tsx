@@ -11,7 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { NovoAparelhoDialog } from "@/components/loja/NovoAparelhoDialog";
+import { AparelhoDialog } from "@/components/loja/AparelhoDialog";
 import { ClienteSelectDialog } from "@/components/loja/ClienteSelectDialog";
 
 interface CartItem {
