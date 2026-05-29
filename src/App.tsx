@@ -84,6 +84,7 @@ import LojaTV from "@/pages/loja/LojaTV";
 import LojaFinanceiro from "@/pages/loja/LojaFinanceiro";
 import LojaRelatorios from "@/pages/loja/LojaRelatorios";
 import LojaConfiguracoes from "@/pages/loja/LojaConfiguracoes";
+import LojaPainelSocio from "@/pages/loja/LojaPainelSocio";
 
 
 
