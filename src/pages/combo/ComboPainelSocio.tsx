@@ -32,10 +32,10 @@ export default function ComboPainelSocio() {
   });
 
   const fatLoja = Number(combo?.faturamento_loja ?? 0);
-  const fatAssist = Number(combo?.faturamento_assistencia ?? 0);
+  const fatAssist = Number(combo?.faturamento_assist ?? 0);
   const total = Number(combo?.faturamento_total ?? fatLoja + fatAssist);
-  const vendasLoja = Number(combo?.vendas_loja ?? 0);
-  const osAssist = Number(combo?.os_concluidas ?? 0);
+  const vendasLoja = Number(combo?.vendas_loja_qtd ?? 0);
+  const osAssist = Number(combo?.os_assist_qtd ?? 0);
 
   // Lucro: simplificado — margem média 25% até despesas detalhadas serem integradas.
   const lucroLiquido = total * 0.25;
