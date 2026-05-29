@@ -272,6 +272,9 @@ export default function KanbanTecnicos() {
     atualizar.mutate({ servicoId, tecnicoId: novoTecId, nomeAlvo });
   };
 
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
   if (loadingTec || loadingSrv) {
     return (
       <div className="flex justify-center py-20">
@@ -279,9 +282,6 @@ export default function KanbanTecnicos() {
       </div>
     );
   }
-
-  const isMobile = useIsMobile();
-  const navigate = useNavigate();
 
   if (isMobile) {
     return (
