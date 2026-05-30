@@ -122,6 +122,7 @@ interface ServicoCard {
   aparelho_modelo: string | null;
   aparelho_marca: string | null;
   total_servicos_na_os: number;
+  indice_servico_na_os: number;
 }
 
 function scoreUrgencia(s: ServicoCard): number {
