@@ -145,6 +145,7 @@ const App = () => (
         <LojistaProvider>
         <EmpresaProvider>
           <BrowserRouter>
+            <WorkspaceModeProvider>
             <Routes>
               {/* Landing page pública */}
               <Route path="/" element={<LandingPage />} />
