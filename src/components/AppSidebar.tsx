@@ -127,8 +127,16 @@ export function AppSidebar() {
     navigate("/login");
   };
 
-  const visibleItems = assistenciaAtivo ? items.filter((item) => can(item.permissao, "ver")) : [];
-  const visibleItemsLoja = lojaAtivo ? itemsLoja.filter((item) => can(item.permissao, "ver")) : [];
+  const itemsVisiveis = (() => {
+    if (mode === "loja") return itemsLoja.filter((item) => can(item.permissao, "ver"));
+    if (mode === "combo") return itemsCombo.filter((item) => can(item.permissao, "ver"));
+    return items.filter((item) => can(item.permissao, "ver"));
+  })();
+
+  const painelSocioPath =
+    mode === "loja" ? "/loja/painel-socio" : mode === "combo" ? "/combo/painel-socio" : "/painel-socio";
+  const painelSocioLabel =
+    mode === "loja" ? "Painel Sócio · Loja" : mode === "combo" ? "Painel Sócio Combo" : "Painel do Sócio";
 
   return (
     <Sidebar collapsible="icon">
@@ -141,6 +149,8 @@ export function AppSidebar() {
           )}
         </div>
 
+        <WorkspaceSwitcher collapsed={collapsed} />
+
         {!collapsed && (
           <div className="px-4 mb-2">
             <div className="h-px bg-sidebar-border" />
@@ -150,8 +160,13 @@ export function AppSidebar() {
         <SidebarGroup className="flex-1">
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleItems.map((item) => {
-                const badge = item.badgeKey === "pecas" ? estoqueBaixoCount : (item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0);
+              {itemsVisiveis.map((item: any) => {
+                const badge =
+                  item.badgeKey === "pecas"
+                    ? estoqueBaixoCount
+                    : item.badgeKey
+                    ? badgeCounts[item.badgeKey as keyof typeof badgeCounts] ?? 0
+                    : 0;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -162,9 +177,7 @@ export function AppSidebar() {
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       >
                         <item.icon className="h-[18px] w-[18px] shrink-0" />
-                        {!collapsed && (
-                          <span className="flex-1">{item.title}</span>
-                        )}
+                        {!collapsed && <span className="flex-1">{item.title}</span>}
                         {!collapsed && badge > 0 && (
                           <span className="inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold h-5 min-w-5 px-1.5">
                             {badge}
@@ -184,12 +197,12 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink
-                      to="/painel-socio"
+                      to={painelSocioPath}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
                       <PiggyBank className="h-[18px] w-[18px] shrink-0" />
-                      {!collapsed && <span className="flex-1">Painel do Sócio</span>}
+                      {!collapsed && <span className="flex-1">{painelSocioLabel}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -198,87 +211,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {visibleItemsLoja.length > 0 && (
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground">
-                Loja
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleItemsLoja.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <item.icon className="h-[18px] w-[18px] shrink-0" />
-                        {!collapsed && <span className="flex-1">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-                {ehSocio && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/loja/painel-socio"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <PiggyBank className="h-[18px] w-[18px] shrink-0" />
-                        {!collapsed && <span className="flex-1">Painel Sócio · Loja</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {lojaAtivo && assistenciaAtivo && (
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="px-3 text-[10px] uppercase tracking-wider text-muted-foreground">
-                Visão Combinada
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/combo/dashboard"
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
-                      <LayoutDashboard className="h-[18px] w-[18px] shrink-0" />
-                      {!collapsed && <span className="flex-1">Dashboard Combo</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {ehSocio && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/combo/painel-socio"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <PiggyBank className="h-[18px] w-[18px] shrink-0" />
-                        {!collapsed && <span className="flex-1">Painel Sócio Combo</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {/* Bottom section — user + theme + logout */}
         <div className="border-t border-sidebar-border px-3 pb-3 pt-3 space-y-2">
