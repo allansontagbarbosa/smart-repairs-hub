@@ -61,6 +61,20 @@ const itemsLoja = [
   { title: "Config. Loja", url: "/loja/configuracoes", icon: Settings, permissao: "loja_configuracoes" as keyof Permissoes },
 ];
 
+const itemsCombo = [
+  { title: "Dashboard Combo", url: "/combo/dashboard", icon: LayoutDashboard, permissao: "loja_dashboard" as keyof Permissoes },
+  { title: "Clientes", url: "/clientes", icon: Users, permissao: "clientes" as keyof Permissoes },
+  { title: "Financeiro Assist", url: "/financeiro", icon: DollarSign, permissao: "financeiro" as keyof Permissoes },
+  { title: "Financeiro Loja", url: "/loja/financeiro", icon: DollarSign, permissao: "loja_financeiro" as keyof Permissoes },
+  { title: "Relatórios Assist", url: "/relatorios", icon: BarChart2, permissao: "relatorios" as keyof Permissoes },
+  { title: "Relatórios Loja", url: "/loja/relatorios", icon: BarChart2, permissao: "loja_relatorios" as keyof Permissoes },
+  { title: "Metas Assist", url: "/metas", icon: Target, permissao: "metas" as keyof Permissoes },
+  { title: "Metas Loja", url: "/loja/metas", icon: Target, permissao: "loja_metas" as keyof Permissoes },
+  { title: "RH", url: "/rh", icon: UserCog, permissao: "rh" as keyof Permissoes },
+  { title: "Painéis TV", url: "/tv/configurar", icon: Tv, permissao: "paineis_tv" as keyof Permissoes },
+  { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
+];
+
 function getInitials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
