@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { buildUserProfileLookup } from "@/lib/userProfileLookup";
+import { DittLogo } from "@/components/DittLogo";
 
 type GuardState = "loading" | "no-auth" | "onboarding" | "ok";
 
@@ -71,7 +72,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (state === "loading") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground gap-4">
-        <DittLogoLoader />
+        <DittLogo size="lg" variant="default" />
         <div className="h-6 w-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         <span className="text-xs text-muted-foreground">Carregando…</span>
       </div>
