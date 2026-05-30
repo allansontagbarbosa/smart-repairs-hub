@@ -84,7 +84,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { badgeCounts } = useNotificacoes();
   const { can } = usePermissoes();
-  const { lojaAtivo, assistenciaAtivo } = useModulos();
+  const { mode } = useWorkspaceMode();
   const estoqueBaixoCount = useEstoqueBaixoCount();
   const { user } = useAuth();
   const navigate = useNavigate();
