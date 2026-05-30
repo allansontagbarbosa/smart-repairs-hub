@@ -73,6 +73,24 @@ function hashIdx(name: string, mod: number) {
   return h % mod;
 }
 
+// Cores de borda esquerda pra agrupar visualmente cards da mesma OS
+const OS_BORDER_COLORS = [
+  "border-l-blue-500",
+  "border-l-emerald-500",
+  "border-l-purple-500",
+  "border-l-amber-500",
+  "border-l-pink-500",
+  "border-l-cyan-500",
+  "border-l-indigo-500",
+  "border-l-rose-500",
+  "border-l-teal-500",
+  "border-l-orange-500",
+];
+
+function corDaOS(ordemId: string) {
+  return OS_BORDER_COLORS[hashIdx(ordemId, OS_BORDER_COLORS.length)];
+}
+
 function daysBetween(from: string | null | undefined, to = new Date()) {
   if (!from) return null;
   return Math.floor((to.getTime() - new Date(from).getTime()) / 86400000);
