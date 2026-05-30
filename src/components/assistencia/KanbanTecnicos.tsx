@@ -573,17 +573,31 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
     : {};
 
   const paradoMuito = diasColuna !== null && diasColuna >= 5;
+  const temMultiplosServicos = srv.total_servicos_na_os > 1;
+  const corOS = corDaOS(srv.ordem_id);
 
   return (
     <div
       ref={setNodeRef}
       style={style}
+      data-os-id={srv.ordem_id}
       className={cn(
-        "bg-card rounded-lg border p-2.5 space-y-1.5 transition-shadow hover:shadow-md select-none touch-none",
-        isDragging && "opacity-50 shadow-lg",
-        paradoMuito && "border-l-2 border-l-amber-400",
+        "group/card bg-card rounded-lg border border-l-4 p-2.5 space-y-1.5 transition-all hover:shadow-md select-none touch-none relative",
+        temMultiplosServicos ? corOS : "border-l-transparent",
+        isDragging && "opacity-50 shadow-lg ring-2 ring-primary/30",
+        paradoMuito && !temMultiplosServicos && "border-l-amber-400",
       )}
     >
+      {temMultiplosServicos && (
+        <div className="flex items-center justify-between -mt-0.5 mb-1">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+            <span className="opacity-60">Parte</span>
+            <span>{srv.indice_servico_na_os}/{srv.total_servicos_na_os}</span>
+          </span>
+          <span className="text-[9px] text-muted-foreground/70">mesma OS</span>
+        </div>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         <div
           {...listeners}
@@ -591,17 +605,25 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
           className="flex-1 min-w-0 cursor-grab active:cursor-grabbing"
         >
           <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-sm font-medium leading-tight truncate">{srv.cliente_nome ?? "—"}</span>
-            <span className="text-[10px] font-mono text-muted-foreground shrink-0">#{String(srv.os_numero).padStart(3, "0")}</span>
+            <span className="text-[11px] font-mono font-bold text-foreground shrink-0">
+              #{String(srv.os_numero).padStart(3, "0")}
+            </span>
+            <span className="text-sm font-medium leading-tight truncate text-foreground/90">
+              {srv.cliente_nome ?? "—"}
+            </span>
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">{srv.aparelho_marca} {srv.aparelho_modelo}</p>
+          <p className="text-[11px] text-muted-foreground truncate">
+            {srv.aparelho_marca} {srv.aparelho_modelo}
+          </p>
         </div>
         <CardMenu srv={srv} tecnicos={tecnicos} onSelect={onSelect} mutate={atualizar.mutate} />
       </div>
 
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-foreground/80 truncate">
-        {srv.servico_nome ?? "Serviço"}
-      </p>
+      <div className="bg-primary/5 border border-primary/15 rounded px-1.5 py-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-primary truncate">
+          {srv.servico_nome ?? "Serviço"}
+        </p>
+      </div>
 
       {defeitoLinha && (
         <p className="text-[11px] text-muted-foreground line-clamp-1">{defeitoLinha}</p>
@@ -618,14 +640,6 @@ function ServicoCardView({ srv, tecnicos, onSelect }: { srv: ServicoCard; tecnic
           )}>
             <Clock className="h-2.5 w-2.5" />
             {prazoAtrasado ? `Atrasado ${Math.abs(diasPrazo ?? 0)}d` : `Prazo ${diasPrazo}d`}
-          </span>
-        )}
-        {srv.total_servicos_na_os > 1 && (
-          <span
-            className="text-[10px] text-muted-foreground italic"
-            title={`Esta OS tem ${srv.total_servicos_na_os} serviços`}
-          >
-            ({srv.total_servicos_na_os} serviços)
           </span>
         )}
       </div>
