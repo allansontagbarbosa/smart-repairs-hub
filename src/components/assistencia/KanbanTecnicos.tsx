@@ -285,7 +285,13 @@ export default function KanbanTecnicos() {
     concl.sort((a, b) => (b.concluido_em ?? "").localeCompare(a.concluido_em ?? ""));
     // Ordenar colunas de trabalho ativo por urgência
     Object.keys(ab).forEach(col => {
-      ab[col].sort((a, b) => scoreUrgencia(a) - scoreUrgencia(b));
+      ab[col].sort((a, b) => {
+        const scoreA = scoreUrgencia(a);
+        const scoreB = scoreUrgencia(b);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        if (a.ordem_id !== b.ordem_id) return a.ordem_id.localeCompare(b.ordem_id);
+        return a.indice_servico_na_os - b.indice_servico_na_os;
+      });
     });
     return { abertosPorCol: ab, concluidasMes: concl.slice(0, 20) };
   }, [servicos, tecnicos]);
