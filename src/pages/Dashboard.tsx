@@ -942,7 +942,7 @@ export default function Dashboard() {
                 label="Em atraso"
                 value={String(kpis.emAtraso)}
                 color={kpis.emAtraso > 0 ? "text-red-600" : "text-foreground"}
-                iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-gray-300"}
+                iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-muted-foreground"}
               />
             </div>
           )}
