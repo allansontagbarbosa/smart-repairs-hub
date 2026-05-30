@@ -2,6 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { Loader2 } from "lucide-react";
+import { DittLogo } from "@/components/DittLogo";
 
 interface Props {
   /** Lista de perfis_acesso.nome_perfil que PODEM acessar a rota.
@@ -16,8 +17,10 @@ export function PerfilGuard({ perfis, children }: Props) {
 
   if (authLoading || permLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground gap-4">
+        <DittLogo size="lg" variant="default" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="text-xs text-muted-foreground">Carregando…</span>
       </div>
     );
   }

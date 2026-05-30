@@ -31,6 +31,18 @@
   </head>
 
   <body>
+    <script>
+      // Anti-FOUC: aplica o tema antes do React montar.
+      (function () {
+        try {
+          var t = localStorage.getItem('theme') || 'system';
+          var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+          // Define background imediato pra evitar flash branco.
+          document.documentElement.style.backgroundColor = dark ? '#0a0a0a' : '#ffffff';
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
