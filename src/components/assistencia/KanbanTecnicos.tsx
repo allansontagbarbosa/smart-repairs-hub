@@ -208,7 +208,19 @@ export default function KanbanTecnicos() {
       });
 
       const countByOrdem: Record<string, number> = {};
-      rows.forEach((r: any) => { countByOrdem[r.ordem_id] = (countByOrdem[r.ordem_id] ?? 0) + 1; });
+      const indicesByOrdem: Record<string, Record<string, number>> = {};
+      rows.forEach((r: any) => {
+        countByOrdem[r.ordem_id] = (countByOrdem[r.ordem_id] ?? 0) + 1;
+        if (!indicesByOrdem[r.ordem_id]) indicesByOrdem[r.ordem_id] = {};
+      });
+      Object.keys(indicesByOrdem).forEach((ordemId) => {
+        const servicosDaOS = rows.filter((r: any) => r.ordem_id === ordemId);
+        servicosDaOS
+          .sort((a: any, b: any) => String(a.id).localeCompare(String(b.id)))
+          .forEach((s: any, idx: number) => {
+            indicesByOrdem[ordemId][s.id] = idx + 1;
+          });
+      });
 
       return rows.map((r: any) => {
         const o = r.ordens_de_servico;
@@ -233,6 +245,7 @@ export default function KanbanTecnicos() {
           aparelho_modelo: o.aparelhos?.modelo ?? null,
           aparelho_marca: o.aparelhos?.marca ?? null,
           total_servicos_na_os: countByOrdem[r.ordem_id] ?? 1,
+          indice_servico_na_os: indicesByOrdem[r.ordem_id]?.[r.id] ?? 1,
         } as ServicoCard;
       });
     },
