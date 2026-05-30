@@ -67,7 +67,7 @@ const STATUS_COLORS: Record<string, string> = {
   aguardando_aprovacao: "bg-orange-100 text-orange-700",
   em_reparo: "bg-blue-100 text-blue-700",
   pronto: "bg-green-100 text-green-700",
-  entregue: "bg-gray-100 text-gray-600",
+  entregue: "bg-muted text-muted-foreground",
   cancelado: "bg-red-100 text-red-700",
 };
 
@@ -119,8 +119,8 @@ function MetricCard({
   label,
   value,
   sub,
-  color = "text-gray-900",
-  bg = "bg-white",
+  color = "text-foreground",
+  bg = "bg-card",
   badge,
   iconColor = "text-blue-500",
 }: {
@@ -594,7 +594,7 @@ export default function Dashboard() {
             value={brl(kpis.faturamento)}
             iconColor="text-blue-500"
             badge={
-              <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
                 {kpis.totalFaturadas} concluídas
               </span>
             }
@@ -646,7 +646,7 @@ export default function Dashboard() {
             icon={Receipt}
             label="Gastos fixos"
             value={brl(kpis.gastosFixos)}
-            iconColor="text-gray-500"
+            iconColor="text-muted-foreground"
             sub={
               competenciaInfo.fracao
                 ? `Mês inteiro de competência (${competenciaInfo.meses.join(", ")})`
@@ -675,7 +675,7 @@ export default function Dashboard() {
             }
             iconColor="text-purple-500"
           />
-          <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-gray-500" />
+          <MetricCard icon={CreditCard} label="Impostos" value={brl(kpis.impostos)} iconColor="text-muted-foreground" />
           <MetricCard icon={DollarSign} label="Ticket médio" value={brl(kpis.ticket)} iconColor="text-blue-500" />
         </div>
 
@@ -788,21 +788,21 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard icon={Receipt} label="Total gastos do período" value={brl(kpis.totalGastos)} iconColor="text-red-500" />
-          <MetricCard icon={Receipt} label="Depreciação" value={brl(kpis.depreciacao)} iconColor="text-gray-500" />
+          <MetricCard icon={Receipt} label="Depreciação" value={brl(kpis.depreciacao)} iconColor="text-muted-foreground" />
           <MetricCard
             icon={Target}
             label="Previsão faturamento"
             value={kpis.metaFaturamento > 0 ? brl(kpis.metaFaturamento) : "Não definida"}
             sub={kpis.metaFaturamento > 0 && kpis.faturamento > 0 ? `${pct((kpis.faturamento / kpis.metaFaturamento) * 100)} realizado` : undefined}
             iconColor="text-blue-400"
-            color={kpis.metaFaturamento > 0 ? "text-blue-600" : "text-gray-400"}
+            color={kpis.metaFaturamento > 0 ? "text-blue-600" : "text-muted-foreground"}
           />
           <MetricCard
             icon={TrendingUp}
             label="Previsão lucro líq."
             value={kpis.prevLl > 0 ? brl(kpis.prevLl) : "—"}
             sub={kpis.metaFaturamento > 0 ? `margem estimada ${pct(kpis.llMargem)}` : undefined}
-            color={kpis.prevLl > 0 ? "text-green-600" : "text-gray-400"}
+            color={kpis.prevLl > 0 ? "text-green-600" : "text-muted-foreground"}
             iconColor="text-green-400"
           />
         </div>
@@ -889,7 +889,7 @@ export default function Dashboard() {
                   ? pct((kpis.iphonesReparados / kpis.totalRecebidasPeriodo) * 100)
                   : "—"
               }
-              iconColor="text-gray-600"
+              iconColor="text-muted-foreground"
             />
             {can("financeiro", "ver") && (
               <MetricCard
@@ -922,8 +922,8 @@ export default function Dashboard() {
                 icon={Clock}
                 label="Aguardando reparo"
                 value={String(kpis.aguardandoReparo)}
-                color={kpis.aguardandoReparo > 20 ? "text-amber-600" : "text-gray-900"}
-                iconColor={kpis.aguardandoReparo > 20 ? "text-amber-500" : "text-gray-400"}
+                color={kpis.aguardandoReparo > 20 ? "text-amber-600" : "text-foreground"}
+                iconColor={kpis.aguardandoReparo > 20 ? "text-amber-500" : "text-muted-foreground"}
               />
               <MetricCard
                 icon={Wrench}
@@ -941,7 +941,7 @@ export default function Dashboard() {
                 icon={AlertTriangle}
                 label="Em atraso"
                 value={String(kpis.emAtraso)}
-                color={kpis.emAtraso > 0 ? "text-red-600" : "text-gray-900"}
+                color={kpis.emAtraso > 0 ? "text-red-600" : "text-foreground"}
                 iconColor={kpis.emAtraso > 0 ? "text-red-500" : "text-gray-300"}
               />
             </div>
@@ -960,7 +960,7 @@ export default function Dashboard() {
                   : 0
               )}
               sub="peças + fixos do período"
-              iconColor="text-gray-400"
+              iconColor="text-muted-foreground"
             />
           </div>
         )}
@@ -1014,7 +1014,7 @@ export default function Dashboard() {
                             {nome[0]?.toUpperCase() || String(i + 1)}
                           </div>
                           <div className="flex flex-col leading-tight">
-                            <span className="text-xs font-medium text-gray-600">{nome}</span>
+                            <span className="text-xs font-medium text-muted-foreground">{nome}</span>
                             <span className="text-[10px] text-muted-foreground">{p.percentual.toFixed(2)}%</span>
                           </div>
                         </div>
