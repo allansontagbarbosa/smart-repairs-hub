@@ -17,6 +17,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DittLogo } from "@/components/DittLogo";
+import { WorkspaceModeBadge } from "@/components/WorkspaceModeBadge";
 import { BotaoFlutuanteIA } from "@/components/ia/BotaoFlutuanteIA";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
