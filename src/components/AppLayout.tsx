@@ -17,6 +17,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { DittLogo } from "@/components/DittLogo";
+import { WorkspaceModeBadge } from "@/components/WorkspaceModeBadge";
 import { BotaoFlutuanteIA } from "@/components/ia/BotaoFlutuanteIA";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -89,6 +90,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="hidden lg:flex items-center gap-2 flex-1">
               <SidebarTrigger />
               <div className="h-5 w-px bg-border mx-1" />
+              <WorkspaceModeBadge className="mr-1" />
               <div className="flex items-center gap-1.5 overflow-x-auto">
                 <Button
                   size="sm"
