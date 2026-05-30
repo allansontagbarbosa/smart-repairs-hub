@@ -291,6 +291,7 @@ const App = () => (
                 </PerfilGuard>
               } />
             </Routes>
+            </WorkspaceModeProvider>
           </BrowserRouter>
         </EmpresaProvider>
         </LojistaProvider>
