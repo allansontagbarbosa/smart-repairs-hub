@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useLocation, useNavigate } from "react-router-dom";
 import { useModulos } from "@/hooks/useModulos";
 
-export type WorkspaceMode = "assistencia" | "loja" | "combo";
+export type WorkspaceMode = "assistencia" | "loja" | "atacado";
 
 interface WorkspaceModeContextValue {
   mode: WorkspaceMode;
@@ -16,18 +16,18 @@ const STORAGE_KEY = "ditt-workspace-mode";
 function readStored(): WorkspaceMode | null {
   if (typeof window === "undefined") return null;
   const s = localStorage.getItem(STORAGE_KEY);
-  return s === "assistencia" || s === "loja" || s === "combo" ? s : null;
+  return s === "assistencia" || s === "loja" || s === "atacado" ? s : null;
 }
 
 export function WorkspaceModeProvider({ children }: { children: ReactNode }) {
-  const { assistenciaAtivo, lojaAtivo, combo } = useModulos();
+  const { assistenciaAtivo, lojaAtivo, atacadoAtivo } = useModulos();
   const location = useLocation();
   const navigate = useNavigate();
 
   const availableModes: WorkspaceMode[] = [];
   if (assistenciaAtivo) availableModes.push("assistencia");
   if (lojaAtivo) availableModes.push("loja");
-  if (combo) availableModes.push("combo");
+  if (atacadoAtivo) availableModes.push("atacado");
 
   const [mode, setModeState] = useState<WorkspaceMode>(() => readStored() ?? "assistencia");
 
@@ -35,7 +35,7 @@ export function WorkspaceModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const p = location.pathname;
     if (p.startsWith("/loja")) setModeState("loja");
-    else if (p.startsWith("/combo")) setModeState("combo");
+    else if (p.startsWith("/atacado")) setModeState("atacado");
     else if (p.startsWith("/assistencia") || p === "/dashboard") setModeState("assistencia");
   }, [location.pathname]);
 
@@ -57,8 +57,8 @@ export function WorkspaceModeProvider({ children }: { children: ReactNode }) {
       navigate("/dashboard");
     } else if (m === "loja" && !cur.startsWith("/loja")) {
       navigate("/loja/dashboard");
-    } else if (m === "combo" && !cur.startsWith("/combo")) {
-      navigate("/combo/dashboard");
+    } else if (m === "atacado" && !cur.startsWith("/atacado")) {
+      navigate("/atacado/dashboard");
     }
   };
 
@@ -75,9 +75,9 @@ export function WorkspaceModeProvider({ children }: { children: ReactNode }) {
       } else if (e.key === "2" && availableModes.includes("loja")) {
         e.preventDefault();
         setMode("loja");
-      } else if (e.key === "3" && availableModes.includes("combo")) {
+      } else if (e.key === "3" && availableModes.includes("atacado")) {
         e.preventDefault();
-        setMode("combo");
+        setMode("atacado");
       }
     };
     window.addEventListener("keydown", handler);

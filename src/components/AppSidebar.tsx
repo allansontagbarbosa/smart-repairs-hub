@@ -61,18 +61,20 @@ const itemsLoja = [
   { title: "Config. Loja", url: "/loja/configuracoes", icon: Settings, permissao: "loja_configuracoes" as keyof Permissoes },
 ];
 
-const itemsCombo = [
-  { title: "Dashboard Combo", url: "/combo/dashboard", icon: LayoutDashboard, permissao: "loja_dashboard" as keyof Permissoes },
-  { title: "Clientes", url: "/clientes", icon: Users, permissao: "clientes" as keyof Permissoes },
-  { title: "Financeiro Assist", url: "/financeiro", icon: DollarSign, permissao: "financeiro" as keyof Permissoes },
-  { title: "Financeiro Loja", url: "/loja/financeiro", icon: DollarSign, permissao: "loja_financeiro" as keyof Permissoes },
-  { title: "Relatórios Assist", url: "/relatorios", icon: BarChart2, permissao: "relatorios" as keyof Permissoes },
-  { title: "Relatórios Loja", url: "/loja/relatorios", icon: BarChart2, permissao: "loja_relatorios" as keyof Permissoes },
-  { title: "Metas Assist", url: "/metas", icon: Target, permissao: "metas" as keyof Permissoes },
-  { title: "Metas Loja", url: "/loja/metas", icon: Target, permissao: "loja_metas" as keyof Permissoes },
-  { title: "RH", url: "/rh", icon: UserCog, permissao: "rh" as keyof Permissoes },
-  { title: "Painéis TV", url: "/tv/configurar", icon: Tv, permissao: "paineis_tv" as keyof Permissoes },
-  { title: "Configurações", url: "/configuracoes", icon: Settings, permissao: "configuracoes" as keyof Permissoes },
+const itemsAtacado = [
+  { title: "Dashboard Atacado", url: "/atacado/dashboard", icon: LayoutDashboard, permissao: "atacado_dashboard" as keyof Permissoes },
+  { title: "Pedidos", url: "/atacado/pedidos", icon: ClipboardList, permissao: "atacado_pedidos" as keyof Permissoes },
+  { title: "Novo Pedido", url: "/atacado/novo-pedido", icon: Zap, permissao: "atacado_pedidos" as keyof Permissoes },
+  { title: "Clientes B2B", url: "/atacado/clientes", icon: Users, permissao: "atacado_clientes" as keyof Permissoes },
+  { title: "Estoque Atacado", url: "/atacado/aparelhos", icon: Smartphone, permissao: "atacado_aparelhos" as keyof Permissoes },
+  { title: "Tabelas de Preço", url: "/atacado/tabelas-preco", icon: ReceiptText, permissao: "atacado_tabelas_preco" as keyof Permissoes },
+  { title: "Vendedores B2B", url: "/atacado/vendedores", icon: Briefcase, permissao: "atacado_vendedores" as keyof Permissoes },
+  { title: "Metas Atacado", url: "/atacado/metas", icon: Target, permissao: "atacado_metas" as keyof Permissoes },
+  { title: "Financeiro Atacado", url: "/atacado/financeiro", icon: DollarSign, permissao: "atacado_financeiro" as keyof Permissoes },
+  { title: "Cobrança", url: "/atacado/cobranca", icon: Wallet, permissao: "atacado_cobranca" as keyof Permissoes },
+  { title: "Relatórios Atacado", url: "/atacado/relatorios", icon: BarChart2, permissao: "atacado_relatorios" as keyof Permissoes },
+  { title: "Catálogo Público", url: "/atacado/catalogo-publico", icon: Store, permissao: "atacado_configuracoes" as keyof Permissoes },
+  { title: "Config. Atacado", url: "/atacado/configuracoes", icon: Settings, permissao: "atacado_configuracoes" as keyof Permissoes },
 ];
 
 function getInitials(name: string): string {
@@ -129,14 +131,14 @@ export function AppSidebar() {
 
   const itemsVisiveis = (() => {
     if (mode === "loja") return itemsLoja.filter((item) => can(item.permissao, "ver"));
-    if (mode === "combo") return itemsCombo.filter((item) => can(item.permissao, "ver"));
+    if (mode === "atacado") return itemsAtacado.filter((item) => can(item.permissao, "ver"));
     return items.filter((item) => can(item.permissao, "ver"));
   })();
 
   const painelSocioPath =
-    mode === "loja" ? "/loja/painel-socio" : mode === "combo" ? "/combo/painel-socio" : "/painel-socio";
+    mode === "loja" ? "/loja/painel-socio" : mode === "atacado" ? "/atacado/painel-socio" : "/painel-socio";
   const painelSocioLabel =
-    mode === "loja" ? "Painel Sócio · Loja" : mode === "combo" ? "Painel Sócio Combo" : "Painel do Sócio";
+    mode === "loja" ? "Painel Sócio · Loja" : mode === "atacado" ? "Painel Sócio · Atacado" : "Painel do Sócio";
 
   return (
     <Sidebar collapsible="icon">

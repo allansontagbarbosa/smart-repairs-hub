@@ -11,7 +11,7 @@ export function useModulos() {
       if (!empresaId) return null;
       const { data, error } = await supabase
         .from("empresas" as any)
-        .select("modulo_loja_ativo, modulo_assistencia_ativo")
+        .select("modulo_loja_ativo, modulo_assistencia_ativo, modulo_atacado_ativo")
         .eq("id", empresaId)
         .single();
       if (error) throw error;
@@ -23,11 +23,13 @@ export function useModulos() {
 
   const lojaAtivo = data?.modulo_loja_ativo ?? false;
   const assistenciaAtivo = data?.modulo_assistencia_ativo ?? true;
+  const atacadoAtivo = data?.modulo_atacado_ativo ?? false;
 
   return {
     isLoading,
     lojaAtivo,
     assistenciaAtivo,
+    atacadoAtivo,
     combo: lojaAtivo && assistenciaAtivo,
   };
 }
