@@ -8445,6 +8445,35 @@ export type Database = {
         Args: { p_ordem_id: string; p_valor_usar_centavos: number }
         Returns: Json
       }
+      atacado_dashboard_kpis: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: {
+          boletos_vencidos: number
+          clientes_ativos: number
+          clientes_bloqueados: number
+          faturamento: number
+          novos_clientes_mes: number
+          pedidos_aguardando: number
+          qtd_pedidos: number
+          ticket_medio: number
+          valor_inadimplencia: number
+        }[]
+      }
+      atacado_top_clientes: {
+        Args: {
+          p_empresa_id: string
+          p_fim: string
+          p_inicio: string
+          p_limit?: number
+        }
+        Returns: {
+          cliente_id: string
+          faturamento: number
+          nome_fantasia: string
+          qtd_pedidos: number
+          razao_social: string
+        }[]
+      }
       atribuir_tecnico_os: {
         Args: { p_os_id: string; p_tecnico_id: string }
         Returns: Json
