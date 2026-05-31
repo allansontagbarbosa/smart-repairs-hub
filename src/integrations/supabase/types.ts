@@ -3070,9 +3070,11 @@ export type Database = {
           owner_id: string
           plano: string
           plano_ativo: boolean
+          qtd_funcionarios: string | null
           rua: string | null
           slug: string
           telefone: string | null
+          tipo_organizacao: string[] | null
           trial_expira_em: string | null
         }
         Insert: {
@@ -3099,9 +3101,11 @@ export type Database = {
           owner_id: string
           plano?: string
           plano_ativo?: boolean
+          qtd_funcionarios?: string | null
           rua?: string | null
           slug: string
           telefone?: string | null
+          tipo_organizacao?: string[] | null
           trial_expira_em?: string | null
         }
         Update: {
@@ -3128,9 +3132,11 @@ export type Database = {
           owner_id?: string
           plano?: string
           plano_ativo?: boolean
+          qtd_funcionarios?: string | null
           rua?: string | null
           slug?: string
           telefone?: string | null
+          tipo_organizacao?: string[] | null
           trial_expira_em?: string | null
         }
         Relationships: []
@@ -9612,6 +9618,7 @@ export type Database = {
         }
         Returns: number
       }
+      onboarding_criar_empresa: { Args: { p_payload: Json }; Returns: Json }
       os_status_em_casa: { Args: { p_status: string }; Returns: boolean }
       os_status_mapear_legado: { Args: { p_status: string }; Returns: string }
       os_status_reconhece_receita: {
