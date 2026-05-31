@@ -94,6 +94,7 @@ import { ModuloComboGuard } from "@/components/ModuloComboGuard";
 import { ModuloAtacadoGuard } from "@/components/ModuloAtacadoGuard";
 import AtacadoDashboard from "@/pages/atacado/AtacadoDashboard";
 import AtacadoPedidos from "@/pages/atacado/AtacadoPedidos";
+import AtacadoPedidoDetalhe from "@/pages/atacado/AtacadoPedidoDetalhe";
 import AtacadoNovoPedido from "@/pages/atacado/AtacadoNovoPedido";
 import AtacadoClientes from "@/pages/atacado/AtacadoClientes";
 import AtacadoAparelhos from "@/pages/atacado/AtacadoAparelhos";
@@ -302,6 +303,7 @@ const App = () => (
                     {/* Módulo Atacado */}
                     <Route path="/atacado/dashboard" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_dashboard.ver"><AtacadoDashboard /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/pedidos" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.ver"><AtacadoPedidos /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/pedidos/:id" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.ver"><AtacadoPedidoDetalhe /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/novo-pedido" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.editar"><AtacadoNovoPedido /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/clientes" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_clientes.ver"><AtacadoClientes /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/aparelhos" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_aparelhos.ver"><AtacadoAparelhos /></ProtectedRoute></ModuloAtacadoGuard>} />

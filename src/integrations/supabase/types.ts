@@ -755,6 +755,54 @@ export type Database = {
           },
         ]
       }
+      atacado_pedidos_historico: {
+        Row: {
+          created_at: string
+          funcionario_id: string | null
+          id: string
+          motivo: string | null
+          pedido_id: string
+          status_anterior: string | null
+          status_novo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          funcionario_id?: string | null
+          id?: string
+          motivo?: string | null
+          pedido_id: string
+          status_anterior?: string | null
+          status_novo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          funcionario_id?: string | null
+          id?: string
+          motivo?: string | null
+          pedido_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_pedidos_historico_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_pedidos_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_pedidos_itens: {
         Row: {
           aparelho_id: string | null
@@ -8554,6 +8602,20 @@ export type Database = {
           total_aberto: number
           total_atrasado: number
           total_pago_mes: number
+        }[]
+      }
+      atacado_mudar_status_pedido: {
+        Args: {
+          p_motivo?: string
+          p_nfe_chave?: string
+          p_nfe_numero?: string
+          p_novo_status: string
+          p_pedido_id: string
+        }
+        Returns: {
+          status_anterior: string
+          status_novo: string
+          sucesso: boolean
         }[]
       }
       atacado_top_clientes: {
