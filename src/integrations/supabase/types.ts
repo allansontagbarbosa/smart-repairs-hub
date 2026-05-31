@@ -8565,6 +8565,14 @@ export type Database = {
         Args: { p_aprovador_funcionario_id: string; p_pedido_id: string }
         Returns: undefined
       }
+      atacado_baixar_pagamento: {
+        Args: {
+          p_data_recebimento?: string
+          p_forma_recebido?: string
+          p_pagamento_id: string
+        }
+        Returns: boolean
+      }
       atacado_clientes_inadimplentes: {
         Args: { p_empresa_id: string }
         Returns: {
@@ -8596,12 +8604,14 @@ export type Database = {
       atacado_financeiro_kpis: {
         Args: { p_empresa_id: string }
         Returns: {
-          qtd_boletos_aberto: number
-          qtd_boletos_atrasado: number
-          qtd_clientes_atrasados: number
-          total_aberto: number
-          total_atrasado: number
-          total_pago_mes: number
+          a_receber_30d: number
+          a_receber_60d: number
+          a_receber_90d: number
+          a_receber_total: number
+          inadimplencia_total: number
+          qtd_titulos_vencidos: number
+          recebido_mes: number
+          ticket_medio_recebido: number
         }[]
       }
       atacado_mudar_status_pedido: {
@@ -8631,6 +8641,18 @@ export type Database = {
           nome_fantasia: string
           qtd_pedidos: number
           razao_social: string
+        }[]
+      }
+      atacado_top_devedores: {
+        Args: { p_empresa_id: string; p_limit?: number }
+        Returns: {
+          cliente_id: string
+          cnpj: string
+          dias_atraso_max: number
+          nome_fantasia: string
+          qtd_titulos: number
+          razao_social: string
+          total_devido: number
         }[]
       }
       atribuir_tecnico_os: {
