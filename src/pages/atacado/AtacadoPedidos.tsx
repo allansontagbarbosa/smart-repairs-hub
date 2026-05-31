@@ -195,8 +195,8 @@ export default function AtacadoPedidos() {
           icon={ClipboardList}
           title="Nenhum pedido encontrado"
           description="Ajuste os filtros ou crie um novo pedido."
-          actionLabel="Novo pedido"
-          onAction={() => navigate("/atacado/novo-pedido")}
+          ctaLabel="Novo pedido"
+          ctaOnClick={() => navigate("/atacado/novo-pedido")}
         />
       ) : (
         <div className="border rounded-lg overflow-hidden">
