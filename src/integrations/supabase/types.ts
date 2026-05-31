@@ -8645,6 +8645,7 @@ export type Database = {
         }
         Returns: Json
       }
+      alterar_plano_empresa: { Args: { p_plano_id: string }; Returns: Json }
       alterar_tipo_cliente: {
         Args: { p_cliente_id: string; p_novo_tipo: string }
         Returns: Json
@@ -9130,6 +9131,7 @@ export type Database = {
         }
         Returns: Json
       }
+      contar_dados_modulo: { Args: { p_modulo: string }; Returns: Json }
       creditar_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       criar_convite_cliente:
         | { Args: { p_cliente_id: string }; Returns: Json }
