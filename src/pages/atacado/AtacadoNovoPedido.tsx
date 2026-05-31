@@ -1,21 +1,10 @@
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Search,
-  Plus,
-  Trash2,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  ShoppingCart,
-} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,68 +17,73 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Search,
+  AlertTriangle,
+  Loader2,
+  Building2,
+  Package,
+  CreditCard,
+  FileCheck,
+} from "lucide-react";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
+import { NovoClienteAtacadoDialog } from "@/components/atacado/NovoClienteAtacadoDialog";
+
+type Passo = 1 | 2 | 3 | 4;
 
 interface ItemCarrinho {
-  aparelho_id: string | null;
+  aparelho_id: string;
   modelo: string;
   capacidade?: string | null;
   cor?: string | null;
   quantidade: number;
   preco_unitario: number;
-  desconto_item: number;
   estoque_disponivel: number;
 }
 
-interface Parcela {
+interface Pagamento {
   forma: string;
   valor: number;
-  vencimento: string;
+  vencimento?: string;
+  parcela: number;
+  total_parcelas: number;
 }
 
 export default function AtacadoNovoPedido() {
   const { empresaId } = useEmpresa();
   const { user } = useAuth();
   const { toast } = useToast();
-  const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const [passo, setPasso] = useState(1);
-  const [salvando, setSalvando] = useState(false);
-  const [cliente, setCliente] = useState<any>(null);
+  const [passo, setPasso] = useState<Passo>(1);
+  const [clienteId, setClienteId] = useState("");
   const [buscaCliente, setBuscaCliente] = useState("");
+  const [novoClienteOpen, setNovoClienteOpen] = useState(false);
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
   const [buscaItem, setBuscaItem] = useState("");
-  const [desconto, setDesconto] = useState("");
-  const [condicaoPag, setCondicaoPag] = useState("");
-  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [condicaoPagamento, setCondicaoPagamento] = useState("30 dias");
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [desconto, setDesconto] = useState("0");
   const [observacoes, setObservacoes] = useState("");
+  const [salvando, setSalvando] = useState(false);
 
-  const { data: meuFuncionario } = useQuery({
-    queryKey: ["meu-funcionario", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("user_profiles")
-        .select("funcionario_id")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      return (data as any)?.funcionario_id ?? null;
-    },
-    enabled: !!user?.id,
-  });
-
+  // Clientes
   const { data: clientes = [] } = useQuery({
-    queryKey: ["atacado-clientes-busca", empresaId, buscaCliente],
+    queryKey: ["atacado-clientes-wizard", empresaId, buscaCliente],
     queryFn: async () => {
       let q = supabase
         .from("atacado_clientes" as any)
         .select(
-          `id, razao_social, nome_fantasia, cnpj, limite_credito, status, condicao_pagamento_padrao,
-           tabela_preco:atacado_tabelas_preco(id, nome)`,
+          "id, razao_social, nome_fantasia, cnpj, limite_credito, prazo_pagamento_padrao, condicao_pagamento_padrao, status, tabela_preco_id",
         )
         .eq("empresa_id", empresaId!)
-        .is("deleted_at", null)
-        .neq("status", "bloqueado");
+        .is("deleted_at", null);
       if (buscaCliente) {
         q = q.or(
           `razao_social.ilike.%${buscaCliente}%,nome_fantasia.ilike.%${buscaCliente}%,cnpj.ilike.%${buscaCliente}%`,
@@ -101,213 +95,214 @@ export default function AtacadoNovoPedido() {
     enabled: !!empresaId && passo === 1,
   });
 
-  const { data: emAberto = 0 } = useQuery({
-    queryKey: ["cliente-em-aberto", cliente?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("atacado_pedidos_pagamentos" as any)
-        .select(`valor, pedido:atacado_pedidos!inner(cliente_id)`)
-        .eq("pedido.cliente_id", cliente!.id)
-        .in("status", ["aberto", "atrasado"]);
-      return (data ?? []).reduce((s: number, p: any) => s + Number(p.valor), 0);
-    },
-    enabled: !!cliente?.id,
-  });
+  const clienteSelecionado = useMemo(
+    () => clientes.find((c: any) => c.id === clienteId),
+    [clientes, clienteId],
+  );
 
-  const { data: estoque = [] } = useQuery({
-    queryKey: ["atacado-estoque-novo-pedido", empresaId, buscaItem],
+  const { data: aparelhos = [] } = useQuery({
+    queryKey: [
+      "atacado-aparelhos-wizard",
+      empresaId,
+      buscaItem,
+      clienteSelecionado?.tabela_preco_id,
+    ],
     queryFn: async () => {
       let q = supabase
         .from("atacado_aparelhos" as any)
-        .select("id, modelo, capacidade, cor, quantidade, preco_sugerido, custo")
+        .select("*")
         .eq("empresa_id", empresaId!)
         .eq("status", "estoque")
         .gt("quantidade", 0)
         .is("deleted_at", null);
       if (buscaItem) q = q.ilike("modelo", `%${buscaItem}%`);
-      const { data } = await q.order("modelo").limit(30);
-      return (data ?? []) as any[];
+      const { data: aps } = await q.order("modelo");
+
+      if (!clienteSelecionado?.tabela_preco_id) return (aps ?? []) as any[];
+
+      const { data: itens } = await supabase
+        .from("atacado_tabelas_preco_itens" as any)
+        .select("modelo, capacidade, preco, preco_minimo_qtd_5, preco_minimo_qtd_10")
+        .eq("tabela_preco_id", clienteSelecionado.tabela_preco_id);
+
+      return ((aps ?? []) as any[]).map((a: any) => {
+        const itemTabela = (itens as any[])?.find(
+          (i: any) =>
+            i.modelo === a.modelo && (i.capacidade === a.capacidade || !i.capacidade),
+        );
+        return {
+          ...a,
+          preco_tabela: itemTabela?.preco ?? a.preco_sugerido,
+          preco_5: itemTabela?.preco_minimo_qtd_5,
+          preco_10: itemTabela?.preco_minimo_qtd_10,
+        };
+      });
     },
     enabled: !!empresaId && passo === 2,
   });
 
-  const { data: precosTabela = [] } = useQuery({
-    queryKey: ["tabela-precos-cliente", cliente?.tabela_preco?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("atacado_tabelas_preco_itens" as any)
-        .select("*")
-        .eq("tabela_preco_id", cliente.tabela_preco.id);
-      return (data ?? []) as any[];
-    },
-    enabled: !!cliente?.tabela_preco?.id,
-  });
-
-  const buscarPrecoTabela = (
-    modelo: string,
-    capacidade: string | null | undefined,
-    qtd: number,
-  ): number | null => {
-    const item = precosTabela.find(
-      (p: any) =>
-        p.modelo === modelo &&
-        (p.capacidade === capacidade || p.capacidade === null),
+  const calcPreco = (aparelho: any, qtd: number): number => {
+    if (qtd >= 10 && aparelho.preco_10) return Number(aparelho.preco_10);
+    if (qtd >= 5 && aparelho.preco_5) return Number(aparelho.preco_5);
+    return Number(
+      aparelho.preco_tabela ?? aparelho.preco_sugerido ?? aparelho.custo ?? 0,
     );
-    if (!item) return null;
-    if (qtd >= 10 && item.preco_minimo_qtd_10) return Number(item.preco_minimo_qtd_10);
-    if (qtd >= 5 && item.preco_minimo_qtd_5) return Number(item.preco_minimo_qtd_5);
-    return Number(item.preco);
   };
 
-  const adicionarItem = (e: any) => {
-    const existe = carrinho.find((c) => c.aparelho_id === e.id);
-    if (existe) {
-      setCarrinho((c) =>
-        c.map((it) =>
-          it.aparelho_id === e.id
-            ? { ...it, quantidade: Math.min(it.quantidade + 1, it.estoque_disponivel) }
-            : it,
-        ),
-      );
+  const adicionarItem = (aparelho: any) => {
+    const existente = carrinho.find((c) => c.aparelho_id === aparelho.id);
+    if (existente) {
+      atualizarQtd(aparelho.id, existente.quantidade + 1);
       return;
     }
-    const precoSugerido = Number(e.preco_sugerido ?? Number(e.custo) * 1.15);
-    const precoTabela = buscarPrecoTabela(e.modelo, e.capacidade, 1);
-    setCarrinho((c) => [
-      ...c,
+    setCarrinho([
+      ...carrinho,
       {
-        aparelho_id: e.id,
-        modelo: e.modelo,
-        capacidade: e.capacidade,
-        cor: e.cor,
+        aparelho_id: aparelho.id,
+        modelo: aparelho.modelo,
+        capacidade: aparelho.capacidade,
+        cor: aparelho.cor,
         quantidade: 1,
-        preco_unitario: precoTabela ?? precoSugerido,
-        desconto_item: 0,
-        estoque_disponivel: e.quantidade,
+        preco_unitario: calcPreco(aparelho, 1),
+        estoque_disponivel: aparelho.quantidade,
       },
     ]);
   };
 
-  const atualizarQtd = (idx: number, novaQtd: number) => {
-    setCarrinho((c) =>
-      c.map((it, i) => {
-        if (i !== idx) return it;
-        const qtd = Math.max(1, Math.min(novaQtd, it.estoque_disponivel));
-        const precoAjustado =
-          buscarPrecoTabela(it.modelo, it.capacidade ?? null, qtd) ?? it.preco_unitario;
-        return { ...it, quantidade: qtd, preco_unitario: precoAjustado };
+  const atualizarQtd = (aparelhoId: string, novaQtd: number) => {
+    setCarrinho(
+      carrinho.map((c) => {
+        if (c.aparelho_id !== aparelhoId) return c;
+        const aparelho = (aparelhos as any[]).find((a: any) => a.id === aparelhoId);
+        const qtd = Math.max(1, Math.min(novaQtd, c.estoque_disponivel));
+        return {
+          ...c,
+          quantidade: qtd,
+          preco_unitario: aparelho ? calcPreco(aparelho, qtd) : c.preco_unitario,
+        };
       }),
     );
   };
 
-  const removerItem = (idx: number) =>
-    setCarrinho((c) => c.filter((_, i) => i !== idx));
+  const removerItem = (aparelhoId: string) =>
+    setCarrinho(carrinho.filter((c) => c.aparelho_id !== aparelhoId));
 
-  const subtotal = carrinho.reduce(
-    (s, it) => s + (it.preco_unitario - it.desconto_item) * it.quantidade,
-    0,
-  );
+  const subtotal = carrinho.reduce((s, c) => s + c.quantidade * c.preco_unitario, 0);
   const descontoNum = parseFloat(desconto.replace(",", ".")) || 0;
-  const total = subtotal - descontoNum;
-  const limiteCliente = Number(cliente?.limite_credito ?? 0);
-  const disponivel = Math.max(0, limiteCliente - Number(emAberto));
-  const excedeLimite =
-    limiteCliente > 0 && Number(emAberto) + total > limiteCliente;
+  const total = Math.max(0, subtotal - descontoNum);
 
-  const gerarParcelas = (cond: string) => {
-    setCondicaoPag(cond);
+  const gerarPagamentos = () => {
     const hoje = new Date();
     const iso = (d: Date) => d.toISOString().slice(0, 10);
-    if (cond === "à vista") {
-      setParcelas([{ forma: "pix", valor: total, vencimento: iso(hoje) }]);
-    } else if (cond === "boleto à vista") {
-      const d = new Date(hoje);
-      d.setDate(d.getDate() + 3);
-      setParcelas([{ forma: "boleto", valor: total, vencimento: iso(d) }]);
-    } else if (cond === "30 dias") {
-      const d = new Date(hoje);
-      d.setDate(d.getDate() + 30);
-      setParcelas([{ forma: "boleto", valor: total, vencimento: iso(d) }]);
-    } else if (cond === "30/60") {
-      const v = total / 2;
-      setParcelas(
-        [30, 60].map((dias) => {
-          const dt = new Date(hoje);
-          dt.setDate(dt.getDate() + dias);
-          return { forma: "boleto", valor: v, vencimento: iso(dt) };
+    if (condicaoPagamento === "à vista") {
+      setPagamentos([
+        { forma: "pix", valor: total, vencimento: iso(hoje), parcela: 1, total_parcelas: 1 },
+      ]);
+    } else if (condicaoPagamento === "30 dias") {
+      const v = new Date(hoje);
+      v.setDate(v.getDate() + 30);
+      setPagamentos([
+        { forma: "boleto", valor: total, vencimento: iso(v), parcela: 1, total_parcelas: 1 },
+      ]);
+    } else if (condicaoPagamento === "30/60") {
+      const meio = total / 2;
+      setPagamentos(
+        [1, 2].map((i) => {
+          const v = new Date(hoje);
+          v.setDate(v.getDate() + 30 * i);
+          return {
+            forma: "boleto",
+            valor: meio,
+            vencimento: iso(v),
+            parcela: i,
+            total_parcelas: 2,
+          };
         }),
       );
-    } else if (cond === "30/60/90") {
-      const v = total / 3;
-      setParcelas(
-        [30, 60, 90].map((dias) => {
-          const dt = new Date(hoje);
-          dt.setDate(dt.getDate() + dias);
-          return { forma: "boleto", valor: v, vencimento: iso(dt) };
+    } else if (condicaoPagamento === "30/60/90") {
+      const terco = total / 3;
+      setPagamentos(
+        [1, 2, 3].map((i) => {
+          const v = new Date(hoje);
+          v.setDate(v.getDate() + 30 * i);
+          return {
+            forma: "boleto",
+            valor: terco,
+            vencimento: iso(v),
+            parcela: i,
+            total_parcelas: 3,
+          };
         }),
       );
     }
   };
 
-  const podeAvancar = () => {
-    if (passo === 1) return !!cliente;
-    if (passo === 2) return carrinho.length > 0;
-    if (passo === 3)
-      return (
-        parcelas.length > 0 &&
-        Math.abs(parcelas.reduce((s, p) => s + p.valor, 0) - total) < 0.01
-      );
-    return true;
-  };
-
-  const handleFinalizar = async () => {
-    if (!meuFuncionario) {
-      toast({ title: "Vendedor não identificado", variant: "destructive" });
+  const handleProximo = () => {
+    if (passo === 1 && !clienteId) {
+      toast({ title: "Selecione um cliente", variant: "destructive" });
       return;
     }
+    if (passo === 2 && carrinho.length === 0) {
+      toast({ title: "Adicione ao menos 1 item", variant: "destructive" });
+      return;
+    }
+    if (passo === 3 && pagamentos.length === 0) {
+      gerarPagamentos();
+    }
+    setPasso(Math.min(4, passo + 1) as Passo);
+  };
+
+  const handleVoltar = () => setPasso(Math.max(1, passo - 1) as Passo);
+
+  const handleFinalizar = async () => {
     setSalvando(true);
     try {
-      const { data, error } = await supabase.rpc("registrar_pedido_atacado" as any, {
-        p_empresa_id: empresaId,
-        p_cliente_id: cliente.id,
-        p_vendedor_id: meuFuncionario,
-        p_itens: carrinho.map((c) => ({
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("funcionario_id")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      const payload = {
+        empresa_id: empresaId,
+        cliente_id: clienteId,
+        vendedor_id: (profile as any)?.funcionario_id,
+        subtotal,
+        desconto: descontoNum,
+        condicao_pagamento: condicaoPagamento,
+        observacoes,
+        origem: "manual",
+        itens: carrinho.map((c) => ({
           aparelho_id: c.aparelho_id,
           modelo: c.modelo,
           capacidade: c.capacidade,
           cor: c.cor,
           quantidade: c.quantidade,
           preco_unitario: c.preco_unitario,
-          desconto_item: c.desconto_item,
+          desconto_item: 0,
+          total_item: c.quantidade * c.preco_unitario,
         })),
-        p_pagamentos: parcelas.map((p, i) => ({
-          forma: p.forma,
-          valor: p.valor,
-          vencimento: p.vencimento,
-          parcela: i + 1,
-          total_parcelas: parcelas.length,
-        })),
-        p_desconto: descontoNum,
-        p_condicao_pagamento: condicaoPag,
-        p_observacoes: observacoes || null,
-      });
+        pagamentos,
+      };
 
+      const { data, error } = await supabase.rpc(
+        "registrar_pedido_atacado" as any,
+        { p_payload: payload as any },
+      );
       if (error) throw error;
 
-      const pedido = (data as any)?.[0];
+      const result = (data as any)?.[0];
+      const numero = String(result?.numero_pedido).padStart(6, "0");
+      const status = result?.status_final;
+
       toast({
-        title: `✓ Pedido #P-${String(pedido.numero_pedido).padStart(6, "0")} criado`,
+        title: `✓ Pedido #P-${numero} criado`,
         description:
-          pedido.status === "aguardando_aprovacao"
-            ? "Excede limite — aguardando aprovação."
-            : "Aprovado automaticamente.",
+          status === "aguardando_aprovacao"
+            ? "Aguardando aprovação por exceder limite ou cliente inadimplente"
+            : "Pedido aprovado!",
       });
-
-      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
-      qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
-      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
-
-      navigate("/atacado/pedidos");
+      navigate(`/atacado/pedidos`);
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
@@ -319,477 +314,424 @@ export default function AtacadoNovoPedido() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Novo Pedido B2B</h1>
-        <p className="text-sm text-muted-foreground">Passo {passo} de 4</p>
+        <p className="text-sm text-muted-foreground">
+          Cliente → Itens → Pagamento → Revisão
+        </p>
       </div>
 
       {/* Stepper */}
       <div className="flex items-center gap-2">
         {[
-          { n: 1, label: "Cliente" },
-          { n: 2, label: "Itens" },
-          { n: 3, label: "Pagamento" },
-          { n: 4, label: "Revisão" },
-        ].map((p, i) => (
-          <div key={p.n} className="flex items-center gap-2 flex-1">
-            <div
-              className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-semibold ${
-                passo > p.n
-                  ? "bg-warning text-warning-foreground"
-                  : passo === p.n
-                    ? "bg-warning/15 text-warning border-2 border-warning"
-                    : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {passo > p.n ? <CheckCircle2 className="h-4 w-4" /> : p.n}
-            </div>
-            <span className="text-sm font-medium hidden sm:inline">{p.label}</span>
-            {i < 3 && (
-              <div
-                className={`flex-1 h-0.5 ${passo > p.n ? "bg-warning" : "bg-muted"}`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Passo 1 — Cliente */}
-      {passo === 1 && (
-        <div className="bg-card border rounded-lg p-5 space-y-4">
-          <h2 className="font-semibold">Selecione o cliente B2B</h2>
-          <div className="relative">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por razão social, fantasia ou CNPJ"
-              value={buscaCliente}
-              onChange={(e) => setBuscaCliente(e.target.value)}
-              autoFocus
-              className="pl-9"
-            />
-          </div>
-          <div className="space-y-2 max-h-[460px] overflow-auto">
-            {clientes.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum cliente encontrado.
-              </p>
-            ) : (
-              clientes.map((c: any) => (
-                <button
-                  key={c.id}
-                  onClick={() => setCliente(c)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all ${
-                    cliente?.id === c.id
-                      ? "bg-warning/10 border-warning"
-                      : "hover:bg-muted/40 border-transparent"
+          { n: 1, label: "Cliente", icon: Building2 },
+          { n: 2, label: "Itens", icon: Package },
+          { n: 3, label: "Pagamento", icon: CreditCard },
+          { n: 4, label: "Revisão", icon: FileCheck },
+        ].map((s, i) => {
+          const Icon = s.icon;
+          const ativo = passo === s.n;
+          const completo = passo > s.n;
+          return (
+            <div key={s.n} className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-all ${
+                    completo
+                      ? "bg-warning text-warning-foreground"
+                      : ativo
+                        ? "bg-warning/15 text-warning border-2 border-warning"
+                        : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">
-                        {c.nome_fantasia || c.razao_social}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {c.cnpj ? maskCNPJ(c.cnpj) : "—"} ·{" "}
-                        {c.tabela_preco?.nome ?? "sem tabela"}
-                      </p>
-                    </div>
-                    {c.limite_credito > 0 && (
-                      <div className="text-right shrink-0">
-                        <p className="text-[10px] uppercase text-muted-foreground">
-                          Limite
-                        </p>
-                        <p className="text-sm font-semibold tabular-nums">
-                          {formatBRL(Number(c.limite_credito))}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-          {cliente && (
-            <div className="bg-muted/40 rounded-md p-3 text-sm flex items-center justify-between">
-              <div>
-                <Badge variant="secondary">Selecionado</Badge>{" "}
-                <span className="font-medium">
-                  {cliente.nome_fantasia || cliente.razao_social}
+                  {completo ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                </div>
+                <span
+                  className={`text-sm font-medium hidden sm:inline ${ativo ? "text-foreground" : "text-muted-foreground"}`}
+                >
+                  {s.label}
                 </span>
               </div>
-              {limiteCliente > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  Em aberto: {formatBRL(Number(emAberto))} · Disponível:{" "}
-                  {formatBRL(disponivel)}
-                </span>
+              {i < 3 && (
+                <div
+                  className={`flex-1 h-0.5 ${completo ? "bg-warning" : "bg-muted"}`}
+                />
               )}
             </div>
+          );
+        })}
+      </div>
+
+      {/* PASSO 1: CLIENTE */}
+      {passo === 1 && (
+        <Card className="p-6 space-y-4">
+          <h2 className="font-bold">1. Selecione o cliente B2B</h2>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar razão social, fantasia ou CNPJ"
+                className="pl-9"
+                value={buscaCliente}
+                onChange={(e) => setBuscaCliente(e.target.value)}
+              />
+            </div>
+            <Button variant="outline" onClick={() => setNovoClienteOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Novo cliente
+            </Button>
+          </div>
+
+          {clientes.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhum cliente encontrado.
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-[460px] overflow-auto">
+              {clientes.map((c: any) => {
+                const selecionado = clienteId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setClienteId(c.id)}
+                    disabled={c.status === "bloqueado"}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selecionado
+                        ? "border-warning bg-warning/10"
+                        : "border-border hover:border-warning/50"
+                    } ${c.status === "bloqueado" ? "opacity-50 cursor-not-allowed" : ""}`}
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold truncate">
+                          {c.nome_fantasia || c.razao_social}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {c.cnpj ? maskCNPJ(c.cnpj) : "sem CNPJ"} ·{" "}
+                          {c.condicao_pagamento_padrao ?? "à vista"}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0 space-y-1">
+                        {c.limite_credito > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Limite: {formatBRL(Number(c.limite_credito))}
+                          </p>
+                        )}
+                        <Badge
+                          variant={
+                            c.status === "ativo"
+                              ? "secondary"
+                              : c.status === "inadimplente"
+                                ? "destructive"
+                                : "outline"
+                          }
+                        >
+                          {c.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
-        </div>
+        </Card>
       )}
 
-      {/* Passo 2 — Itens */}
+      {/* PASSO 2: ITENS */}
       {passo === 2 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-card border rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold">Estoque disponível</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <Card className="p-4 space-y-3 lg:col-span-2">
+            <h2 className="font-bold">2. Adicionar itens</h2>
             <div className="relative">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar modelo..."
+                className="pl-9"
                 value={buscaItem}
                 onChange={(e) => setBuscaItem(e.target.value)}
-                className="pl-9"
               />
             </div>
-            <div className="space-y-1 max-h-[460px] overflow-auto">
-              {estoque.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Sem estoque disponível.
-                </p>
-              ) : (
-                estoque.map((e: any) => {
-                  const precoTab = buscarPrecoTabela(e.modelo, e.capacidade, 1);
-                  return (
-                    <button
-                      key={e.id}
-                      onClick={() => adicionarItem(e)}
-                      className="w-full p-2.5 hover:bg-muted/40 rounded-md text-left flex items-center justify-between gap-2 border border-transparent hover:border-muted"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {e.modelo} {e.capacidade ?? ""} {e.cor ?? ""}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {e.quantidade} disp ·{" "}
-                          {formatBRL(precoTab ?? Number(e.preco_sugerido ?? e.custo))}
-                        </p>
+            <div className="space-y-2 max-h-[480px] overflow-auto">
+              {(aparelhos as any[]).map((a: any) => (
+                <button
+                  key={a.id}
+                  onClick={() => adicionarItem(a)}
+                  className="w-full text-left p-3 bg-card border hover:border-warning rounded-lg transition-colors"
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                        <span>Estoque: {a.quantidade}</span>
+                        {a.preco_5 && <span>5+: {formatBRL(Number(a.preco_5))}</span>}
+                        {a.preco_10 && <span>10+: {formatBRL(Number(a.preco_10))}</span>}
                       </div>
-                      <Plus className="h-4 w-4 text-warning shrink-0" />
-                    </button>
-                  );
-                })
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold text-warning tabular-nums">
+                        {formatBRL(
+                          Number(a.preco_tabela ?? a.preco_sugerido ?? a.custo),
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+              {(aparelhos as any[]).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhum aparelho disponível.
+                </p>
               )}
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-card border rounded-lg p-4 space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" /> Carrinho ({carrinho.length})
-            </h3>
+          <Card className="p-4 space-y-3">
+            <h3 className="font-semibold">Carrinho ({carrinho.length})</h3>
             {carrinho.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-10">
-                Clique nos itens do estoque para adicionar
-              </p>
+              <p className="text-sm text-muted-foreground text-center py-10">Vazio</p>
             ) : (
-              <div className="space-y-3">
-                {carrinho.map((it, idx) => (
-                  <div key={idx} className="border rounded-md p-3 space-y-2">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
+              <>
+                <div className="space-y-3 max-h-[400px] overflow-auto">
+                  {carrinho.map((c) => (
+                    <div key={c.aparelho_id} className="border rounded-md p-2 space-y-2">
+                      <div className="flex justify-between items-start gap-2">
                         <p className="font-medium text-sm truncate">
-                          {it.modelo} {it.capacidade ?? ""}
+                          {c.modelo} {c.capacidade ?? ""}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {it.cor ?? ""}
-                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => removerItem(c.aparelho_id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => removerItem(idx)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => atualizarQtd(c.aparelho_id, c.quantidade - 1)}
+                          >
+                            −
+                          </Button>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={c.estoque_disponivel}
+                            value={c.quantidade}
+                            onChange={(e) =>
+                              atualizarQtd(c.aparelho_id, parseInt(e.target.value) || 1)
+                            }
+                            className="h-7 w-12 text-center text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => atualizarQtd(c.aparelho_id, c.quantidade + 1)}
+                          >
+                            +
+                          </Button>
+                        </div>
+                        <strong className="text-sm tabular-nums">
+                          {formatBRL(c.quantidade * c.preco_unitario)}
+                        </strong>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatBRL(c.preco_unitario)} × {c.quantidade}
+                      </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs">Qtd</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={it.estoque_disponivel}
-                          value={it.quantidade}
-                          onChange={(e) =>
-                            atualizarQtd(idx, parseInt(e.target.value) || 1)
-                          }
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Preço unit.</Label>
-                        <Input
-                          value={it.preco_unitario}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value.replace(",", ".")) || 0;
-                            setCarrinho((c) =>
-                              c.map((x, i) =>
-                                i === idx ? { ...x, preco_unitario: v } : x,
-                              ),
-                            );
-                          }}
-                          className="h-8 text-sm tabular-nums"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs text-right text-muted-foreground tabular-nums">
-                      Subtotal: {formatBRL(it.preco_unitario * it.quantidade)}
-                    </p>
+                  ))}
+                </div>
+                <div className="flex justify-between font-semibold pt-3 border-t">
+                  <span>Subtotal</span>
+                  <span className="tabular-nums">{formatBRL(subtotal)}</span>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* PASSO 3: PAGAMENTO */}
+      {passo === 3 && (
+        <Card className="p-6 space-y-4">
+          <h2 className="font-bold">3. Condição de pagamento</h2>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Condição</Label>
+              <Select
+                value={condicaoPagamento}
+                onValueChange={(v) => {
+                  setCondicaoPagamento(v);
+                  setPagamentos([]);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="à vista">À vista (Pix)</SelectItem>
+                  <SelectItem value="30 dias">30 dias (boleto)</SelectItem>
+                  <SelectItem value="30/60">30/60 dias (2 boletos)</SelectItem>
+                  <SelectItem value="30/60/90">30/60/90 dias (3 boletos)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Desconto (R$)</Label>
+              <Input
+                value={desconto}
+                onChange={(e) => setDesconto(e.target.value)}
+                placeholder="0,00"
+                className="tabular-nums"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>Observações</Label>
+              <Textarea
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                placeholder="Entrega, condições fiscais..."
+                rows={3}
+              />
+            </div>
+
+            <Button onClick={gerarPagamentos} variant="outline">
+              Gerar parcelas
+            </Button>
+
+            {pagamentos.length > 0 && (
+              <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                <h3 className="text-sm font-semibold">Pagamentos gerados</h3>
+                {pagamentos.map((p, i) => (
+                  <div key={i} className="flex justify-between text-sm">
+                    <span>
+                      Parcela {p.parcela}/{p.total_parcelas} · {p.forma} · venc{" "}
+                      {p.vencimento
+                        ? new Date(p.vencimento + "T00:00:00").toLocaleDateString("pt-BR")
+                        : "—"}
+                    </span>
+                    <strong className="tabular-nums">{formatBRL(p.valor)}</strong>
                   </div>
                 ))}
-
-                <div className="border-t pt-3 space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label className="text-sm">Desconto geral (R$)</Label>
-                    <Input
-                      value={desconto}
-                      onChange={(e) => setDesconto(e.target.value)}
-                      placeholder="0,00"
-                      className="h-8 w-32 text-sm tabular-nums"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between font-semibold">
-                    <span>Total</span>
-                    <span className="text-lg tabular-nums">{formatBRL(total)}</span>
-                  </div>
-                  {excedeLimite && (
-                    <div className="text-xs bg-warning/10 border border-warning/30 rounded p-2 flex gap-2 text-warning">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>
-                        Excede limite ({formatBRL(disponivel)} disponível). Vai pra
-                        aprovação.
-                      </span>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Passo 3 — Pagamento */}
-      {passo === 3 && (
-        <div className="bg-card border rounded-lg p-5 space-y-4">
-          <h2 className="font-semibold">Condição de pagamento</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {["à vista", "boleto à vista", "30 dias", "30/60", "30/60/90"].map(
-              (opt) => (
-                <button
-                  key={opt}
-                  onClick={() => gerarParcelas(opt)}
-                  className={`p-3 rounded-md border text-sm transition-all ${
-                    condicaoPag === opt
-                      ? "bg-warning/10 border-warning text-warning font-semibold"
-                      : "border-border hover:border-warning/50"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ),
-            )}
-          </div>
+      {/* PASSO 4: REVISÃO */}
+      {passo === 4 && (
+        <Card className="p-6">
+          <h2 className="font-bold mb-4">4. Revisão final</h2>
 
-          {parcelas.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold">Parcelas geradas</h3>
-              {parcelas.map((p, i) => (
+          <div className="space-y-4">
+            <div className="bg-muted/30 rounded-lg p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                Cliente
+              </div>
+              <div className="font-semibold">
+                {clienteSelecionado?.nome_fantasia || clienteSelecionado?.razao_social}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {maskCNPJ(clienteSelecionado?.cnpj ?? "")}
+              </div>
+            </div>
+
+            <div className="bg-muted/30 rounded-lg p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Itens ({carrinho.length})
+              </div>
+              {carrinho.map((c, i) => (
                 <div
                   key={i}
-                  className="grid grid-cols-12 gap-2 items-end border rounded-md p-3"
+                  className="flex justify-between text-sm py-1 border-b last:border-0"
                 >
-                  <div className="col-span-1 text-sm font-semibold pb-2">
-                    #{i + 1}
-                  </div>
-                  <div className="col-span-4">
-                    <Label className="text-xs">Forma</Label>
-                    <Select
-                      value={p.forma}
-                      onValueChange={(v) =>
-                        setParcelas((ps) =>
-                          ps.map((x, idx) => (idx === i ? { ...x, forma: v } : x)),
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="boleto">Boleto</SelectItem>
-                        <SelectItem value="pix">Pix</SelectItem>
-                        <SelectItem value="transferencia">Transferência</SelectItem>
-                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                        <SelectItem value="cheque">Cheque</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-4">
-                    <Label className="text-xs">Vencimento</Label>
-                    <Input
-                      type="date"
-                      value={p.vencimento}
-                      onChange={(e) =>
-                        setParcelas((ps) =>
-                          ps.map((x, idx) =>
-                            idx === i ? { ...x, vencimento: e.target.value } : x,
-                          ),
-                        )
-                      }
-                      className="h-9"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Label className="text-xs">Valor</Label>
-                    <Input
-                      value={p.valor}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value.replace(",", ".")) || 0;
-                        setParcelas((ps) =>
-                          ps.map((x, idx) => (idx === i ? { ...x, valor: v } : x)),
-                        );
-                      }}
-                      className="h-9 tabular-nums"
-                    />
-                  </div>
-                </div>
-              ))}
-              <div className="text-sm pt-2 flex justify-between">
-                <span className="text-muted-foreground">Soma:</span>
-                <span>
-                  <span
-                    className={`font-semibold tabular-nums ${
-                      Math.abs(
-                        parcelas.reduce((s, p) => s + p.valor, 0) - total,
-                      ) < 0.01
-                        ? "text-success"
-                        : "text-destructive"
-                    }`}
-                  >
-                    {formatBRL(parcelas.reduce((s, p) => s + p.valor, 0))}
-                  </span>{" "}
-                  <span className="text-muted-foreground">/ {formatBRL(total)}</span>
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Passo 4 — Revisão */}
-      {passo === 4 && (
-        <div className="bg-card border rounded-lg p-5 space-y-4">
-          <h2 className="font-semibold">Revise antes de criar</h2>
-
-          <div className="border rounded-md p-3 space-y-1">
-            <p className="text-xs uppercase text-muted-foreground">Cliente</p>
-            <p className="font-medium">
-              {cliente?.nome_fantasia || cliente?.razao_social}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {cliente?.cnpj ? maskCNPJ(cliente.cnpj) : "—"}
-            </p>
-          </div>
-
-          <div className="border rounded-md p-3">
-            <p className="text-xs uppercase text-muted-foreground mb-2">
-              Itens ({carrinho.length})
-            </p>
-            <div className="space-y-1 text-sm">
-              {carrinho.map((it, i) => (
-                <div key={i} className="flex justify-between">
                   <span>
-                    {it.quantidade}× {it.modelo} {it.capacidade ?? ""}
+                    {c.quantidade}× {c.modelo} {c.capacidade ?? ""}
                   </span>
                   <span className="tabular-nums">
-                    {formatBRL(it.preco_unitario * it.quantidade)}
+                    {formatBRL(c.quantidade * c.preco_unitario)}
                   </span>
                 </div>
               ))}
             </div>
-          </div>
 
-          <div className="border rounded-md p-3 space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="tabular-nums">{formatBRL(subtotal)}</span>
-            </div>
-            {descontoNum > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Desconto</span>
-                <span className="tabular-nums">- {formatBRL(descontoNum)}</span>
+            <div className="bg-muted/30 rounded-lg p-3">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                Condição
               </div>
-            )}
-            <div className="flex justify-between font-bold pt-1 border-t">
-              <span>Total</span>
-              <span className="tabular-nums">{formatBRL(total)}</span>
+              <div className="text-sm">
+                {condicaoPagamento} · {pagamentos.length} pagamento(s)
+              </div>
             </div>
-          </div>
 
-          <div className="border rounded-md p-3">
-            <p className="text-xs uppercase text-muted-foreground mb-2">
-              Pagamento ({condicaoPag})
-            </p>
             <div className="space-y-1 text-sm">
-              {parcelas.map((p, i) => (
-                <div key={i} className="flex justify-between">
-                  <span>
-                    #{i + 1} {p.forma} · venc{" "}
-                    {new Date(p.vencimento + "T00:00:00").toLocaleDateString("pt-BR")}
-                  </span>
-                  <span className="tabular-nums">{formatBRL(p.valor)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-sm">Observações</Label>
-            <Textarea
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              placeholder="Entrega, observações fiscais..."
-              rows={3}
-            />
-          </div>
-
-          {excedeLimite && (
-            <div className="bg-warning/10 border border-warning/30 rounded p-3 text-sm flex gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-              <div>
-                <strong>Pedido vai pra aprovação</strong> porque excede o limite do
-                cliente. Disponível: {formatBRL(disponivel)} · Total pedido:{" "}
-                {formatBRL(total)}
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span className="tabular-nums">{formatBRL(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-warning">
+                <span>Desconto</span>
+                <span className="tabular-nums">−{formatBRL(descontoNum)}</span>
+              </div>
+              <div className="flex justify-between text-xl font-bold pt-2 border-t">
+                <span>Total</span>
+                <span className="tabular-nums text-warning">{formatBRL(total)}</span>
               </div>
             </div>
-          )}
-        </div>
+
+            {clienteSelecionado &&
+              Number(clienteSelecionado.limite_credito) > 0 &&
+              total > Number(clienteSelecionado.limite_credito) && (
+                <div className="bg-warning/10 border border-warning/30 rounded p-3 flex gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                  <span>
+                    Valor excede limite de crédito do cliente (
+                    {formatBRL(Number(clienteSelecionado.limite_credito))}). Pedido vai
+                    pra aprovação.
+                  </span>
+                </div>
+              )}
+          </div>
+        </Card>
       )}
 
       {/* Navegação */}
-      <div className="flex items-center justify-between border-t pt-4">
-        <Button
-          variant="ghost"
-          onClick={() => setPasso(Math.max(1, passo - 1))}
-          disabled={passo === 1 || salvando}
-        >
+      <div className="flex justify-between pt-2">
+        <Button variant="outline" onClick={handleVoltar} disabled={passo === 1 || salvando}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
         </Button>
-
         {passo < 4 ? (
-          <Button onClick={() => setPasso(passo + 1)} disabled={!podeAvancar()}>
-            Avançar <ArrowRight className="h-4 w-4 ml-1" />
+          <Button onClick={handleProximo}>
+            Próximo <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
-          <Button onClick={handleFinalizar} disabled={salvando || carrinho.length === 0}>
+          <Button onClick={handleFinalizar} disabled={salvando} size="lg">
             {salvando ? (
               <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Criando...
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Criando
               </>
             ) : (
-              "✓ Criar pedido"
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-1" /> Finalizar pedido
+              </>
             )}
           </Button>
         )}
       </div>
+
+      <NovoClienteAtacadoDialog
+        open={novoClienteOpen}
+        onOpenChange={setNovoClienteOpen}
+        onSaved={(id) => setClienteId(id)}
+      />
     </div>
   );
 }
