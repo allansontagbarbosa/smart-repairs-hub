@@ -3,26 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import {
   Wallet,
-  Phone,
   MessageSquare,
-  AlertTriangle,
+  Phone,
+  Mail,
+  CheckCircle2,
   Loader2,
-  Calendar,
-  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -30,317 +19,306 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, maskCNPJ } from "@/lib/utils";
 import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
 
 export default function AtacadoCobranca() {
   const { empresaId } = useEmpresa();
-  const { user } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [drawerClienteId, setDrawerClienteId] = useState<string | null>(null);
-  const [registrandoCobranca, setRegistrandoCobranca] = useState<any | null>(null);
-  const [tipoCobranca, setTipoCobranca] = useState("whatsapp");
-  const [descricaoCobranca, setDescricaoCobranca] = useState("");
-  const [resultadoCobranca, setResultadoCobranca] = useState("sem_contato");
-  const [proximaAcao, setProximaAcao] = useState("");
+  const [faixa, setFaixa] = useState("todos");
+  const [baixaOpen, setBaixaOpen] = useState<any>(null);
 
-  const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ["atacado-clientes-inadimplentes", empresaId],
+  const { data: vencidos = [], isLoading } = useQuery({
+    queryKey: ["atacado-cobranca", empresaId, faixa],
     queryFn: async () => {
-      const { data } = await supabase.rpc("atacado_clientes_inadimplentes" as any, {
-        p_empresa_id: empresaId,
-      });
-      return (data ?? []) as any[];
+      const { data } = await supabase
+        .from("atacado_pedidos_pagamentos")
+        .select(
+          `*, pedido:atacado_pedidos!inner(numero_pedido, empresa_id, cliente:atacado_clientes(*))`
+        )
+        .in("status", ["aberto", "atrasado"])
+        .lt("vencimento", new Date().toISOString().slice(0, 10))
+        .order("vencimento");
+
+      const hoje = new Date();
+      return (data ?? [])
+        .filter((p: any) => p.pedido?.empresa_id === empresaId)
+        .map((p: any) => {
+          const diasAtraso = Math.floor(
+            (hoje.getTime() - new Date(p.vencimento).getTime()) / 86400000
+          );
+          return { ...p, diasAtraso };
+        })
+        .filter((p: any) => {
+          if (faixa === "todos") return true;
+          if (faixa === "1-7") return p.diasAtraso <= 7;
+          if (faixa === "8-30")
+            return p.diasAtraso >= 8 && p.diasAtraso <= 30;
+          if (faixa === "30+") return p.diasAtraso > 30;
+          return true;
+        });
     },
     enabled: !!empresaId,
   });
 
-  const { data: historico = [] } = useQuery({
-    queryKey: ["historico-cobranca", drawerClienteId],
-    queryFn: async () => {
-      if (!drawerClienteId) return [];
-      const { data } = await supabase
-        .from("atacado_cobrancas_historico" as any)
-        .select(`*, funcionario:funcionarios!realizado_por(nome)`)
-        .eq("cliente_id", drawerClienteId)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      return (data ?? []) as any[];
-    },
-    enabled: !!drawerClienteId,
-  });
-
-  const enviarWhatsapp = (cliente: any) => {
-    const tel = cliente.telefone?.replace(/\D/g, "");
-    if (!tel) {
-      toast({ title: "Cliente sem telefone", variant: "destructive" });
-      return;
-    }
-    const msg = encodeURIComponent(
-      `Olá! Aqui é da Ditt cobrança.\n\nIdentificamos que há ${formatBRL(
-        Number(cliente.total_atrasado)
-      )} em aberto vencido há ${cliente.dias_max_atraso} dias.\n\nPodemos ajudar com pagamento via Pix ou negociar o débito?\n\nAguardamos retorno.`
-    );
-    const tel55 = tel.length >= 10 ? `55${tel}` : tel;
-    window.open(`https://wa.me/${tel55}?text=${msg}`, "_blank");
-    setRegistrandoCobranca({ ...cliente, tipo_sugerido: "whatsapp" });
-    setTipoCobranca("whatsapp");
-  };
-
-  const registrar = useMutation({
-    mutationFn: async () => {
-      const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("funcionario_id")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      const { error } = await supabase.from("atacado_cobrancas_historico" as any).insert({
-        empresa_id: empresaId,
-        cliente_id: registrandoCobranca.cliente_id || registrandoCobranca.id,
-        tipo: tipoCobranca,
-        descricao: descricaoCobranca || null,
-        resultado: resultadoCobranca,
-        data_proxima_acao: proximaAcao || null,
-        realizado_por: profile?.funcionario_id,
+  const baixar = useMutation({
+    mutationFn: async ({ pagamentoId, forma, data }: any) => {
+      const { error } = await supabase.rpc("atacado_baixar_pagamento", {
+        p_pagamento_id: pagamentoId,
+        p_forma_recebido: forma,
+        p_data_recebimento: data,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "✓ Cobrança registrada" });
-      qc.invalidateQueries({ queryKey: ["atacado-clientes-inadimplentes"] });
-      qc.invalidateQueries({ queryKey: ["historico-cobranca"] });
-      setRegistrandoCobranca(null);
-      setDescricaoCobranca("");
-      setProximaAcao("");
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-top-devedores"] });
+      toast({ title: "✓ Pagamento baixado" });
+      setBaixaOpen(null);
     },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e: any) =>
+      toast({
+        title: "Erro",
+        description: e.message,
+        variant: "destructive",
+      }),
   });
 
-  const totalAtrasado = clientes.reduce(
-    (s: number, c: any) => s + Number(c.total_atrasado),
+  const totalDevido = vencidos.reduce(
+    (s: number, p: any) => s + Number(p.valor),
     0
   );
+  const clientesUnicos = new Set(
+    vencidos.map((p: any) => p.pedido?.cliente?.id)
+  ).size;
 
   return (
-    <div className="container mx-auto p-6 space-y-4">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Cobrança Ativa</h1>
         <p className="text-sm text-muted-foreground">
-          Clientes inadimplentes ordenados por gravidade
+          Boletos vencidos, follow-up e baixas
         </p>
       </div>
 
-      <div className="bg-destructive/5 border border-destructive/30 rounded-lg p-4 flex items-center gap-3">
-        <AlertTriangle className="h-6 w-6 text-destructive" />
-        <div>
-          <div className="text-lg font-bold text-destructive tabular-nums">
-            {formatBRL(totalAtrasado)} em atraso
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="border rounded-lg p-4">
+          <div className="text-xs uppercase text-muted-foreground">
+            Total a cobrar
           </div>
-          <div className="text-xs text-muted-foreground">
-            {clientes.length} cliente(s) inadimplente(s)
+          <div className="text-xl font-semibold mt-1 text-destructive">
+            {formatBRL(totalDevido)}
           </div>
+        </div>
+        <div className="border rounded-lg p-4">
+          <div className="text-xs uppercase text-muted-foreground">
+            Títulos vencidos
+          </div>
+          <div className="text-xl font-semibold mt-1">{vencidos.length}</div>
+        </div>
+        <div className="border rounded-lg p-4">
+          <div className="text-xs uppercase text-muted-foreground">
+            Clientes inadimplentes
+          </div>
+          <div className="text-xl font-semibold mt-1">{clientesUnicos}</div>
         </div>
       </div>
 
+      <div className="flex gap-2">
+        <Select value={faixa} onValueChange={setFaixa}>
+          <SelectTrigger className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas faixas</SelectItem>
+            <SelectItem value="1-7">1-7 dias atraso</SelectItem>
+            <SelectItem value="8-30">8-30 dias</SelectItem>
+            <SelectItem value="30+">30+ dias (críticos)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
+        <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : clientes.length === 0 ? (
+      ) : vencidos.length === 0 ? (
         <AtacadoEmptyState
-          icon={Wallet}
-          title="Sem inadimplentes 🎉"
-          description="Nenhum cliente em atraso no momento."
+          icon={CheckCircle2}
+          title="Nenhum título vencido"
+          description="Todos os pagamentos estão em dia. 🎉"
         />
       ) : (
         <div className="space-y-3">
-          {clientes.map((c: any) => (
-            <div
-              key={c.cliente_id}
-              className="bg-card border rounded-lg p-4 space-y-3"
-            >
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <div className="font-semibold">{c.nome_fantasia || c.razao_social}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {c.telefone || "Sem telefone"}
+          {vencidos.map((p: any) => {
+            const cliente = p.pedido?.cliente;
+            const cls =
+              p.diasAtraso > 60
+                ? "bg-destructive/15 text-destructive border-destructive/30"
+                : p.diasAtraso > 30
+                ? "bg-warning/15 text-warning border-warning/30"
+                : "bg-info/15 text-info border-info/30";
+            const fones = cliente?.telefone?.replace(/\D/g, "") ?? "";
+            const numWa = fones.length > 0 ? `55${fones}` : "";
+            const msgWa = encodeURIComponent(
+              `Olá ${cliente?.nome_fantasia || cliente?.razao_social || ""}, identificamos um título em aberto no valor de ${formatBRL(
+                Number(p.valor)
+              )} vencido em ${new Date(p.vencimento).toLocaleDateString(
+                "pt-BR"
+              )} (Pedido #P-${String(p.pedido?.numero_pedido).padStart(
+                6,
+                "0"
+              )}). Podemos regularizar?`
+            );
+
+            return (
+              <div key={p.id} className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="font-semibold">
+                        {cliente?.nome_fantasia || cliente?.razao_social}
+                      </div>
+                      <Badge variant="outline" className={cls}>
+                        {p.diasAtraso}d atraso
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {cliente?.cnpj ? maskCNPJ(cliente.cnpj) : "—"} · Pedido
+                      #P-{String(p.pedido?.numero_pedido).padStart(6, "0")} ·
+                      Parcela {p.parcela}/{p.total_parcelas} · {p.forma}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Vencimento:{" "}
+                      {new Date(p.vencimento).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold">
+                      {formatBRL(Number(p.valor))}
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-destructive tabular-nums">
-                    {formatBRL(Number(c.total_atrasado))}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {c.qtd_boletos_atrasados} boleto(s) · +{c.dias_max_atraso}d
-                  </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => setBaixaOpen(p)}>
+                    <Wallet className="h-4 w-4 mr-2" /> Marcar pago
+                  </Button>
+                  {numWa && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a
+                        href={`https://wa.me/${numWa}?text=${msgWa}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <MessageSquare className="h-4 w-4 mr-2" /> WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                  {cliente?.telefone && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`tel:${fones}`}>
+                        <Phone className="h-4 w-4 mr-2" /> Ligar
+                      </a>
+                    </Button>
+                  )}
+                  {cliente?.email && (
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`mailto:${cliente.email}`}>
+                        <Mail className="h-4 w-4 mr-2" /> E-mail
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
-
-              {c.ultimo_contato && (
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <History className="h-3 w-3" />
-                  Último contato: <strong>{c.ultimo_tipo}</strong> em{" "}
-                  {new Date(c.ultimo_contato).toLocaleDateString("pt-BR")}
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => enviarWhatsapp(c)}>
-                  <MessageSquare className="h-3 w-3" /> WhatsApp
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setRegistrandoCobranca({ ...c, tipo_sugerido: "ligacao" });
-                    setTipoCobranca("ligacao");
-                  }}
-                >
-                  <Phone className="h-3 w-3" /> Registrar ligação
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setDrawerClienteId(c.cliente_id)}
-                >
-                  <History className="h-3 w-3" /> Histórico
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Drawer histórico */}
-      <Sheet open={!!drawerClienteId} onOpenChange={(v) => !v && setDrawerClienteId(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Histórico de cobranças</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-3 mt-4">
-            {historico.length === 0 ? (
-              <div className="text-sm text-muted-foreground text-center py-8">
-                Sem cobranças registradas ainda.
-              </div>
-            ) : (
-              historico.map((h: any) => (
-                <div key={h.id} className="bg-muted/30 border rounded-lg p-3 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline">{h.tipo}</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(h.created_at).toLocaleDateString("pt-BR")}
-                    </span>
-                  </div>
-                  {h.descricao && <p className="text-sm">{h.descricao}</p>}
-                  {h.resultado && (
-                    <div className="text-xs text-muted-foreground">
-                      Resultado: <strong>{h.resultado}</strong>
-                      {h.funcionario?.nome && <> · por {h.funcionario.nome}</>}
-                    </div>
-                  )}
-                  {h.data_proxima_acao && (
-                    <div className="text-xs flex items-center gap-1 text-warning">
-                      <Calendar className="h-3 w-3" /> Próx. ação:{" "}
-                      {new Date(h.data_proxima_acao).toLocaleDateString("pt-BR")}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Dialog registrar cobrança */}
-      <Dialog
-        open={!!registrandoCobranca}
-        onOpenChange={(v) => !v && setRegistrandoCobranca(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar cobrança</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="p-3 bg-muted/30 rounded">
-              <div className="font-semibold">
-                {registrandoCobranca?.nome_fantasia || registrandoCobranca?.razao_social}
-              </div>
-              <div className="text-sm text-destructive tabular-nums">
-                {formatBRL(Number(registrandoCobranca?.total_atrasado ?? 0))} em atraso
-              </div>
-            </div>
-
-            <div>
-              <Label>Tipo</Label>
-              <Select value={tipoCobranca} onValueChange={setTipoCobranca}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  <SelectItem value="ligacao">Ligação</SelectItem>
-                  <SelectItem value="email">E-mail</SelectItem>
-                  <SelectItem value="visita">Visita</SelectItem>
-                  <SelectItem value="sms">SMS</SelectItem>
-                  <SelectItem value="acordo">Acordo de renegociação</SelectItem>
-                  <SelectItem value="observacao">Observação</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Resultado</Label>
-              <Select value={resultadoCobranca} onValueChange={setResultadoCobranca}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pagou">Pagou</SelectItem>
-                  <SelectItem value="prometeu">Prometeu pagar</SelectItem>
-                  <SelectItem value="sem_contato">Sem contato</SelectItem>
-                  <SelectItem value="recusou">Recusou</SelectItem>
-                  <SelectItem value="acordo_feito">Acordo feito</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Descrição</Label>
-              <Textarea
-                value={descricaoCobranca}
-                onChange={(e) => setDescricaoCobranca(e.target.value)}
-                placeholder="O cliente prometeu pagar 50% até 6ª feira..."
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label>Agendar próxima ação (opcional)</Label>
-              <Input
-                type="date"
-                value={proximaAcao}
-                onChange={(e) => setProximaAcao(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRegistrandoCobranca(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => registrar.mutate()} disabled={registrar.isPending}>
-              {registrar.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                "✓ Registrar"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {baixaOpen && (
+        <BaixaDialog
+          pagamento={baixaOpen}
+          onClose={() => setBaixaOpen(null)}
+          onConfirm={baixar.mutate}
+          isPending={baixar.isPending}
+        />
+      )}
     </div>
+  );
+}
+
+function BaixaDialog({ pagamento, onClose, onConfirm, isPending }: any) {
+  const [forma, setForma] = useState<string>(pagamento.forma);
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Baixar pagamento</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-md border p-3 bg-muted/30">
+            <div className="text-lg font-semibold">
+              {formatBRL(Number(pagamento.valor))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Parcela {pagamento.parcela}/{pagamento.total_parcelas}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Forma de recebimento</Label>
+            <Select value={forma} onValueChange={setForma}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="boleto">Boleto</SelectItem>
+                <SelectItem value="pix">Pix</SelectItem>
+                <SelectItem value="transferencia">Transferência</SelectItem>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="cartao">Cartão</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Data do recebimento</Label>
+            <Input
+              type="date"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() =>
+              onConfirm({ pagamentoId: pagamento.id, forma, data })
+            }
+            disabled={isPending}
+          >
+            <CheckCircle2 className="h-4 w-4 mr-2" /> Confirmar baixa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
