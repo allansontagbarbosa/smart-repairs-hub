@@ -29,9 +29,8 @@ interface Props {
 export function ComboWidget({ compact = false }: Props) {
   const { empresaId } = useEmpresa();
   const { can } = usePermissoes();
+  const { assistenciaAtivo, lojaAtivo, atacadoAtivo } = useModulos();
   const [expanded, setExpanded] = useState(!compact);
-
-  if (!can("ver_combo", "ver")) return null;
 
   const hoje = new Date();
   const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
@@ -51,9 +50,14 @@ export function ComboWidget({ compact = false }: Props) {
     enabled: !!empresaId,
   });
 
-  const fatAssist = Number(kpis?.faturamento_assist ?? 0);
-  const fatLoja = Number(kpis?.faturamento_loja ?? 0);
-  const fatAtacado = Number(kpis?.faturamento_atacado ?? 0);
+  // Guards (após hooks pra manter ordem estável)
+  if (!can("ver_combo", "ver")) return null;
+  const modulosAtivos = [assistenciaAtivo, lojaAtivo, atacadoAtivo].filter(Boolean).length;
+  if (modulosAtivos < 2) return null;
+
+  const fatAssist = assistenciaAtivo ? Number(kpis?.faturamento_assist ?? 0) : 0;
+  const fatLoja = lojaAtivo ? Number(kpis?.faturamento_loja ?? 0) : 0;
+  const fatAtacado = atacadoAtivo ? Number(kpis?.faturamento_atacado ?? 0) : 0;
   const total = fatAssist + fatLoja + fatAtacado;
   const pctAssist = total > 0 ? (fatAssist / total) * 100 : 0;
   const pctLoja = total > 0 ? (fatLoja / total) * 100 : 0;
