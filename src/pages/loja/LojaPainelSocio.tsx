@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { KpisFinanceiros } from "@/components/painel-socio/KpisFinanceiros";
 import { DistribuicaoLucros, SocioDist } from "@/components/painel-socio/DistribuicaoLucros";
 import { CaixaRunway } from "@/components/painel-socio/CaixaRunway";
+import { ComboWidget } from "@/components/ComboWidget";
 
 export default function LojaPainelSocio() {
   const { empresaId } = useEmpresa();
@@ -86,6 +87,8 @@ export default function LojaPainelSocio() {
           Apenas Loja
         </Badge>
       </div>
+
+      <ComboWidget />
 
       <KpisFinanceiros
         faturamento={faturamento}

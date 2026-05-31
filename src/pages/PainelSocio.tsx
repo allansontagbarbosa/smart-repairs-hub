@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { usePainelSocio } from "@/hooks/usePainelSocio";
 import { useValidaPainel } from "@/hooks/useValidaPainel";
+import { ComboWidget } from "@/components/ComboWidget";
 import { NovaMetaDialog } from "@/components/painel-socio/NovaMetaDialog";
 import { FatoresExternosCards } from "@/components/painel-socio/FatoresExternosCards";
 import { InsightsIA } from "@/components/painel-socio/InsightsIA";
@@ -107,6 +108,10 @@ export default function PainelSocio() {
           </Badge>
         </div>
       </div>
+
+      <ComboWidget />
+
+
 
       {/* HERO */}
       <Card className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground border-0">

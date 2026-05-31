@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Sparkles, Wrench, Store, Building2 } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { useModulos } from "@/hooks/useModulos";
 import { formatBRL } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -28,9 +29,8 @@ interface Props {
 export function ComboWidget({ compact = false }: Props) {
   const { empresaId } = useEmpresa();
   const { can } = usePermissoes();
+  const { assistenciaAtivo, lojaAtivo, atacadoAtivo } = useModulos();
   const [expanded, setExpanded] = useState(!compact);
-
-  if (!can("ver_combo", "ver")) return null;
 
   const hoje = new Date();
   const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
@@ -50,9 +50,14 @@ export function ComboWidget({ compact = false }: Props) {
     enabled: !!empresaId,
   });
 
-  const fatAssist = Number(kpis?.faturamento_assist ?? 0);
-  const fatLoja = Number(kpis?.faturamento_loja ?? 0);
-  const fatAtacado = Number(kpis?.faturamento_atacado ?? 0);
+  // Guards (após hooks pra manter ordem estável)
+  if (!can("ver_combo", "ver")) return null;
+  const modulosAtivos = [assistenciaAtivo, lojaAtivo, atacadoAtivo].filter(Boolean).length;
+  if (modulosAtivos < 2) return null;
+
+  const fatAssist = assistenciaAtivo ? Number(kpis?.faturamento_assist ?? 0) : 0;
+  const fatLoja = lojaAtivo ? Number(kpis?.faturamento_loja ?? 0) : 0;
+  const fatAtacado = atacadoAtivo ? Number(kpis?.faturamento_atacado ?? 0) : 0;
   const total = fatAssist + fatLoja + fatAtacado;
   const pctAssist = total > 0 ? (fatAssist / total) * 100 : 0;
   const pctLoja = total > 0 ? (fatLoja / total) * 100 : 0;
@@ -112,37 +117,43 @@ export function ComboWidget({ compact = false }: Props) {
         <div className="text-3xl font-bold text-foreground mt-1">{formatBRL(total)}</div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
-        <Modulo
-          icon={<Wrench className="h-3.5 w-3.5" />}
-          label="Assistência"
-          corBg="bg-info"
-          valor={fatAssist}
-          pct={pctAssist}
-          qtd={Number(kpis?.qtd_os ?? 0)}
-          qtdLabel="OS concluídas"
-          link="/dashboard"
-        />
-        <Modulo
-          icon={<Store className="h-3.5 w-3.5" />}
-          label="Loja"
-          corBg="bg-primary"
-          valor={fatLoja}
-          pct={pctLoja}
-          qtd={Number(kpis?.qtd_vendas_loja ?? 0)}
-          qtdLabel="vendas"
-          link="/loja/dashboard"
-        />
-        <Modulo
-          icon={<Building2 className="h-3.5 w-3.5" />}
-          label="Atacado"
-          corBg="bg-warning"
-          valor={fatAtacado}
-          pct={pctAtacado}
-          qtd={Number(kpis?.qtd_pedidos_atacado ?? 0)}
-          qtdLabel="pedidos"
-          link="/atacado/dashboard"
-        />
+      <div className={`grid gap-3 ${modulosAtivos === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        {assistenciaAtivo && (
+          <Modulo
+            icon={<Wrench className="h-3.5 w-3.5" />}
+            label="Assistência"
+            corBg="bg-info"
+            valor={fatAssist}
+            pct={pctAssist}
+            qtd={Number(kpis?.qtd_os ?? 0)}
+            qtdLabel="OS concluídas"
+            link="/dashboard"
+          />
+        )}
+        {lojaAtivo && (
+          <Modulo
+            icon={<Store className="h-3.5 w-3.5" />}
+            label="Loja"
+            corBg="bg-primary"
+            valor={fatLoja}
+            pct={pctLoja}
+            qtd={Number(kpis?.qtd_vendas_loja ?? 0)}
+            qtdLabel="vendas"
+            link="/loja/dashboard"
+          />
+        )}
+        {atacadoAtivo && (
+          <Modulo
+            icon={<Building2 className="h-3.5 w-3.5" />}
+            label="Atacado"
+            corBg="bg-warning"
+            valor={fatAtacado}
+            pct={pctAtacado}
+            qtd={Number(kpis?.qtd_pedidos_atacado ?? 0)}
+            qtdLabel="pedidos"
+            link="/atacado/dashboard"
+          />
+        )}
       </div>
     </div>
   );

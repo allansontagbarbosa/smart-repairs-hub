@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { ComboWidget } from "@/components/ComboWidget";
 
 export default function LojaDashboard() {
   const { empresaId } = useEmpresa();
@@ -45,6 +46,8 @@ export default function LojaDashboard() {
           </Button>
         </div>
       </div>
+
+      <ComboWidget compact />
 
       {semDados && (
         <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 flex flex-col items-center justify-center text-center">
