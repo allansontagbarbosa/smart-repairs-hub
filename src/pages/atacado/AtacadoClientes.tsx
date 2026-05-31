@@ -125,9 +125,10 @@ export default function AtacadoClientes() {
           icon={Users}
           title={busca || statusFilter !== "todos" ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
           description="Cadastre lojistas e revendedores para começar a vender no atacado."
-          actionLabel="Novo cliente"
-          onAction={() => setNovoOpen(true)}
+          ctaLabel="Novo cliente"
+          ctaOnClick={() => setNovoOpen(true)}
         />
+
       ) : (
         <div className="border rounded-lg overflow-hidden bg-card">
           <table className="w-full text-sm">
