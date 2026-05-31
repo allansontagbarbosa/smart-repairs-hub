@@ -117,37 +117,43 @@ export function ComboWidget({ compact = false }: Props) {
         <div className="text-3xl font-bold text-foreground mt-1">{formatBRL(total)}</div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-3">
-        <Modulo
-          icon={<Wrench className="h-3.5 w-3.5" />}
-          label="Assistência"
-          corBg="bg-info"
-          valor={fatAssist}
-          pct={pctAssist}
-          qtd={Number(kpis?.qtd_os ?? 0)}
-          qtdLabel="OS concluídas"
-          link="/dashboard"
-        />
-        <Modulo
-          icon={<Store className="h-3.5 w-3.5" />}
-          label="Loja"
-          corBg="bg-primary"
-          valor={fatLoja}
-          pct={pctLoja}
-          qtd={Number(kpis?.qtd_vendas_loja ?? 0)}
-          qtdLabel="vendas"
-          link="/loja/dashboard"
-        />
-        <Modulo
-          icon={<Building2 className="h-3.5 w-3.5" />}
-          label="Atacado"
-          corBg="bg-warning"
-          valor={fatAtacado}
-          pct={pctAtacado}
-          qtd={Number(kpis?.qtd_pedidos_atacado ?? 0)}
-          qtdLabel="pedidos"
-          link="/atacado/dashboard"
-        />
+      <div className={`grid gap-3 ${modulosAtivos === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        {assistenciaAtivo && (
+          <Modulo
+            icon={<Wrench className="h-3.5 w-3.5" />}
+            label="Assistência"
+            corBg="bg-info"
+            valor={fatAssist}
+            pct={pctAssist}
+            qtd={Number(kpis?.qtd_os ?? 0)}
+            qtdLabel="OS concluídas"
+            link="/dashboard"
+          />
+        )}
+        {lojaAtivo && (
+          <Modulo
+            icon={<Store className="h-3.5 w-3.5" />}
+            label="Loja"
+            corBg="bg-primary"
+            valor={fatLoja}
+            pct={pctLoja}
+            qtd={Number(kpis?.qtd_vendas_loja ?? 0)}
+            qtdLabel="vendas"
+            link="/loja/dashboard"
+          />
+        )}
+        {atacadoAtivo && (
+          <Modulo
+            icon={<Building2 className="h-3.5 w-3.5" />}
+            label="Atacado"
+            corBg="bg-warning"
+            valor={fatAtacado}
+            pct={pctAtacado}
+            qtd={Number(kpis?.qtd_pedidos_atacado ?? 0)}
+            qtdLabel="pedidos"
+            link="/atacado/dashboard"
+          />
+        )}
       </div>
     </div>
   );
