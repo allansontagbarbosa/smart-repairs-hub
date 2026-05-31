@@ -604,6 +604,101 @@ export type Database = {
           },
         ]
       }
+      atacado_configuracoes: {
+        Row: {
+          bloquear_automatico_se_atrasos_dias: number | null
+          catalogo_publico_ativo: boolean | null
+          catalogo_publico_descricao: string | null
+          catalogo_publico_slug: string | null
+          catalogo_publico_titulo: string | null
+          condicao_pagamento_padrao: string | null
+          created_at: string | null
+          empresa_id: string
+          exigir_aprovacao_pedidos_acima: number | null
+          juros_atraso_pct: number | null
+          lembrete_vencimento_dias: number | null
+          limite_credito_inicial_novo_cliente: number | null
+          multa_atraso_pct: number | null
+          nfe_ambiente: string
+          nfe_certificado_uploaded: boolean | null
+          nfe_certificado_validade: string | null
+          nfe_cfop_padrao: string | null
+          nfe_cnae: string | null
+          nfe_natureza_operacao: string | null
+          nfe_proximo_numero: number | null
+          nfe_serie: string | null
+          notificar_email_boletos_vencidos: boolean | null
+          notificar_wpp_boletos_vencidos: boolean | null
+          permitir_venda_cliente_inadimplente: boolean | null
+          prazo_pagamento_padrao_dias: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bloquear_automatico_se_atrasos_dias?: number | null
+          catalogo_publico_ativo?: boolean | null
+          catalogo_publico_descricao?: string | null
+          catalogo_publico_slug?: string | null
+          catalogo_publico_titulo?: string | null
+          condicao_pagamento_padrao?: string | null
+          created_at?: string | null
+          empresa_id: string
+          exigir_aprovacao_pedidos_acima?: number | null
+          juros_atraso_pct?: number | null
+          lembrete_vencimento_dias?: number | null
+          limite_credito_inicial_novo_cliente?: number | null
+          multa_atraso_pct?: number | null
+          nfe_ambiente?: string
+          nfe_certificado_uploaded?: boolean | null
+          nfe_certificado_validade?: string | null
+          nfe_cfop_padrao?: string | null
+          nfe_cnae?: string | null
+          nfe_natureza_operacao?: string | null
+          nfe_proximo_numero?: number | null
+          nfe_serie?: string | null
+          notificar_email_boletos_vencidos?: boolean | null
+          notificar_wpp_boletos_vencidos?: boolean | null
+          permitir_venda_cliente_inadimplente?: boolean | null
+          prazo_pagamento_padrao_dias?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bloquear_automatico_se_atrasos_dias?: number | null
+          catalogo_publico_ativo?: boolean | null
+          catalogo_publico_descricao?: string | null
+          catalogo_publico_slug?: string | null
+          catalogo_publico_titulo?: string | null
+          condicao_pagamento_padrao?: string | null
+          created_at?: string | null
+          empresa_id?: string
+          exigir_aprovacao_pedidos_acima?: number | null
+          juros_atraso_pct?: number | null
+          lembrete_vencimento_dias?: number | null
+          limite_credito_inicial_novo_cliente?: number | null
+          multa_atraso_pct?: number | null
+          nfe_ambiente?: string
+          nfe_certificado_uploaded?: boolean | null
+          nfe_certificado_validade?: string | null
+          nfe_cfop_padrao?: string | null
+          nfe_cnae?: string | null
+          nfe_natureza_operacao?: string | null
+          nfe_proximo_numero?: number | null
+          nfe_serie?: string | null
+          notificar_email_boletos_vencidos?: boolean | null
+          notificar_wpp_boletos_vencidos?: boolean | null
+          permitir_venda_cliente_inadimplente?: boolean | null
+          prazo_pagamento_padrao_dias?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_configuracoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_metas: {
         Row: {
           bonus_atingir: number | null
