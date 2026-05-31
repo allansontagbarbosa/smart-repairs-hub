@@ -143,9 +143,9 @@ export function AppSidebar() {
       <SidebarContent className="flex flex-col h-full">
         <div className={`flex items-center justify-center px-4 pt-5 pb-4 ${collapsed ? "px-2" : ""}`}>
           {collapsed ? (
-            <DittLogo iconOnly />
+            <DittLogo iconOnly variant="dark" />
           ) : (
-            <DittLogo size="sm" className="text-sidebar-foreground" />
+            <DittLogo size="sm" variant="dark" className="text-sidebar-foreground" />
           )}
         </div>
 
