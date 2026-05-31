@@ -11,7 +11,7 @@ import { LojistaProvider } from "@/contexts/LojistaContext";
 import { AppLayout } from "@/components/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
-import Cadastro from "./pages/Cadastro";
+import OnboardingWizard from "./pages/auth/OnboardingWizard";
 import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import ExclusaoOSCanceladas from "./pages/ExclusaoOSCanceladas";
@@ -167,7 +167,7 @@ const App = () => (
             <Routes>
               {/* Landing page pública */}
               <Route path="/" element={<LandingPage />} />
-              <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/cadastro" element={<OnboardingWizard />} />
               <Route path="/redefinir-senha" element={<RedefinirSenha />} />
               <Route path="/catalogo/:slug" element={<CatalogoPublico />} />
 
