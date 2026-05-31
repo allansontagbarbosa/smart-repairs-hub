@@ -90,6 +90,22 @@ import ComboDashboard from "@/pages/combo/ComboDashboard";
 import ComboPainelSocio from "@/pages/combo/ComboPainelSocio";
 import { ModuloComboGuard } from "@/components/ModuloComboGuard";
 
+// Módulo Atacado
+import { ModuloAtacadoGuard } from "@/components/ModuloAtacadoGuard";
+import AtacadoDashboard from "@/pages/atacado/AtacadoDashboard";
+import AtacadoPedidos from "@/pages/atacado/AtacadoPedidos";
+import AtacadoNovoPedido from "@/pages/atacado/AtacadoNovoPedido";
+import AtacadoClientes from "@/pages/atacado/AtacadoClientes";
+import AtacadoAparelhos from "@/pages/atacado/AtacadoAparelhos";
+import AtacadoTabelasPreco from "@/pages/atacado/AtacadoTabelasPreco";
+import AtacadoVendedores from "@/pages/atacado/AtacadoVendedores";
+import AtacadoMetas from "@/pages/atacado/AtacadoMetas";
+import AtacadoFinanceiro from "@/pages/atacado/AtacadoFinanceiro";
+import AtacadoCobranca from "@/pages/atacado/AtacadoCobranca";
+import AtacadoRelatorios from "@/pages/atacado/AtacadoRelatorios";
+import AtacadoCatalogoPublico from "@/pages/atacado/AtacadoCatalogoPublico";
+import AtacadoConfiguracoes from "@/pages/atacado/AtacadoConfiguracoes";
+
 
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
@@ -282,6 +298,21 @@ const App = () => (
                     <Route path="/loja/painel-socio" element={<ModuloLojaGuard><LojaPainelSocio /></ModuloLojaGuard>} />
                     <Route path="/combo/dashboard" element={<ModuloComboGuard><ComboDashboard /></ModuloComboGuard>} />
                     <Route path="/combo/painel-socio" element={<ModuloComboGuard><ComboPainelSocio /></ModuloComboGuard>} />
+
+                    {/* Módulo Atacado */}
+                    <Route path="/atacado/dashboard" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_dashboard.ver"><AtacadoDashboard /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/pedidos" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.ver"><AtacadoPedidos /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/novo-pedido" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.editar"><AtacadoNovoPedido /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/clientes" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_clientes.ver"><AtacadoClientes /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/aparelhos" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_aparelhos.ver"><AtacadoAparelhos /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/tabelas-preco" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_tabelas_preco.ver"><AtacadoTabelasPreco /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/vendedores" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_vendedores.ver"><AtacadoVendedores /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/metas" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_metas.ver"><AtacadoMetas /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/financeiro" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_financeiro.ver"><AtacadoFinanceiro /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/cobranca" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_cobranca.ver"><AtacadoCobranca /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/relatorios" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_relatorios.ver"><AtacadoRelatorios /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/catalogo-publico" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_configuracoes.editar"><AtacadoCatalogoPublico /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/configuracoes" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_configuracoes.editar"><AtacadoConfiguracoes /></ProtectedRoute></ModuloAtacadoGuard>} />
 
                     <Route path="*" element={<NotFound />} />
 

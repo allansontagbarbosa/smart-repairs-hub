@@ -1,16 +1,17 @@
 import { useWorkspaceMode } from "@/contexts/WorkspaceModeContext";
-import { Wrench, Store, Sparkles } from "lucide-react";
+import { Wrench, Store, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceModeBadge({ className }: { className?: string }) {
   const { mode, availableModes } = useWorkspaceMode();
   if (availableModes.length < 2) return null;
 
-  const config = {
+  const configs = {
     assistencia: { label: "Assistência", icon: Wrench, cls: "bg-blue-500/10 text-blue-600 border-blue-500/30 dark:text-blue-400" },
     loja: { label: "Loja", icon: Store, cls: "bg-primary/10 text-primary border-primary/30" },
-    combo: { label: "Visão Combo", icon: Sparkles, cls: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400" },
-  }[mode];
+    atacado: { label: "Atacado", icon: Building2, cls: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400" },
+  } as const;
+  const config = configs[mode] ?? configs.assistencia;
 
   const Icon = config.icon;
 
