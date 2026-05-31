@@ -485,6 +485,74 @@ export type Database = {
           },
         ]
       }
+      atacado_cobrancas_historico: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          data_proxima_acao: string | null
+          descricao: string | null
+          empresa_id: string
+          id: string
+          pagamento_id: string | null
+          realizado_por: string | null
+          resultado: string | null
+          tipo: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          data_proxima_acao?: string | null
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          pagamento_id?: string | null
+          realizado_por?: string | null
+          resultado?: string | null
+          tipo: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          data_proxima_acao?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          pagamento_id?: string | null
+          realizado_por?: string | null
+          resultado?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_cobrancas_historico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_cobrancas_historico_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_cobrancas_historico_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_pedidos_pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_cobrancas_historico_realizado_por_fkey"
+            columns: ["realizado_por"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_comissoes: {
         Row: {
           ativa: boolean | null
@@ -8449,6 +8517,20 @@ export type Database = {
         Args: { p_aprovador_funcionario_id: string; p_pedido_id: string }
         Returns: undefined
       }
+      atacado_clientes_inadimplentes: {
+        Args: { p_empresa_id: string }
+        Returns: {
+          cliente_id: string
+          dias_max_atraso: number
+          nome_fantasia: string
+          qtd_boletos_atrasados: number
+          razao_social: string
+          telefone: string
+          total_atrasado: number
+          ultimo_contato: string
+          ultimo_tipo: string
+        }[]
+      }
       atacado_dashboard_kpis: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
@@ -8461,6 +8543,17 @@ export type Database = {
           qtd_pedidos: number
           ticket_medio: number
           valor_inadimplencia: number
+        }[]
+      }
+      atacado_financeiro_kpis: {
+        Args: { p_empresa_id: string }
+        Returns: {
+          qtd_boletos_aberto: number
+          qtd_boletos_atrasado: number
+          qtd_clientes_atrasados: number
+          total_aberto: number
+          total_atrasado: number
+          total_pago_mes: number
         }[]
       }
       atacado_top_clientes: {
@@ -9197,6 +9290,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      marcar_atrasados_atacado: { Args: never; Returns: number }
       marcar_entregue_pedido_atacado: {
         Args: { p_pedido_id: string }
         Returns: undefined
@@ -9286,6 +9380,14 @@ export type Database = {
         Returns: Json
       }
       processar_notificacoes_diarias: { Args: never; Returns: Json }
+      quitar_pagamento_atacado: {
+        Args: {
+          p_forma_recebido: string
+          p_observacoes?: string
+          p_pagamento_id: string
+        }
+        Returns: undefined
+      }
       reabrir_mes: { Args: { p_mes: string; p_motivo?: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
