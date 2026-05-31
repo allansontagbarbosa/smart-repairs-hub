@@ -8445,6 +8445,10 @@ export type Database = {
         Args: { p_ordem_id: string; p_valor_usar_centavos: number }
         Returns: Json
       }
+      aprovar_pedido_atacado: {
+        Args: { p_aprovador_funcionario_id: string; p_pedido_id: string }
+        Returns: undefined
+      }
       atacado_dashboard_kpis: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
@@ -8620,6 +8624,10 @@ export type Database = {
       cancelar_os: {
         Args: { p_motivo: string; p_ordem_id: string }
         Returns: Json
+      }
+      cancelar_pedido_atacado: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: undefined
       }
       cancelar_retirada: {
         Args: { p_motivo?: string; p_retirada_id: string }
@@ -8934,6 +8942,10 @@ export type Database = {
         }
         Returns: Json
       }
+      faturar_pedido_atacado: {
+        Args: { p_nfe_numero?: string; p_pedido_id: string }
+        Returns: undefined
+      }
       fechar_mes: { Args: { p_mes: string }; Returns: Json }
       fechar_mes_distribuicao: {
         Args: { p_mes_referencia: string }
@@ -9184,6 +9196,10 @@ export type Database = {
           status_acesso: string
           user_id: string
         }[]
+      }
+      marcar_entregue_pedido_atacado: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
       }
       marcar_grupo_aceito: { Args: never; Returns: undefined }
       marcar_notificacao: {
