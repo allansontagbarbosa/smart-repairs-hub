@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { OnboardingWelcome } from "@/components/OnboardingWelcome";
+import { ComboWidget } from "@/components/ComboWidget";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { usePermissoes } from "@/hooks/usePermissoes";
@@ -491,6 +492,8 @@ export default function Dashboard() {
       </div>
 
       <OnboardingWelcome />
+
+      <ComboWidget compact />
 
       {/* ══════════════════════════════════════════════════════════════════════
           SEÇÃO 1 — FINANCEIRO DO MÊS
