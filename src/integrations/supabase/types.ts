@@ -8628,6 +8628,31 @@ export type Database = {
           sucesso: boolean
         }[]
       }
+      atacado_performance_vendedores: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: {
+          comissao_estimada: number
+          faturamento: number
+          nome: string
+          novos_clientes: number
+          qtd_pedidos: number
+          ticket_medio: number
+          vendedor_id: string
+        }[]
+      }
+      atacado_progresso_metas: {
+        Args: { p_ano: number; p_empresa_id: string; p_mes: number }
+        Returns: {
+          bonus_atingir: number
+          fechada: boolean
+          meta_id: string
+          pct_atingido: number
+          super_bonus_acima: number
+          tipo: string
+          valor_meta: number
+          valor_realizado: number
+        }[]
+      }
       atacado_top_clientes: {
         Args: {
           p_empresa_id: string
