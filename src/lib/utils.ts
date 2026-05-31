@@ -20,6 +20,13 @@ export function maskCPF(cpf: string): string {
   return `***.***.${cpf.slice(6, 9)}-${cpf.slice(9, 11)}`;
 }
 
+export function maskCNPJ(cnpj: string): string {
+  const c = (cnpj ?? "").replace(/\D/g, "");
+  if (c.length !== 14) return cnpj ?? "";
+  return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+}
+
+
 export function maskIMEI(imei: string): string {
   if (!imei || imei.length < 15) return imei;
   return `${imei.slice(0, 2)} ${imei.slice(2, 6)} ${imei.slice(6, 10)} ${imei.slice(10, 15)}`;
