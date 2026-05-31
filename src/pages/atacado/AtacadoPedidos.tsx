@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { Plus, Search, Download, Loader2 } from "lucide-react";
+import { Plus, Search, Download, Loader2, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -166,10 +166,11 @@ export default function AtacadoPedidos() {
         </div>
       ) : pedidosFiltrados.length === 0 ? (
         <AtacadoEmptyState
+          icon={ClipboardList}
           title="Nenhum pedido encontrado"
           description="Crie um novo pedido B2B ou ajuste os filtros."
-          actionLabel="Novo pedido"
-          actionTo="/atacado/novo-pedido"
+          ctaLabel="Novo pedido"
+          ctaTo="/atacado/novo-pedido"
         />
       ) : (
         <div className="border rounded-lg overflow-hidden">
