@@ -9312,6 +9312,23 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_pedido_atacado: {
+        Args: {
+          p_cliente_id: string
+          p_condicao_pagamento?: string
+          p_desconto?: number
+          p_empresa_id: string
+          p_itens: Json
+          p_observacoes?: string
+          p_pagamentos: Json
+          p_vendedor_id: string
+        }
+        Returns: {
+          numero_pedido: number
+          pedido_id: string
+          status: string
+        }[]
+      }
       registrar_recebimento_cliente: {
         Args: {
           p_cliente_id: string
