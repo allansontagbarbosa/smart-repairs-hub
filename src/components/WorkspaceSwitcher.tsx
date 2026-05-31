@@ -1,11 +1,11 @@
 import { useWorkspaceMode, type WorkspaceMode } from "@/contexts/WorkspaceModeContext";
-import { Wrench, Store, Sparkles, type LucideIcon } from "lucide-react";
+import { Wrench, Store, Building2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MODES: { id: WorkspaceMode; label: string; icon: LucideIcon; shortcut: string }[] = [
   { id: "assistencia", label: "Assist", icon: Wrench, shortcut: "1" },
   { id: "loja", label: "Loja", icon: Store, shortcut: "2" },
-  { id: "combo", label: "Combo", icon: Sparkles, shortcut: "3" },
+  { id: "atacado", label: "Atacado", icon: Building2, shortcut: "3" },
 ];
 
 export function WorkspaceSwitcher({ collapsed }: { collapsed?: boolean }) {

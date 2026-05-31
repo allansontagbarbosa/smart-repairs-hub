@@ -44,6 +44,20 @@ export interface Permissoes {
   loja_financeiro: boolean;
   loja_relatorios: boolean;
   loja_configuracoes: boolean;
+  // Módulo Atacado
+  atacado_dashboard: PermissaoModulo;
+  atacado_pedidos: PermissaoModulo;
+  atacado_clientes: PermissaoModulo;
+  atacado_aparelhos: PermissaoModulo;
+  atacado_tabelas_preco: PermissaoModulo;
+  atacado_vendedores: PermissaoModulo;
+  atacado_metas: PermissaoModulo;
+  atacado_financeiro: PermissaoModulo;
+  atacado_cobranca: PermissaoModulo;
+  atacado_relatorios: PermissaoModulo;
+  atacado_configuracoes: PermissaoModulo;
+  // Combo (flag de visibilidade)
+  ver_combo: boolean;
 }
 
 const FULL_MODULO: PermissaoModulo = { ver: true, criar: true, editar: true, excluir: true };
@@ -79,6 +93,18 @@ const ADMIN_PERMISSOES: Permissoes = {
   loja_financeiro: true,
   loja_relatorios: true,
   loja_configuracoes: true,
+  atacado_dashboard: FULL_MODULO,
+  atacado_pedidos: FULL_MODULO,
+  atacado_clientes: FULL_MODULO,
+  atacado_aparelhos: FULL_MODULO,
+  atacado_tabelas_preco: FULL_MODULO,
+  atacado_vendedores: FULL_MODULO,
+  atacado_metas: FULL_MODULO,
+  atacado_financeiro: FULL_MODULO,
+  atacado_cobranca: FULL_MODULO,
+  atacado_relatorios: FULL_MODULO,
+  atacado_configuracoes: FULL_MODULO,
+  ver_combo: true,
 };
 
 const EMPTY_MODULO: PermissaoModulo = { ver: false, criar: false, editar: false, excluir: false };
@@ -114,6 +140,18 @@ const DEFAULT_PERMISSOES: Permissoes = {
   loja_financeiro: false,
   loja_relatorios: false,
   loja_configuracoes: false,
+  atacado_dashboard: EMPTY_MODULO,
+  atacado_pedidos: EMPTY_MODULO,
+  atacado_clientes: EMPTY_MODULO,
+  atacado_aparelhos: EMPTY_MODULO,
+  atacado_tabelas_preco: EMPTY_MODULO,
+  atacado_vendedores: EMPTY_MODULO,
+  atacado_metas: EMPTY_MODULO,
+  atacado_financeiro: EMPTY_MODULO,
+  atacado_cobranca: EMPTY_MODULO,
+  atacado_relatorios: EMPTY_MODULO,
+  atacado_configuracoes: EMPTY_MODULO,
+  ver_combo: false,
 };
 
 function parsePermissoes(raw: any): Permissoes {
@@ -154,6 +192,18 @@ function parsePermissoes(raw: any): Permissoes {
     loja_financeiro: !!raw.loja_financeiro,
     loja_relatorios: !!raw.loja_relatorios,
     loja_configuracoes: !!raw.loja_configuracoes,
+    atacado_dashboard: ensureModulo(raw.atacado_dashboard),
+    atacado_pedidos: ensureModulo(raw.atacado_pedidos),
+    atacado_clientes: ensureModulo(raw.atacado_clientes),
+    atacado_aparelhos: ensureModulo(raw.atacado_aparelhos),
+    atacado_tabelas_preco: ensureModulo(raw.atacado_tabelas_preco),
+    atacado_vendedores: ensureModulo(raw.atacado_vendedores),
+    atacado_metas: ensureModulo(raw.atacado_metas),
+    atacado_financeiro: ensureModulo(raw.atacado_financeiro),
+    atacado_cobranca: ensureModulo(raw.atacado_cobranca),
+    atacado_relatorios: ensureModulo(raw.atacado_relatorios),
+    atacado_configuracoes: ensureModulo(raw.atacado_configuracoes),
+    ver_combo: !!raw.ver_combo,
   };
 }
 

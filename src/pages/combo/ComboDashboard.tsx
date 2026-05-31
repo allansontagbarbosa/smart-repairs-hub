@@ -46,11 +46,17 @@ export default function ComboDashboard() {
 
   const fatLoja = Number(kpis?.faturamento_loja ?? 0);
   const fatAssist = Number(kpis?.faturamento_assist ?? 0);
-  const total = fatLoja + fatAssist;
+  const fatAtacado = Number(kpis?.faturamento_atacado ?? 0);
+  const total = fatLoja + fatAssist + fatAtacado;
   const pctLoja = total > 0 ? (fatLoja / total) * 100 : 0;
   const pctAssist = total > 0 ? (fatAssist / total) * 100 : 0;
-  const varLoja = Number(kpis?.variacao_loja_pct ?? 0);
-  const varAssist = Number(kpis?.variacao_assist_pct ?? 0);
+  const varLoja = 0;
+  const varAssist = 0;
+  const qtdOs = Number(kpis?.qtd_os ?? 0);
+  const qtdVendasLoja = Number(kpis?.qtd_vendas_loja ?? 0);
+  const qtdPedidosAtacado = Number(kpis?.qtd_pedidos_atacado ?? 0);
+  const transacoesTotal = qtdOs + qtdVendasLoja + qtdPedidosAtacado;
+  const ticketMedio = Number(kpis?.ticket_medio_consolidado ?? 0);
 
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6">
@@ -76,23 +82,23 @@ export default function ComboDashboard() {
         <div>
           <div className="text-xs uppercase tracking-wider opacity-80">Faturamento total do mês</div>
           <div className="text-4xl md:text-5xl font-bold mt-2">{formatBRL(total)}</div>
-          <div className="text-xs opacity-80 mt-1">{Number(kpis?.transacoes_total ?? 0)} transações totais</div>
+          <div className="text-xs opacity-80 mt-1">{transacoesTotal} transações totais</div>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Quebra icon={<Store className="h-4 w-4" />} label="Loja (varejo)" valor={fatLoja} pct={pctLoja}
-            qtdLabel={`${Number(kpis?.vendas_loja_qtd ?? 0)} vendas`} variacao={varLoja} />
+            qtdLabel={`${qtdVendasLoja} vendas`} variacao={varLoja} />
           <Quebra icon={<Wrench className="h-4 w-4" />} label="Assistência técnica" valor={fatAssist} pct={pctAssist}
-            qtdLabel={`${Number(kpis?.os_assist_qtd ?? 0)} OSs`} variacao={varAssist} />
+            qtdLabel={`${qtdOs} OSs`} variacao={varAssist} />
         </div>
       </div>
 
       {/* KPIs secundários */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiMini label="Ticket médio Loja" valor={formatBRL(Number(kpis?.ticket_loja ?? 0))} />
-        <KpiMini label="Ticket médio Assist" valor={formatBRL(Number(kpis?.ticket_assist ?? 0))} />
-        <KpiMini label="Vendas Loja" valor={String(Number(kpis?.vendas_loja_qtd ?? 0))} />
-        <KpiMini label="OSs concluídas" valor={String(Number(kpis?.os_assist_qtd ?? 0))} />
+        <KpiMini label="Ticket médio consolidado" valor={formatBRL(ticketMedio)} />
+        <KpiMini label="Faturamento Atacado" valor={formatBRL(fatAtacado)} />
+        <KpiMini label="Vendas Loja" valor={String(qtdVendasLoja)} />
+        <KpiMini label="OSs concluídas" valor={String(qtdOs)} />
       </div>
 
       {/* Gráfico */}

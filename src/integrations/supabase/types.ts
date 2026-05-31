@@ -8659,17 +8659,12 @@ export type Database = {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
           faturamento_assist: number
-          faturamento_assist_anterior: number
+          faturamento_atacado: number
           faturamento_loja: number
-          faturamento_loja_anterior: number
-          faturamento_total: number
-          os_assist_qtd: number
-          ticket_assist: number
-          ticket_loja: number
-          transacoes_total: number
-          variacao_assist_pct: number
-          variacao_loja_pct: number
-          vendas_loja_qtd: number
+          qtd_os: number
+          qtd_pedidos_atacado: number
+          qtd_vendas_loja: number
+          ticket_medio_consolidado: number
         }[]
       }
       combo_serie_diaria: {
