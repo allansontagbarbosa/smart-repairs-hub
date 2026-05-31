@@ -94,6 +94,7 @@ import { ModuloComboGuard } from "@/components/ModuloComboGuard";
 import { ModuloAtacadoGuard } from "@/components/ModuloAtacadoGuard";
 import AtacadoDashboard from "@/pages/atacado/AtacadoDashboard";
 import AtacadoPedidos from "@/pages/atacado/AtacadoPedidos";
+import AtacadoPedidoDetalhe from "@/pages/atacado/AtacadoPedidoDetalhe";
 import AtacadoNovoPedido from "@/pages/atacado/AtacadoNovoPedido";
 import AtacadoClientes from "@/pages/atacado/AtacadoClientes";
 import AtacadoAparelhos from "@/pages/atacado/AtacadoAparelhos";
