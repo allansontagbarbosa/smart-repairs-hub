@@ -90,6 +90,22 @@ import ComboDashboard from "@/pages/combo/ComboDashboard";
 import ComboPainelSocio from "@/pages/combo/ComboPainelSocio";
 import { ModuloComboGuard } from "@/components/ModuloComboGuard";
 
+// Módulo Atacado
+import { ModuloAtacadoGuard } from "@/components/ModuloAtacadoGuard";
+import AtacadoDashboard from "@/pages/atacado/AtacadoDashboard";
+import AtacadoPedidos from "@/pages/atacado/AtacadoPedidos";
+import AtacadoNovoPedido from "@/pages/atacado/AtacadoNovoPedido";
+import AtacadoClientes from "@/pages/atacado/AtacadoClientes";
+import AtacadoAparelhos from "@/pages/atacado/AtacadoAparelhos";
+import AtacadoTabelasPreco from "@/pages/atacado/AtacadoTabelasPreco";
+import AtacadoVendedores from "@/pages/atacado/AtacadoVendedores";
+import AtacadoMetas from "@/pages/atacado/AtacadoMetas";
+import AtacadoFinanceiro from "@/pages/atacado/AtacadoFinanceiro";
+import AtacadoCobranca from "@/pages/atacado/AtacadoCobranca";
+import AtacadoRelatorios from "@/pages/atacado/AtacadoRelatorios";
+import AtacadoCatalogoPublico from "@/pages/atacado/AtacadoCatalogoPublico";
+import AtacadoConfiguracoes from "@/pages/atacado/AtacadoConfiguracoes";
+
 
 
 // Lojista B2B (portal interno legacy — em desuso, mantido até confirmar 0 logins)
