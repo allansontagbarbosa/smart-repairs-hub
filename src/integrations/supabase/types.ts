@@ -8601,6 +8601,22 @@ export type Database = {
           valor_inadimplencia: number
         }[]
       }
+      atacado_dre: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: {
+          comissoes_estimadas: number
+          custo_produtos: number
+          descontos: number
+          faturamento_bruto: number
+          faturamento_liquido: number
+          inadimplencia: number
+          lucro_bruto: number
+          margem_bruta_pct: number
+          qtd_pedidos: number
+          resultado_operacional: number
+          ticket_medio: number
+        }[]
+      }
       atacado_financeiro_kpis: {
         Args: { p_empresa_id: string }
         Returns: {
@@ -8612,6 +8628,22 @@ export type Database = {
           qtd_titulos_vencidos: number
           recebido_mes: number
           ticket_medio_recebido: number
+        }[]
+      }
+      atacado_giro_estoque: {
+        Args: { p_empresa_id: string }
+        Returns: {
+          aparelho_id: string
+          capacidade: string
+          classificacao: string
+          cor: string
+          custo_unitario: number
+          dias_em_estoque: number
+          modelo: string
+          qtd_vendida_30d: number
+          qtd_vendida_90d: number
+          quantidade_atual: number
+          valor_imobilizado: number
         }[]
       }
       atacado_mudar_status_pedido: {
@@ -8651,6 +8683,36 @@ export type Database = {
           tipo: string
           valor_meta: number
           valor_realizado: number
+        }[]
+      }
+      atacado_ranking_produtos: {
+        Args: {
+          p_empresa_id: string
+          p_fim: string
+          p_inicio: string
+          p_limit?: number
+        }
+        Returns: {
+          capacidade: string
+          faturamento: number
+          modelo: string
+          preco_medio: number
+          qtd_pedidos: number
+          qtd_vendida: number
+        }[]
+      }
+      atacado_rfm_clientes: {
+        Args: { p_empresa_id: string }
+        Returns: {
+          classificacao: string
+          cliente_id: string
+          dias_sem_comprar: number
+          faturamento_12m: number
+          nome_fantasia: string
+          qtd_pedidos_12m: number
+          razao_social: string
+          ticket_medio: number
+          ultima_compra: string
         }[]
       }
       atacado_top_clientes: {
