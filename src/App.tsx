@@ -106,6 +106,7 @@ import AtacadoCobranca from "@/pages/atacado/AtacadoCobranca";
 import AtacadoRelatorios from "@/pages/atacado/AtacadoRelatorios";
 import AtacadoCatalogoPublico from "@/pages/atacado/AtacadoCatalogoPublico";
 import AtacadoConfiguracoes from "@/pages/atacado/AtacadoConfiguracoes";
+import CatalogoPublico from "@/pages/publico/CatalogoPublico";
 
 
 
@@ -168,6 +169,7 @@ const App = () => (
               <Route path="/" element={<LandingPage />} />
               <Route path="/cadastro" element={<Cadastro />} />
               <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+              <Route path="/catalogo/:slug" element={<CatalogoPublico />} />
 
               {/* Public client lookup — no auth */}
               <Route path="/consulta" element={<ConsultaCliente />} />
