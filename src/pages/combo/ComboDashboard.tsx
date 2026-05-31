@@ -46,11 +46,17 @@ export default function ComboDashboard() {
 
   const fatLoja = Number(kpis?.faturamento_loja ?? 0);
   const fatAssist = Number(kpis?.faturamento_assist ?? 0);
-  const total = fatLoja + fatAssist;
+  const fatAtacado = Number(kpis?.faturamento_atacado ?? 0);
+  const total = fatLoja + fatAssist + fatAtacado;
   const pctLoja = total > 0 ? (fatLoja / total) * 100 : 0;
   const pctAssist = total > 0 ? (fatAssist / total) * 100 : 0;
-  const varLoja = Number(kpis?.variacao_loja_pct ?? 0);
-  const varAssist = Number(kpis?.variacao_assist_pct ?? 0);
+  const varLoja = 0;
+  const varAssist = 0;
+  const qtdOs = Number(kpis?.qtd_os ?? 0);
+  const qtdVendasLoja = Number(kpis?.qtd_vendas_loja ?? 0);
+  const qtdPedidosAtacado = Number(kpis?.qtd_pedidos_atacado ?? 0);
+  const transacoesTotal = qtdOs + qtdVendasLoja + qtdPedidosAtacado;
+  const ticketMedio = Number(kpis?.ticket_medio_consolidado ?? 0);
 
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl space-y-6">
