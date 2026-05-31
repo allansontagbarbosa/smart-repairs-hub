@@ -1,103 +1,54 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { useToast } from "@/hooks/use-toast";
 import {
   DollarSign,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  CalendarClock,
+  AlertCircle,
   Wallet,
+  ArrowRight,
+  Calendar,
+  Trophy,
+  CheckCircle2,
+  TrendingUp,
+  Loader2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { formatBRL, maskCNPJ } from "@/lib/utils";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { formatBRL } from "@/lib/utils";
-import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
-
-const STATUS_CFG: Record<string, string> = {
-  aberto: "bg-info/15 text-info border-info/30",
-  atrasado: "bg-destructive/15 text-destructive border-destructive/30",
-  pago: "bg-success/15 text-success border-success/30",
-  cancelado: "bg-muted text-muted-foreground",
-};
 
 export default function AtacadoFinanceiro() {
   const { empresaId } = useEmpresa();
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [quitando, setQuitando] = useState<any | null>(null);
-  const [formaRecebido, setFormaRecebido] = useState("pix");
-  const [obsRecebimento, setObsRecebimento] = useState("");
 
-  const { data: kpis, isLoading: kpisLoading } = useQuery({
+  const { data: kpis, isLoading } = useQuery({
     queryKey: ["atacado-financeiro-kpis", empresaId],
     queryFn: async () => {
-      const { data } = await supabase.rpc("atacado_financeiro_kpis" as any, {
-        p_empresa_id: empresaId,
+      const { data } = await supabase.rpc("atacado_financeiro_kpis", {
+        p_empresa_id: empresaId!,
       });
-      return (data as any)?.[0];
+      return data?.[0];
     },
     enabled: !!empresaId,
   });
 
-  const { data: pagamentos = [] } = useQuery({
-    queryKey: ["atacado-pagamentos", empresaId, statusFilter],
+  const { data: topDevedores = [] } = useQuery({
+    queryKey: ["atacado-top-devedores", empresaId],
     queryFn: async () => {
-      let q = supabase
-        .from("atacado_pedidos_pagamentos")
-        .select(
-          `*, pedido:atacado_pedidos!inner(numero_pedido, empresa_id,
-             cliente:atacado_clientes(razao_social, nome_fantasia))`
-        )
-        .eq("pedido.empresa_id", empresaId!);
-      if (statusFilter !== "todos") q = q.eq("status", statusFilter);
-      const { data } = await q.order("vencimento", { ascending: true }).limit(200);
-      return (data ?? []) as any[];
+      const { data } = await supabase.rpc("atacado_top_devedores", {
+        p_empresa_id: empresaId!,
+        p_limit: 10,
+      });
+      return data ?? [];
     },
     enabled: !!empresaId,
   });
 
-  const quitar = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc("quitar_pagamento_atacado" as any, {
-        p_pagamento_id: quitando.id,
-        p_forma_recebido: formaRecebido,
-        p_observacoes: obsRecebimento || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "✓ Recebimento registrado" });
-      qc.invalidateQueries({ queryKey: ["atacado-pagamentos"] });
-      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
-      setQuitando(null);
-      setObsRecebimento("");
-    },
-    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
-  });
+  const aReceber = Number(kpis?.a_receber_total ?? 0);
+  const inadimplencia = Number(kpis?.inadimplencia_total ?? 0);
+  const recebidoMes = Number(kpis?.recebido_mes ?? 0);
+  const titulosVencidos = Number(kpis?.qtd_titulos_vencidos ?? 0);
 
   return (
-    <div className="container mx-auto p-6 space-y-4">
+    <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Financeiro Atacado</h1>
         <p className="text-sm text-muted-foreground">
@@ -105,203 +56,157 @@ export default function AtacadoFinanceiro() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Kpi
-          icon={<DollarSign className="h-3 w-3" />}
-          label="A receber"
-          valor={formatBRL(Number(kpis?.total_aberto ?? 0))}
-          sub={`${kpis?.qtd_boletos_aberto ?? 0} boleto(s)`}
-          loading={kpisLoading}
-        />
-        <Kpi
-          icon={<TrendingUp className="h-3 w-3" />}
-          label="Recebido no mês"
-          valor={formatBRL(Number(kpis?.total_pago_mes ?? 0))}
-          success
-          loading={kpisLoading}
-        />
-        <Kpi
-          icon={<AlertTriangle className="h-3 w-3" />}
-          label="Atrasado"
-          valor={formatBRL(Number(kpis?.total_atrasado ?? 0))}
-          sub={`${kpis?.qtd_boletos_atrasado ?? 0} boleto(s)`}
-          danger
-          loading={kpisLoading}
-        />
-        <Kpi
-          icon={<Wallet className="h-3 w-3" />}
-          label="Clientes inadimplentes"
-          valor={String(kpis?.qtd_clientes_atrasados ?? 0)}
-          loading={kpisLoading}
-        />
-      </div>
-
-      <div className="flex items-center justify-between gap-3 flex-wrap pt-2">
-        <h2 className="text-lg font-semibold">Pagamentos pendentes</h2>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos status</SelectItem>
-            <SelectItem value="aberto">Em aberto</SelectItem>
-            <SelectItem value="atrasado">Atrasados</SelectItem>
-            <SelectItem value="pago">Pagos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {pagamentos.length === 0 ? (
-        <AtacadoEmptyState
-          icon={DollarSign}
-          title="Sem pagamentos"
-          description="Nenhum pagamento encontrado com este filtro."
-        />
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="text-left p-3 font-medium">Pedido / Cliente</th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">Forma</th>
-                <th className="text-left p-3 font-medium hidden lg:table-cell">Parcela</th>
-                <th className="text-left p-3 font-medium">Vencimento</th>
-                <th className="text-right p-3 font-medium">Valor</th>
-                <th className="text-left p-3 font-medium">Status</th>
-                <th className="text-right p-3 font-medium">Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagamentos.map((pg: any) => {
-                const cliente =
-                  pg.pedido?.cliente?.nome_fantasia ||
-                  pg.pedido?.cliente?.razao_social ||
-                  "—";
-                const venc = pg.vencimento ? new Date(pg.vencimento) : null;
-                const diasAtraso = venc
-                  ? Math.floor((Date.now() - venc.getTime()) / 86400000)
-                  : 0;
-                return (
-                  <tr key={pg.id} className="border-b hover:bg-muted/30 transition-colors">
-                    <td className="p-3">
-                      <div className="font-mono text-xs">
-                        #P-{String(pg.pedido?.numero_pedido).padStart(6, "0")}
-                      </div>
-                      <div className="text-sm">{cliente}</div>
-                    </td>
-                    <td className="p-3 hidden md:table-cell">{pg.forma}</td>
-                    <td className="p-3 hidden lg:table-cell tabular-nums">
-                      {pg.parcela}/{pg.total_parcelas}
-                    </td>
-                    <td className="p-3 text-sm">
-                      {venc ? venc.toLocaleDateString("pt-BR") : "—"}
-                      {pg.status === "atrasado" && diasAtraso > 0 && (
-                        <div className="text-[10px] text-destructive font-semibold">
-                          +{diasAtraso}d atraso
-                        </div>
-                      )}
-                    </td>
-                    <td className="p-3 text-right font-bold tabular-nums">
-                      {formatBRL(Number(pg.valor))}
-                    </td>
-                    <td className="p-3">
-                      <Badge variant="outline" className={STATUS_CFG[pg.status] ?? ""}>
-                        {pg.status}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-right">
-                      {(pg.status === "aberto" || pg.status === "atrasado") && (
-                        <Button size="sm" variant="outline" onClick={() => setQuitando(pg)}>
-                          <CheckCircle2 className="h-3 w-3" /> Quitar
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      )}
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi
+              icon={DollarSign}
+              label="A receber"
+              valor={formatBRL(aReceber)}
+              hint="próximos 90d"
+            />
+            <Kpi
+              icon={AlertCircle}
+              label="Inadimplência"
+              valor={formatBRL(inadimplencia)}
+              hint={`${titulosVencidos} título(s)`}
+              danger={inadimplencia > 0}
+            />
+            <Kpi
+              icon={Wallet}
+              label="Recebido no mês"
+              valor={formatBRL(recebidoMes)}
+            />
+            <Kpi
+              icon={TrendingUp}
+              label="Ticket recebido"
+              valor={formatBRL(Number(kpis?.ticket_medio_recebido ?? 0))}
+            />
+          </div>
 
-      <Dialog open={!!quitando} onOpenChange={(v) => !v && setQuitando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar recebimento</DialogTitle>
-          </DialogHeader>
-          {quitando && (
-            <div className="space-y-3">
-              <div className="p-3 bg-muted/30 rounded">
-                <div className="text-xs text-muted-foreground">Pedido</div>
-                <div className="font-mono font-semibold">
-                  #P-{String(quitando.pedido?.numero_pedido).padStart(6, "0")}
-                </div>
-                <div className="text-sm mt-1">
-                  Parcela {quitando.parcela}/{quitando.total_parcelas} ·{" "}
-                  <strong>{formatBRL(Number(quitando.valor))}</strong>
-                </div>
-              </div>
-
-              <div>
-                <Label>Forma recebida</Label>
-                <Select value={formaRecebido} onValueChange={setFormaRecebido}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">Pix</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label>Observações</Label>
-                <Textarea
-                  value={obsRecebimento}
-                  onChange={(e) => setObsRecebimento(e.target.value)}
-                  rows={2}
-                />
-              </div>
+          {/* Agenda */}
+          <div className="border rounded-lg p-5">
+            <h2 className="text-sm font-semibold flex items-center gap-2 mb-4">
+              <Calendar className="h-4 w-4" /> Agenda de recebimentos
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <AgendaCell
+                label="Próximos 30 dias"
+                valor={Number(kpis?.a_receber_30d ?? 0)}
+              />
+              <AgendaCell
+                label="31-60 dias"
+                valor={Number(kpis?.a_receber_60d ?? 0)}
+              />
+              <AgendaCell
+                label="61-90 dias"
+                valor={Number(kpis?.a_receber_90d ?? 0)}
+              />
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setQuitando(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => quitar.mutate()} disabled={quitar.isPending}>
-              {quitar.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-3 w-3" />
-              )}
-              Confirmar recebimento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          {/* Top devedores */}
+          <div className="border rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Trophy className="h-4 w-4" /> Top 10 devedores
+              </h2>
+              <Link
+                to="/atacado/cobranca"
+                className="text-xs text-primary inline-flex items-center gap-1"
+              >
+                Ir pra cobrança <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {topDevedores.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-success" />
+                Nenhum cliente em atraso. Excelente!
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {topDevedores.map((d: any, i: number) => {
+                  const dias = Number(d.dias_atraso_max);
+                  const cls =
+                    dias > 60
+                      ? "bg-destructive/15 text-destructive border-destructive/30"
+                      : dias > 30
+                      ? "bg-warning/15 text-warning border-warning/30"
+                      : "bg-info/15 text-info border-info/30";
+                  return (
+                    <div
+                      key={d.cliente_id}
+                      className="flex items-center justify-between border rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs font-bold text-muted-foreground w-6">
+                          #{i + 1}
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            {d.nome_fantasia || d.razao_social}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {d.cnpj ? maskCNPJ(d.cnpj) : "—"} ·{" "}
+                            {d.qtd_titulos} título(s)
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold">
+                          {formatBRL(Number(d.total_devido))}
+                        </div>
+                        <Badge variant="outline" className={`mt-1 ${cls}`}>
+                          {dias}d atraso
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function Kpi({ icon, label, valor, sub, loading, success, danger }: any) {
+function Kpi({ icon: Icon, label, valor, hint, danger }: any) {
   return (
-    <div className="bg-card border rounded-lg p-4">
-      <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-        {icon} {label}
+    <div
+      className={`border rounded-lg p-4 ${
+        danger ? "border-destructive/40 bg-destructive/5" : ""
+      }`}
+    >
+      <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+        <Icon className="h-3.5 w-3.5" /> {label}
       </div>
       <div
-        className={`text-xl font-bold tabular-nums ${
-          danger ? "text-destructive" : success ? "text-success" : "text-foreground"
+        className={`text-xl font-semibold mt-1 ${
+          danger ? "text-destructive" : ""
         }`}
       >
-        {loading ? <span className="text-muted-foreground">—</span> : valor}
+        {valor}
       </div>
-      {sub && <div className="text-[10px] text-muted-foreground mt-0.5">{sub}</div>}
+      {hint && (
+        <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+      )}
+    </div>
+  );
+}
+
+function AgendaCell({ label, valor }: any) {
+  return (
+    <div className="border rounded-md p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-lg font-semibold mt-1">{formatBRL(valor)}</div>
     </div>
   );
 }
