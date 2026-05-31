@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Sparkles, Wrench, Store, Building2 } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { usePermissoes } from "@/hooks/usePermissoes";
+import { useModulos } from "@/hooks/useModulos";
 import { formatBRL } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
