@@ -9041,6 +9041,36 @@ export type Database = {
         }
         Returns: Json
       }
+      catalogo_criar_pedido: {
+        Args: { p_acesso_id: string; p_itens: Json; p_observacoes?: string }
+        Returns: {
+          numero_pedido: number
+          pedido_id: string
+        }[]
+      }
+      catalogo_get_config: {
+        Args: { p_slug: string }
+        Returns: {
+          catalogo_publico_ativo: boolean
+          catalogo_publico_descricao: string
+          catalogo_publico_titulo: string
+          empresa_id: string
+        }[]
+      }
+      catalogo_login: {
+        Args: { p_email: string; p_senha: string; p_slug: string }
+        Returns: {
+          acesso_id: string
+          cliente_id: string
+          cliente_nome: string
+          empresa_id: string
+          token: string
+        }[]
+      }
+      catalogo_setar_senha: {
+        Args: { p_cliente_id: string; p_email: string; p_senha: string }
+        Returns: string
+      }
       checar_rate_limit: {
         Args: {
           p_acao: string
