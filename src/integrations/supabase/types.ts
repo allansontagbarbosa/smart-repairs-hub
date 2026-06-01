@@ -6902,6 +6902,7 @@ export type Database = {
           orcamento_motivo_reprovacao: string | null
           orcamento_reprovado_em: string | null
           os_origem_id: string | null
+          pecas_pedido_em: string | null
           prazo_vencido: boolean
           previsao_entrega: string | null
           prioridade: string
@@ -6977,6 +6978,7 @@ export type Database = {
           orcamento_motivo_reprovacao?: string | null
           orcamento_reprovado_em?: string | null
           os_origem_id?: string | null
+          pecas_pedido_em?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
           prioridade?: string
@@ -7052,6 +7054,7 @@ export type Database = {
           orcamento_motivo_reprovacao?: string | null
           orcamento_reprovado_em?: string | null
           os_origem_id?: string | null
+          pecas_pedido_em?: string | null
           prazo_vencido?: boolean
           previsao_entrega?: string | null
           prioridade?: string
@@ -10427,6 +10430,7 @@ export type Database = {
         | "entregue"
         | "cancelado"
         | "terceirizado"
+        | "garantia"
       status_servico: "pendente" | "em_reparo" | "concluido" | "cancelado"
       tipo_cliente: "lojista_b2b" | "consumidor_b2c"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
@@ -10629,6 +10633,7 @@ export const Constants = {
         "entregue",
         "cancelado",
         "terceirizado",
+        "garantia",
       ],
       status_servico: ["pendente", "em_reparo", "concluido", "cancelado"],
       tipo_cliente: ["lojista_b2b", "consumidor_b2c"],
