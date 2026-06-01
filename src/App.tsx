@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import OnboardingWizard from "./pages/auth/OnboardingWizard";
 import PlanoCobranca from "./pages/configuracoes/PlanoCobranca";
+import CalibrarEtiqueta from "./pages/configuracoes/CalibrarEtiqueta";
 import MinhaConta from "./pages/conta/MinhaConta";
 import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
