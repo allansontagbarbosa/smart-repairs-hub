@@ -2212,6 +2212,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           )}
         </SheetContent>
       </Sheet>
+      {ordem && (
+        <EnviarTerceiroDialog open={terceiroOpen} onOpenChange={setTerceiroOpen} osId={ordem.id} />
+      )}
     </Dialog>
   );
 }
