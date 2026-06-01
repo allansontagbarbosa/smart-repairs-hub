@@ -1,42 +1,31 @@
 import { useMemo, useRef, useState, DragEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, LayoutGrid, Users, Loader2, Clock, AlertTriangle, MessageCircle } from "lucide-react";
+import {
+  Search, LayoutGrid, Users, Loader2, Clock, AlertTriangle, MessageCircle,
+  Truck, PackageSearch, ShieldCheck, Wrench, CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { calcularPrioridade } from "@/lib/prioridade";
-import { statusFlow, statusLabels, type Status } from "@/lib/status";
+import { statusLabels, type Status } from "@/lib/status";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
+import { useAparelhosNaRua, useGarantiasTerceiroVigentes } from "@/hooks/useTerceirizacao";
 
-type Modo = "status" | "mesa";
+type Modo = "fluxo" | "mesa";
 
-const statusHeaderColors: Record<Status, string> = {
-  recebido: "bg-muted-foreground/20",
-  em_analise: "bg-info/20",
-  aguardando_aprovacao: "bg-warning/20",
-  aprovado: "bg-success/20",
-  em_reparo: "bg-info/20",
-  aguardando_peca: "bg-warning/20",
-  terceirizado: "bg-[hsl(270_70%_64%/0.2)]",
-  pronto: "bg-success/20",
-  entregue: "bg-muted/40",
-  cancelado: "bg-destructive/20",
-};
-const statusDotColors: Record<Status, string> = {
-  recebido: "bg-muted-foreground",
-  em_analise: "bg-info",
-  aguardando_aprovacao: "bg-warning",
-  aprovado: "bg-success",
-  em_reparo: "bg-info",
-  aguardando_peca: "bg-warning",
-  terceirizado: "bg-[hsl(270_70%_64%)]",
-  pronto: "bg-success",
-  entregue: "bg-muted-foreground/50",
-  cancelado: "bg-destructive",
+// Cores das colunas do modo Fluxo (conforme spec)
+const FLUXO_COLORS: Record<string, { header: string; dot: string; ring: string }> = {
+  na_rua:           { header: "bg-[hsl(270_72%_64%/0.18)]", dot: "bg-[hsl(270_72%_58%)]", ring: "ring-[hsl(270_72%_58%/0.4)]" },
+  aguardando_pecas: { header: "bg-[hsl(34_82%_56%/0.18)]",  dot: "bg-[hsl(34_82%_50%)]",  ring: "ring-[hsl(34_82%_50%/0.4)]" },
+  garantia:         { header: "bg-[hsl(207_78%_57%/0.18)]", dot: "bg-[hsl(207_78%_50%)]", ring: "ring-[hsl(207_78%_50%/0.4)]" },
+  em_reparo:        { header: "bg-[hsl(217_78%_57%/0.18)]", dot: "bg-[hsl(217_78%_50%)]", ring: "ring-[hsl(217_78%_50%/0.4)]" },
+  prontos:          { header: "bg-[hsl(165_100%_39%/0.18)]",dot: "bg-[hsl(165_100%_39%)]",ring: "ring-[hsl(165_100%_39%/0.4)]" },
+  mesa:             { header: "bg-muted/40", dot: "bg-primary", ring: "ring-primary/40" },
 };
 
 async function fetchOrders() {
@@ -54,19 +43,25 @@ async function fetchOrders() {
 function daysAgo(dateStr: string) {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
 }
-
 function tecnicosNomes(order: any): string[] {
   return Array.from(
     new Set(((order.os_servicos ?? []) as any[]).map((s) => s.funcionarios?.nome).filter(Boolean))
   );
 }
+function fmtDM(d: string | null | undefined) {
+  if (!d) return "";
+  const dt = new Date(d);
+  return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export default function Operacional() {
   const queryClient = useQueryClient();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [modo, setModo] = useState<Modo>(() =>
-    (typeof window !== "undefined" && localStorage.getItem("operacional-modo") === "mesa") ? "mesa" : "status"
-  );
+  const [modo, setModo] = useState<Modo>(() => {
+    if (typeof window === "undefined") return "fluxo";
+    const saved = localStorage.getItem("operacional-modo");
+    return saved === "mesa" ? "mesa" : "fluxo";
+  });
   const [busca, setBusca] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState<string | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
@@ -75,16 +70,17 @@ export default function Operacional() {
     queryKey: ["ordens", "ultimos-90"],
     queryFn: fetchOrders,
   });
+  const { data: naRuaList = [] } = useAparelhosNaRua();
+  const { data: garantiasTerceiro = [] } = useGarantiasTerceiroVigentes();
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
-      const ordemAtual = orders.find((o: any) => o.id === id);
+      const ordemAtual = (orders as any[]).find((o) => o.id === id);
       const now = new Date().toISOString();
       const updates: any = { status: newStatus };
       if (newStatus === "pronto" && !ordemAtual?.data_conclusao) updates.data_conclusao = now;
-      if (newStatus === "entregue") {
-        if (!ordemAtual?.data_entrega) updates.data_entrega = now;
-        if (!ordemAtual?.data_conclusao) updates.data_conclusao = ordemAtual?.data_entrega || now;
+      if (newStatus === "aguardando_peca" && !ordemAtual?.pecas_pedido_em) {
+        updates.pecas_pedido_em = new Date().toISOString().slice(0, 10);
       }
       const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
@@ -101,46 +97,29 @@ export default function Operacional() {
     [orders]
   );
 
-  const colunas = useMemo(() => {
-    if (modo === "status") {
-      return statusFlow.map((s) => ({
-        key: s as string,
-        nome: statusLabels[s],
-        statusKey: s as Status,
-        filtro: (o: any) => o.status === s,
-      }));
-    }
-    const tecs = Array.from(
-      new Set(
-        (ativas as any[]).flatMap(tecnicosNomes)
-      )
-    ).sort();
-    const cols = tecs.map((t) => ({
-      key: `mesa-${t}`,
-      nome: `Mesa ${t}`,
-      statusKey: null as Status | null,
-      filtro: (o: any) => tecnicosNomes(o).includes(t),
-    }));
-    // Coluna para OS sem técnico atribuído
-    cols.unshift({
-      key: "mesa-sem",
-      nome: "Sem técnico",
-      statusKey: null,
-      filtro: (o: any) => tecnicosNomes(o).length === 0,
-    });
-    return cols;
-  }, [modo, ativas]);
+  // OS map for resolving terceirizações/garantias-terceiro -> ordem
+  const ordemById = useMemo(() => {
+    const m = new Map<string, any>();
+    (orders as any[]).forEach((o) => m.set(o.id, o));
+    return m;
+  }, [orders]);
 
-  const dataFonte = modo === "status" ? (orders as any[]) : ativas;
+  // ============== MODO MESA / POR TÉCNICO ==============
+  // Mostra SOMENTE os em_reparo, uma coluna por técnico.
+  const emReparo = useMemo(
+    () => ativas.filter((o: any) => o.status === "em_reparo"),
+    [ativas]
+  );
+  const tecnicosColunas = useMemo(() => {
+    const tecs = Array.from(new Set(emReparo.flatMap(tecnicosNomes))).sort();
+    return tecs;
+  }, [emReparo]);
 
-  const cardsDe = (col: typeof colunas[number]) => {
-    const q = (busca[col.key] || "").toLowerCase().trim();
-    return dataFonte.filter(col.filtro).filter((o: any) => {
-      if (!q) return true;
-      const tecs = tecnicosNomes(o).join(" ");
-      const haystack = `${o.numero ?? ""} ${o.aparelhos?.clientes?.nome ?? ""} ${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""} ${tecs}`.toLowerCase();
-      return haystack.includes(q);
-    });
+  const cardMatchesBusca = (o: any, q: string) => {
+    if (!q) return true;
+    const tecs = tecnicosNomes(o).join(" ");
+    const haystack = `${o.numero ?? ""} ${o.aparelhos?.clientes?.nome ?? ""} ${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""} ${tecs}`.toLowerCase();
+    return haystack.includes(q);
   };
 
   const setModoPersist = (m: Modo) => {
@@ -148,9 +127,9 @@ export default function Operacional() {
     if (typeof window !== "undefined") localStorage.setItem("operacional-modo", m);
   };
 
-  // Drag handlers (somente modo status)
+  // Drag handlers (somente modo fluxo, e somente em colunas que tenham statusKey)
   const onDragStart = (e: DragEvent, id: string) => {
-    if (modo !== "status") return;
+    if (modo !== "fluxo") return;
     dragRef.current = { id };
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
@@ -161,8 +140,8 @@ export default function Operacional() {
     setDragOver(null);
     dragRef.current = null;
   };
-  const onDragOver = (e: DragEvent, key: string) => {
-    if (modo !== "status") return;
+  const onDragOver = (e: DragEvent, key: string, accepts: boolean) => {
+    if (modo !== "fluxo" || !accepts) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOver(key);
@@ -170,14 +149,16 @@ export default function Operacional() {
   const onDrop = (e: DragEvent, statusKey: Status | null) => {
     e.preventDefault();
     setDragOver(null);
-    if (modo !== "status" || !statusKey || !dragRef.current) return;
+    if (modo !== "fluxo" || !statusKey || !dragRef.current) return;
     const { id } = dragRef.current;
     const order = (orders as any[]).find((o) => o.id === id);
     if (!order || order.status === statusKey) return;
     updateStatus.mutate({ id, newStatus: statusKey });
   };
 
-  const renderCard = (order: any) => {
+  // ============== CARDS ==============
+  const renderOSCard = (order: any, opts?: { draggable?: boolean; extraLine?: React.ReactNode }) => {
+    const draggable = opts?.draggable ?? (modo === "fluxo");
     const days = daysAgo(order.data_entrada);
     const prio = calcularPrioridade(order.status, order.data_entrada, order.previsao_entrega);
     const isCritica = prio.nivel === "critica";
@@ -188,13 +169,13 @@ export default function Operacional() {
     return (
       <div
         key={order.id}
-        draggable={modo === "status"}
+        draggable={draggable}
         onDragStart={(e) => onDragStart(e, order.id)}
         onDragEnd={onDragEnd}
         onClick={() => setSelectedOrderId(order.id)}
         className={cn(
           "bg-card rounded-lg border p-2.5 space-y-1.5 transition-all hover:shadow-md select-none",
-          modo === "status" ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+          draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
           isCritica && "border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20",
           isAtencao && !isCritica && "border-warning/40 ring-1 ring-warning/20"
         )}
@@ -216,12 +197,7 @@ export default function Operacional() {
           {order.aparelhos?.marca} {order.aparelhos?.modelo}
         </p>
         <p className="text-[11px] text-muted-foreground line-clamp-1">{order.defeito_relatado}</p>
-        {modo === "mesa" && (
-          <Badge variant="outline" className="text-[10px]">
-            <span className={cn("w-1.5 h-1.5 rounded-full mr-1", statusDotColors[order.status as Status])} />
-            {statusLabels[order.status as Status]}
-          </Badge>
-        )}
+        {opts?.extraLine}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono text-muted-foreground">
@@ -254,7 +230,7 @@ export default function Operacional() {
             )}
           </div>
         </div>
-        {modo === "status" && tecs.length > 0 && (
+        {modo === "fluxo" && tecs.length > 0 && (
           <p className="text-[10px] text-muted-foreground truncate" title={tecs.join(", ")}>
             👤 {tecs.join(", ")}
           </p>
@@ -262,6 +238,210 @@ export default function Operacional() {
       </div>
     );
   };
+
+  // ============== COLUNAS ==============
+  type Coluna = {
+    key: string;
+    nome: string;
+    icon: React.ReactNode;
+    color: keyof typeof FLUXO_COLORS;
+    statusKey: Status | null; // p/ drop
+    /** Conteúdo já filtrado por busca, com contagem total e o JSX dos cards */
+    render: (q: string) => { total: number; node: React.ReactNode };
+  };
+
+  const colunasFluxo: Coluna[] = useMemo(() => {
+    const cols: Coluna[] = [];
+
+    // ---- Na rua (terceirizações enviadas) ----
+    cols.push({
+      key: "na_rua",
+      nome: "Na rua (terceiro)",
+      icon: <Truck className="h-3.5 w-3.5" />,
+      color: "na_rua",
+      statusKey: null,
+      render: (q) => {
+        const items = (naRuaList as any[]).filter((it) => {
+          const order = ordemById.get(it.os_id);
+          const numero = order?.numero ?? "";
+          const cli = order?.aparelhos?.clientes?.nome ?? "";
+          const aparelho = `${order?.aparelhos?.marca ?? ""} ${order?.aparelhos?.modelo ?? ""}`;
+          const haystack = `${numero} ${cli} ${aparelho} ${it.terceiro_nome ?? ""} ${it.servico ?? ""}`.toLowerCase();
+          return !q || haystack.includes(q);
+        });
+        return {
+          total: items.length,
+          node: items.length === 0 ? null : items.map((it: any) => {
+            const order = ordemById.get(it.os_id);
+            const extra = (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-[hsl(270_72%_50%)] font-medium truncate">
+                  🛠 {it.terceiro_nome ?? "Terceiro"}
+                </span>
+                <span className={cn(
+                  "text-[10px] font-medium",
+                  it.atrasado ? "text-destructive" : "text-muted-foreground"
+                )}>
+                  {it.dias_fora}d fora{it.atrasado ? " · atrasado" : ""}
+                </span>
+              </div>
+            );
+            if (order) return renderOSCard(order, { draggable: false, extraLine: extra });
+            // OS fora do range de 90d: card mínimo clicável
+            return (
+              <div
+                key={it.terceirizacao_id}
+                onClick={() => setSelectedOrderId(it.os_id)}
+                className="bg-card rounded-lg border p-2.5 space-y-1 cursor-pointer hover:shadow-md"
+              >
+                <p className="text-sm font-medium truncate">{it.servico ?? "Terceirização"}</p>
+                {extra}
+              </div>
+            );
+          }),
+        };
+      },
+    });
+
+    // ---- Aguardando peças ----
+    cols.push({
+      key: "aguardando_pecas",
+      nome: "Aguardando peças",
+      icon: <PackageSearch className="h-3.5 w-3.5" />,
+      color: "aguardando_pecas",
+      statusKey: "aguardando_peca" as Status,
+      render: (q) => {
+        const list = ativas.filter((o: any) => o.status === "aguardando_peca" && cardMatchesBusca(o, q));
+        return {
+          total: list.length,
+          node: list.map((o: any) =>
+            renderOSCard(o, {
+              extraLine: o.pecas_pedido_em ? (
+                <p className="text-[10px] text-[hsl(34_82%_45%)] font-medium">
+                  📦 pedido em {fmtDM(o.pecas_pedido_em)}
+                </p>
+              ) : undefined,
+            })
+          ),
+        };
+      },
+    });
+
+    // ---- Garantia (Da loja + Do terceiro) ----
+    cols.push({
+      key: "garantia",
+      nome: "Garantia",
+      icon: <ShieldCheck className="h-3.5 w-3.5" />,
+      color: "garantia",
+      statusKey: "garantia" as Status,
+      render: (q) => {
+        const daLoja = ativas.filter((o: any) => o.status === "garantia" && cardMatchesBusca(o, q));
+        const doTerceiro = (garantiasTerceiro as any[]).filter((g) => {
+          const order = ordemById.get(g.os_id);
+          const numero = order?.numero ?? "";
+          const cli = order?.aparelhos?.clientes?.nome ?? "";
+          const haystack = `${numero} ${cli} ${g.terceiro_nome ?? ""} ${g.servico_realizado ?? ""}`.toLowerCase();
+          return !q || haystack.includes(q);
+        });
+        const total = daLoja.length + doTerceiro.length;
+        return {
+          total,
+          node: (
+            <>
+              <div className="px-1 pt-1 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">
+                Da loja ({daLoja.length})
+              </div>
+              {daLoja.length === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 italic px-1">—</div>
+              )}
+              {daLoja.map((o: any) => renderOSCard(o))}
+
+              <div className="px-1 pt-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">
+                Do terceiro ({doTerceiro.length})
+              </div>
+              {doTerceiro.length === 0 && (
+                <div className="text-[11px] text-muted-foreground/60 italic px-1">—</div>
+              )}
+              {doTerceiro.map((g: any) => {
+                const order = ordemById.get(g.os_id);
+                const extra = (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-[hsl(207_78%_45%)] font-medium truncate">
+                      🛡 {g.terceiro_nome ?? "Terceiro"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {g.dias_restantes}d restantes
+                    </span>
+                  </div>
+                );
+                if (order) return renderOSCard(order, { draggable: false, extraLine: extra });
+                return (
+                  <div
+                    key={g.terceirizacao_id}
+                    onClick={() => setSelectedOrderId(g.os_id)}
+                    className="bg-card rounded-lg border p-2.5 space-y-1 cursor-pointer hover:shadow-md"
+                  >
+                    <p className="text-sm font-medium truncate">
+                      {g.servico_realizado ?? "Garantia do terceiro"}
+                    </p>
+                    {extra}
+                  </div>
+                );
+              })}
+            </>
+          ),
+        };
+      },
+    });
+
+    // ---- Em reparo (subagrupado por técnico) ----
+    cols.push({
+      key: "em_reparo",
+      nome: "Em reparo",
+      icon: <Wrench className="h-3.5 w-3.5" />,
+      color: "em_reparo",
+      statusKey: "em_reparo" as Status,
+      render: (q) => {
+        const list = ativas.filter((o: any) => o.status === "em_reparo" && cardMatchesBusca(o, q));
+        const grupos = new Map<string, any[]>();
+        list.forEach((o: any) => {
+          const tecs = tecnicosNomes(o);
+          if (tecs.length === 0) {
+            grupos.set("Sem técnico", [...(grupos.get("Sem técnico") ?? []), o]);
+          } else {
+            tecs.forEach((t) => grupos.set(t, [...(grupos.get(t) ?? []), o]));
+          }
+        });
+        const keys = Array.from(grupos.keys()).sort();
+        return {
+          total: list.length,
+          node: keys.length === 0 ? null : keys.map((k) => (
+            <div key={k} className="space-y-2">
+              <div className="px-1 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">
+                👤 {k} ({grupos.get(k)!.length})
+              </div>
+              {grupos.get(k)!.map((o: any) => renderOSCard(o))}
+            </div>
+          )),
+        };
+      },
+    });
+
+    // ---- Prontos p/ entrega ----
+    cols.push({
+      key: "prontos",
+      nome: "Prontos p/ entrega",
+      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+      color: "prontos",
+      statusKey: "pronto" as Status,
+      render: (q) => {
+        const list = ativas.filter((o: any) => o.status === "pronto" && cardMatchesBusca(o, q));
+        return { total: list.length, node: list.map((o: any) => renderOSCard(o)) };
+      },
+    });
+
+    return cols;
+  }, [ativas, naRuaList, garantiasTerceiro, ordemById, modo]);
 
   return (
     <div className="space-y-4">
@@ -273,13 +453,13 @@ export default function Operacional() {
         <div className="inline-flex items-center rounded-md border bg-card p-0.5">
           <button
             type="button"
-            onClick={() => setModoPersist("status")}
+            onClick={() => setModoPersist("fluxo")}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-medium transition-colors",
-              modo === "status" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+              modo === "fluxo" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <LayoutGrid className="h-3.5 w-3.5" /> Por status
+            <LayoutGrid className="h-3.5 w-3.5" /> Fluxo
           </button>
           <button
             type="button"
@@ -289,7 +469,7 @@ export default function Operacional() {
               modo === "mesa" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Users className="h-3.5 w-3.5" /> Por mesa/técnico
+            <Users className="h-3.5 w-3.5" /> Por técnico
           </button>
         </div>
       </div>
@@ -298,39 +478,37 @@ export default function Operacional() {
         <div className="flex justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : (
+      ) : modo === "fluxo" ? (
         <div
           className="flex gap-2.5 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x"
           style={{ minHeight: "calc(100vh - 200px)" }}
         >
-          {colunas.map((col) => {
-            const lista = cardsDe(col);
+          {colunasFluxo.map((col) => {
+            const q = (busca[col.key] || "").toLowerCase().trim();
+            const { total, node } = col.render(q);
             const isDrop = dragOver === col.key;
-            const headerCls = modo === "status" && col.statusKey
-              ? statusHeaderColors[col.statusKey]
-              : "bg-muted/40";
-            const dotCls = modo === "status" && col.statusKey
-              ? statusDotColors[col.statusKey]
-              : "bg-primary";
+            const accepts = !!col.statusKey;
+            const c = FLUXO_COLORS[col.color];
             return (
               <div
                 key={col.key}
                 className={cn(
-                  "flex-shrink-0 w-60 md:w-[17rem] rounded-xl border flex flex-col snap-start transition-all",
-                  isDrop && "ring-2 ring-primary/40 bg-primary/5",
-                  !isDrop && "bg-muted/30"
+                  "flex-shrink-0 w-60 md:w-[17rem] rounded-xl border flex flex-col snap-start transition-all bg-muted/30",
+                  isDrop && accepts && `ring-2 ${c.ring} bg-primary/5`,
                 )}
-                onDragOver={(e) => onDragOver(e, col.key)}
+                onDragOver={(e) => onDragOver(e, col.key, accepts)}
                 onDragLeave={() => setDragOver(null)}
                 onDrop={(e) => onDrop(e, col.statusKey)}
               >
-                <div className={cn("px-3 py-2.5 rounded-t-xl flex items-center justify-between", headerCls)}>
+                <div className={cn("px-3 py-2.5 rounded-t-xl flex items-center justify-between", c.header)}>
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn("w-2 h-2 rounded-full shrink-0", dotCls)} />
-                    <span className="text-xs font-semibold truncate">{col.nome}</span>
+                    <div className={cn("w-2 h-2 rounded-full shrink-0", c.dot)} />
+                    <span className="text-xs font-semibold truncate flex items-center gap-1.5">
+                      {col.icon} {col.nome}
+                    </span>
                   </div>
                   <span className="text-[11px] text-muted-foreground bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                    {lista.length}
+                    {total}
                   </span>
                 </div>
 
@@ -347,12 +525,78 @@ export default function Operacional() {
                 </div>
 
                 <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
-                  {lista.length === 0 ? (
+                  {total === 0 ? (
                     <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
-                      Nenhuma OS
+                      Nenhum item
                     </div>
                   ) : (
-                    lista.map(renderCard)
+                    node
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // ============== MODO POR TÉCNICO ==============
+        <div
+          className="flex gap-2.5 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x"
+          style={{ minHeight: "calc(100vh - 200px)" }}
+        >
+          {tecnicosColunas.length === 0 && (
+            <div className="flex items-center justify-center w-full py-20 text-sm text-muted-foreground italic">
+              Nenhuma OS em reparo no momento.
+            </div>
+          )}
+          {tecnicosColunas.map((tec) => {
+            const key = `mesa-${tec}`;
+            const q = (busca[key] || "").toLowerCase().trim();
+            // Regra-chave: só em_reparo na mesa do técnico.
+            const list = emReparo.filter(
+              (o: any) => tecnicosNomes(o).includes(tec) && cardMatchesBusca(o, q)
+            );
+            return (
+              <div
+                key={key}
+                className="flex-shrink-0 w-60 md:w-[17rem] rounded-xl border flex flex-col snap-start bg-muted/30"
+              >
+                <div className={cn("px-3 py-2.5 rounded-t-xl flex items-center justify-between", FLUXO_COLORS.em_reparo.header)}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={cn("w-2 h-2 rounded-full shrink-0", FLUXO_COLORS.em_reparo.dot)} />
+                    <span className="text-xs font-semibold truncate">Mesa {tec}</span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                    {list.length}
+                  </span>
+                </div>
+
+                <div className="px-2 pt-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={busca[key] ?? ""}
+                      onChange={(e) => setBusca((prev) => ({ ...prev, [key]: e.target.value }))}
+                      placeholder="Buscar nesta coluna…"
+                      className="h-8 pl-7 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
+                  {list.length === 0 ? (
+                    <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
+                      Mesa livre
+                    </div>
+                  ) : (
+                    list.map((o: any) => (
+                      <div key={o.id}>
+                        {renderOSCard(o, { draggable: false })}
+                        <Badge variant="outline" className="text-[10px] mt-1">
+                          <span className={cn("w-1.5 h-1.5 rounded-full mr-1", FLUXO_COLORS.em_reparo.dot)} />
+                          {statusLabels[o.status as Status]}
+                        </Badge>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
