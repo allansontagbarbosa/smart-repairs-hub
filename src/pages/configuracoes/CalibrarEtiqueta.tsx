@@ -27,16 +27,11 @@ export default function CalibrarEtiqueta() {
   const [draft, setDraft] = useState<Calibracao>(cal);
   const [salvando, setSalvando] = useState(false);
 
-  // Sync quando carregar
-  if (!loading && draft === cal && JSON.stringify(draft) !== JSON.stringify(cal)) {
-    setDraft(cal);
-  }
+  useEffect(() => {
+    if (!loading) setDraft(cal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
-  // garante que ao carregar pela 1a vez sincronize
-  useState(() => {
-    setDraft(cal);
-    return cal;
-  });
 
   const update = (patch: Partial<Calibracao>) => setDraft((d) => ({ ...d, ...patch }));
   const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
