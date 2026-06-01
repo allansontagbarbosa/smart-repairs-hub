@@ -248,6 +248,41 @@ export type Database = {
           },
         ]
       }
+      atacado_aparelho_assistencias: {
+        Row: {
+          aparelho_id: string
+          created_at: string | null
+          empresa_id: string
+          id: string
+          tipo_nome: string
+          valor: number
+        }
+        Insert: {
+          aparelho_id: string
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          tipo_nome: string
+          valor?: number
+        }
+        Update: {
+          aparelho_id?: string
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          tipo_nome?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_aparelho_assistencias_aparelho_id_fkey"
+            columns: ["aparelho_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_aparelhos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_aparelhos: {
         Row: {
           capacidade: string | null
@@ -259,10 +294,13 @@ export type Database = {
           deleted_at: string | null
           empresa_id: string
           fornecedor_id: string | null
+          grade: string | null
           id: string
           imei_1: string | null
           imei_2: string | null
+          invoice_id: string | null
           loja_aparelho_id: string | null
+          marca: string | null
           modelo: string
           nota_entrada: string | null
           observacoes: string | null
@@ -281,10 +319,13 @@ export type Database = {
           deleted_at?: string | null
           empresa_id: string
           fornecedor_id?: string | null
+          grade?: string | null
           id?: string
           imei_1?: string | null
           imei_2?: string | null
+          invoice_id?: string | null
           loja_aparelho_id?: string | null
+          marca?: string | null
           modelo: string
           nota_entrada?: string | null
           observacoes?: string | null
@@ -303,10 +344,13 @@ export type Database = {
           deleted_at?: string | null
           empresa_id?: string
           fornecedor_id?: string | null
+          grade?: string | null
           id?: string
           imei_1?: string | null
           imei_2?: string | null
+          invoice_id?: string | null
           loja_aparelho_id?: string | null
+          marca?: string | null
           modelo?: string
           nota_entrada?: string | null
           observacoes?: string | null
@@ -699,6 +743,116 @@ export type Database = {
           },
         ]
       }
+      atacado_grades: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+        }
+        Relationships: []
+      }
+      atacado_invoice_custos: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          empresa_id: string
+          id: string
+          invoice_id: string
+          modo: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          invoice_id: string
+          modo?: string
+          tipo: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          invoice_id?: string
+          modo?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_invoice_custos_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atacado_invoices: {
+        Row: {
+          cotacao: number | null
+          created_at: string | null
+          data_compra: string | null
+          empresa_id: string
+          fornecedor: string | null
+          id: string
+          importado: boolean | null
+          moeda: string | null
+          numero: string | null
+          observacoes: string | null
+          pais_origem: string | null
+        }
+        Insert: {
+          cotacao?: number | null
+          created_at?: string | null
+          data_compra?: string | null
+          empresa_id: string
+          fornecedor?: string | null
+          id?: string
+          importado?: boolean | null
+          moeda?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          pais_origem?: string | null
+        }
+        Update: {
+          cotacao?: number | null
+          created_at?: string | null
+          data_compra?: string | null
+          empresa_id?: string
+          fornecedor?: string | null
+          id?: string
+          importado?: boolean | null
+          moeda?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          pais_origem?: string | null
+        }
+        Relationships: []
+      }
       atacado_metas: {
         Row: {
           bonus_atingir: number | null
@@ -748,6 +902,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      atacado_modelo_cores: {
+        Row: {
+          cor: string
+          created_at: string | null
+          empresa_id: string
+          id: string
+          marca: string
+          modelo: string
+        }
+        Insert: {
+          cor: string
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          marca: string
+          modelo: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          marca?: string
+          modelo?: string
+        }
+        Relationships: []
+      }
+      atacado_moedas: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          empresa_id: string
+          id: string
+          nome: string | null
+          simbolo: string | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          nome?: string | null
+          simbolo?: string | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string | null
+          simbolo?: string | null
+        }
+        Relationships: []
       }
       atacado_pedidos: {
         Row: {
@@ -1008,6 +1216,36 @@ export type Database = {
           },
         ]
       }
+      atacado_status_aparelho: {
+        Row: {
+          cor: string | null
+          created_at: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number | null
+          sistema: boolean | null
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number | null
+          sistema?: boolean | null
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number | null
+          sistema?: boolean | null
+        }
+        Relationships: []
+      }
       atacado_tabelas_preco: {
         Row: {
           ativa: boolean | null
@@ -1102,6 +1340,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      atacado_tipos_assistencia: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          valor_padrao: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          valor_padrao?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          valor_padrao?: number | null
+        }
+        Relationships: []
       }
       audit_pagamentos: {
         Row: {
@@ -8675,6 +8940,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      atacado_cadastrar_lote: { Args: { p_payload: Json }; Returns: Json }
       atacado_clientes_inadimplentes: {
         Args: { p_empresa_id: string }
         Returns: {
