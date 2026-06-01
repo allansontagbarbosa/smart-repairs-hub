@@ -255,6 +255,7 @@ const App = () => (
                     <Route path="/assistencia" element={<ProtectedRoute permissao="assistencia.ver"><Assistencia /></ProtectedRoute>} />
                     <Route path="/assistencia/exclusao-canceladas" element={<ProtectedRoute permissao="assistencia.excluir"><ExclusaoOSCanceladas /></ProtectedRoute>} />
                     <Route path="/assistencia/fluxo" element={<ProtectedRoute permissao="assistencia.ver"><FluxoAssistencia /></ProtectedRoute>} />
+                    <Route path="/operacional" element={<ProtectedRoute permissao="assistencia.ver"><Operacional /></ProtectedRoute>} />
                     <Route path="/assistencia/fila-ia" element={<ProtectedRoute permissao="fila_ia"><FilaIA /></ProtectedRoute>} />
                     <Route path="/aparelhos" element={<ProtectedRoute permissao="aparelhos.ver"><AparelhosAssistencia /></ProtectedRoute>} />
                     <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
