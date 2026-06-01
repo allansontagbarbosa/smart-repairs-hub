@@ -252,14 +252,18 @@ export type Database = {
         Row: {
           created_at: string
           custo: number
+          custo_final: number | null
           data_envio: string
           data_retorno: string | null
           empresa_id: string
+          garantia_ate: string | null
+          garantia_dias: number | null
           id: string
           observacoes: string | null
           os_id: string
           previsao_retorno: string | null
           servico: string | null
+          servico_realizado: string | null
           status: string
           terceiro_id: string | null
           terceiro_nome: string | null
@@ -268,14 +272,18 @@ export type Database = {
         Insert: {
           created_at?: string
           custo?: number
+          custo_final?: number | null
           data_envio?: string
           data_retorno?: string | null
           empresa_id: string
+          garantia_ate?: string | null
+          garantia_dias?: number | null
           id?: string
           observacoes?: string | null
           os_id: string
           previsao_retorno?: string | null
           servico?: string | null
+          servico_realizado?: string | null
           status?: string
           terceiro_id?: string | null
           terceiro_nome?: string | null
@@ -284,14 +292,18 @@ export type Database = {
         Update: {
           created_at?: string
           custo?: number
+          custo_final?: number | null
           data_envio?: string
           data_retorno?: string | null
           empresa_id?: string
+          garantia_ate?: string | null
+          garantia_dias?: number | null
           id?: string
           observacoes?: string | null
           os_id?: string
           previsao_retorno?: string | null
           servico?: string | null
+          servico_realizado?: string | null
           status?: string
           terceiro_id?: string | null
           terceiro_nome?: string | null
@@ -9110,6 +9122,19 @@ export type Database = {
           terceiro_nome: string
         }[]
       }
+      assistencia_garantias_terceiro_vigentes: {
+        Args: never
+        Returns: {
+          custo_final: number
+          data_retorno: string
+          dias_restantes: number
+          garantia_ate: string
+          os_id: string
+          servico_realizado: string
+          terceirizacao_id: string
+          terceiro_nome: string
+        }[]
+      }
       atacado_baixar_pagamento: {
         Args: {
           p_data_recebimento?: string
@@ -10085,10 +10110,7 @@ export type Database = {
         Returns: boolean
       }
       os_terceirizar: { Args: { p_payload: Json }; Returns: string }
-      os_terceiro_retornou: {
-        Args: { p_novo_status_os?: string; p_terceirizacao_id: string }
-        Returns: undefined
-      }
+      os_terceiro_retornou: { Args: { p_payload: Json }; Returns: Json }
       pagar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       pagar_comissoes_em_lote: {
         Args: { p_comissao_ids: string[] }
