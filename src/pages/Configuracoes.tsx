@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Loader2, Building2, Wrench, Truck, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
-  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone, Database,
+  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone, Database, Printer,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
