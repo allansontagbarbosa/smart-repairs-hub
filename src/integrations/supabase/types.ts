@@ -9096,6 +9096,20 @@ export type Database = {
         Args: { p_aprovador_funcionario_id: string; p_pedido_id: string }
         Returns: undefined
       }
+      assistencia_aparelhos_na_rua: {
+        Args: never
+        Returns: {
+          atrasado: boolean
+          custo: number
+          data_envio: string
+          dias_fora: number
+          os_id: string
+          previsao_retorno: string
+          servico: string
+          terceirizacao_id: string
+          terceiro_nome: string
+        }[]
+      }
       atacado_baixar_pagamento: {
         Args: {
           p_data_recebimento?: string
@@ -10069,6 +10083,11 @@ export type Database = {
       os_status_reconhece_receita: {
         Args: { p_status: string }
         Returns: boolean
+      }
+      os_terceirizar: { Args: { p_payload: Json }; Returns: string }
+      os_terceiro_retornou: {
+        Args: { p_novo_status_os?: string; p_terceirizacao_id: string }
+        Returns: undefined
       }
       pagar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       pagar_comissoes_em_lote: {
