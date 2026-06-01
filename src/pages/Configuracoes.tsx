@@ -20,6 +20,7 @@ import { ConfigUsuariosTab } from "@/components/configuracoes/ConfigUsuariosTab"
 import { ConfigListaPrecosTab } from "@/components/configuracoes/ConfigListaPrecosTab";
 import { ConfigExportacaoTab } from "@/components/configuracoes/ConfigExportacaoTab";
 import { ConfigBackupTab } from "@/components/configuracoes/ConfigBackupTab";
+import CalibrarEtiqueta from "@/pages/configuracoes/CalibrarEtiqueta";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
