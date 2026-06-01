@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import OnboardingWizard from "./pages/auth/OnboardingWizard";
 import PlanoCobranca from "./pages/configuracoes/PlanoCobranca";
+import MinhaConta from "./pages/conta/MinhaConta";
 import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import ExclusaoOSCanceladas from "./pages/ExclusaoOSCanceladas";
@@ -276,6 +277,7 @@ const App = () => (
                     <Route path="/rh/folha-mensal" element={<ProtectedRoute permissao="rh.ver"><RHFolhaMensal /></ProtectedRoute>} />
                     <Route path="/rh/:id" element={<ProtectedRoute permissao="rh.ver"><RHFuncionario /></ProtectedRoute>} />
                     <Route path="/configuracoes/plano" element={<ProtectedRoute permissao="configuracoes"><PlanoCobranca /></ProtectedRoute>} />
+                    <Route path="/minha-conta" element={<MinhaConta />} />
                     <Route path="/configuracoes" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/configuracoes/:aba" element={<ProtectedRoute permissao="configuracoes"><Configuracoes /></ProtectedRoute>} />
                     <Route path="/tv/configurar" element={<ProtectedRoute permissao="paineis_tv"><TVConfigurar /></ProtectedRoute>} />
