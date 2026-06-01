@@ -18,6 +18,7 @@ const statusDescriptions: Record<Status, string> = {
   em_reparo: "Seu aparelho está sendo reparado pelo nosso técnico.",
   aguardando_peca: "Estamos aguardando a chegada de uma peça necessária para o reparo.",
   terceirizado: "Seu aparelho foi encaminhado para uma assistência especializada parceira.",
+  garantia: "Seu aparelho está em atendimento de garantia.",
   pronto: "O reparo foi concluído! Seu aparelho está pronto para retirada.",
   entregue: "Aparelho já foi entregue. Obrigado pela confiança!",
   cancelado: "Esta ordem de serviço foi cancelada.",
