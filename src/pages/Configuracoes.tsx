@@ -293,6 +293,7 @@ export default function Configuracoes() {
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
             {active === "etiquetas" && <ConfigEtiquetasTab />}
+            {active === "calibrar-etiqueta" && <CalibrarEtiqueta />}
             {active === "exportacao" && <ConfigExportacaoTab />}
             {active === "backup" && <ConfigBackupTab />}
           </div>
