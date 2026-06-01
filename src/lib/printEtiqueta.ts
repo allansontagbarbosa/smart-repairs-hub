@@ -1,6 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
 import JsBarcode from "jsbarcode";
 import { formatNumeroOS } from "@/lib/numeroOS";
+import { buscarCalibracaoAtual, type Calibracao, CALIBRACAO_PADRAO } from "@/hooks/useEtiquetaCalibracao";
 
 export interface EtiquetaPrintData {
   numero: number;
@@ -23,8 +23,16 @@ function fmtDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString("pt-BR");
 }
 
-export async function printEtiquetaOS(data: EtiquetaPrintData) {
-  // Generate barcode SVG if IMEI exists
+function alinharCss(a: string) {
+  const v = a[0];
+  const h = a[1];
+  const justify = v === "t" ? "flex-start" : v === "b" ? "flex-end" : "center";
+  const align = h === "l" ? "flex-start" : h === "r" ? "flex-end" : "center";
+  const text = h === "l" ? "left" : h === "r" ? "right" : "center";
+  return { justify, align, text };
+}
+
+export function buildEtiquetaHtml(data: EtiquetaPrintData, cal: Calibracao) {
   let barcodeSvg = "";
   if (data.imei) {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -44,54 +52,39 @@ export async function printEtiquetaOS(data: EtiquetaPrintData) {
 
   const numeroOS = formatNumeroOS(data.numero, data.numero_formatado);
   const aparelho = `${data.marca} ${data.modelo}${data.capacidade ? ` ${data.capacidade}` : ""}`.trim();
+  const al = alinharCss(cal.alinhamento);
 
   const barcodeSection = data.imei
-    ? `<div class="barcode-section">
-         ${barcodeSvg}
-         <div class="imei-text">${data.imei}</div>
-       </div>`
+    ? `<div class="barcode-section">${barcodeSvg}<div class="imei-text">${data.imei}</div></div>`
     : "";
 
-  const html = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <title>Etiqueta OS #${numeroOS}</title>
   <style>
-    /* tamanho EXATO da etiqueta Dymo 11352 em paisagem (54 x 25 mm) */
-    @page {
-      size: 54mm 25mm;
-      margin: 0;
-    }
-
+    @page { size: ${cal.largura_mm}mm ${cal.altura_mm}mm; margin: 0; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 54mm;
-      height: 25mm;
+      margin: 0; padding: 0;
+      width: ${cal.largura_mm}mm; height: ${cal.altura_mm}mm;
       font-family: 'Arial Narrow', Arial, sans-serif;
     }
-
     .etiqueta-print {
-      width: 54mm;
-      height: 25mm;
+      width: ${cal.largura_mm}mm;
+      height: ${cal.altura_mm}mm;
       box-sizing: border-box;
-      padding: 2mm 3mm;
+      padding: ${cal.margem_mm}mm;
+      transform: translate(${cal.offset_x_mm}mm, ${cal.offset_y_mm}mm);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
+      justify-content: ${al.justify};
+      align-items: ${al.align};
+      text-align: ${al.text};
       overflow: hidden;
       gap: 0.4mm;
     }
-
-    .etiqueta-print * {
-      max-width: 100%;
-      word-break: break-word;
-    }
-
+    .etiqueta-print * { max-width: 100%; word-break: break-word; }
     .os-num { font-size: 10px; font-weight: bold; line-height: 1.1; }
     .cliente { font-size: 8px; font-weight: 600; line-height: 1.15; }
     .aparelho { font-size: 7.5px; line-height: 1.15; }
@@ -99,15 +92,10 @@ export async function printEtiquetaOS(data: EtiquetaPrintData) {
     .barcode-section { display: flex; flex-direction: column; align-items: center; line-height: 1; }
     .barcode-section svg { max-width: 100%; height: 7mm; }
     .imei-text { font-family: 'Courier New', monospace; font-size: 5.5px; color: #333; letter-spacing: 0.3px; }
-
     @media print {
       body * { visibility: hidden; }
       .etiqueta-print, .etiqueta-print * { visibility: visible; }
-      .etiqueta-print {
-        position: absolute;
-        top: 0;
-        left: 0;
-      }
+      .etiqueta-print { position: absolute; top: 0; left: 0; }
     }
   </style>
 </head>
@@ -121,6 +109,11 @@ export async function printEtiquetaOS(data: EtiquetaPrintData) {
   </div>
 </body>
 </html>`;
+}
+
+export async function printEtiquetaOS(data: EtiquetaPrintData, calOverride?: Calibracao) {
+  const cal = calOverride ?? (await buscarCalibracaoAtual().catch(() => CALIBRACAO_PADRAO));
+  const html = buildEtiquetaHtml(data, cal);
 
   const printWindow = window.open("", "_blank", "width=400,height=250");
   if (!printWindow) return;
