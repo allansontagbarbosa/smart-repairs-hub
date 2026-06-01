@@ -414,6 +414,39 @@ export type Database = {
           },
         ]
       }
+      atacado_catalogo_modelos: {
+        Row: {
+          ativo: boolean | null
+          capacidades: string[] | null
+          cores: string[] | null
+          created_at: string | null
+          empresa_id: string
+          id: string
+          marca: string
+          modelo: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          capacidades?: string[] | null
+          cores?: string[] | null
+          created_at?: string | null
+          empresa_id: string
+          id?: string
+          marca: string
+          modelo: string
+        }
+        Update: {
+          ativo?: boolean | null
+          capacidades?: string[] | null
+          cores?: string[] | null
+          created_at?: string | null
+          empresa_id?: string
+          id?: string
+          marca?: string
+          modelo?: string
+        }
+        Relationships: []
+      }
       atacado_clientes: {
         Row: {
           bairro: string | null
@@ -778,6 +811,7 @@ export type Database = {
           id: string
           invoice_id: string
           modo: string
+          moeda: string
           tipo: string
           valor: number
         }
@@ -788,6 +822,7 @@ export type Database = {
           id?: string
           invoice_id: string
           modo?: string
+          moeda?: string
           tipo: string
           valor?: number
         }
@@ -798,6 +833,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           modo?: string
+          moeda?: string
           tipo?: string
           valor?: number
         }
@@ -9082,6 +9118,15 @@ export type Database = {
           ticket_medio: number
           ultima_compra: string
         }[]
+      }
+      atacado_salvar_tipo_assistencia: {
+        Args: {
+          p_ativo: boolean
+          p_id: string
+          p_nome: string
+          p_valor: number
+        }
+        Returns: Json
       }
       atacado_top_clientes: {
         Args: {
