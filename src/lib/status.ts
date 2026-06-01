@@ -31,6 +31,7 @@ export const statusLabelsCliente: Record<Status, string> = {
   em_reparo: "Em Reparo",
   aguardando_peca: "Aguardando Peça",
   terceirizado: "Em assistência especializada",
+  garantia: "Em garantia",
   pronto: "Pronto para Retirada",
   entregue: "Entregue",
   cancelado: "Cancelada",
