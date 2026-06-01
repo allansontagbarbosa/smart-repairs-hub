@@ -36,6 +36,7 @@ const statusDotColors: Record<Status, string> = {
   aprovado: "bg-success",
   em_reparo: "bg-info",
   aguardando_peca: "bg-warning",
+  terceirizado: "bg-[hsl(270_70%_64%)]",
   pronto: "bg-success",
   entregue: "bg-muted-foreground/50",
   cancelado: "bg-destructive",
