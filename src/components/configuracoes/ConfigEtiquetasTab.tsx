@@ -502,6 +502,7 @@ export function ConfigEtiquetasTab() {
         )}
       </div>
     </div>
+    </div>
   );
 }
 
