@@ -8852,6 +8852,10 @@ export type Database = {
         Args: { p_cliente_id: string; p_dados: Json }
         Returns: Json
       }
+      atualizar_meu_perfil: {
+        Args: { p_nome: string; p_whatsapp: string }
+        Returns: Json
+      }
       atualizar_status_os: {
         Args: { p_novo_status: string; p_observacao?: string; p_os_id: string }
         Returns: Json

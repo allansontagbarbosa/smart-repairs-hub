@@ -188,7 +188,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       {resolvedTheme === "dark" ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
                       Tema {resolvedTheme === "dark" ? "claro" : "escuro"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/configuracoes")}>
+                    <DropdownMenuItem onClick={() => navigate("/minha-conta")}>
                       <UserIcon className="h-4 w-4 mr-2" />
                       Minha conta
                     </DropdownMenuItem>

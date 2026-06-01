@@ -227,12 +227,18 @@ export function AppSidebar() {
                   <p className="text-[10px] text-muted-foreground truncate">{email}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-1">
                 <ThemeToggle collapsed={false} />
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={handleLogout}>
-                  <LogOut className="h-3 w-3" />
-                  Sair
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2" onClick={() => navigate("/minha-conta")}>
+                    <UserCog className="h-3 w-3" />
+                    Minha conta
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1 px-2" onClick={handleLogout}>
+                    <LogOut className="h-3 w-3" />
+                    Sair
+                  </Button>
+                </div>
               </div>
             </>
           ) : (
