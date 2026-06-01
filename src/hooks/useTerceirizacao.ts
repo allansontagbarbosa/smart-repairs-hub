@@ -87,29 +87,27 @@ export function useSalvarTerceiro() {
           })
           .eq("id", input.id);
         if (error) throw error;
-        return input.id;
+        return { id: input.id as string, ja_existia: false };
       }
-      // Empresa do usuário precisa estar no insert (RLS exige)
-      const { data: empresaIdData, error: empErr } = await supabase.rpc("get_my_empresa_id" as any);
-      if (empErr) throw empErr;
-      const { data, error } = await supabase
-        .from("assistencia_terceiros" as any)
-        .insert({
-          empresa_id: empresaIdData,
-          nome: input.nome,
-          contato: input.contato ?? null,
-          especialidade: input.especialidade ?? null,
-          observacoes: input.observacoes ?? null,
-          ativo: input.ativo ?? true,
-        })
-        .select("id")
-        .single();
+      // Criação idempotente via RPC: se já existir com mesmo nome na empresa, retorna o existente
+      const { data, error } = await supabase.rpc("criar_terceiro" as any, {
+        p_nome: input.nome,
+        p_contato: input.contato ?? null,
+        p_especialidade: input.especialidade ?? null,
+        p_obs: input.observacoes ?? null,
+      });
       if (error) throw error;
-      return (data as any).id as string;
+      const r = data as any;
+      if (!r?.success) throw new Error(r?.error || "Erro ao salvar terceiro");
+      return { id: r.id as string, ja_existia: !!r.ja_existia };
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["assistencia_terceiros"] });
-      toast.success("Terceiro salvo");
+      if (res.ja_existia) {
+        toast.info("Esse terceiro já estava cadastrado — selecionei ele pra você.");
+      } else {
+        toast.success("Terceiro cadastrado!");
+      }
     },
     onError: (e: any) => toast.error(e?.message || "Erro ao salvar terceiro"),
   });
