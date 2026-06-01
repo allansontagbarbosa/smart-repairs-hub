@@ -248,6 +248,101 @@ export type Database = {
           },
         ]
       }
+      assistencia_terceirizacoes: {
+        Row: {
+          created_at: string
+          custo: number
+          data_envio: string
+          data_retorno: string | null
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          os_id: string
+          previsao_retorno: string | null
+          servico: string | null
+          status: string
+          terceiro_id: string | null
+          terceiro_nome: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo?: number
+          data_envio?: string
+          data_retorno?: string | null
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          os_id: string
+          previsao_retorno?: string | null
+          servico?: string | null
+          status?: string
+          terceiro_id?: string | null
+          terceiro_nome?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo?: number
+          data_envio?: string
+          data_retorno?: string | null
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          os_id?: string
+          previsao_retorno?: string | null
+          servico?: string | null
+          status?: string
+          terceiro_id?: string | null
+          terceiro_nome?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistencia_terceirizacoes_terceiro_id_fkey"
+            columns: ["terceiro_id"]
+            isOneToOne: false
+            referencedRelation: "assistencia_terceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistencia_terceiros: {
+        Row: {
+          ativo: boolean
+          contato: string | null
+          created_at: string
+          empresa_id: string
+          especialidade: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          contato?: string | null
+          created_at?: string
+          empresa_id: string
+          especialidade?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          contato?: string | null
+          created_at?: string
+          empresa_id?: string
+          especialidade?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       atacado_aparelho_assistencias: {
         Row: {
           aparelho_id: string
@@ -10281,6 +10376,7 @@ export type Database = {
         | "pronto"
         | "entregue"
         | "cancelado"
+        | "terceirizado"
       status_servico: "pendente" | "em_reparo" | "concluido" | "cancelado"
       tipo_cliente: "lojista_b2b" | "consumidor_b2c"
       tipo_comissao: "fixa" | "percentual" | "fixo_por_os" | "percentual_lucro"
@@ -10482,6 +10578,7 @@ export const Constants = {
         "pronto",
         "entregue",
         "cancelado",
+        "terceirizado",
       ],
       status_servico: ["pendente", "em_reparo", "concluido", "cancelado"],
       tipo_cliente: ["lojista_b2b", "consumidor_b2c"],
