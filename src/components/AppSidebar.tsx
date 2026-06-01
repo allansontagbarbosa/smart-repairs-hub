@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight, Kanban } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
