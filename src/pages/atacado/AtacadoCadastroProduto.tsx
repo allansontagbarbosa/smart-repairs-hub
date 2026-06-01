@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Loader2, Package } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Loader2, Package, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,6 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -22,12 +28,17 @@ import {
   useAtacadoCadastroDados,
   CURRENCIES_ISO,
 } from "@/hooks/useAtacadoCadastroDados";
+import { GerenciarAssistencias } from "@/components/atacado/GerenciarAssistencias";
+
+type CustoTipo = "frete" | "aduana" | "seguro" | "outro";
+type CustoModo = "fixo" | "pct";
 
 interface CustoLinha {
-  tipo: "frete" | "aduana" | "seguro" | "outro";
+  tipo: CustoTipo;
   descricao: string;
-  modo: "fixo" | "pct";
-  valor: number;
+  modo: CustoModo;
+  valor: string; // string para permitir vazio
+  moeda: string; // 'BRL' ou moeda da compra
 }
 
 interface AssistApl {
@@ -44,6 +55,8 @@ interface UnidadeForm {
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+const num = (s: string) => parseFloat(String(s).replace(",", ".")) || 0;
+
 export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
   const { empresaId } = useEmpresa();
@@ -52,7 +65,11 @@ export default function AtacadoCadastroProduto() {
     statusList,
     tiposAssist,
     moedas,
-    coresDoModelo,
+    marcas,
+    modelosDe,
+    infoModelo,
+    adicionarModelo,
+    adicionarCapacidade,
     adicionarCor,
     adicionarGrade,
     adicionarStatus,
@@ -67,7 +84,7 @@ export default function AtacadoCadastroProduto() {
   const [dataCompra, setDataCompra] = useState("");
   const [paisOrigem, setPaisOrigem] = useState("");
   const [moeda, setMoeda] = useState("BRL");
-  const [cotacao, setCotacao] = useState("1");
+  const [cotacao, setCotacao] = useState("");
 
   // Produto
   const [marca, setMarca] = useState("");
@@ -76,14 +93,14 @@ export default function AtacadoCadastroProduto() {
   const [cor, setCor] = useState("");
   const [grade, setGrade] = useState("");
   const [condicao, setCondicao] = useState("novo");
-  const [status, setStatus] = useState("estoque");
+  const [status, setStatus] = useState("");
 
-  // Custos
-  const [custoProduto, setCustoProduto] = useState("0");
+  // Custos (vazios)
+  const [custoProduto, setCustoProduto] = useState("");
   const [custos, setCustos] = useState<CustoLinha[]>([]);
 
   // Venda
-  const [precoVenda, setPrecoVenda] = useState("0");
+  const [precoVenda, setPrecoVenda] = useState("");
 
   // Unidades
   const [quantidade, setQuantidade] = useState(1);
@@ -91,29 +108,41 @@ export default function AtacadoCadastroProduto() {
     { imei1: "", imei2: "", assistencias: [] },
   ]);
 
-  // Cores inteligentes
-  const [coresModelo, setCoresModelo] = useState<string[]>([]);
+  // Inline-add inputs
+  const [novaMarca, setNovaMarca] = useState("");
+  const [novoModelo, setNovoModelo] = useState("");
+  const [novaCap, setNovaCap] = useState("");
   const [novaCor, setNovaCor] = useState("");
-  const [showNovaCor, setShowNovaCor] = useState(false);
-
-  // Inputs para criação inline
   const [novaGrade, setNovaGrade] = useState("");
-  const [showNovaGrade, setShowNovaGrade] = useState(false);
   const [novoStatus, setNovoStatus] = useState("");
-  const [showNovoStatus, setShowNovoStatus] = useState(false);
   const [showAddMoeda, setShowAddMoeda] = useState(false);
+  const [showAddMarca, setShowAddMarca] = useState(false);
+  const [showAddModelo, setShowAddModelo] = useState(false);
+  const [showAddCap, setShowAddCap] = useState(false);
+  const [showAddCor, setShowAddCor] = useState(false);
+  const [showAddGrade, setShowAddGrade] = useState(false);
+  const [showAddStatus, setShowAddStatus] = useState(false);
+  const [showGerAssist, setShowGerAssist] = useState(false);
 
   const [salvando, setSalvando] = useState(false);
 
-  useEffect(() => {
-    if (marca && modelo) {
-      coresDoModelo(marca, modelo).then(setCoresModelo);
-    } else {
-      setCoresModelo([]);
-    }
-  }, [marca, modelo, coresDoModelo]);
+  // Info do modelo escolhido (capacidades + cores do catalogo)
+  const modeloInfo = useMemo(() => infoModelo(marca, modelo), [marca, modelo, infoModelo]);
+  const capacidadesOpts = modeloInfo?.capacidades ?? [];
+  const coresOpts = modeloInfo?.cores ?? [];
 
-  // ajusta lista de unidades quando quantidade muda
+  // Reset modelo/cap/cor ao trocar marca
+  useEffect(() => {
+    setModelo("");
+    setCapacidade("");
+    setCor("");
+  }, [marca]);
+  useEffect(() => {
+    setCapacidade("");
+    setCor("");
+  }, [modelo]);
+
+  // Ajusta lista de unidades quando quantidade muda
   useEffect(() => {
     setUnidades((prev) => {
       const n = Math.max(1, quantidade);
@@ -132,40 +161,55 @@ export default function AtacadoCadastroProduto() {
     });
   }, [quantidade]);
 
-  // Cálculo do custo base por unidade (espelha a RPC)
-  const produtoNum = Number(custoProduto) || 0;
-  const precoNum = Number(precoVenda) || 0;
+  // Conversões
+  const cotacaoNum = num(cotacao);
+  const produtoMoedaNum = num(custoProduto);
+  const produtoBRL =
+    importado && cotacaoNum > 0 ? produtoMoedaNum * cotacaoNum : produtoMoedaNum;
+  const precoNum = num(precoVenda);
 
+  // Símbolo da moeda da compra
+  const simboloMoeda =
+    moedas.find((m) => m.codigo === moeda)?.simbolo ||
+    CURRENCIES_ISO.find((c) => c.codigo === moeda)?.simbolo ||
+    moeda;
+
+  // Custo base por unidade em R$ (espelha a RPC)
   const custoBaseUnit = useMemo(() => {
-    let base = produtoNum;
+    let base = produtoBRL;
     for (const c of custos) {
-      if (c.modo === "pct") base += produtoNum * ((Number(c.valor) || 0) / 100);
-      else base += Number(c.valor) || 0;
+      const v = num(c.valor);
+      if (c.modo === "pct") {
+        base += produtoBRL * (v / 100);
+      } else if (c.moeda === "BRL" || !importado) {
+        base += v;
+      } else {
+        base += v * (cotacaoNum > 0 ? cotacaoNum : 1);
+      }
     }
     return base;
-  }, [produtoNum, custos]);
+  }, [produtoBRL, custos, cotacaoNum, importado]);
 
   const totalAssistencias = useMemo(
     () =>
       unidades.reduce(
-        (s, u) =>
-          s + u.assistencias.reduce((ss, a) => ss + (Number(a.valor) || 0), 0),
+        (s, u) => s + u.assistencias.reduce((ss, a) => ss + (Number(a.valor) || 0), 0),
         0,
       ),
     [unidades],
   );
 
+  const hasDados = produtoBRL > 0 || precoNum > 0;
   const investimentoTotal = custoBaseUnit * unidades.length + totalAssistencias;
   const vendaTotal = precoNum * unidades.length;
   const lucroTotal = vendaTotal - investimentoTotal;
-  const margem =
-    investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : 0;
+  const margem = investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : 0;
 
   // Handlers
   const addCusto = () =>
     setCustos((p) => [
       ...p,
-      { tipo: "frete", descricao: "", modo: "fixo", valor: 0 },
+      { tipo: "frete", descricao: "", modo: "fixo", valor: "", moeda: "BRL" },
     ]);
   const updCusto = (i: number, patch: Partial<CustoLinha>) =>
     setCustos((p) => p.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
@@ -178,10 +222,7 @@ export default function AtacadoCadastroProduto() {
         if (i !== uIdx) return u;
         const existe = u.assistencias.find((a) => a.nome === nome);
         if (existe) {
-          return {
-            ...u,
-            assistencias: u.assistencias.filter((a) => a.nome !== nome),
-          };
+          return { ...u, assistencias: u.assistencias.filter((a) => a.nome !== nome) };
         }
         return { ...u, assistencias: [...u.assistencias, { nome, valor }] };
       }),
@@ -191,31 +232,54 @@ export default function AtacadoCadastroProduto() {
   const updUnidade = (i: number, patch: Partial<UnidadeForm>) =>
     setUnidades((p) => p.map((u, idx) => (idx === i ? { ...u, ...patch } : u)));
 
-  const handleSalvarCor = async () => {
-    if (!novaCor.trim() || !marca || !modelo || !empresaId) return;
-    await adicionarCor(empresaId, marca, modelo, novaCor.trim());
-    setCor(novaCor.trim());
-    setCoresModelo((p) => [...p, novaCor.trim()]);
-    setNovaCor("");
-    setShowNovaCor(false);
+  // Inline-add
+  const handleAddMarca = async () => {
+    if (!novaMarca.trim() || !novoModelo.trim() || !empresaId) {
+      toast.error("Informe marca e modelo");
+      return;
+    }
+    await adicionarModelo(empresaId, novaMarca.trim(), novoModelo.trim());
+    setMarca(novaMarca.trim());
+    setModelo(novoModelo.trim());
+    setNovaMarca("");
+    setNovoModelo("");
+    setShowAddMarca(false);
   };
-
-  const handleSalvarGrade = async () => {
+  const handleAddModelo = async () => {
+    if (!novoModelo.trim() || !marca || !empresaId) return;
+    await adicionarModelo(empresaId, marca, novoModelo.trim());
+    setModelo(novoModelo.trim());
+    setNovoModelo("");
+    setShowAddModelo(false);
+  };
+  const handleAddCap = async () => {
+    if (!novaCap.trim() || !modeloInfo) return;
+    await adicionarCapacidade(modeloInfo.id, novaCap.trim());
+    setCapacidade(novaCap.trim());
+    setNovaCap("");
+    setShowAddCap(false);
+  };
+  const handleAddCor = async () => {
+    if (!novaCor.trim() || !modeloInfo) return;
+    await adicionarCor(modeloInfo.id, novaCor.trim());
+    setCor(novaCor.trim());
+    setNovaCor("");
+    setShowAddCor(false);
+  };
+  const handleAddGrade = async () => {
     if (!novaGrade.trim() || !empresaId) return;
     await adicionarGrade(empresaId, novaGrade.trim());
     setGrade(novaGrade.trim());
     setNovaGrade("");
-    setShowNovaGrade(false);
+    setShowAddGrade(false);
   };
-
-  const handleSalvarStatus = async () => {
+  const handleAddStatus = async () => {
     if (!novoStatus.trim() || !empresaId) return;
     await adicionarStatus(empresaId, novoStatus.trim());
     setStatus(novoStatus.trim());
     setNovoStatus("");
-    setShowNovoStatus(false);
+    setShowAddStatus(false);
   };
-
   const handleAddMoeda = async (codigo: string) => {
     if (!empresaId) return;
     const iso = CURRENCIES_ISO.find((c) => c.codigo === codigo);
@@ -225,14 +289,12 @@ export default function AtacadoCadastroProduto() {
   };
 
   const handleSalvar = async () => {
-    if (!marca || !modelo) {
-      toast.error("Informe marca e modelo");
-      return;
-    }
-    if (unidades.some((u) => !u.imei1.trim())) {
-      toast.error("Informe o IMEI 1 de todos os aparelhos");
-      return;
-    }
+    if (!marca || !modelo) return toast.error("Informe marca e modelo");
+    if (unidades.some((u) => !u.imei1.trim()))
+      return toast.error("Informe o IMEI 1 de todos os aparelhos");
+    if (importado && cotacaoNum <= 0)
+      return toast.error("Informe a cotação da moeda da compra");
+
     setSalvando(true);
     const payload: any = {
       importado,
@@ -240,20 +302,26 @@ export default function AtacadoCadastroProduto() {
       numero,
       data_compra: dataCompra || null,
       pais_origem: paisOrigem,
-      moeda,
-      cotacao: cotacao || null,
+      moeda: importado ? moeda : "BRL",
+      cotacao: importado ? cotacao : null,
       marca,
       modelo,
       capacidade,
       cor,
       grade,
       condicao,
-      status,
-      custo_produto: produtoNum,
+      status: status || "estoque",
+      custo_produto: produtoMoedaNum,
       preco_venda: precoNum,
-      custos: importado
-        ? custos
-        : custos.filter((c) => c.tipo === "frete" || c.tipo === "outro"),
+      custos: custos
+        .filter((c) => importado || (c.tipo !== "aduana" && c.tipo !== "seguro"))
+        .map((c) => ({
+          tipo: c.tipo,
+          descricao: c.descricao,
+          modo: c.modo,
+          moeda: c.moeda,
+          valor: num(c.valor),
+        })),
       unidades: unidades.map((u) => ({
         imei1: u.imei1.trim(),
         imei2: u.imei2.trim() || null,
@@ -278,19 +346,17 @@ export default function AtacadoCadastroProduto() {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon">
-            <Link to="/atacado/aparelhos">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Novo produto</h1>
-            <p className="text-sm text-muted-foreground">
-              Cadastre um lote: N aparelhos individuais com IMEI próprio
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <Button asChild variant="ghost" size="icon">
+          <Link to="/atacado/aparelhos">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Novo produto</h1>
+          <p className="text-sm text-muted-foreground">
+            Cadastre um lote: N aparelhos individuais com IMEI próprio
+          </p>
         </div>
       </div>
 
@@ -298,11 +364,9 @@ export default function AtacadoCadastroProduto() {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-foreground">
-              É um produto importado?
-            </h2>
+            <h2 className="text-base font-semibold text-foreground">É um produto importado?</h2>
             <p className="text-xs text-muted-foreground">
-              Habilita dados de invoice, país, moeda e custos aduaneiros
+              Habilita invoice, país, moeda, cotação e custos aduaneiros
             </p>
           </div>
           <Switch checked={importado} onCheckedChange={setImportado} />
@@ -315,11 +379,16 @@ export default function AtacadoCadastroProduto() {
               <Input
                 value={fornecedor}
                 onChange={(e) => setFornecedor(e.target.value)}
+                placeholder="Nome do fornecedor"
               />
             </div>
             <div className="space-y-2">
               <Label>Nº da invoice</Label>
-              <Input value={numero} onChange={(e) => setNumero(e.target.value)} />
+              <Input
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
+                placeholder="INV-001"
+              />
             </div>
             <div className="space-y-2">
               <Label>Data da compra</Label>
@@ -334,16 +403,14 @@ export default function AtacadoCadastroProduto() {
               <Input
                 value={paisOrigem}
                 onChange={(e) => setPaisOrigem(e.target.value)}
-                placeholder="Ex: China, EUA, Paraguai"
+                placeholder="China, EUA, Paraguai…"
               />
             </div>
             <div className="space-y-2">
-              <Label>Moeda</Label>
+              <Label>Moeda da compra</Label>
               <div className="flex gap-2">
                 <Select value={moeda} onValueChange={setMoeda}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="BRL">BRL — Real</SelectItem>
                     {moedas.map((m) => (
@@ -358,16 +425,14 @@ export default function AtacadoCadastroProduto() {
                   variant="outline"
                   size="icon"
                   onClick={() => setShowAddMoeda((s) => !s)}
-                  title="Adicionar moeda"
+                  title="+ outra moeda"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
               {showAddMoeda && (
                 <Select onValueChange={handleAddMoeda}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolher moeda ISO…" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Escolher moeda ISO…" /></SelectTrigger>
                   <SelectContent>
                     {CURRENCIES_ISO.map((c) => (
                       <SelectItem key={c.codigo} value={c.codigo}>
@@ -379,12 +444,12 @@ export default function AtacadoCadastroProduto() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Cotação (R$ por unidade)</Label>
+              <Label>Cotação ({simboloMoeda} → R$)</Label>
               <Input
-                type="number"
-                step="0.0001"
+                inputMode="decimal"
                 value={cotacao}
                 onChange={(e) => setCotacao(e.target.value)}
+                placeholder="Ex: 5,40"
               />
             </div>
           </div>
@@ -395,117 +460,129 @@ export default function AtacadoCadastroProduto() {
       <Card className="p-5 space-y-4">
         <h2 className="text-base font-semibold text-foreground">Produto</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Marca */}
           <div className="space-y-2">
             <Label>Marca *</Label>
-            <Input
-              value={marca}
-              onChange={(e) => setMarca(e.target.value)}
-              placeholder="Apple, Samsung…"
-            />
+            <div className="flex gap-2">
+              <Select value={marca} onValueChange={(v) => v === "__nova" ? setShowAddMarca(true) : setMarca(v)}>
+                <SelectTrigger><SelectValue placeholder="Escolher marca" /></SelectTrigger>
+                <SelectContent>
+                  {marcas.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                  <SelectItem value="__nova">+ nova marca</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {showAddMarca && (
+              <div className="space-y-2 p-2 border rounded-md">
+                <Input value={novaMarca} onChange={(e) => setNovaMarca(e.target.value)} placeholder="Nome da marca" />
+                <Input value={novoModelo} onChange={(e) => setNovoModelo(e.target.value)} placeholder="Nome do primeiro modelo" />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleAddMarca}>Salvar</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowAddMarca(false)}>Cancelar</Button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Modelo */}
           <div className="space-y-2">
             <Label>Modelo *</Label>
-            <Input
+            <Select
               value={modelo}
-              onChange={(e) => setModelo(e.target.value)}
-              placeholder="iPhone 15 Pro"
-            />
+              onValueChange={(v) => v === "__novo" ? setShowAddModelo(true) : setModelo(v)}
+              disabled={!marca}
+            >
+              <SelectTrigger><SelectValue placeholder={marca ? "Escolher modelo" : "Escolha a marca primeiro"} /></SelectTrigger>
+              <SelectContent>
+                {modelosDe(marca).map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+                {marca && <SelectItem value="__novo">+ novo modelo</SelectItem>}
+              </SelectContent>
+            </Select>
+            {showAddModelo && (
+              <div className="flex gap-2">
+                <Input value={novoModelo} onChange={(e) => setNovoModelo(e.target.value)} placeholder="Ex: iPhone 15 Pro" />
+                <Button size="sm" onClick={handleAddModelo}>Salvar</Button>
+              </div>
+            )}
           </div>
+
+          {/* Capacidade */}
           <div className="space-y-2">
             <Label>Capacidade</Label>
-            <Input
+            <Select
               value={capacidade}
-              onChange={(e) => setCapacidade(e.target.value)}
-              placeholder="256GB"
-            />
+              onValueChange={(v) => v === "__nova" ? setShowAddCap(true) : setCapacidade(v)}
+              disabled={!modeloInfo}
+            >
+              <SelectTrigger><SelectValue placeholder={modeloInfo ? "Escolher capacidade" : "Defina o modelo"} /></SelectTrigger>
+              <SelectContent>
+                {capacidadesOpts.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+                {modeloInfo && <SelectItem value="__nova">+ nova capacidade</SelectItem>}
+              </SelectContent>
+            </Select>
+            {showAddCap && (
+              <div className="flex gap-2">
+                <Input value={novaCap} onChange={(e) => setNovaCap(e.target.value)} placeholder="Ex: 256 GB" />
+                <Button size="sm" onClick={handleAddCap}>Salvar</Button>
+              </div>
+            )}
           </div>
 
+          {/* Cor */}
           <div className="space-y-2">
             <Label>Cor</Label>
-            <div className="flex gap-2">
-              <Select
-                value={cor}
-                onValueChange={(v) => {
-                  if (v === "__nova") setShowNovaCor(true);
-                  else setCor(v);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      coresModelo.length === 0
-                        ? "Defina marca e modelo primeiro"
-                        : "Escolher cor"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {coresModelo.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__nova">+ outra cor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {showNovaCor && (
+            <Select
+              value={cor}
+              onValueChange={(v) => v === "__nova" ? setShowAddCor(true) : setCor(v)}
+              disabled={!modeloInfo}
+            >
+              <SelectTrigger><SelectValue placeholder={modeloInfo ? "Escolher cor" : "Defina o modelo"} /></SelectTrigger>
+              <SelectContent>
+                {coresOpts.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+                {modeloInfo && <SelectItem value="__nova">+ outra cor</SelectItem>}
+              </SelectContent>
+            </Select>
+            {showAddCor && (
               <div className="flex gap-2">
-                <Input
-                  value={novaCor}
-                  onChange={(e) => setNovaCor(e.target.value)}
-                  placeholder="Nome da cor"
-                />
-                <Button type="button" size="sm" onClick={handleSalvarCor}>
-                  Salvar
-                </Button>
+                <Input value={novaCor} onChange={(e) => setNovaCor(e.target.value)} placeholder="Nome da cor" />
+                <Button size="sm" onClick={handleAddCor}>Salvar</Button>
               </div>
             )}
           </div>
 
+          {/* Grade */}
           <div className="space-y-2">
             <Label>Grade</Label>
-            <div className="flex gap-2">
-              <Select
-                value={grade}
-                onValueChange={(v) => {
-                  if (v === "__nova") setShowNovaGrade(true);
-                  else setGrade(v);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolher grade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {grades.map((g) => (
-                    <SelectItem key={g.id} value={g.nome}>
-                      {g.nome}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__nova">+ cadastrar grade</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {showNovaGrade && (
+            <Select value={grade} onValueChange={(v) => v === "__nova" ? setShowAddGrade(true) : setGrade(v)}>
+              <SelectTrigger><SelectValue placeholder="Escolher grade" /></SelectTrigger>
+              <SelectContent>
+                {grades.map((g) => (
+                  <SelectItem key={g.id} value={g.nome}>{g.nome}</SelectItem>
+                ))}
+                <SelectItem value="__nova">+ cadastrar grade</SelectItem>
+              </SelectContent>
+            </Select>
+            {showAddGrade && (
               <div className="flex gap-2">
-                <Input
-                  value={novaGrade}
-                  onChange={(e) => setNovaGrade(e.target.value)}
-                  placeholder="Ex: Grade A"
-                />
-                <Button type="button" size="sm" onClick={handleSalvarGrade}>
-                  Salvar
-                </Button>
+                <Input value={novaGrade} onChange={(e) => setNovaGrade(e.target.value)} placeholder="Ex: Grade A" />
+                <Button size="sm" onClick={handleAddGrade}>Salvar</Button>
               </div>
             )}
           </div>
 
+          {/* Condição */}
           <div className="space-y-2">
             <Label>Condição</Label>
             <Select value={condicao} onValueChange={setCondicao}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="novo">Novo</SelectItem>
                 <SelectItem value="seminovo">Seminovo</SelectItem>
@@ -516,6 +593,7 @@ export default function AtacadoCadastroProduto() {
           </div>
         </div>
 
+        {/* Status */}
         <div className="space-y-2">
           <Label>Status do aparelho</Label>
           <div className="flex flex-wrap gap-2">
@@ -535,33 +613,16 @@ export default function AtacadoCadastroProduto() {
             ))}
             <button
               type="button"
-              onClick={() => setStatus("estoque")}
-              className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
-                status === "estoque" && !statusList.find((s) => s.nome === "estoque")
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background border-border hover:bg-muted"
-              }`}
-            >
-              Em estoque
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowNovoStatus((v) => !v)}
+              onClick={() => setShowAddStatus((v) => !v)}
               className="px-3 py-1.5 rounded-full text-xs border border-dashed text-muted-foreground hover:bg-muted"
             >
               + novo status
             </button>
           </div>
-          {showNovoStatus && (
+          {showAddStatus && (
             <div className="flex gap-2 max-w-md">
-              <Input
-                value={novoStatus}
-                onChange={(e) => setNovoStatus(e.target.value)}
-                placeholder="Nome do status"
-              />
-              <Button type="button" size="sm" onClick={handleSalvarStatus}>
-                Salvar
-              </Button>
+              <Input value={novoStatus} onChange={(e) => setNovoStatus(e.target.value)} placeholder="Nome do status" />
+              <Button size="sm" onClick={handleAddStatus}>Salvar</Button>
             </div>
           )}
         </div>
@@ -572,102 +633,95 @@ export default function AtacadoCadastroProduto() {
         <h2 className="text-base font-semibold text-foreground">Custos da compra</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Custo do produto (por unidade, em R$)</Label>
+            <Label>
+              Custo do produto / un {importado && simboloMoeda !== "R$" ? `(${simboloMoeda})` : "(R$)"}
+            </Label>
             <Input
-              type="number"
-              step="0.01"
+              inputMode="decimal"
               value={custoProduto}
               onChange={(e) => setCustoProduto(e.target.value)}
+              placeholder="0,00"
             />
+            {importado && cotacaoNum > 0 && produtoMoedaNum > 0 && (
+              <p className="text-xs text-muted-foreground">≈ {brl(produtoBRL)} / un</p>
+            )}
           </div>
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label>Fretes e taxas</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addCusto}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={addCusto}>
               <Plus className="h-3 w-3" /> Adicionar
             </Button>
           </div>
           {custos.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Nenhum custo adicional. Cada custo será rateado por unidade.
+              Nenhum custo adicional. Cada custo é rateado igualmente por unidade.
             </p>
           )}
           {custos.map((c, i) => {
             const ehImportOnly = c.tipo === "aduana" || c.tipo === "seguro";
             if (!importado && ehImportOnly) return null;
             return (
-              <div
-                key={i}
-                className="grid grid-cols-12 gap-2 items-end p-3 border rounded-md"
-              >
-                <div className="col-span-3 space-y-1">
+              <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-md">
+                <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Tipo</Label>
-                  <Select
-                    value={c.tipo}
-                    onValueChange={(v) => updCusto(i, { tipo: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={c.tipo} onValueChange={(v) => updCusto(i, { tipo: v as CustoTipo })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="frete">Frete</SelectItem>
                       <SelectItem value="outro">Outro</SelectItem>
-                      {importado && (
-                        <>
-                          <SelectItem value="aduana">Aduana</SelectItem>
-                          <SelectItem value="seguro">Seguro</SelectItem>
-                        </>
-                      )}
+                      {importado && <SelectItem value="aduana">Aduana</SelectItem>}
+                      {importado && <SelectItem value="seguro">Seguro</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-4 space-y-1">
+                <div className="col-span-3 space-y-1">
                   <Label className="text-xs">Descrição</Label>
                   <Input
                     value={c.descricao}
                     onChange={(e) => updCusto(i, { descricao: e.target.value })}
+                    placeholder="Ex: Frete internacional"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Modo</Label>
-                  <Select
-                    value={c.modo}
-                    onValueChange={(v) => updCusto(i, { modo: v as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={c.modo} onValueChange={(v) => updCusto(i, { modo: v as CustoModo })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="fixo">R$ fixo</SelectItem>
+                      <SelectItem value="fixo">Fixo</SelectItem>
                       <SelectItem value="pct">% do produto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Moeda</Label>
+                  <Select
+                    value={c.modo === "pct" ? "BRL" : c.moeda}
+                    onValueChange={(v) => updCusto(i, { moeda: v })}
+                    disabled={c.modo === "pct" || !importado || moeda === "BRL"}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BRL">R$</SelectItem>
+                      {importado && moeda !== "BRL" && (
+                        <SelectItem value={moeda}>{simboloMoeda}</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Valor</Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    inputMode="decimal"
                     value={c.valor}
-                    onChange={(e) =>
-                      updCusto(i, { valor: Number(e.target.value) || 0 })
-                    }
+                    onChange={(e) => updCusto(i, { valor: e.target.value })}
+                    placeholder={c.modo === "pct" ? "0%" : "0,00"}
                   />
                 </div>
                 <div className="col-span-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => rmCusto(i)}
-                  >
+                  <Button type="button" variant="ghost" size="icon" onClick={() => rmCusto(i)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -684,10 +738,10 @@ export default function AtacadoCadastroProduto() {
           <div className="space-y-2">
             <Label>Valor sugerido por unidade (R$)</Label>
             <Input
-              type="number"
-              step="0.01"
+              inputMode="decimal"
               value={precoVenda}
               onChange={(e) => setPrecoVenda(e.target.value)}
+              placeholder="0,00"
             />
           </div>
         </div>
@@ -695,10 +749,8 @@ export default function AtacadoCadastroProduto() {
 
       {/* Unidades */}
       <Card className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">
-            Aparelhos do lote
-          </h2>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-base font-semibold text-foreground">Aparelhos do lote</h2>
           <div className="flex items-center gap-3">
             <Label className="text-xs">Quantidade</Label>
             <Input
@@ -706,82 +758,87 @@ export default function AtacadoCadastroProduto() {
               min={1}
               max={500}
               value={quantidade}
-              onChange={(e) =>
-                setQuantidade(Math.max(1, Number(e.target.value) || 1))
-              }
+              onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 1))}
               className="w-24"
             />
+            <Dialog open={showGerAssist} onOpenChange={setShowGerAssist}>
+              <DialogTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  <Settings2 className="h-4 w-4" /> Gerenciar assistências
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Tipos de assistência</DialogTitle>
+                </DialogHeader>
+                <GerenciarAssistencias tipos={tiposAssist} onChange={recarregar} />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
         <div className="space-y-3">
-          {unidades.map((u, i) => (
-            <div key={i} className="p-3 border rounded-md space-y-3">
-              <div className="flex items-center justify-between">
-                <Badge variant="outline">Aparelho {i + 1}</Badge>
-                <span className="text-xs text-muted-foreground">
-                  custo desta unidade:{" "}
-                  <strong className="text-foreground">
-                    {brl(
-                      custoBaseUnit +
-                        u.assistencias.reduce(
-                          (s, a) => s + (Number(a.valor) || 0),
-                          0,
-                        ),
-                    )}
-                  </strong>
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">IMEI 1 *</Label>
-                  <Input
-                    value={u.imei1}
-                    onChange={(e) => updUnidade(i, { imei1: e.target.value })}
-                  />
+          {unidades.map((u, i) => {
+            const unitTotal =
+              custoBaseUnit +
+              u.assistencias.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+            return (
+              <div key={i} className="p-3 border rounded-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline">Aparelho {i + 1}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    custo desta unidade:{" "}
+                    <strong className="text-foreground">
+                      {unitTotal > 0 ? brl(unitTotal) : "—"}
+                    </strong>
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">IMEI 2 (opcional)</Label>
-                  <Input
-                    value={u.imei2}
-                    onChange={(e) => updUnidade(i, { imei2: e.target.value })}
-                  />
-                </div>
-              </div>
-              {tiposAssist.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs">Assistências</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {tiposAssist.map((t) => {
-                      const ativo = !!u.assistencias.find(
-                        (a) => a.nome === t.nome,
-                      );
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() =>
-                            toggleAssistencia(
-                              i,
-                              t.nome,
-                              Number(t.valor_padrao) || 0,
-                            )
-                          }
-                          className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
-                            ativo
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background border-border hover:bg-muted"
-                          }`}
-                        >
-                          {t.nome} · {brl(Number(t.valor_padrao) || 0)}
-                        </button>
-                      );
-                    })}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">IMEI 1 *</Label>
+                    <Input
+                      value={u.imei1}
+                      onChange={(e) => updUnidade(i, { imei1: e.target.value })}
+                      placeholder="15 dígitos"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">IMEI 2 (opcional)</Label>
+                    <Input
+                      value={u.imei2}
+                      onChange={(e) => updUnidade(i, { imei2: e.target.value })}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {tiposAssist.filter((t) => t.ativo).length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs">Assistências (carimba o valor atual)</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {tiposAssist.filter((t) => t.ativo).map((t) => {
+                        const ativo = !!u.assistencias.find((a) => a.nome === t.nome);
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() =>
+                              toggleAssistencia(i, t.nome, Number(t.valor_padrao) || 0)
+                            }
+                            className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
+                              ativo
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background border-border hover:bg-muted"
+                            }`}
+                          >
+                            {t.nome} · {brl(Number(t.valor_padrao) || 0)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 
@@ -789,18 +846,16 @@ export default function AtacadoCadastroProduto() {
       <Card className="p-5 space-y-3 bg-primary/5 border-primary/30">
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">
-            Visão geral do lote
-          </h2>
+          <h2 className="text-base font-semibold text-foreground">Visão geral do lote (R$)</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <KpiMini label="Custo / unidade" value={brl(custoBaseUnit)} />
-          <KpiMini label="Investimento total" value={brl(investimentoTotal)} />
-          <KpiMini label="Venda total" value={brl(vendaTotal)} />
+          <KpiMini label="Custo / unidade" value={hasDados ? brl(custoBaseUnit) : "—"} />
+          <KpiMini label="Investimento total" value={hasDados ? brl(investimentoTotal) : "—"} />
+          <KpiMini label="Venda total" value={precoNum > 0 ? brl(vendaTotal) : "—"} />
           <KpiMini
             label="Lucro"
-            value={brl(lucroTotal)}
-            sub={`Margem ${Math.round(margem)}% (s/ investimento)`}
+            value={hasDados && precoNum > 0 ? brl(lucroTotal) : "—"}
+            sub={hasDados && precoNum > 0 ? `Margem ${Math.round(margem)}% (s/ investimento)` : undefined}
             positive={lucroTotal >= 0}
           />
         </div>
