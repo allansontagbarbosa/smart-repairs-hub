@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Printer, RotateCcw, Save } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Printer, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import {
   useEtiquetaCalibracao,
@@ -17,6 +19,13 @@ const ALINHAMENTOS = [
   ["tl", "tc", "tr"],
   ["ml", "mc", "mr"],
   ["bl", "bc", "br"],
+];
+
+const TAMANHOS_DYMO = [
+  { id: "11352", label: "Dymo 11352 — 54×25mm (retorno/endereço pequeno)", largura_mm: 54, altura_mm: 25 },
+  { id: "11354", label: "Dymo 11354 — 57×32mm (multipropósito)", largura_mm: 57, altura_mm: 32 },
+  { id: "99012", label: "Dymo 99012 — 89×36mm (endereço grande)", largura_mm: 89, altura_mm: 36 },
+  { id: "custom", label: "Personalizado", largura_mm: 0, altura_mm: 0 },
 ];
 
 const PX_PER_MM = 3;
@@ -93,6 +102,55 @@ export default function CalibrarEtiqueta() {
             <CardTitle className="text-lg">Ajustes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Tamanho da etiqueta */}
+            <div className="space-y-2">
+              <Label>Tamanho da etiqueta</Label>
+              <Select
+                value={
+                  TAMANHOS_DYMO.find(
+                    (t) => t.largura_mm === draft.largura_mm && t.altura_mm === draft.altura_mm,
+                  )?.id || "custom"
+                }
+                onValueChange={(v) => {
+                  const t = TAMANHOS_DYMO.find((x) => x.id === v);
+                  if (t && t.id !== "custom") update({ largura_mm: t.largura_mm, altura_mm: t.altura_mm });
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TAMANHOS_DYMO.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Largura (mm)</Label>
+                  <input
+                    type="number"
+                    className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+                    value={draft.largura_mm}
+                    min={10}
+                    max={210}
+                    step={1}
+                    onChange={(e) => update({ largura_mm: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Altura (mm)</Label>
+                  <input
+                    type="number"
+                    className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+                    value={draft.altura_mm}
+                    min={10}
+                    max={297}
+                    step={1}
+                    onChange={(e) => update({ altura_mm: Number(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Offset X */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -193,6 +251,22 @@ export default function CalibrarEtiqueta() {
                 ))}
               </div>
             </div>
+
+            {/* Guia rápida de impressão */}
+            <Collapsible>
+              <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition">
+                <Info className="h-3.5 w-3.5" />
+                Como configurar a janela de impressão do Chrome
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 text-xs text-muted-foreground space-y-1 pl-5 border-l-2 border-[#00C896]/30">
+                <p>1. <b>Destino:</b> selecione a Dymo LabelWriter 550</p>
+                <p>2. <b>Páginas:</b> Tudo &nbsp;·&nbsp; <b>Cópias:</b> 1</p>
+                <p>3. <b>Layout:</b> Paisagem &nbsp;·&nbsp; <b>Cor:</b> Preto e branco</p>
+                <p>4. <b>Mais configurações</b> → <b>Tamanho do papel:</b> {draft.largura_mm}×{draft.altura_mm}mm &nbsp;·&nbsp; <b>Margens:</b> Nenhuma &nbsp;·&nbsp; <b>Escala:</b> 100%</p>
+                <p>5. Desmarque <b>"Cabeçalhos e rodapés"</b> e <b>"Gráficos de fundo"</b></p>
+                <p className="pt-1">Se ainda houver pequeno desvio (0,5-1mm), ajuste pelo offset acima.</p>
+              </CollapsibleContent>
+            </Collapsible>
 
             <div className="flex flex-wrap gap-2 pt-2 border-t">
               <Button onClick={handleSalvar} disabled={salvando} style={{ backgroundColor: "#00C896" }}>

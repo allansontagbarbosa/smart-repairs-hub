@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   Loader2, Building2, Wrench, Truck, DollarSign, Boxes,
   ListChecks, Bell, FileText, Search, ShieldCheck, Tag, FileDown, Settings,
-  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone, Database,
+  ChevronRight, Menu, X, MapPin, Palette, Globe, AlertTriangle, Store, Smartphone, Database, Printer,
 } from "lucide-react";
 import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 import { ConfigGeralTab } from "@/components/configuracoes/ConfigGeralTab";
@@ -20,6 +20,7 @@ import { ConfigUsuariosTab } from "@/components/configuracoes/ConfigUsuariosTab"
 import { ConfigListaPrecosTab } from "@/components/configuracoes/ConfigListaPrecosTab";
 import { ConfigExportacaoTab } from "@/components/configuracoes/ConfigExportacaoTab";
 import { ConfigBackupTab } from "@/components/configuracoes/ConfigBackupTab";
+import CalibrarEtiqueta from "@/pages/configuracoes/CalibrarEtiqueta";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ const groups = [
     items: [
       { id: "documentos", label: "Modelos de Documento", icon: FileText, keywords: ["documento", "laudo", "recibo", "orcamento", "ordem", "template"] },
       { id: "etiquetas", label: "Etiquetas", icon: Tag, keywords: ["etiqueta", "label", "impressao", "termica", "qr", "barcode", "codigo"] },
+      { id: "calibrar-etiqueta", label: "Calibrar etiqueta", icon: Printer, keywords: ["calibrar", "etiqueta", "dymo", "offset", "impressao", "margem", "ajuste"] },
     ],
   },
   {
@@ -291,6 +293,7 @@ export default function Configuracoes() {
             {active === "notificacoes" && <ConfigNotificacoesTab templatesMensagem={data.templatesMensagem} />}
             {active === "documentos" && <ConfigDocumentosTab modelosDocumento={data.modelosDocumento} />}
             {active === "etiquetas" && <ConfigEtiquetasTab />}
+            {active === "calibrar-etiqueta" && <CalibrarEtiqueta />}
             {active === "exportacao" && <ConfigExportacaoTab />}
             {active === "backup" && <ConfigBackupTab />}
           </div>
@@ -315,6 +318,7 @@ function getSubtitle(id: string): string {
     notificacoes: "Templates de mensagens automáticas",
     documentos: "Modelos de laudos, recibos e orçamentos",
     etiquetas: "Templates de etiqueta para OS, peças e aparelhos (térmica e A4)",
+    "calibrar-etiqueta": "Ajuste o offset e a margem da impressão (Dymo LabelWriter 550, 11352 — 54×25mm)",
     exportacao: "Importar e exportar dados do sistema",
     backup: "Backup completo da empresa por email + restauração via JSON",
   };
