@@ -20,6 +20,8 @@ import Assistencia from "./pages/Assistencia";
 import ExclusaoOSCanceladas from "./pages/ExclusaoOSCanceladas";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
 import Operacional from "./pages/Operacional";
+import AparelhosNaRua from "./pages/assistencia/AparelhosNaRua";
+import Terceiros from "./pages/assistencia/Terceiros";
 import FilaIA from "./pages/FilaIA";
 import Pecas from "./pages/Pecas";
 import AparelhosAssistencia from "./pages/AparelhosAssistencia";
