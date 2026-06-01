@@ -112,9 +112,17 @@ export default function AtacadoAparelhos() {
           <h1 className="text-2xl font-bold text-foreground">Estoque Atacado</h1>
           <p className="text-sm text-muted-foreground">Aparelhos por lote (quantidade)</p>
         </div>
-        <Button size="sm" onClick={() => setNovoOpen(true)}>
-          <Plus className="h-4 w-4" /> Nova entrada
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setNovoOpen(true)}>
+            <Plus className="h-4 w-4" /> Nova entrada
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => (window.location.href = "/atacado/aparelhos/novo")}
+          >
+            <Plus className="h-4 w-4" /> Novo produto
+          </Button>
+        </div>
       </div>
 
       {lojaAtiva && (
