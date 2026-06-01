@@ -44,10 +44,11 @@ export function EnviarTerceiroDialog({ open, onOpenChange, osId }: Props) {
 
     if (modoNovo) {
       if (!novoNome.trim()) { return; }
-      tercId = await salvarTerceiro.mutateAsync({
+      const res = await salvarTerceiro.mutateAsync({
         nome: novoNome.trim(),
         contato: novoContato.trim() || null,
       });
+      tercId = res.id;
       tercNome = novoNome.trim();
     } else if (terceiroId) {
       tercNome = terceiros.find(t => t.id === terceiroId)?.nome ?? null;
