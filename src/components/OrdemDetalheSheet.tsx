@@ -39,6 +39,9 @@ import { ServicosOSEditor } from "@/components/ordens/ServicosOSEditor";
 import { useOSServicos } from "@/hooks/useOSServicos";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { EditarDatasOS } from "@/components/ordens/EditarDatasOS";
+import { EnviarTerceiroDialog } from "@/components/assistencia/EnviarTerceiroDialog";
+import { TerceirizacaoAtivaPanel } from "@/components/assistencia/TerceirizacaoAtivaPanel";
+import { Truck } from "lucide-react";
 
 
 
