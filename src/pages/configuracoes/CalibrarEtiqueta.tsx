@@ -252,6 +252,22 @@ export default function CalibrarEtiqueta() {
               </div>
             </div>
 
+            {/* Guia rápida de impressão */}
+            <Collapsible>
+              <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition">
+                <Info className="h-3.5 w-3.5" />
+                Como configurar a janela de impressão do Chrome
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 text-xs text-muted-foreground space-y-1 pl-5 border-l-2 border-[#00C896]/30">
+                <p>1. <b>Destino:</b> selecione a Dymo LabelWriter 550</p>
+                <p>2. <b>Páginas:</b> Tudo &nbsp;·&nbsp; <b>Cópias:</b> 1</p>
+                <p>3. <b>Layout:</b> Paisagem &nbsp;·&nbsp; <b>Cor:</b> Preto e branco</p>
+                <p>4. <b>Mais configurações</b> → <b>Tamanho do papel:</b> {draft.largura_mm}×{draft.altura_mm}mm &nbsp;·&nbsp; <b>Margens:</b> Nenhuma &nbsp;·&nbsp; <b>Escala:</b> 100%</p>
+                <p>5. Desmarque <b>"Cabeçalhos e rodapés"</b> e <b>"Gráficos de fundo"</b></p>
+                <p className="pt-1">Se ainda houver pequeno desvio (0,5-1mm), ajuste pelo offset acima.</p>
+              </CollapsibleContent>
+            </Collapsible>
+
             <div className="flex flex-wrap gap-2 pt-2 border-t">
               <Button onClick={handleSalvar} disabled={salvando} style={{ backgroundColor: "#00C896" }}>
                 <Save className="h-4 w-4 mr-2" />
