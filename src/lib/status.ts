@@ -4,7 +4,7 @@ export type Status = Database["public"]["Enums"]["status_ordem"];
 
 export const statusFlow: Status[] = [
   "recebido", "em_analise", "aguardando_aprovacao",
-  "aprovado", "em_reparo", "aguardando_peca", "pronto", "entregue",
+  "aprovado", "em_reparo", "aguardando_peca", "terceirizado", "pronto", "entregue",
 ];
 
 /** Labels curtos para uso interno (sidebar, tabelas, fluxo) */
@@ -15,6 +15,7 @@ export const statusLabels: Record<Status, string> = {
   aprovado: "Aprovado",
   em_reparo: "Em Reparo",
   aguardando_peca: "Aguard. Peça",
+  terceirizado: "Terceirizado",
   pronto: "Pronto",
   entregue: "Entregue",
   cancelado: "Cancelada",
@@ -28,6 +29,7 @@ export const statusLabelsCliente: Record<Status, string> = {
   aprovado: "Aprovado",
   em_reparo: "Em Reparo",
   aguardando_peca: "Aguardando Peça",
+  terceirizado: "Em assistência especializada",
   pronto: "Pronto para Retirada",
   entregue: "Entregue",
   cancelado: "Cancelada",

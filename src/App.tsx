@@ -20,6 +20,8 @@ import Assistencia from "./pages/Assistencia";
 import ExclusaoOSCanceladas from "./pages/ExclusaoOSCanceladas";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
 import Operacional from "./pages/Operacional";
+import AparelhosNaRua from "./pages/assistencia/AparelhosNaRua";
+import Terceiros from "./pages/assistencia/Terceiros";
 import FilaIA from "./pages/FilaIA";
 import Pecas from "./pages/Pecas";
 import AparelhosAssistencia from "./pages/AparelhosAssistencia";
@@ -256,6 +258,8 @@ const App = () => (
                     <Route path="/assistencia/exclusao-canceladas" element={<ProtectedRoute permissao="assistencia.excluir"><ExclusaoOSCanceladas /></ProtectedRoute>} />
                     <Route path="/assistencia/fluxo" element={<ProtectedRoute permissao="assistencia.ver"><FluxoAssistencia /></ProtectedRoute>} />
                     <Route path="/operacional" element={<ProtectedRoute permissao="assistencia.ver"><Operacional /></ProtectedRoute>} />
+                    <Route path="/assistencia/aparelhos-na-rua" element={<ProtectedRoute permissao="assistencia.ver"><AparelhosNaRua /></ProtectedRoute>} />
+                    <Route path="/assistencia/terceiros" element={<ProtectedRoute permissao="assistencia.ver"><Terceiros /></ProtectedRoute>} />
                     <Route path="/assistencia/fila-ia" element={<ProtectedRoute permissao="fila_ia"><FilaIA /></ProtectedRoute>} />
                     <Route path="/aparelhos" element={<ProtectedRoute permissao="aparelhos.ver"><AparelhosAssistencia /></ProtectedRoute>} />
                     <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />

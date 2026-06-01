@@ -39,6 +39,9 @@ import { ServicosOSEditor } from "@/components/ordens/ServicosOSEditor";
 import { useOSServicos } from "@/hooks/useOSServicos";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 import { EditarDatasOS } from "@/components/ordens/EditarDatasOS";
+import { EnviarTerceiroDialog } from "@/components/assistencia/EnviarTerceiroDialog";
+import { TerceirizacaoAtivaPanel } from "@/components/assistencia/TerceirizacaoAtivaPanel";
+import { Truck } from "lucide-react";
 
 
 
@@ -62,6 +65,7 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [prejuizoOpen, setPrejuizoOpen] = useState(false);
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [terceiroOpen, setTerceiroOpen] = useState(false);
   const [pendingStatusChange, setPendingStatusChange] = useState<{ novo: Status; motivos: string[] } | null>(null);
   const [valorWarningOpen, setValorWarningOpen] = useState(false);
   const [pendingEditPayload, setPendingEditPayload] = useState<Record<string, any> | null>(null);
@@ -871,9 +875,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             )}
 
+            {/* Painel de terceirização ativa */}
+            <TerceirizacaoAtivaPanel osId={ordem.id} />
+
             {/* Quick actions */}
             {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
-              <div className="flex gap-2 mb-5">
+              <div className="flex flex-wrap gap-2 mb-5">
                 {nextStatus && (
                   <Button
                     size="sm"
@@ -982,6 +989,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <FileText className="h-3.5 w-3.5 mr-1" />
                   OS / PDF
                 </Button>
+                {ordem.status !== "terceirizado" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTerceiroOpen(true)}
+                    title="Enviar aparelho para técnico externo"
+                  >
+                    <Truck className="h-3.5 w-3.5 mr-1" />
+                    Terceirizar
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -2194,6 +2212,9 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
           )}
         </SheetContent>
       </Sheet>
+      {ordem && (
+        <EnviarTerceiroDialog open={terceiroOpen} onOpenChange={setTerceiroOpen} osId={ordem.id} />
+      )}
     </Dialog>
   );
 }
