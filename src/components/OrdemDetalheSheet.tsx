@@ -989,6 +989,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
                   <FileText className="h-3.5 w-3.5 mr-1" />
                   OS / PDF
                 </Button>
+                {ordem.status !== "terceirizado" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTerceiroOpen(true)}
+                    title="Enviar aparelho para técnico externo"
+                  >
+                    <Truck className="h-3.5 w-3.5 mr-1" />
+                    Terceirizar
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="ghost"
