@@ -21,6 +21,7 @@ const statusHeaderColors: Record<Status, string> = {
   aprovado: "bg-success/20",
   em_reparo: "bg-info/20",
   aguardando_peca: "bg-warning/20",
+  terceirizado: "bg-[hsl(270_70%_64%/0.2)]",
   pronto: "bg-success/20",
   entregue: "bg-muted/40",
   cancelado: "bg-destructive/20",
