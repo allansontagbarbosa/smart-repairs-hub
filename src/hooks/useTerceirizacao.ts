@@ -21,12 +21,27 @@ export interface Terceirizacao {
   terceiro_nome: string | null;
   servico: string | null;
   custo: number;
+  custo_final: number | null;
+  servico_realizado: string | null;
+  garantia_dias: number | null;
+  garantia_ate: string | null;
   data_envio: string;
   previsao_retorno: string | null;
   data_retorno: string | null;
   status: "enviado" | "retornado" | "cancelado";
   observacoes: string | null;
   created_at: string;
+}
+
+export interface GarantiaTerceiroVigente {
+  terceirizacao_id: string;
+  os_id: string;
+  terceiro_nome: string | null;
+  servico_realizado: string | null;
+  custo_final: number | null;
+  data_retorno: string;
+  garantia_ate: string;
+  dias_restantes: number;
 }
 
 export interface AparelhoNaRua {
