@@ -875,9 +875,12 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
               </div>
             )}
 
+            {/* Painel de terceirização ativa */}
+            <TerceirizacaoAtivaPanel osId={ordem.id} />
+
             {/* Quick actions */}
             {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
-              <div className="flex gap-2 mb-5">
+              <div className="flex flex-wrap gap-2 mb-5">
                 {nextStatus && (
                   <Button
                     size="sm"
