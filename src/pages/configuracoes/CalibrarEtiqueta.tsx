@@ -152,6 +152,9 @@ export default function CalibrarEtiqueta() {
             </div>
 
             {/* Offset X */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Offset horizontal</Label>
                 <span className="text-sm font-mono">{draft.offset_x_mm.toFixed(1)} mm</span>
               </div>
               <div className="flex items-center gap-2">
