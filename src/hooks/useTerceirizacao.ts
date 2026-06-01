@@ -21,12 +21,27 @@ export interface Terceirizacao {
   terceiro_nome: string | null;
   servico: string | null;
   custo: number;
+  custo_final: number | null;
+  servico_realizado: string | null;
+  garantia_dias: number | null;
+  garantia_ate: string | null;
   data_envio: string;
   previsao_retorno: string | null;
   data_retorno: string | null;
   status: "enviado" | "retornado" | "cancelado";
   observacoes: string | null;
   created_at: string;
+}
+
+export interface GarantiaTerceiroVigente {
+  terceirizacao_id: string;
+  os_id: string;
+  terceiro_nome: string | null;
+  servico_realizado: string | null;
+  custo_final: number | null;
+  data_retorno: string;
+  garantia_ate: string;
+  dias_restantes: number;
 }
 
 export interface AparelhoNaRua {
@@ -147,22 +162,49 @@ export function useEnviarParaTerceiro() {
 export function useRegistrarRetornoTerceiro() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { terceirizacao_id: string; os_id: string; novo_status?: string }) => {
-      const { data, error } = await supabase.rpc("os_terceiro_retornou" as any, {
-        p_terceirizacao_id: input.terceirizacao_id,
-        p_novo_status_os: input.novo_status ?? "em_reparo",
-      });
+    mutationFn: async (input: {
+      terceirizacao_id: string;
+      os_id: string;
+      data_retorno?: string;
+      servico_realizado?: string | null;
+      custo_final?: number | null;
+      garantia_dias?: number | null;
+      observacoes?: string | null;
+      novo_status_os?: string;
+    }) => {
+      const payload: Record<string, unknown> = {
+        terceirizacao_id: input.terceirizacao_id,
+        data_retorno: input.data_retorno ?? null,
+        servico_realizado: input.servico_realizado ?? null,
+        custo_final: input.custo_final ?? null,
+        garantia_dias: input.garantia_dias ?? null,
+        observacoes: input.observacoes ?? null,
+        novo_status_os: input.novo_status_os ?? "em_reparo",
+      };
+      const { data, error } = await supabase.rpc("os_terceiro_retornou" as any, { p_payload: payload });
       if (error) throw error;
       return data;
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["assistencia_terceirizacoes", vars.os_id] });
       qc.invalidateQueries({ queryKey: ["aparelhos_na_rua"] });
+      qc.invalidateQueries({ queryKey: ["garantias_terceiro_vigentes"] });
       qc.invalidateQueries({ queryKey: ["ordens"] });
       qc.invalidateQueries({ queryKey: ["ordem", vars.os_id] });
       toast.success("Retorno do terceiro registrado");
     },
     onError: (e: any) => toast.error(e?.message || "Erro ao registrar retorno"),
+  });
+}
+
+export function useGarantiasTerceiroVigentes() {
+  return useQuery({
+    queryKey: ["garantias_terceiro_vigentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("assistencia_garantias_terceiro_vigentes" as any);
+      if (error) throw error;
+      return (data ?? []) as unknown as GarantiaTerceiroVigente[];
+    },
   });
 }
 
