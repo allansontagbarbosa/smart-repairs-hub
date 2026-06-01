@@ -72,6 +72,7 @@ const groups = [
     items: [
       { id: "documentos", label: "Modelos de Documento", icon: FileText, keywords: ["documento", "laudo", "recibo", "orcamento", "ordem", "template"] },
       { id: "etiquetas", label: "Etiquetas", icon: Tag, keywords: ["etiqueta", "label", "impressao", "termica", "qr", "barcode", "codigo"] },
+      { id: "calibrar-etiqueta", label: "Calibrar etiqueta", icon: Printer, keywords: ["calibrar", "etiqueta", "dymo", "offset", "impressao", "margem", "ajuste"] },
     ],
   },
   {
