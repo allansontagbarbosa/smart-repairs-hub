@@ -102,10 +102,56 @@ export default function CalibrarEtiqueta() {
             <CardTitle className="text-lg">Ajustes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Offset X */}
+            {/* Tamanho da etiqueta */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Offset horizontal</Label>
+              <Label>Tamanho da etiqueta</Label>
+              <Select
+                value={
+                  TAMANHOS_DYMO.find(
+                    (t) => t.largura_mm === draft.largura_mm && t.altura_mm === draft.altura_mm,
+                  )?.id || "custom"
+                }
+                onValueChange={(v) => {
+                  const t = TAMANHOS_DYMO.find((x) => x.id === v);
+                  if (t && t.id !== "custom") update({ largura_mm: t.largura_mm, altura_mm: t.altura_mm });
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TAMANHOS_DYMO.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Largura (mm)</Label>
+                  <input
+                    type="number"
+                    className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+                    value={draft.largura_mm}
+                    min={10}
+                    max={210}
+                    step={1}
+                    onChange={(e) => update({ largura_mm: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Altura (mm)</Label>
+                  <input
+                    type="number"
+                    className="w-full h-9 rounded-md border bg-background px-3 text-sm"
+                    value={draft.altura_mm}
+                    min={10}
+                    max={297}
+                    step={1}
+                    onChange={(e) => update({ altura_mm: Number(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Offset X */}
                 <span className="text-sm font-mono">{draft.offset_x_mm.toFixed(1)} mm</span>
               </div>
               <div className="flex items-center gap-2">
