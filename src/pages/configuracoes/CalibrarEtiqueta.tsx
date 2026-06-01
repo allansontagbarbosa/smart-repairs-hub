@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Printer, RotateCcw, Save } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Printer, RotateCcw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 import {
   useEtiquetaCalibracao,
@@ -17,6 +19,13 @@ const ALINHAMENTOS = [
   ["tl", "tc", "tr"],
   ["ml", "mc", "mr"],
   ["bl", "bc", "br"],
+];
+
+const TAMANHOS_DYMO = [
+  { id: "11352", label: "Dymo 11352 — 54×25mm (retorno/endereço pequeno)", largura_mm: 54, altura_mm: 25 },
+  { id: "11354", label: "Dymo 11354 — 57×32mm (multipropósito)", largura_mm: 57, altura_mm: 32 },
+  { id: "99012", label: "Dymo 99012 — 89×36mm (endereço grande)", largura_mm: 89, altura_mm: 36 },
+  { id: "custom", label: "Personalizado", largura_mm: 0, altura_mm: 0 },
 ];
 
 const PX_PER_MM = 3;
