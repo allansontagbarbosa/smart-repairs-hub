@@ -9711,6 +9711,15 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_terceiro: {
+        Args: {
+          p_contato: string
+          p_especialidade: string
+          p_nome: string
+          p_obs: string
+        }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
