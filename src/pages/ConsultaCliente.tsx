@@ -32,6 +32,7 @@ const statusColors: Record<Status, { dot: string; bg: string; text: string }> = 
   em_reparo: { dot: "bg-info", bg: "bg-info-muted", text: "text-info" },
   aguardando_peca: { dot: "bg-warning", bg: "bg-warning-muted", text: "text-warning" },
   terceirizado: { dot: "bg-[hsl(270_70%_64%)]", bg: "bg-[hsl(270_70%_64%/0.12)]", text: "text-[hsl(270_70%_50%)]" },
+  garantia: { dot: "bg-[hsl(210_80%_56%)]", bg: "bg-[hsl(210_80%_56%/0.12)]", text: "text-[hsl(210_80%_45%)]" },
   pronto: { dot: "bg-success", bg: "bg-success-muted", text: "text-success" },
   entregue: { dot: "bg-foreground/30", bg: "bg-muted", text: "text-muted-foreground" },
   cancelado: { dot: "bg-destructive", bg: "bg-destructive/10", text: "text-destructive" },
