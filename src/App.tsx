@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import ExclusaoOSCanceladas from "./pages/ExclusaoOSCanceladas";
 import FluxoAssistencia from "./pages/FluxoAssistencia";
+import Operacional from "./pages/Operacional";
 import FilaIA from "./pages/FilaIA";
 import Pecas from "./pages/Pecas";
 import AparelhosAssistencia from "./pages/AparelhosAssistencia";
