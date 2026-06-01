@@ -34,6 +34,7 @@ export const allStatuses: { value: Status | "todos"; label: string }[] = [
   { value: "aprovado", label: "Aprovado" },
   { value: "em_reparo", label: "Em Reparo" },
   { value: "aguardando_peca", label: "Aguard. Peça" },
+  { value: "terceirizado", label: "Terceirizado" },
   { value: "pronto", label: "Pronto" },
   { value: "entregue", label: "Entregue" },
   { value: "cancelado", label: "Canceladas" },
