@@ -265,11 +265,6 @@ const App = () => (
                     <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
                     <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
                     <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="faturas_b2b.ver"><FaturasLojistas /></ProtectedRoute>} />
-                    <Route path="/assistencia/fila-ia" element={<ProtectedRoute permissao="fila_ia"><FilaIA /></ProtectedRoute>} />
-                    <Route path="/aparelhos" element={<ProtectedRoute permissao="aparelhos.ver"><AparelhosAssistencia /></ProtectedRoute>} />
-                    <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
-                    <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
-                    <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="faturas_b2b.ver"><FaturasLojistas /></ProtectedRoute>} />
                     <Route path="/cashback" element={<ProtectedRoute permissao="financeiro.ver"><Cashback /></ProtectedRoute>} />
                     <Route path="/cashback/cliente/:id" element={<ProtectedRoute permissao="financeiro.ver"><CashbackCliente /></ProtectedRoute>} />
                     <Route path="/configuracoes/cashback/custo-operacional" element={<ProtectedRoute permissao="financeiro.ver"><CashbackCustoOperacional /></ProtectedRoute>} />
