@@ -318,6 +318,7 @@ function getSubtitle(id: string): string {
     notificacoes: "Templates de mensagens automáticas",
     documentos: "Modelos de laudos, recibos e orçamentos",
     etiquetas: "Templates de etiqueta para OS, peças e aparelhos (térmica e A4)",
+    "calibrar-etiqueta": "Ajuste o offset e a margem da impressão (Dymo LabelWriter 550, 11352 — 54×25mm)",
     exportacao: "Importar e exportar dados do sistema",
     backup: "Backup completo da empresa por email + restauração via JSON",
   };
