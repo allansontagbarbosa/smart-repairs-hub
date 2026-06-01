@@ -1,16 +1,20 @@
 import { useState, useMemo } from "react";
-import { useAparelhosNaRua, useRegistrarRetornoTerceiro } from "@/hooks/useTerceirizacao";
+import { useAparelhosNaRua, useGarantiasTerceiroVigentes } from "@/hooks/useTerceirizacao";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Truck, AlertTriangle, Calendar, DollarSign, ArrowLeftRight, ExternalLink, Loader2 } from "lucide-react";
+import { Truck, AlertTriangle, Calendar, DollarSign, ArrowLeftRight, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { RegistrarRetornoTerceiroDialog } from "@/components/assistencia/RegistrarRetornoTerceiroDialog";
 import { cn } from "@/lib/utils";
 
 export default function AparelhosNaRua() {
   const { data: lista = [], isLoading } = useAparelhosNaRua();
-  const retorno = useRegistrarRetornoTerceiro();
+  const { data: garantias = [] } = useGarantiasTerceiroVigentes();
   const [osAbertaId, setOsAbertaId] = useState<string | null>(null);
+  const [retornoAlvo, setRetornoAlvo] = useState<null | {
+    id: string; os_id: string; custo: number; servico: string | null; terceiro_nome: string | null;
+  }>(null);
 
   const atrasados = useMemo(() => lista.filter(l => l.atrasado).length, [lista]);
 
@@ -83,8 +87,13 @@ export default function AparelhosNaRua() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => retorno.mutate({ terceirizacao_id: item.terceirizacao_id, os_id: item.os_id })}
-                        disabled={retorno.isPending}
+                        onClick={() => setRetornoAlvo({
+                          id: item.terceirizacao_id,
+                          os_id: item.os_id,
+                          custo: Number(item.custo) || 0,
+                          servico: item.servico,
+                          terceiro_nome: item.terceiro_nome,
+                        })}
                       >
                         <ArrowLeftRight className="h-3.5 w-3.5 mr-1" /> Registrar retorno
                       </Button>
@@ -97,7 +106,55 @@ export default function AparelhosNaRua() {
         )}
       </Card>
 
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-3">
+          <ShieldCheck className="h-5 w-5 text-success" />
+          <h2 className="text-lg font-semibold">Garantias de terceiro vigentes</h2>
+          <Badge variant="secondary">{garantias.length}</Badge>
+        </div>
+        <Card>
+          {garantias.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Nenhuma garantia de terceiro vigente.
+            </div>
+          ) : (
+            <div className="divide-y">
+              {garantias.map(g => (
+                <div key={g.terceirizacao_id} className="p-3 flex items-center justify-between gap-3 flex-wrap hover:bg-muted/40">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">{g.terceiro_nome || "Terceiro"}</span>
+                      <Badge variant="outline" className="text-xs gap-1 border-success/40 text-success-foreground bg-success-muted/40">
+                        <ShieldCheck className="h-3 w-3" /> {g.dias_restantes}d restantes
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                      {g.servico_realizado && <span>{g.servico_realizado}</span>}
+                      <span>Retornou: {new Date(g.data_retorno + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      <span>Válida até: {new Date(g.garantia_ate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      {g.custo_final != null && (
+                        <span className="inline-flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" /> R$ {Number(g.custo_final).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setOsAbertaId(g.os_id)}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" /> Abrir OS
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
       <OrdemDetalheSheet orderId={osAbertaId} onClose={() => setOsAbertaId(null)} />
+      <RegistrarRetornoTerceiroDialog
+        open={!!retornoAlvo}
+        onOpenChange={(o) => !o && setRetornoAlvo(null)}
+        terceirizacao={retornoAlvo}
+      />
     </div>
   );
 }
