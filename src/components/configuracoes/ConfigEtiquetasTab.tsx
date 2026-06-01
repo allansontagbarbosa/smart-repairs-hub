@@ -181,7 +181,25 @@ export function ConfigEtiquetasTab() {
   }
 
   return (
+    <div className="space-y-4">
+      <a
+        href="/configuracoes/etiqueta"
+        onClick={(e) => { e.preventDefault(); window.location.href = "/configuracoes/etiqueta"; }}
+        className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-[#00C896]/5 hover:bg-[#00C896]/10 transition"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-md bg-[#00C896]/15 flex items-center justify-center">
+            <Printer className="h-4 w-4 text-[#00C896]" />
+          </div>
+          <div>
+            <div className="text-sm font-medium">Calibrar etiqueta</div>
+            <div className="text-xs text-muted-foreground">Ajuste offset, margem e alinhamento da impressão (Dymo 11352).</div>
+          </div>
+        </div>
+        <span className="text-xs text-[#00C896] font-medium">Abrir →</span>
+      </a>
     <div className="flex flex-col lg:flex-row gap-4 -mx-4 lg:mx-0">
+
       {/* LISTA */}
       <div className="lg:w-64 shrink-0 px-4 lg:px-0">
         <div className="flex items-center justify-between mb-3">
@@ -483,6 +501,7 @@ export function ConfigEtiquetasTab() {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

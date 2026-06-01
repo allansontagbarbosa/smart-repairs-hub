@@ -3936,6 +3936,39 @@ export type Database = {
           },
         ]
       }
+      etiqueta_calibracao: {
+        Row: {
+          alinhamento: string
+          altura_mm: number
+          atualizado_em: string | null
+          empresa_id: string
+          largura_mm: number
+          margem_mm: number
+          offset_x_mm: number
+          offset_y_mm: number
+        }
+        Insert: {
+          alinhamento?: string
+          altura_mm?: number
+          atualizado_em?: string | null
+          empresa_id: string
+          largura_mm?: number
+          margem_mm?: number
+          offset_x_mm?: number
+          offset_y_mm?: number
+        }
+        Update: {
+          alinhamento?: string
+          altura_mm?: number
+          atualizado_em?: string | null
+          empresa_id?: string
+          largura_mm?: number
+          margem_mm?: number
+          offset_x_mm?: number
+          offset_y_mm?: number
+        }
+        Relationships: []
+      }
       etiqueta_templates: {
         Row: {
           altura_mm: number
@@ -10116,6 +10149,17 @@ export type Database = {
       revogar_convite_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       revogar_usuario: { Args: { p_user_profile_id: string }; Returns: Json }
       saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
+      salvar_calibracao_etiqueta: {
+        Args: {
+          p_alinhamento: string
+          p_altura: number
+          p_largura: number
+          p_margem: number
+          p_offset_x: number
+          p_offset_y: number
+        }
+        Returns: Json
+      }
       salvar_perfil_acesso: {
         Args: {
           p_ativo?: boolean
