@@ -11,6 +11,7 @@ const statusConfig: Record<Status, { label: string; dot: string; text: string; b
   em_reparo: { label: "Em Reparo", dot: "bg-info", text: "text-info", bg: "bg-info-muted" },
   aguardando_peca: { label: "Aguard. Peça", dot: "bg-warning", text: "text-warning", bg: "bg-warning-muted" },
   terceirizado: { label: "Terceirizado", dot: "bg-[hsl(270_70%_64%)]", text: "text-[hsl(270_70%_50%)]", bg: "bg-[hsl(270_70%_64%/0.12)]" },
+  garantia: { label: "Garantia", dot: "bg-[hsl(210_80%_56%)]", text: "text-[hsl(210_80%_45%)]", bg: "bg-[hsl(210_80%_56%/0.12)]" },
   pronto: { label: "Pronto", dot: "bg-success", text: "text-success", bg: "bg-success-muted" },
   entregue: { label: "Entregue", dot: "bg-foreground/30", text: "text-muted-foreground", bg: "bg-muted" },
   cancelado: { label: "Cancelada", dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
