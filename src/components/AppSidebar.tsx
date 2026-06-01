@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -218,7 +218,11 @@ export function AppSidebar() {
         <div className="border-t border-sidebar-border px-3 pb-3 pt-3 space-y-2">
           {!collapsed ? (
             <>
-              <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => navigate("/minha-conta")}
+                title="Abrir Minha conta"
+                className="group flex items-center gap-2.5 w-full p-2 rounded-md hover:bg-sidebar-accent text-left transition-colors"
+              >
                 <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
                   {iniciais}
                 </div>
@@ -226,20 +230,16 @@ export function AppSidebar() {
                   <p className="text-xs font-medium text-sidebar-foreground truncate">{nome}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{email}</p>
                 </div>
-              </div>
-              <div className="flex items-center justify-between gap-1">
+                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </button>
+              <div className="flex items-center justify-between px-1">
                 <ThemeToggle collapsed={false} />
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1 px-2" onClick={() => navigate("/minha-conta")}>
-                    <UserCog className="h-3 w-3" />
-                    Minha conta
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1 px-2" onClick={handleLogout}>
-                    <LogOut className="h-3 w-3" />
-                    Sair
-                  </Button>
-                </div>
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1 px-2" onClick={handleLogout}>
+                  <LogOut className="h-3 w-3" />
+                  Sair
+                </Button>
               </div>
+
             </>
           ) : (
             <div className="flex flex-col items-center gap-2">
