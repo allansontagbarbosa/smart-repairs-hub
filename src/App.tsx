@@ -100,6 +100,7 @@ import AtacadoPedidoDetalhe from "@/pages/atacado/AtacadoPedidoDetalhe";
 import AtacadoNovoPedido from "@/pages/atacado/AtacadoNovoPedido";
 import AtacadoClientes from "@/pages/atacado/AtacadoClientes";
 import AtacadoAparelhos from "@/pages/atacado/AtacadoAparelhos";
+import AtacadoCadastroProduto from "@/pages/atacado/AtacadoCadastroProduto";
 import AtacadoTabelasPreco from "@/pages/atacado/AtacadoTabelasPreco";
 import AtacadoVendedores from "@/pages/atacado/AtacadoVendedores";
 import AtacadoMetas from "@/pages/atacado/AtacadoMetas";
@@ -313,6 +314,7 @@ const App = () => (
                     <Route path="/atacado/novo-pedido" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.editar"><AtacadoNovoPedido /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/clientes" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_clientes.ver"><AtacadoClientes /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/aparelhos" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_aparelhos.ver"><AtacadoAparelhos /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/aparelhos/novo" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_aparelhos.ver"><AtacadoCadastroProduto /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/tabelas-preco" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_tabelas_preco.ver"><AtacadoTabelasPreco /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/vendedores" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_vendedores.ver"><AtacadoVendedores /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/metas" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_metas.ver"><AtacadoMetas /></ProtectedRoute></ModuloAtacadoGuard>} />
