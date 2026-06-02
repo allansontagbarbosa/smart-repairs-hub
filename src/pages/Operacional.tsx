@@ -142,6 +142,8 @@ export default function Operacional() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [busca, setBusca] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [dragOverTec, setDragOverTec] = useState<string | null>(null);
+  const [filtroTecnicoId, setFiltroTecnicoId] = useState<string | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
 
   // ============== OS ATIVAS (sem filtro de período) ==============
@@ -335,14 +337,19 @@ export default function Operacional() {
   // - Entregue: usa entreguesLoaded (paginado por scroll infinito), mas o contador
   //   do header mostra o TOTAL real (entreguesTotal).
   const colunasComDados = useMemo(() => {
+    const filtraTec = (arr: any[]) =>
+      filtroTecnicoId
+        ? arr.filter((o) => tecsDe(o).some((t) => t.id === filtroTecnicoId))
+        : arr;
     return COLUNAS.map((c) => {
       if (c.key === "entregue") {
-        return { ...c, list: entreguesLoaded, total: entreguesTotal as number };
+        const list = filtraTec(entreguesLoaded);
+        return { ...c, list, total: filtroTecnicoId ? list.length : (entreguesTotal as number) };
       }
-      const list = (activeOrders as any[]).filter((o) => c.statuses.includes(o.status));
+      const list = filtraTec((activeOrders as any[]).filter((o) => c.statuses.includes(o.status)));
       return { ...c, list, total: list.length };
     });
-  }, [activeOrders, entreguesLoaded, entreguesTotal]);
+  }, [activeOrders, entreguesLoaded, entreguesTotal, filtroTecnicoId]);
 
   const orfas = useMemo(() => {
     return (activeOrders as any[]).filter(
@@ -555,15 +562,56 @@ export default function Operacional() {
 
         <div className="flex-1 min-w-0 overflow-x-auto">
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFiltroTecnicoId(null)}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors",
+                filtroTecnicoId === null
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background hover:bg-accent",
+              )}
+              title="Mostrar todas as OS"
+            >
+              Todos
+            </button>
             {(tecnicos as any[]).map((t) => {
               const c = colorForTec(t.id);
               const n = ativasPorTec.get(t.id) ?? 0;
+              const isActive = filtroTecnicoId === t.id;
+              const isDropHere = dragOverTec === t.id;
               return (
-                <div
+                <button
                   key={t.id}
-                  className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 border shrink-0"
+                  type="button"
+                  onClick={() => setFiltroTecnicoId((prev) => (prev === t.id ? null : t.id))}
+                  onDragOver={(e) => {
+                    if (!dragRef.current) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDragOverTec(t.id);
+                  }}
+                  onDragLeave={() => setDragOverTec((p) => (p === t.id ? null : p))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverTec(null);
+                    const id = dragRef.current?.id;
+                    if (!id) return;
+                    const order = (orders as any[]).find((o) => o.id === id);
+                    const jaTem = order ? tecsDe(order).some((x) => x.id === t.id) : false;
+                    if (jaTem) return;
+                    atribuirTec.mutate({ ordemId: id, tecnicoId: t.id });
+                    toast.success(
+                      `OS #${String(order?.numero ?? "").padStart(3, "0")} atribuída a ${t.nome.split(" ")[0]}`,
+                    );
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 rounded-full pl-1 pr-3 py-1 border shrink-0 transition-all cursor-pointer",
+                    isActive && "ring-2 ring-[hsl(165_100%_39%)] border-[hsl(165_100%_39%)]",
+                    isDropHere && "ring-2 ring-dashed ring-[hsl(165_100%_39%)] scale-105",
+                  )}
                   style={c.bg}
-                  title={`${t.nome} · ${n} OS ativas`}
+                  title={`${t.nome} · ${n} OS ativas · clique para filtrar`}
                 >
                   <span
                     className="inline-flex items-center justify-center h-6 w-6 rounded-full text-[10px] font-bold text-white"
@@ -571,17 +619,33 @@ export default function Operacional() {
                   >
                     {iniciais(t.nome)}
                   </span>
-                  <div className="leading-tight">
+                  <div className="leading-tight text-left">
                     <div className="text-[11px] font-semibold truncate max-w-[8rem]">{t.nome.split(" ")[0]}</div>
                     <div className="text-[10px] text-muted-foreground">{n} ativas</div>
                   </div>
-                </div>
+                </button>
               );
             })}
             {(tecnicos as any[]).length === 0 && (
               <span className="text-xs text-muted-foreground italic">Nenhum técnico cadastrado</span>
             )}
           </div>
+          {filtroTecnicoId && (
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              Mostrando o Kanban de{" "}
+              <span className="font-semibold text-foreground">
+                {(tecnicos as any[]).find((t) => t.id === filtroTecnicoId)?.nome ?? "técnico"}
+              </span>
+              {" · "}
+              <button
+                type="button"
+                onClick={() => setFiltroTecnicoId(null)}
+                className="underline hover:text-foreground"
+              >
+                ver todos
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="text-right shrink-0 hidden md:block">
