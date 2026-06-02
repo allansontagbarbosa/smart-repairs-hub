@@ -638,13 +638,13 @@ export default function Operacional() {
                 <div key={t.id} className="space-y-1">
                   <div className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className={cn("w-2 h-2 rounded-full", c.dot)} />
+                      <span className="w-2 h-2 rounded-full" style={c.dot} />
                       <span className="font-medium truncate">{t.nome}</span>
                     </div>
                     <span className="tabular-nums font-semibold">{t.ativas}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className={cn("h-full", c.dot)} style={{ width: `${pct}%` }} />
+                    <div className="h-full" style={{ ...c.dot, width: `${pct}%` }} />
                   </div>
                   <div className="text-[10px] text-muted-foreground flex gap-2">
                     <span>{t.emAndamento} em andamento</span>
