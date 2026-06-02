@@ -264,36 +264,31 @@ export default function Operacional() {
   });
 
   // ============== KPIs ==============
-  const inicioMes = useMemo(() => {
-    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
-  }, []);
+  const inicioMes = useMemo(() => new Date(inicioMesIso), [inicioMesIso]);
 
   const kpis = useMemo(() => {
-    const all = orders as any[];
-    const concluidasMes = all.filter(
-      (o) => o.data_conclusao && new Date(o.data_conclusao) >= inicioMes,
-    );
-    const tempos = concluidasMes
+    const ent = entreguesMes as any[];
+    const tempos = ent
       .filter((o) => o.data_entrada && o.data_conclusao)
       .map((o) => daysBetween(o.data_entrada, o.data_conclusao));
     const tempoMedio = tempos.length
       ? Math.round((tempos.reduce((a, b) => a + b, 0) / tempos.length) * 10) / 10
       : null;
 
-    const totalMes = all.filter(
-      (o) => new Date(o.data_entrada) >= inicioMes,
-    );
-    const canceladasMes = totalMes.filter((o) => o.status === "cancelado").length;
-    const concl = totalMes.filter((o) => o.status === "entregue" || o.status === "pronto").length;
-    const denom = concl + canceladasMes;
+    // Taxa = entregues no mês / (entregues no mês + prontos do mês), aproximação sem cancelados
+    const prontosMes = (activeOrders as any[]).filter(
+      (o) => o.status === "pronto" && new Date(o.data_entrada) >= inicioMes,
+    ).length;
+    const concl = ent.length;
+    const denom = concl + prontosMes;
     const taxa = denom > 0 ? Math.round((concl / denom) * 100) : null;
 
     return {
       tempoMedio,
       taxa,
-      concluidasMes: concluidasMes.length,
+      concluidasMes: concl,
     };
-  }, [orders, inicioMes]);
+  }, [entreguesMes, activeOrders, inicioMes]);
 
   // ============== Drag & Drop (desktop) ==============
   const onDragStart = (e: DragEvent, id: string) => {
