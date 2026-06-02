@@ -655,6 +655,13 @@ export default function Operacional() {
                   ) : (
                     list.map(renderCard)
                   )}
+                  {col.key === "entregue" && list.length > 0 && (
+                    <EntreguesSentinel
+                      hasNext={!!entreguesQuery.hasNextPage}
+                      isFetching={entreguesQuery.isFetchingNextPage}
+                      onLoadMore={() => entreguesQuery.fetchNextPage()}
+                    />
+                  )}
                 </div>
               </div>
             );
