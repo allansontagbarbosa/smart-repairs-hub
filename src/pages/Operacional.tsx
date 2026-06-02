@@ -492,10 +492,14 @@ export default function Operacional() {
               return (
                 <div
                   key={t.id}
-                  className={cn("flex items-center gap-2 rounded-full pl-1 pr-3 py-1 border shrink-0", c.bg)}
+                  className="flex items-center gap-2 rounded-full pl-1 pr-3 py-1 border shrink-0"
+                  style={c.bg}
                   title={`${t.nome} · ${n} OS ativas`}
                 >
-                  <span className={cn("inline-flex items-center justify-center h-6 w-6 rounded-full text-[10px] font-bold text-white", c.dot)}>
+                  <span
+                    className="inline-flex items-center justify-center h-6 w-6 rounded-full text-[10px] font-bold text-white"
+                    style={c.dot}
+                  >
                     {iniciais(t.nome)}
                   </span>
                   <div className="leading-tight">
