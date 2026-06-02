@@ -331,7 +331,7 @@ export default function Operacional() {
       color: "aguardando_pecas",
       statusKey: "aguardando_peca" as Status,
       render: (q) => {
-        const list = ativas.filter((o: any) => o.status === "aguardando_peca" && cardMatchesBusca(o, q));
+        const list = ativas.filter((o: any) => naColuna(o, "aguardando_pecas") && cardMatchesBusca(o, q));
         return {
           total: list.length,
           node: list.map((o: any) =>
