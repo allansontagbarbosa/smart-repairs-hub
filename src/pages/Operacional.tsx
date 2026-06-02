@@ -455,7 +455,7 @@ export default function Operacional() {
       color: "prontos",
       statusKey: "pronto" as Status,
       render: (q) => {
-        const list = ativas.filter((o: any) => o.status === "pronto" && cardMatchesBusca(o, q));
+        const list = ativas.filter((o: any) => naColuna(o, "prontos") && cardMatchesBusca(o, q));
         return { total: list.length, node: list.map((o: any) => renderOSCard(o)) };
       },
     });
