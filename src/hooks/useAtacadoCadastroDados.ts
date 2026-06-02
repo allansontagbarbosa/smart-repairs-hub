@@ -174,6 +174,7 @@ export function useAtacadoCadastroDados() {
     addPais, addCapacidade, addCondicao, addGrade, addStatusRpc,
     addTipoAssist, addMoedaRpc, addFornecedor,
     addMarcaRpc, addModeloRpc, addCorRpc,
+    excluirItem,
     recarregar: carregar,
   };
 }
