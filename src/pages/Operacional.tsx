@@ -142,6 +142,8 @@ export default function Operacional() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [busca, setBusca] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [dragOverTec, setDragOverTec] = useState<string | null>(null);
+  const [filtroTecnicoId, setFiltroTecnicoId] = useState<string | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
 
   // ============== OS ATIVAS (sem filtro de período) ==============
