@@ -18,6 +18,23 @@ import { useAparelhosNaRua, useGarantiasTerceiroVigentes } from "@/hooks/useTerc
 
 type Modo = "fluxo" | "mesa";
 
+// Mapa central: cada coluna do Kanban aceita um ou mais valores REAIS de status.
+// Ajustado conforme valores reais no banco (recebido, em_analise, aguardando_peca,
+// terceirizado, garantia, pronto). "em_reparo" agrega todos os status que
+// representam "o técnico está trabalhando nisso".
+const STATUS_POR_COLUNA: Record<string, Status[]> = {
+  na_rua:           ["terceirizado"],
+  aguardando_pecas: ["aguardando_peca"],
+  garantia:         ["garantia"],
+  em_reparo:        ["em_reparo", "em_analise", "aprovado", "aguardando_aprovacao"],
+  prontos:          ["pronto"],
+};
+const TODOS_STATUS_MAPEADOS = new Set<Status>(
+  Object.values(STATUS_POR_COLUNA).flat() as Status[]
+);
+const naColuna = (o: any, colKey: keyof typeof STATUS_POR_COLUNA) =>
+  STATUS_POR_COLUNA[colKey].includes(o.status);
+
 // Cores das colunas do modo Fluxo (conforme spec)
 const FLUXO_COLORS: Record<string, { header: string; dot: string; ring: string }> = {
   na_rua:           { header: "bg-[hsl(270_72%_64%/0.18)]", dot: "bg-[hsl(270_72%_58%)]", ring: "ring-[hsl(270_72%_58%/0.4)]" },
@@ -25,8 +42,10 @@ const FLUXO_COLORS: Record<string, { header: string; dot: string; ring: string }
   garantia:         { header: "bg-[hsl(207_78%_57%/0.18)]", dot: "bg-[hsl(207_78%_50%)]", ring: "ring-[hsl(207_78%_50%/0.4)]" },
   em_reparo:        { header: "bg-[hsl(217_78%_57%/0.18)]", dot: "bg-[hsl(217_78%_50%)]", ring: "ring-[hsl(217_78%_50%/0.4)]" },
   prontos:          { header: "bg-[hsl(165_100%_39%/0.18)]",dot: "bg-[hsl(165_100%_39%)]",ring: "ring-[hsl(165_100%_39%/0.4)]" },
+  outros:           { header: "bg-muted/60", dot: "bg-muted-foreground", ring: "ring-muted-foreground/40" },
   mesa:             { header: "bg-muted/40", dot: "bg-primary", ring: "ring-primary/40" },
 };
+
 
 async function fetchOrders() {
   const ninetyDaysAgo = new Date();
@@ -107,9 +126,10 @@ export default function Operacional() {
   // ============== MODO MESA / POR TÉCNICO ==============
   // Mostra SOMENTE os em_reparo, uma coluna por técnico.
   const emReparo = useMemo(
-    () => ativas.filter((o: any) => o.status === "em_reparo"),
+    () => ativas.filter((o: any) => naColuna(o, "em_reparo")),
     [ativas]
   );
+
   const tecnicosColunas = useMemo(() => {
     const tecs = Array.from(new Set(emReparo.flatMap(tecnicosNomes))).sort();
     return tecs;
@@ -311,7 +331,7 @@ export default function Operacional() {
       color: "aguardando_pecas",
       statusKey: "aguardando_peca" as Status,
       render: (q) => {
-        const list = ativas.filter((o: any) => o.status === "aguardando_peca" && cardMatchesBusca(o, q));
+        const list = ativas.filter((o: any) => naColuna(o, "aguardando_pecas") && cardMatchesBusca(o, q));
         return {
           total: list.length,
           node: list.map((o: any) =>
@@ -335,7 +355,7 @@ export default function Operacional() {
       color: "garantia",
       statusKey: "garantia" as Status,
       render: (q) => {
-        const daLoja = ativas.filter((o: any) => o.status === "garantia" && cardMatchesBusca(o, q));
+        const daLoja = ativas.filter((o: any) => naColuna(o, "garantia") && cardMatchesBusca(o, q));
         const doTerceiro = (garantiasTerceiro as any[]).filter((g) => {
           const order = ordemById.get(g.os_id);
           const numero = order?.numero ?? "";
@@ -402,7 +422,7 @@ export default function Operacional() {
       color: "em_reparo",
       statusKey: "em_reparo" as Status,
       render: (q) => {
-        const list = ativas.filter((o: any) => o.status === "em_reparo" && cardMatchesBusca(o, q));
+        const list = ativas.filter((o: any) => naColuna(o, "em_reparo") && cardMatchesBusca(o, q));
         const grupos = new Map<string, any[]>();
         list.forEach((o: any) => {
           const tecs = tecnicosNomes(o);
@@ -435,13 +455,30 @@ export default function Operacional() {
       color: "prontos",
       statusKey: "pronto" as Status,
       render: (q) => {
-        const list = ativas.filter((o: any) => o.status === "pronto" && cardMatchesBusca(o, q));
+        const list = ativas.filter((o: any) => naColuna(o, "prontos") && cardMatchesBusca(o, q));
         return { total: list.length, node: list.map((o: any) => renderOSCard(o)) };
       },
     });
 
+    // ---- Outros / sem etapa (rede de segurança: status não mapeado) ----
+    const orfas = ativas.filter((o: any) => !TODOS_STATUS_MAPEADOS.has(o.status as Status));
+    if (orfas.length > 0) {
+      cols.push({
+        key: "outros",
+        nome: "Outros / sem etapa",
+        icon: <AlertTriangle className="h-3.5 w-3.5" />,
+        color: "outros",
+        statusKey: null,
+        render: (q) => {
+          const list = orfas.filter((o: any) => cardMatchesBusca(o, q));
+          return { total: list.length, node: list.map((o: any) => renderOSCard(o, { draggable: false })) };
+        },
+      });
+    }
+
     return cols;
   }, [ativas, naRuaList, garantiasTerceiro, ordemById, modo]);
+
 
   return (
     <div className="space-y-4">
