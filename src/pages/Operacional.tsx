@@ -325,19 +325,19 @@ export default function Operacional() {
   };
 
   // ============== Agrupamento por coluna ==============
-  const trintaDiasAtras = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30); return d;
-  }, []);
-
+  // Sem filtro de período em nenhuma coluna.
+  // - Ativas: vêm de activeOrders (todas, sem corte de data).
+  // - Entregue: usa entreguesLoaded (paginado por scroll infinito), mas o contador
+  //   do header mostra o TOTAL real (entreguesTotal).
   const colunasComDados = useMemo(() => {
     return COLUNAS.map((c) => {
-      let list = (orders as any[]).filter((o) => c.statuses.includes(o.status));
       if (c.key === "entregue") {
-        list = list.filter((o) => o.data_conclusao && new Date(o.data_conclusao) >= trintaDiasAtras);
+        return { ...c, list: entreguesLoaded, total: entreguesTotal as number };
       }
-      return { ...c, list };
+      const list = (activeOrders as any[]).filter((o) => c.statuses.includes(o.status));
+      return { ...c, list, total: list.length };
     });
-  }, [orders, trintaDiasAtras]);
+  }, [activeOrders, entreguesLoaded, entreguesTotal]);
 
   const orfas = useMemo(() => {
     return (orders as any[]).filter(
