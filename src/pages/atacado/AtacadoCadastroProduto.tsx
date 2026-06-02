@@ -148,6 +148,32 @@ export default function AtacadoCadastroProduto() {
   const capacidadesOpts = capacidadesList.map((c) => c.nome);
   const coresOpts = coresDe(marca, modelo);
 
+  // Assistências do modelo selecionado (preço por modelo)
+  const [assistModelo, setAssistModelo] = useState<
+    { tipo_id: string; tipo_nome: string; valor: number }[]
+  >([]);
+  const [loadingAssistModelo, setLoadingAssistModelo] = useState(false);
+  useEffect(() => {
+    let cancel = false;
+    const run = async () => {
+      if (!modeloInfo?.id) {
+        setAssistModelo([]);
+        return;
+      }
+      setLoadingAssistModelo(true);
+      const { data, error } = await supabase.rpc("atacado_assist_do_modelo" as any, {
+        p_modelo_id: modeloInfo.id,
+      });
+      if (cancel) return;
+      setLoadingAssistModelo(false);
+      if (!error) setAssistModelo(((data as any) ?? []) as any);
+    };
+    run();
+    return () => {
+      cancel = true;
+    };
+  }, [modeloInfo?.id]);
+
   // Reset ao trocar marca / modelo
   useEffect(() => {
     setModelo("");
@@ -758,18 +784,39 @@ export default function AtacadoCadastroProduto() {
                     />
                   </div>
                 </div>
-                {tiposAssist.filter((t) => t.ativo).length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-xs">Assistências (carimba o valor atual)</Label>
+                <div className="space-y-2">
+                  <Label className="text-xs">
+                    Assistências{modeloInfo ? ` de ${modeloInfo.marca} ${modeloInfo.modelo}` : ""} (carimba o valor atual)
+                  </Label>
+                  {!modeloInfo ? (
+                    <p className="text-xs text-muted-foreground">
+                      Selecione um modelo para ver as assistências disponíveis.
+                    </p>
+                  ) : loadingAssistModelo ? (
+                    <p className="text-xs text-muted-foreground">Carregando…</p>
+                  ) : assistModelo.length === 0 ? (
+                    <div className="text-xs flex items-center gap-2 flex-wrap p-2 rounded-md border bg-muted/30">
+                      <span className="text-muted-foreground">
+                        Nenhuma assistência cadastrada para este modelo.
+                      </span>
+                      <Link
+                        to="/atacado/configuracoes"
+                        target="_blank"
+                        className="underline text-primary"
+                      >
+                        Cadastrar agora
+                      </Link>
+                    </div>
+                  ) : (
                     <div className="flex flex-wrap gap-2">
-                      {tiposAssist.filter((t) => t.ativo).map((t) => {
-                        const ativo = !!u.assistencias.find((a) => a.nome === t.nome);
+                      {assistModelo.map((t) => {
+                        const ativo = !!u.assistencias.find((a) => a.nome === t.tipo_nome);
                         return (
                           <button
-                            key={t.id}
+                            key={t.tipo_id}
                             type="button"
                             onClick={() =>
-                              toggleAssistencia(i, t.nome, Number(t.valor_padrao) || 0)
+                              toggleAssistencia(i, t.tipo_nome, Number(t.valor) || 0)
                             }
                             className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
                               ativo
@@ -777,13 +824,14 @@ export default function AtacadoCadastroProduto() {
                                 : "bg-background border-border hover:bg-muted"
                             }`}
                           >
-                            {t.nome} · {brl(Number(t.valor_padrao) || 0)}
+                            {t.tipo_nome} · {brl(Number(t.valor) || 0)}
                           </button>
                         );
                       })}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+
               </div>
             );
           })}

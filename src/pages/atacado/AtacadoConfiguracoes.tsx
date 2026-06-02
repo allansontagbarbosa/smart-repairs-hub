@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
-import { Settings, FileText, Calendar, Shield, Bell, Loader2, Save, AlertCircle, List } from "lucide-react";
+import { Settings, FileText, Calendar, Shield, Bell, Loader2, Save, AlertCircle, List, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListasManager } from "@/components/atacado/ListasManager";
+import { AssistenciasPorModelo } from "@/components/atacado/AssistenciasPorModelo";
 
 type Config = Record<string, any>;
 
@@ -99,6 +100,9 @@ export default function AtacadoConfiguracoes() {
           </TabsTrigger>
           <TabsTrigger value="listas">
             <List className="h-4 w-4 mr-2" /> Cadastros
+          </TabsTrigger>
+          <TabsTrigger value="assist-modelo">
+            <Wrench className="h-4 w-4 mr-2" /> Assistências por modelo
           </TabsTrigger>
         </TabsList>
 
@@ -357,6 +361,13 @@ export default function AtacadoConfiguracoes() {
         <TabsContent value="listas">
           <Card className="p-6">
             <ListasManager />
+          </Card>
+        </TabsContent>
+
+        {/* Assistências por modelo */}
+        <TabsContent value="assist-modelo">
+          <Card className="p-6">
+            <AssistenciasPorModelo />
           </Card>
         </TabsContent>
       </Tabs>
