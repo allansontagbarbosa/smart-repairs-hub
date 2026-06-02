@@ -363,6 +363,13 @@ export default function AtacadoConfiguracoes() {
             <ListasManager />
           </Card>
         </TabsContent>
+
+        {/* Assistências por modelo */}
+        <TabsContent value="assist-modelo">
+          <Card className="p-6">
+            <AssistenciasPorModelo />
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
