@@ -126,9 +126,10 @@ export default function Operacional() {
   // ============== MODO MESA / POR TÉCNICO ==============
   // Mostra SOMENTE os em_reparo, uma coluna por técnico.
   const emReparo = useMemo(
-    () => ativas.filter((o: any) => o.status === "em_reparo"),
+    () => ativas.filter((o: any) => naColuna(o, "em_reparo")),
     [ativas]
   );
+
   const tecnicosColunas = useMemo(() => {
     const tecs = Array.from(new Set(emReparo.flatMap(tecnicosNomes))).sort();
     return tecs;
