@@ -10170,6 +10170,16 @@ export type Database = {
         Returns: number
       }
       onboarding_criar_empresa: { Args: { p_payload: Json }; Returns: Json }
+      os_aguardando_sem_peca: {
+        Args: never
+        Returns: {
+          aparelho: string
+          cliente: string
+          desde: string
+          numero: number
+          os_id: string
+        }[]
+      }
       os_status_em_casa: { Args: { p_status: string }; Returns: boolean }
       os_status_mapear_legado: { Args: { p_status: string }; Returns: string }
       os_status_reconhece_receita: {
