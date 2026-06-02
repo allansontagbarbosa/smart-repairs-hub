@@ -395,7 +395,7 @@ export default function Operacional() {
                         key={t.id}
                         onClick={() => atribuirTec.mutate({ ordemId: order.id, tecnicoId: t.id })}
                       >
-                        <span className={cn("w-2 h-2 rounded-full mr-2", colorForTec(t.id).dot)} />
+                        <span className="w-2 h-2 rounded-full mr-2 inline-block" style={colorForTec(t.id).dot} />
                         {t.nome}
                       </DropdownMenuItem>
                     ))}
