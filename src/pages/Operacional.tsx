@@ -18,6 +18,23 @@ import { useAparelhosNaRua, useGarantiasTerceiroVigentes } from "@/hooks/useTerc
 
 type Modo = "fluxo" | "mesa";
 
+// Mapa central: cada coluna do Kanban aceita um ou mais valores REAIS de status.
+// Ajustado conforme valores reais no banco (recebido, em_analise, aguardando_peca,
+// terceirizado, garantia, pronto). "em_reparo" agrega todos os status que
+// representam "o técnico está trabalhando nisso".
+const STATUS_POR_COLUNA: Record<string, Status[]> = {
+  na_rua:           ["terceirizado"],
+  aguardando_pecas: ["aguardando_peca"],
+  garantia:         ["garantia"],
+  em_reparo:        ["em_reparo", "em_analise", "aprovado", "aguardando_aprovacao"],
+  prontos:          ["pronto"],
+};
+const TODOS_STATUS_MAPEADOS = new Set<Status>(
+  Object.values(STATUS_POR_COLUNA).flat() as Status[]
+);
+const naColuna = (o: any, colKey: keyof typeof STATUS_POR_COLUNA) =>
+  STATUS_POR_COLUNA[colKey].includes(o.status);
+
 // Cores das colunas do modo Fluxo (conforme spec)
 const FLUXO_COLORS: Record<string, { header: string; dot: string; ring: string }> = {
   na_rua:           { header: "bg-[hsl(270_72%_64%/0.18)]", dot: "bg-[hsl(270_72%_58%)]", ring: "ring-[hsl(270_72%_58%/0.4)]" },
@@ -25,8 +42,10 @@ const FLUXO_COLORS: Record<string, { header: string; dot: string; ring: string }
   garantia:         { header: "bg-[hsl(207_78%_57%/0.18)]", dot: "bg-[hsl(207_78%_50%)]", ring: "ring-[hsl(207_78%_50%/0.4)]" },
   em_reparo:        { header: "bg-[hsl(217_78%_57%/0.18)]", dot: "bg-[hsl(217_78%_50%)]", ring: "ring-[hsl(217_78%_50%/0.4)]" },
   prontos:          { header: "bg-[hsl(165_100%_39%/0.18)]",dot: "bg-[hsl(165_100%_39%)]",ring: "ring-[hsl(165_100%_39%/0.4)]" },
+  outros:           { header: "bg-muted/60", dot: "bg-muted-foreground", ring: "ring-muted-foreground/40" },
   mesa:             { header: "bg-muted/40", dot: "bg-primary", ring: "ring-primary/40" },
 };
+
 
 async function fetchOrders() {
   const ninetyDaysAgo = new Date();
