@@ -769,7 +769,14 @@ export default function Operacional() {
         </div>
       </div>
 
-      <ErrorBoundary fallback={null}>
+      <ErrorBoundary
+        key={selectedOrderId ?? "sem-os"}
+        fallback={
+          <div className="fixed bottom-4 right-4 z-50 rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">
+            Erro ao abrir detalhe
+          </div>
+        }
+      >
         <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
       </ErrorBoundary>
     </div>
