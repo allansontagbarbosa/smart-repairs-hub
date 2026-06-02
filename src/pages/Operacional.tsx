@@ -355,7 +355,7 @@ export default function Operacional() {
       color: "garantia",
       statusKey: "garantia" as Status,
       render: (q) => {
-        const daLoja = ativas.filter((o: any) => o.status === "garantia" && cardMatchesBusca(o, q));
+        const daLoja = ativas.filter((o: any) => naColuna(o, "garantia") && cardMatchesBusca(o, q));
         const doTerceiro = (garantiasTerceiro as any[]).filter((g) => {
           const order = ordemById.get(g.os_id);
           const numero = order?.numero ?? "";
