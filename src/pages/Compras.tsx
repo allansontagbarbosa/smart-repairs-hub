@@ -6,6 +6,7 @@ import { PedidosCompraList } from "@/components/fornecedores/PedidosCompraList";
 import { PedidoCompraDialog } from "@/components/fornecedores/PedidoCompraDialog";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import ListaComprasDia from "@/pages/compras/ListaComprasDia";
 
 export default function Compras() {
   const { itens, isLoading } = useEstoque();
@@ -30,11 +31,16 @@ export default function Compras() {
         </p>
       </div>
 
-      <Tabs defaultValue="recebidas" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md h-10 sm:h-9">
+      <Tabs defaultValue="lista-dia" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 max-w-xl h-10 sm:h-9">
+          <TabsTrigger value="lista-dia">Lista do dia</TabsTrigger>
           <TabsTrigger value="pedidos">Pedidos de compra</TabsTrigger>
           <TabsTrigger value="recebidas">Compras recebidas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="lista-dia">
+          <ListaComprasDia />
+        </TabsContent>
 
         <TabsContent value="pedidos">
           <PedidosCompraList onNewPedido={() => setPedidoOpen(true)} />

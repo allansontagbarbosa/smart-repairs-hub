@@ -9598,6 +9598,17 @@ export type Database = {
         Args: { p_fim: string; p_funcionario_id: string; p_inicio: string }
         Returns: Json
       }
+      compras_lista_do_dia: {
+        Args: never
+        Returns: {
+          os_list: Json
+          peca_chave: string
+          peca_id: string
+          peca_nome: string
+          quantidade_total: number
+          ultimo_custo: number
+        }[]
+      }
       concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       consolidar_comissoes_em_contas_pagar: {
         Args: { p_competencia: string }
