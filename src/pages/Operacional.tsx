@@ -104,7 +104,7 @@ const ATIVOS: Status[] = [
   "em_reparo", "aguardando_peca", "terceirizado", "garantia", "pronto",
 ];
 
-const OS_SELECT = `*, aparelhos ( marca, modelo, tipo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`;
+const OS_SELECT = `*, aparelhos ( marca, modelo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`;
 
 async function fetchActiveOrders() {
   const { data, error } = await supabase
