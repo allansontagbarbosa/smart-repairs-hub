@@ -124,16 +124,46 @@ export default function Operacional() {
   }, [orders]);
 
   // ============== MODO MESA / POR TÉCNICO ==============
-  // Mostra SOMENTE os em_reparo, uma coluna por técnico.
+  // Mostra todas as OS de trabalho (não entregue/cancelada/pronta), agrupadas
+  // por técnico cadastrado, mais coluna "Sem técnico" (não atribuídas).
   const emReparo = useMemo(
     () => ativas.filter((o: any) => naColuna(o, "em_reparo")),
     [ativas]
   );
+  const ordensDeTrabalho = useMemo(
+    () => ativas.filter((o: any) => o.status !== "pronto"),
+    [ativas]
+  );
 
-  const tecnicosColunas = useMemo(() => {
-    const tecs = Array.from(new Set(emReparo.flatMap(tecnicosNomes))).sort();
-    return tecs;
-  }, [emReparo]);
+  // Lista de TODOS os técnicos cadastrados na empresa (RLS filtra por empresa).
+  const { data: tecnicosCadastrados = [] } = useQuery({
+    queryKey: ["funcionarios", "tecnicos-operacional"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo")
+        .is("deleted_at", null)
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []).filter((f: any) =>
+        (f.cargo ?? "").toLowerCase().includes("tecnic")
+      );
+    },
+  });
+
+  const semTecnico = useMemo(
+    () => ordensDeTrabalho.filter((o: any) => tecnicosNomes(o).length === 0),
+    [ordensDeTrabalho]
+  );
+
+  const valorAberto = (o: any) => {
+    const total = Number(o.valor_total ?? o.valor ?? 0);
+    const sinal = Number(o.sinal_pago ?? 0);
+    return Math.max(0, total - sinal);
+  };
+  const fmtBRL = (n: number) =>
+    `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   const cardMatchesBusca = (o: any, q: string) => {
     if (!q) return true;
