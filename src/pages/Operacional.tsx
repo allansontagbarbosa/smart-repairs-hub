@@ -143,10 +143,62 @@ export default function Operacional() {
   const [dragOver, setDragOver] = useState<string | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
 
-  const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["ordens", "ultimos-90"],
-    queryFn: fetchOrders,
+  // ============== OS ATIVAS (sem filtro de período) ==============
+  const { data: activeOrders = [], isLoading } = useQuery({
+    queryKey: ["ordens", "ativas"],
+    queryFn: fetchActiveOrders,
   });
+
+  // ============== OS ENTREGUES (scroll infinito, sem filtro de período) ==============
+  const entreguesQuery = useInfiniteQuery({
+    queryKey: ["ordens", "entregues", "infinite"],
+    queryFn: ({ pageParam = 0 }) => fetchEntreguesPage(pageParam as number),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < PAGE_ENTREGUES) return undefined;
+      return allPages.reduce((acc, p) => acc + p.length, 0);
+    },
+  });
+  const entreguesLoaded = useMemo(
+    () => (entreguesQuery.data?.pages ?? []).flat() as any[],
+    [entreguesQuery.data],
+  );
+
+  // Total real de entregues (para o contador do header da coluna)
+  const { data: entreguesTotal = 0 } = useQuery({
+    queryKey: ["ordens", "entregues", "count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("ordens_de_servico")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "entregue");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Entregues do mês (para KPIs / resumo por técnico)
+  const inicioMesIso = useMemo(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString();
+  }, []);
+  const { data: entreguesMes = [] } = useQuery({
+    queryKey: ["ordens", "entregues-mes", inicioMesIso],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ordens_de_servico")
+        .select(`id, data_entrada, data_conclusao, status, os_servicos ( id, funcionarios ( id, nome ) )`)
+        .eq("status", "entregue")
+        .gte("data_conclusao", inicioMesIso);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Combinado para reaproveitar lógica que precisa de ativas + entregues carregadas
+  const orders = useMemo(
+    () => [...(activeOrders as any[]), ...entreguesLoaded],
+    [activeOrders, entreguesLoaded],
+  );
 
   const { data: tecnicos = [] } = useQuery({
     queryKey: ["funcionarios", "tecnicos-operacional"],
