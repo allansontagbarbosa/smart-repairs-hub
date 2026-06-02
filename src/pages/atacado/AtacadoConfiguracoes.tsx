@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListasManager } from "@/components/atacado/ListasManager";
+import { AssistenciasPorModelo } from "@/components/atacado/AssistenciasPorModelo";
 
 type Config = Record<string, any>;
 
