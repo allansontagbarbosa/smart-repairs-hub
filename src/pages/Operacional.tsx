@@ -98,14 +98,31 @@ function iniciais(nome: string) {
     .join("");
 }
 
-async function fetchOrders() {
-  const limite = new Date();
-  limite.setDate(limite.getDate() - 90);
+const ATIVOS: Status[] = [
+  "recebido", "em_analise", "aguardando_aprovacao", "aprovado",
+  "em_reparo", "aguardando_peca", "terceirizado", "garantia", "pronto",
+];
+
+const OS_SELECT = `*, aparelhos ( marca, modelo, tipo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`;
+
+async function fetchActiveOrders() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, tipo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`)
-    .gte("data_entrada", limite.toISOString())
+    .select(OS_SELECT)
+    .in("status", ATIVOS)
     .order("data_entrada", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+const PAGE_ENTREGUES = 50;
+async function fetchEntreguesPage(offset: number) {
+  const { data, error } = await supabase
+    .from("ordens_de_servico")
+    .select(OS_SELECT)
+    .eq("status", "entregue")
+    .order("data_entrada", { ascending: false })
+    .range(offset, offset + PAGE_ENTREGUES - 1);
   if (error) throw error;
   return data ?? [];
 }
