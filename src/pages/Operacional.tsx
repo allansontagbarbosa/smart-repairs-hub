@@ -621,7 +621,7 @@ export default function Operacional() {
                       </span>
                     </div>
                     <span className="text-[11px] text-foreground/80 bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                      {col.list.length}
+                      {(col as any).total ?? col.list.length}
                     </span>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">{col.subtitulo}</div>
