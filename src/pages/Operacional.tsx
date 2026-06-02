@@ -62,15 +62,16 @@ const COLUNAS: ColunaDef[] = [
 
 const STATUS_MAPEADOS = new Set<Status>(COLUNAS.flatMap((c) => c.statuses));
 
-// Cor estável por técnico (HSL — distribui no círculo)
-function colorForTec(id: string): { dot: string; bg: string; text: string } {
+// Cor estável por técnico (HSL — distribui no círculo). Usa style inline
+// porque Tailwind JIT não compila classes dinâmicas com interpolação.
+function colorForTec(id: string): { dot: React.CSSProperties; bg: React.CSSProperties; hue: number } {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   const hue = h % 360;
   return {
-    dot:  `bg-[hsl(${hue}_72%_55%)]`,
-    bg:   `bg-[hsl(${hue}_72%_55%/0.18)]`,
-    text: `text-[hsl(${hue}_72%_70%)]`,
+    dot: { backgroundColor: `hsl(${hue} 72% 55%)` },
+    bg:  { backgroundColor: `hsl(${hue} 72% 55% / 0.18)` },
+    hue,
   };
 }
 
