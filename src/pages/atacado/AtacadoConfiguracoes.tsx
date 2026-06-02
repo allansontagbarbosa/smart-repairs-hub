@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
-import { Settings, FileText, Calendar, Shield, Bell, Loader2, Save, AlertCircle } from "lucide-react";
+import { Settings, FileText, Calendar, Shield, Bell, Loader2, Save, AlertCircle, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ListasManager } from "@/components/atacado/ListasManager";
 
 type Config = Record<string, any>;
 
@@ -95,6 +96,9 @@ export default function AtacadoConfiguracoes() {
           </TabsTrigger>
           <TabsTrigger value="notif">
             <Bell className="h-4 w-4 mr-2" /> Notificações
+          </TabsTrigger>
+          <TabsTrigger value="listas">
+            <List className="h-4 w-4 mr-2" /> Cadastros
           </TabsTrigger>
         </TabsList>
 
@@ -346,6 +350,13 @@ export default function AtacadoConfiguracoes() {
                 onChange={(e) => set("lembrete_vencimento_dias", parseInt(e.target.value) || 0)}
               />
             </Field>
+          </Card>
+        </TabsContent>
+
+        {/* Cadastros / Listas */}
+        <TabsContent value="listas">
+          <Card className="p-6">
+            <ListasManager />
           </Card>
         </TabsContent>
       </Tabs>
