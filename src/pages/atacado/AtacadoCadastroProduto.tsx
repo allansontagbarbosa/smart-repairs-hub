@@ -84,12 +84,20 @@ export default function AtacadoCadastroProduto() {
     marcas,
     modelosDe,
     infoModelo,
+    paises,
+    capacidadesList,
+    condicoes,
+    fornecedores,
+    coresDe,
     adicionarModelo,
     adicionarCapacidade,
     adicionarCor,
     adicionarGrade,
     adicionarStatus,
     adicionarMoeda,
+    addPais,
+    addCondicao,
+    addFornecedor,
     recarregar,
   } = useAtacadoCadastroDados();
 
@@ -137,8 +145,8 @@ export default function AtacadoCadastroProduto() {
   const [salvando, setSalvando] = useState(false);
 
   const modeloInfo = useMemo(() => infoModelo(marca, modelo), [marca, modelo, infoModelo]);
-  const capacidadesOpts = modeloInfo?.capacidades ?? [];
-  const coresOpts = modeloInfo?.cores ?? [];
+  const capacidadesOpts = capacidadesList.map((c) => c.nome);
+  const coresOpts = coresDe(marca, modelo);
 
   // Reset ao trocar marca / modelo
   useEffect(() => {
