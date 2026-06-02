@@ -18,7 +18,7 @@ import MinhaConta from "./pages/conta/MinhaConta";
 import Dashboard from "./pages/Dashboard";
 import Assistencia from "./pages/Assistencia";
 import ExclusaoOSCanceladas from "./pages/ExclusaoOSCanceladas";
-import FluxoAssistencia from "./pages/FluxoAssistencia";
+
 import Operacional from "./pages/Operacional";
 import AparelhosNaRua from "./pages/assistencia/AparelhosNaRua";
 import Terceiros from "./pages/assistencia/Terceiros";
@@ -256,7 +256,7 @@ const App = () => (
                     <Route path="/dashboard" element={<ProtectedRoute permissao="dashboard"><Dashboard /></ProtectedRoute>} />
                     <Route path="/assistencia" element={<ProtectedRoute permissao="assistencia.ver"><Assistencia /></ProtectedRoute>} />
                     <Route path="/assistencia/exclusao-canceladas" element={<ProtectedRoute permissao="assistencia.excluir"><ExclusaoOSCanceladas /></ProtectedRoute>} />
-                    <Route path="/assistencia/fluxo" element={<ProtectedRoute permissao="assistencia.ver"><FluxoAssistencia /></ProtectedRoute>} />
+                    <Route path="/assistencia/fluxo" element={<Navigate to="/operacional" replace />} />
                     <Route path="/operacional" element={<ProtectedRoute permissao="assistencia.ver"><Operacional /></ProtectedRoute>} />
                     <Route path="/assistencia/aparelhos-na-rua" element={<ProtectedRoute permissao="assistencia.ver"><AparelhosNaRua /></ProtectedRoute>} />
                     <Route path="/assistencia/terceiros" element={<ProtectedRoute permissao="assistencia.ver"><Terceiros /></ProtectedRoute>} />
