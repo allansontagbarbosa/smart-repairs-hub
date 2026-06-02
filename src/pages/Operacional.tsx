@@ -785,3 +785,48 @@ function Indicador({
     </div>
   );
 }
+
+function EntreguesSentinel({
+  hasNext,
+  isFetching,
+  onLoadMore,
+}: {
+  hasNext: boolean;
+  isFetching: boolean;
+  onLoadMore: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!hasNext) return;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !isFetching) onLoadMore();
+      },
+      { root: null, rootMargin: "120px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasNext, isFetching, onLoadMore]);
+
+  return (
+    <div ref={ref} className="py-3 flex items-center justify-center">
+      {isFetching ? (
+        <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> carregando…
+        </span>
+      ) : hasNext ? (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          carregar mais
+        </button>
+      ) : (
+        <span className="text-[10px] text-muted-foreground/60 italic">— fim —</span>
+      )}
+    </div>
+  );
+}
