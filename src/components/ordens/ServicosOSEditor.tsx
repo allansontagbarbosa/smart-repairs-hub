@@ -96,7 +96,10 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   const [pendingRemove, setPendingRemove] = useState<number | null>(null);
   const [novo, setNovo] = useState<ServicoOSPayload>({ servico_id: "", tecnico_id: null, valor: 0, comissao: 0, motivo_sem_tecnico: null, valor_terceirizado: 0 });
 
-  useEffect(() => setServicos(servicosIniciais.map(clean)), [servicosIniciais]);
+  useEffect(() => {
+    const next = servicosIniciais.map(clean);
+    setServicos((prev) => (sameList(prev, next) ? prev : next));
+  }, [servicosIniciais]);
 
   function updateServicos(next: ServicoOSPayload[]) {
     setServicos(next);
