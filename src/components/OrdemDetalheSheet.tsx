@@ -268,31 +268,17 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
     : null;
   const tecnicos = tecnicoAtualForaDaLista ? [tecnicoAtualForaDaLista, ...funcionariosAtivos] : funcionariosAtivos;
 
-  const { data: servicosOSDetalhados = [] } = useOSServicos(orderId);
+  const { data: servicosOSRaw } = useOSServicos(orderId);
+  const servicosOSDetalhados = useMemo(
+    () => (servicosOSRaw ?? EMPTY_SERVICOS_DETALHADOS).map(normalizeServicoEditor),
+    [servicosOSRaw],
+  );
 
-  // Sincroniza o draft com os dados do servidor SEM causar loop.
-  // Usa updater funcional + comparação rasa por campos relevantes:
-  // se nada mudou, retorna a referência anterior e o React não re-renderiza.
+  // Sincroniza o draft apenas quando os dados reais do servidor mudam.
   useEffect(() => {
-    setServicosEditorDraft((prev) => {
-      if (
-        prev.length === servicosOSDetalhados.length &&
-        prev.every((p, i) => {
-          const n = servicosOSDetalhados[i];
-          return (
-            !!n &&
-            p.id === n.id &&
-            p.servico_id === n.servico_id &&
-            p.tecnico_id === n.tecnico_id &&
-            p.valor === n.valor &&
-            p.comissao === n.comissao
-          );
-        })
-      ) {
-        return prev;
-      }
-      return servicosOSDetalhados;
-    });
+    setServicosEditorDraft((prev) => (
+      sameServicosEditor(prev, servicosOSDetalhados) ? prev : servicosOSDetalhados
+    ));
   }, [servicosOSDetalhados]);
 
   // Lista de lojistas ativos da empresa
@@ -343,17 +329,24 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
 
   // Hidrata servicosSelecionados ao entrar em edição (chave = servico_id, fallback id)
   useEffect(() => {
-    if (editing) {
-      setServicosSelecionados(
-        (servicosAtuais as any[]).map((s) => ({
-          id: s.servico_id ?? s.id,
-          nome: s.nome,
-          categoria: s.categoria ?? undefined,
-          valor_mao_obra: Number(s.valor) || 0,
-          comissao_padrao: Number(s.comissao) || 0,
-        }))
-      );
-    }
+    if (!editing) return;
+    const next = (servicosAtuais as any[]).map((s) => ({
+      id: s.servico_id ?? s.id,
+      nome: s.nome,
+      categoria: s.categoria ?? undefined,
+      valor_mao_obra: Number(s.valor) || 0,
+      comissao_padrao: Number(s.comissao) || 0,
+    }));
+    setServicosSelecionados((prev) => {
+      if (
+        prev.length === next.length &&
+        prev.every((p, i) => {
+          const n = next[i];
+          return !!n && p.id === n.id && p.nome === n.nome && p.categoria === n.categoria && p.valor_mao_obra === n.valor_mao_obra && p.comissao_padrao === n.comissao_padrao;
+        })
+      ) return prev;
+      return next;
+    });
   }, [editing, servicosAtuais]);
 
   // Mutation: editar_os_servicos
