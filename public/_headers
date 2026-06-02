@@ -1,3 +1,11 @@
+/*
+  Content-Security-Policy-Report-Only: default-src 'self'; connect-src 'self' https://cgsdnvuigolxwzfmnykk.supabase.co https://*.supabase.co wss://cgsdnvuigolxwzfmnykk.supabase.co https://*.lovable.app https://*.lovable.dev; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
