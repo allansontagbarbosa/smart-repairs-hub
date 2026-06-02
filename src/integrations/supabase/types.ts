@@ -2757,6 +2757,45 @@ export type Database = {
           },
         ]
       }
+      compras_lista_ajustes: {
+        Row: {
+          avulso: boolean | null
+          comprado: boolean | null
+          created_at: string | null
+          custo_manual: number | null
+          data_ref: string
+          empresa_id: string
+          id: string
+          peca_chave: string
+          peca_nome: string | null
+          qtd_ajustada: number | null
+        }
+        Insert: {
+          avulso?: boolean | null
+          comprado?: boolean | null
+          created_at?: string | null
+          custo_manual?: number | null
+          data_ref?: string
+          empresa_id: string
+          id?: string
+          peca_chave: string
+          peca_nome?: string | null
+          qtd_ajustada?: number | null
+        }
+        Update: {
+          avulso?: boolean | null
+          comprado?: boolean | null
+          created_at?: string | null
+          custo_manual?: number | null
+          data_ref?: string
+          empresa_id?: string
+          id?: string
+          peca_chave?: string
+          peca_nome?: string | null
+          qtd_ajustada?: number | null
+        }
+        Relationships: []
+      }
       conferencia_itens: {
         Row: {
           conferencia_id: string
@@ -9609,6 +9648,11 @@ export type Database = {
           ultimo_custo: number
         }[]
       }
+      compras_remover_avulso: {
+        Args: { p_data: string; p_peca_chave: string }
+        Returns: Json
+      }
+      compras_salvar_ajuste: { Args: { p_payload: Json }; Returns: Json }
       concluir_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
       consolidar_comissoes_em_contas_pagar: {
         Args: { p_competencia: string }
