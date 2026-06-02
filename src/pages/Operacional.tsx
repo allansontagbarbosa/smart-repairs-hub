@@ -2,85 +2,125 @@ import { useMemo, useRef, useState, DragEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Search, LayoutGrid, Users, Loader2, Clock, AlertTriangle, MessageCircle,
-  Truck, PackageSearch, ShieldCheck, Wrench, CheckCircle2,
+  Search, Loader2, Clock, AlertTriangle, MoreVertical,
+  Inbox, Stethoscope, FileCheck2, Wrench, PackageSearch, Truck,
+  ShieldCheck, CheckCircle2, PackageCheck, Smartphone, Laptop, Tablet,
+  Gamepad2, Plus, Users, TrendingUp, Star, Timer,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
 import { calcularPrioridade } from "@/lib/prioridade";
 import { statusLabels, type Status } from "@/lib/status";
-import { abrirWhatsApp } from "@/lib/whatsapp";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
-import { useAparelhosNaRua, useGarantiasTerceiroVigentes } from "@/hooks/useTerceirizacao";
+import { DittLogo } from "@/components/DittLogo";
+import { atribuirTodaOSAoTecnico } from "@/hooks/useAtualizarTecnicoServico";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger,
+  DropdownMenuSubContent, DropdownMenuPortal, DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
-type Modo = "fluxo" | "mesa";
-
-// Mapa central: cada coluna do Kanban aceita um ou mais valores REAIS de status.
-// Ajustado conforme valores reais no banco (recebido, em_analise, aguardando_peca,
-// terceirizado, garantia, pronto). "em_reparo" agrega todos os status que
-// representam "o técnico está trabalhando nisso".
-const STATUS_POR_COLUNA: Record<string, Status[]> = {
-  na_rua:           ["terceirizado"],
-  aguardando_pecas: ["aguardando_peca"],
-  garantia:         ["garantia"],
-  em_reparo:        ["em_reparo", "em_analise", "aprovado", "aguardando_aprovacao"],
-  prontos:          ["pronto"],
-};
-const TODOS_STATUS_MAPEADOS = new Set<Status>(
-  Object.values(STATUS_POR_COLUNA).flat() as Status[]
-);
-const naColuna = (o: any, colKey: keyof typeof STATUS_POR_COLUNA) =>
-  STATUS_POR_COLUNA[colKey].includes(o.status);
-
-// Cores das colunas do modo Fluxo (conforme spec)
-const FLUXO_COLORS: Record<string, { header: string; dot: string; ring: string }> = {
-  na_rua:           { header: "bg-[hsl(270_72%_64%/0.18)]", dot: "bg-[hsl(270_72%_58%)]", ring: "ring-[hsl(270_72%_58%/0.4)]" },
-  aguardando_pecas: { header: "bg-[hsl(34_82%_56%/0.18)]",  dot: "bg-[hsl(34_82%_50%)]",  ring: "ring-[hsl(34_82%_50%/0.4)]" },
-  garantia:         { header: "bg-[hsl(207_78%_57%/0.18)]", dot: "bg-[hsl(207_78%_50%)]", ring: "ring-[hsl(207_78%_50%/0.4)]" },
-  em_reparo:        { header: "bg-[hsl(217_78%_57%/0.18)]", dot: "bg-[hsl(217_78%_50%)]", ring: "ring-[hsl(217_78%_50%/0.4)]" },
-  prontos:          { header: "bg-[hsl(165_100%_39%/0.18)]",dot: "bg-[hsl(165_100%_39%)]",ring: "ring-[hsl(165_100%_39%/0.4)]" },
-  outros:           { header: "bg-muted/60", dot: "bg-muted-foreground", ring: "ring-muted-foreground/40" },
-  mesa:             { header: "bg-muted/40", dot: "bg-primary", ring: "ring-primary/40" },
+// ============================================================
+// Coluna do painel (etapa) -> 1+ status reais
+// ============================================================
+type ColunaDef = {
+  key: string;
+  nome: string;
+  subtitulo: string;
+  icon: React.ReactNode;
+  statuses: Status[];
+  /** Status alvo quando o card é solto/movido para esta etapa */
+  alvo: Status;
+  /** Acento HSL (header + dot + ring) */
+  accent: { header: string; dot: string; ring: string; text: string };
 };
 
+const ACCENTS = {
+  blue:   { header: "bg-[hsl(210_85%_56%/0.18)]", dot: "bg-[hsl(210_85%_56%)]", ring: "ring-[hsl(210_85%_56%/0.45)]", text: "text-[hsl(210_85%_70%)]" },
+  amber:  { header: "bg-[hsl(34_92%_56%/0.18)]",  dot: "bg-[hsl(34_92%_56%)]",  ring: "ring-[hsl(34_92%_56%/0.45)]",  text: "text-[hsl(34_92%_66%)]"  },
+  violet: { header: "bg-[hsl(270_72%_64%/0.18)]", dot: "bg-[hsl(270_72%_64%)]", ring: "ring-[hsl(270_72%_64%/0.45)]", text: "text-[hsl(270_72%_75%)]" },
+  green:  { header: "bg-[hsl(165_100%_39%/0.18)]",dot: "bg-[hsl(165_100%_39%)]",ring: "ring-[hsl(165_100%_39%/0.45)]",text: "text-[hsl(165_100%_50%)]" },
+  cyan:   { header: "bg-[hsl(190_85%_50%/0.18)]", dot: "bg-[hsl(190_85%_50%)]", ring: "ring-[hsl(190_85%_50%/0.45)]", text: "text-[hsl(190_85%_60%)]" },
+  gray:   { header: "bg-muted/60",                 dot: "bg-muted-foreground",   ring: "ring-muted-foreground/40",     text: "text-muted-foreground"   },
+};
+
+const COLUNAS: ColunaDef[] = [
+  { key: "recebido",     nome: "Recebido",            subtitulo: "Aguardando triagem",  icon: <Inbox className="h-3.5 w-3.5" />,       statuses: ["recebido"],                          alvo: "recebido",            accent: ACCENTS.blue   },
+  { key: "em_analise",   nome: "Em análise",          subtitulo: "Diagnosticando",      icon: <Stethoscope className="h-3.5 w-3.5" />, statuses: ["em_analise"],                        alvo: "em_analise",          accent: ACCENTS.blue   },
+  { key: "aprovacao",    nome: "Orçamento/Aprovação", subtitulo: "Aguardando aprovação",icon: <FileCheck2 className="h-3.5 w-3.5" />,  statuses: ["aguardando_aprovacao", "aprovado"],  alvo: "aguardando_aprovacao",accent: ACCENTS.amber  },
+  { key: "em_reparo",    nome: "Em reparo",           subtitulo: "Trabalho ativo",      icon: <Wrench className="h-3.5 w-3.5" />,      statuses: ["em_reparo"],                         alvo: "em_reparo",           accent: ACCENTS.amber  },
+  { key: "aguardando_peca", nome: "Aguardando peça",  subtitulo: "Peça a caminho",      icon: <PackageSearch className="h-3.5 w-3.5"/>,statuses: ["aguardando_peca"],                   alvo: "aguardando_peca",     accent: ACCENTS.green  },
+  { key: "terceirizado", nome: "Terceiro / Na rua",   subtitulo: "No técnico externo",  icon: <Truck className="h-3.5 w-3.5" />,       statuses: ["terceirizado"],                      alvo: "terceirizado",        accent: ACCENTS.violet },
+  { key: "garantia",     nome: "Garantia",            subtitulo: "Em garantia",         icon: <ShieldCheck className="h-3.5 w-3.5" />, statuses: ["garantia"],                          alvo: "garantia",            accent: ACCENTS.cyan   },
+  { key: "pronto",       nome: "Pronto",              subtitulo: "Aguardando retirada", icon: <CheckCircle2 className="h-3.5 w-3.5" />,statuses: ["pronto"],                            alvo: "pronto",              accent: ACCENTS.green  },
+  { key: "entregue",     nome: "Entregue",            subtitulo: "Finalizado (30d)",    icon: <PackageCheck className="h-3.5 w-3.5" />,statuses: ["entregue"],                          alvo: "entregue",            accent: ACCENTS.gray   },
+];
+
+const STATUS_MAPEADOS = new Set<Status>(COLUNAS.flatMap((c) => c.statuses));
+
+// Cor estável por técnico (HSL — distribui no círculo)
+function colorForTec(id: string): { dot: string; bg: string; text: string } {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return {
+    dot:  `bg-[hsl(${hue}_72%_55%)]`,
+    bg:   `bg-[hsl(${hue}_72%_55%/0.18)]`,
+    text: `text-[hsl(${hue}_72%_70%)]`,
+  };
+}
+
+function iconAparelho(tipo?: string | null) {
+  const t = (tipo ?? "").toLowerCase();
+  if (t.includes("note") || t.includes("laptop")) return <Laptop className="h-3.5 w-3.5" />;
+  if (t.includes("tablet") || t.includes("ipad")) return <Tablet className="h-3.5 w-3.5" />;
+  if (t.includes("console") || t.includes("game") || t.includes("xbox") || t.includes("play")) return <Gamepad2 className="h-3.5 w-3.5" />;
+  return <Smartphone className="h-3.5 w-3.5" />;
+}
+
+function daysBetween(a: string, b?: string | null) {
+  const t1 = new Date(a).getTime();
+  const t2 = b ? new Date(b).getTime() : Date.now();
+  return Math.max(0, Math.floor((t2 - t1) / 86_400_000));
+}
+
+function iniciais(nome: string) {
+  return nome
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 async function fetchOrders() {
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const limite = new Date();
+  limite.setDate(limite.getDate() - 90);
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, clientes ( nome, telefone ) ), os_servicos ( tecnico_id, funcionarios ( nome ) )`)
-    .gte("data_entrada", ninetyDaysAgo.toISOString())
+    .select(`*, aparelhos ( marca, modelo, tipo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`)
+    .gte("data_entrada", limite.toISOString())
     .order("data_entrada", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
-function daysAgo(dateStr: string) {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
-}
-function tecnicosNomes(order: any): string[] {
-  return Array.from(
-    new Set(((order.os_servicos ?? []) as any[]).map((s) => s.funcionarios?.nome).filter(Boolean))
-  );
-}
-function fmtDM(d: string | null | undefined) {
-  if (!d) return "";
-  const dt = new Date(d);
-  return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+function tecsDe(order: any): { id: string; nome: string }[] {
+  const out = new Map<string, string>();
+  ((order.os_servicos ?? []) as any[]).forEach((s) => {
+    if (s.funcionarios?.id) out.set(s.funcionarios.id, s.funcionarios.nome);
+  });
+  return Array.from(out, ([id, nome]) => ({ id, nome }));
 }
 
 export default function Operacional() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [modo, setModo] = useState<Modo>(() => {
-    if (typeof window === "undefined") return "fluxo";
-    const saved = localStorage.getItem("operacional-modo");
-    return saved === "mesa" ? "mesa" : "fluxo";
-  });
   const [busca, setBusca] = useState<Record<string, string>>({});
   const [dragOver, setDragOver] = useState<string | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
@@ -89,38 +129,22 @@ export default function Operacional() {
     queryKey: ["ordens", "ultimos-90"],
     queryFn: fetchOrders,
   });
-  const { data: naRuaList = [] } = useAparelhosNaRua();
-  const { data: garantiasTerceiro = [] } = useGarantiasTerceiroVigentes();
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
-      const ordemAtual = (orders as any[]).find((o) => o.id === id);
-      const now = new Date().toISOString();
-      const updates: any = { status: newStatus };
-      if (newStatus === "pronto" && !ordemAtual?.data_conclusao) updates.data_conclusao = now;
-      if (newStatus === "aguardando_peca" && !ordemAtual?.pecas_pedido_em) {
-        updates.pecas_pedido_em = new Date().toISOString().slice(0, 10);
-      }
-      const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
+  const { data: tecnicos = [] } = useQuery({
+    queryKey: ["funcionarios", "tecnicos-operacional"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo")
+        .is("deleted_at", null)
+        .eq("ativo", true)
+        .order("nome");
       if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidateOrdensDependentes(queryClient);
-      queryClient.invalidateQueries({ queryKey: ["os-aguardando-sem-peca"] });
-      toast.success("Status atualizado!");
-    },
-    onError: (err: any) => {
-      const msg = err?.message || "Erro ao atualizar status";
-      // Mensagem clara quando o trigger barra a transição para 'aguardando_peca' sem peça.
-      if (/aguardando peça/i.test(msg) || /peça/i.test(msg)) {
-        toast.error(msg, { duration: 6000 });
-      } else {
-        toast.error("Erro ao atualizar status");
-      }
+      return (data ?? []).filter((f: any) => (f.cargo ?? "").toLowerCase().includes("tecnic"));
     },
   });
 
-  // OS em 'aguardando_peca' que NÃO têm peça em pecas_utilizadas — para alerta visual no card.
+  // OS em 'aguardando_peca' sem peça em pecas_utilizadas (limbo)
   const { data: osSemPeca = [] } = useQuery({
     queryKey: ["os-aguardando-sem-peca"],
     queryFn: async () => {
@@ -131,78 +155,78 @@ export default function Operacional() {
   });
   const osSemPecaSet = useMemo(
     () => new Set((osSemPeca as any[]).map((r) => r.os_id)),
-    [osSemPeca]
+    [osSemPeca],
   );
 
-  const ativas = useMemo(
-    () => (orders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
-    [orders]
-  );
-
-  // OS map for resolving terceirizações/garantias-terceiro -> ordem
-  const ordemById = useMemo(() => {
-    const m = new Map<string, any>();
-    (orders as any[]).forEach((o) => m.set(o.id, o));
-    return m;
-  }, [orders]);
-
-  // ============== MODO MESA / POR TÉCNICO ==============
-  // Mostra todas as OS de trabalho (não entregue/cancelada/pronta), agrupadas
-  // por técnico cadastrado, mais coluna "Sem técnico" (não atribuídas).
-  const emReparo = useMemo(
-    () => ativas.filter((o: any) => naColuna(o, "em_reparo")),
-    [ativas]
-  );
-  const ordensDeTrabalho = useMemo(
-    () => ativas.filter((o: any) => o.status !== "pronto"),
-    [ativas]
-  );
-
-  // Lista de TODOS os técnicos cadastrados na empresa (RLS filtra por empresa).
-  const { data: tecnicosCadastrados = [] } = useQuery({
-    queryKey: ["funcionarios", "tecnicos-operacional"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .select("id, nome, cargo")
-        .is("deleted_at", null)
-        .eq("ativo", true)
-        .order("nome");
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: Status }) => {
+      const ordemAtual = (orders as any[]).find((o) => o.id === id);
+      const now = new Date().toISOString();
+      const updates: any = { status: newStatus };
+      if (newStatus === "pronto" && !ordemAtual?.data_conclusao) updates.data_conclusao = now;
+      if (newStatus === "aguardando_peca" && !ordemAtual?.pecas_pedido_em) {
+        updates.pecas_pedido_em = now.slice(0, 10);
+      }
+      const { error } = await supabase.from("ordens_de_servico").update(updates).eq("id", id);
       if (error) throw error;
-      return (data ?? []).filter((f: any) =>
-        (f.cargo ?? "").toLowerCase().includes("tecnic")
-      );
+    },
+    onSuccess: () => {
+      invalidateOrdensDependentes(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["os-aguardando-sem-peca"] });
+      toast.success("Status atualizado");
+    },
+    onError: (err: any) => {
+      const msg = err?.message || "Erro ao atualizar status";
+      if (/peça/i.test(msg)) toast.error(msg, { duration: 6000 });
+      else toast.error("Erro ao atualizar status");
     },
   });
 
-  const semTecnico = useMemo(
-    () => ordensDeTrabalho.filter((o: any) => tecnicosNomes(o).length === 0),
-    [ordensDeTrabalho]
-  );
+  const atribuirTec = useMutation({
+    mutationFn: async ({ ordemId, tecnicoId }: { ordemId: string; tecnicoId: string | null }) => {
+      await atribuirTodaOSAoTecnico(ordemId, tecnicoId);
+    },
+    onSuccess: (_d, v) => {
+      invalidateOrdensDependentes(queryClient);
+      toast.success(v.tecnicoId ? "Técnico atribuído" : "Técnico removido");
+    },
+    onError: (err: any) => toast.error(err?.message || "Erro ao atribuir técnico"),
+  });
 
-  const valorAberto = (o: any) => {
-    const total = Number(o.valor_total ?? o.valor ?? 0);
-    const sinal = Number(o.sinal_pago ?? 0);
-    return Math.max(0, total - sinal);
-  };
-  const fmtBRL = (n: number) =>
-    `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  // ============== KPIs ==============
+  const inicioMes = useMemo(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
+  }, []);
 
-  const cardMatchesBusca = (o: any, q: string) => {
-    if (!q) return true;
-    const tecs = tecnicosNomes(o).join(" ");
-    const haystack = `${o.numero ?? ""} ${o.aparelhos?.clientes?.nome ?? ""} ${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""} ${tecs}`.toLowerCase();
-    return haystack.includes(q);
-  };
+  const kpis = useMemo(() => {
+    const all = orders as any[];
+    const concluidasMes = all.filter(
+      (o) => o.data_conclusao && new Date(o.data_conclusao) >= inicioMes,
+    );
+    const tempos = concluidasMes
+      .filter((o) => o.data_entrada && o.data_conclusao)
+      .map((o) => daysBetween(o.data_entrada, o.data_conclusao));
+    const tempoMedio = tempos.length
+      ? Math.round((tempos.reduce((a, b) => a + b, 0) / tempos.length) * 10) / 10
+      : null;
 
-  const setModoPersist = (m: Modo) => {
-    setModo(m);
-    if (typeof window !== "undefined") localStorage.setItem("operacional-modo", m);
-  };
+    const totalMes = all.filter(
+      (o) => new Date(o.data_entrada) >= inicioMes,
+    );
+    const canceladasMes = totalMes.filter((o) => o.status === "cancelado").length;
+    const concl = totalMes.filter((o) => o.status === "entregue" || o.status === "pronto").length;
+    const denom = concl + canceladasMes;
+    const taxa = denom > 0 ? Math.round((concl / denom) * 100) : null;
 
-  // Drag handlers (somente modo fluxo, e somente em colunas que tenham statusKey)
+    return {
+      tempoMedio,
+      taxa,
+      concluidasMes: concluidasMes.length,
+    };
+  }, [orders, inicioMes]);
+
+  // ============== Drag & Drop (desktop) ==============
   const onDragStart = (e: DragEvent, id: string) => {
-    if (modo !== "fluxo") return;
     dragRef.current = { id };
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
@@ -213,557 +237,475 @@ export default function Operacional() {
     setDragOver(null);
     dragRef.current = null;
   };
-  const onDragOver = (e: DragEvent, key: string, accepts: boolean) => {
-    if (modo !== "fluxo" || !accepts) return;
+  const onDragOver = (e: DragEvent, key: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOver(key);
   };
-  const onDrop = (e: DragEvent, statusKey: Status | null) => {
+  const onDrop = (e: DragEvent, alvo: Status) => {
     e.preventDefault();
     setDragOver(null);
-    if (modo !== "fluxo" || !statusKey || !dragRef.current) return;
+    if (!dragRef.current) return;
     const { id } = dragRef.current;
     const order = (orders as any[]).find((o) => o.id === id);
-    if (!order || order.status === statusKey) return;
-    updateStatus.mutate({ id, newStatus: statusKey });
+    if (!order || order.status === alvo) return;
+    updateStatus.mutate({ id, newStatus: alvo });
   };
 
-  // ============== CARDS ==============
-  const renderOSCard = (order: any, opts?: { draggable?: boolean; extraLine?: React.ReactNode }) => {
-    const draggable = opts?.draggable ?? (modo === "fluxo");
-    const days = daysAgo(order.data_entrada);
+  const cardMatchesBusca = (o: any, q: string) => {
+    if (!q) return true;
+    const tnames = tecsDe(o).map((t) => t.nome).join(" ");
+    const h = `${o.numero ?? ""} ${o.aparelhos?.clientes?.nome ?? ""} ${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""} ${o.defeito_relatado ?? ""} ${tnames}`.toLowerCase();
+    return h.includes(q);
+  };
+
+  // ============== Agrupamento por coluna ==============
+  const trintaDiasAtras = useMemo(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30); return d;
+  }, []);
+
+  const colunasComDados = useMemo(() => {
+    return COLUNAS.map((c) => {
+      let list = (orders as any[]).filter((o) => c.statuses.includes(o.status));
+      if (c.key === "entregue") {
+        list = list.filter((o) => o.data_conclusao && new Date(o.data_conclusao) >= trintaDiasAtras);
+      }
+      return { ...c, list };
+    });
+  }, [orders, trintaDiasAtras]);
+
+  const orfas = useMemo(() => {
+    return (orders as any[]).filter(
+      (o) => !STATUS_MAPEADOS.has(o.status) && o.status !== "cancelado",
+    );
+  }, [orders]);
+
+  const ativas = useMemo(
+    () => (orders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
+    [orders],
+  );
+
+  // OS ativas por técnico (para o chip do header)
+  const ativasPorTec = useMemo(() => {
+    const m = new Map<string, number>();
+    ativas.forEach((o) => tecsDe(o).forEach((t) => m.set(t.id, (m.get(t.id) ?? 0) + 1)));
+    return m;
+  }, [ativas]);
+
+  // Resumo por técnico no rodapé
+  const resumoTecnicos = useMemo(() => {
+    return (tecnicos as any[]).map((t) => {
+      const minhas = (orders as any[]).filter((o) =>
+        tecsDe(o).some((x) => x.id === t.id),
+      );
+      const emAndamento = minhas.filter((o) =>
+        ["em_reparo", "em_analise", "aguardando_aprovacao", "aprovado", "recebido"].includes(o.status),
+      ).length;
+      const aguardando = minhas.filter((o) =>
+        ["aguardando_peca", "terceirizado", "garantia"].includes(o.status),
+      ).length;
+      const pronto = minhas.filter((o) => o.status === "pronto").length;
+      const entregue = minhas.filter(
+        (o) => o.status === "entregue" && o.data_conclusao && new Date(o.data_conclusao) >= inicioMes,
+      ).length;
+      const ativasN = emAndamento + aguardando + pronto;
+      return { ...t, emAndamento, aguardando, pronto, entregue, ativas: ativasN };
+    }).sort((a, b) => b.ativas - a.ativas);
+  }, [tecnicos, orders, inicioMes]);
+
+  const maxAtivasTec = Math.max(1, ...resumoTecnicos.map((t) => t.ativas));
+
+  // ============== Render do Card de OS ==============
+  const renderCard = (order: any) => {
+    const dias = daysBetween(order.data_entrada);
     const prio = calcularPrioridade(order.status, order.data_entrada, order.previsao_entrega);
     const isCritica = prio.nivel === "critica";
     const isAtencao = prio.nivel === "atencao";
-    const phone = order.aparelhos?.clientes?.telefone;
-    const tecs = tecnicosNomes(order);
+    const tecs = tecsDe(order);
+    const semPeca = order.status === "aguardando_peca" && osSemPecaSet.has(order.id);
 
     return (
       <div
         key={order.id}
-        draggable={draggable}
+        draggable
         onDragStart={(e) => onDragStart(e, order.id)}
         onDragEnd={onDragEnd}
         onClick={() => setSelectedOrderId(order.id)}
         className={cn(
-          "bg-card rounded-lg border p-2.5 space-y-1.5 transition-all hover:shadow-md select-none",
-          draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+          "group relative bg-card rounded-lg border p-2.5 space-y-1.5 transition-all hover:shadow-md select-none cursor-pointer",
           isCritica && "border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20",
-          isAtencao && !isCritica && "border-warning/40 ring-1 ring-warning/20"
+          isAtencao && !isCritica && "border-warning/40 ring-1 ring-warning/20",
         )}
       >
-        {isCritica && (
-          <div className="flex items-center gap-1 text-[10px] font-semibold text-destructive">
-            <AlertTriangle className="h-3 w-3" /> {prio.motivo}
+        {/* Linha topo: nº OS + ícone aparelho + menu */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-muted-foreground">{iconAparelho(order.aparelhos?.tipo)}</span>
+            <span className="text-[10px] font-mono text-muted-foreground">
+              #{String(order.numero).padStart(3, "0")}
+            </span>
+            {isCritica ? (
+              <AlertTriangle className="h-3 w-3 text-destructive" />
+            ) : isAtencao ? (
+              <Clock className="h-3 w-3 text-warning" />
+            ) : (
+              <CheckCircle2 className="h-3 w-3 text-success/70" />
+            )}
           </div>
-        )}
-        {isAtencao && !isCritica && (
-          <div className="flex items-center gap-1 text-[10px] font-semibold text-warning">
-            <Clock className="h-3 w-3" /> {prio.motivo}
-          </div>
-        )}
-        {order.status === "aguardando_peca" && osSemPecaSet.has(order.id) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              onClick={(e) => e.stopPropagation()}
+              className="h-6 w-6 rounded hover:bg-accent inline-flex items-center justify-center text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+              aria-label="Ações da OS"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                #{String(order.numero).padStart(3, "0")}
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => setSelectedOrderId(order.id)}>
+                Abrir detalhes
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Mover para etapa</DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    {COLUNAS.map((c) => (
+                      <DropdownMenuItem
+                        key={c.key}
+                        disabled={order.status === c.alvo}
+                        onClick={() => updateStatus.mutate({ id: order.id, newStatus: c.alvo })}
+                      >
+                        <span className={cn("w-2 h-2 rounded-full mr-2", c.accent.dot)} />
+                        {c.nome}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Enviar para técnico</DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    {(tecnicos as any[]).map((t) => (
+                      <DropdownMenuItem
+                        key={t.id}
+                        onClick={() => atribuirTec.mutate({ ordemId: order.id, tecnicoId: t.id })}
+                      >
+                        <span className={cn("w-2 h-2 rounded-full mr-2", colorForTec(t.id).dot)} />
+                        {t.nome}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => atribuirTec.mutate({ ordemId: order.id, tecnicoId: null })}
+                      className="text-warning"
+                    >
+                      Remover técnico
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Aparelho + cliente */}
+        <p className="text-sm font-medium leading-tight truncate">
+          {order.aparelhos?.marca} {order.aparelhos?.modelo || "—"}
+        </p>
+        <p className="text-[11px] text-muted-foreground truncate">
+          {order.aparelhos?.clientes?.nome ?? "—"}
+        </p>
+        <p className="text-[11px] text-muted-foreground line-clamp-1">
+          {order.defeito_relatado || "—"}
+        </p>
+
+        {semPeca && (
           <div className="flex items-center gap-1 text-[10px] font-semibold text-warning">
             <AlertTriangle className="h-3 w-3" /> Peça não especificada
           </div>
         )}
-        <p className="text-sm font-medium leading-tight truncate">
-          {order.aparelhos?.clientes?.nome ?? "—"}
-        </p>
-        <p className="text-[11px] text-muted-foreground truncate">
-          {order.aparelhos?.marca} {order.aparelhos?.modelo}
-        </p>
-        <p className="text-[11px] text-muted-foreground line-clamp-1">{order.defeito_relatado}</p>
-        {opts?.extraLine}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-muted-foreground">
-              #{String(order.numero).padStart(3, "0")}
+
+        {/* Rodapé do card: técnico + tempo */}
+        <div className="flex items-center justify-between pt-0.5">
+          {tecs.length === 0 ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-warning">
+              <AlertTriangle className="h-2.5 w-2.5" /> sem técnico
             </span>
-            <span className={cn(
-              "inline-flex items-center gap-0.5 text-[10px]",
-              isCritica ? "text-destructive font-medium" : isAtencao ? "text-warning font-medium" : "text-muted-foreground"
-            )}>
-              <Clock className="h-2.5 w-2.5" /> {days}d
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {Number(order.valor ?? 0) > 0 && (
-              <span className="text-[10px] font-medium text-muted-foreground">
-                R$ {Number(order.valor).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+          ) : (
+            <div className="flex items-center gap-1 min-w-0">
+              <span className={cn("w-2 h-2 rounded-full shrink-0", colorForTec(tecs[0].id).dot)} />
+              <span className="text-[10px] text-muted-foreground truncate" title={tecs.map((t) => t.nome).join(", ")}>
+                {tecs[0].nome}{tecs.length > 1 ? ` +${tecs.length - 1}` : ""}
               </span>
-            )}
-            {phone && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  abrirWhatsApp(phone, `Olá! Informamos sobre a OS #${String(order.numero).padStart(3, "0")}.`);
-                }}
-                className="text-success hover:text-success/80 transition-colors"
-                title="WhatsApp"
-              >
-                <MessageCircle className="h-3 w-3" />
-              </button>
-            )}
-          </div>
+            </div>
+          )}
+          <span className={cn(
+            "inline-flex items-center gap-0.5 text-[10px]",
+            isCritica ? "text-destructive font-medium" : isAtencao ? "text-warning font-medium" : "text-muted-foreground",
+          )}>
+            <Clock className="h-2.5 w-2.5" /> {dias}d
+          </span>
         </div>
-        {modo === "fluxo" && tecs.length > 0 && (
-          <p className="text-[10px] text-muted-foreground truncate" title={tecs.join(", ")}>
-            👤 {tecs.join(", ")}
-          </p>
-        )}
       </div>
     );
   };
 
-  // ============== COLUNAS ==============
-  type Coluna = {
-    key: string;
-    nome: string;
-    icon: React.ReactNode;
-    color: keyof typeof FLUXO_COLORS;
-    statusKey: Status | null; // p/ drop
-    /** Conteúdo já filtrado por busca, com contagem total e o JSX dos cards */
-    render: (q: string) => { total: number; node: React.ReactNode };
-  };
-
-  const colunasFluxo: Coluna[] = useMemo(() => {
-    const cols: Coluna[] = [];
-
-    // ---- Na rua (terceirizações enviadas) ----
-    cols.push({
-      key: "na_rua",
-      nome: "Na rua (terceiro)",
-      icon: <Truck className="h-3.5 w-3.5" />,
-      color: "na_rua",
-      statusKey: null,
-      render: (q) => {
-        const items = (naRuaList as any[]).filter((it) => {
-          const order = ordemById.get(it.os_id);
-          const numero = order?.numero ?? "";
-          const cli = order?.aparelhos?.clientes?.nome ?? "";
-          const aparelho = `${order?.aparelhos?.marca ?? ""} ${order?.aparelhos?.modelo ?? ""}`;
-          const haystack = `${numero} ${cli} ${aparelho} ${it.terceiro_nome ?? ""} ${it.servico ?? ""}`.toLowerCase();
-          return !q || haystack.includes(q);
-        });
-        return {
-          total: items.length,
-          node: items.length === 0 ? null : items.map((it: any) => {
-            const order = ordemById.get(it.os_id);
-            const extra = (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-[hsl(270_72%_50%)] font-medium truncate">
-                  🛠 {it.terceiro_nome ?? "Terceiro"}
-                </span>
-                <span className={cn(
-                  "text-[10px] font-medium",
-                  it.atrasado ? "text-destructive" : "text-muted-foreground"
-                )}>
-                  {it.dias_fora}d fora{it.atrasado ? " · atrasado" : ""}
-                </span>
-              </div>
-            );
-            if (order) return renderOSCard(order, { draggable: false, extraLine: extra });
-            // OS fora do range de 90d: card mínimo clicável
-            return (
-              <div
-                key={it.terceirizacao_id}
-                onClick={() => setSelectedOrderId(it.os_id)}
-                className="bg-card rounded-lg border p-2.5 space-y-1 cursor-pointer hover:shadow-md"
-              >
-                <p className="text-sm font-medium truncate">{it.servico ?? "Terceirização"}</p>
-                {extra}
-              </div>
-            );
-          }),
-        };
-      },
-    });
-
-    // ---- Aguardando peças ----
-    cols.push({
-      key: "aguardando_pecas",
-      nome: "Aguardando peças",
-      icon: <PackageSearch className="h-3.5 w-3.5" />,
-      color: "aguardando_pecas",
-      statusKey: "aguardando_peca" as Status,
-      render: (q) => {
-        const list = ativas.filter((o: any) => naColuna(o, "aguardando_pecas") && cardMatchesBusca(o, q));
-        return {
-          total: list.length,
-          node: list.map((o: any) =>
-            renderOSCard(o, {
-              extraLine: o.pecas_pedido_em ? (
-                <p className="text-[10px] text-[hsl(34_82%_45%)] font-medium">
-                  📦 pedido em {fmtDM(o.pecas_pedido_em)}
-                </p>
-              ) : undefined,
-            })
-          ),
-        };
-      },
-    });
-
-    // ---- Garantia (Da loja + Do terceiro) ----
-    cols.push({
-      key: "garantia",
-      nome: "Garantia",
-      icon: <ShieldCheck className="h-3.5 w-3.5" />,
-      color: "garantia",
-      statusKey: "garantia" as Status,
-      render: (q) => {
-        const daLoja = ativas.filter((o: any) => naColuna(o, "garantia") && cardMatchesBusca(o, q));
-        const doTerceiro = (garantiasTerceiro as any[]).filter((g) => {
-          const order = ordemById.get(g.os_id);
-          const numero = order?.numero ?? "";
-          const cli = order?.aparelhos?.clientes?.nome ?? "";
-          const haystack = `${numero} ${cli} ${g.terceiro_nome ?? ""} ${g.servico_realizado ?? ""}`.toLowerCase();
-          return !q || haystack.includes(q);
-        });
-        const total = daLoja.length + doTerceiro.length;
-        return {
-          total,
-          node: (
-            <>
-              <div className="px-1 pt-1 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">
-                Da loja ({daLoja.length})
-              </div>
-              {daLoja.length === 0 && (
-                <div className="text-[11px] text-muted-foreground/60 italic px-1">—</div>
-              )}
-              {daLoja.map((o: any) => renderOSCard(o))}
-
-              <div className="px-1 pt-2 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">
-                Do terceiro ({doTerceiro.length})
-              </div>
-              {doTerceiro.length === 0 && (
-                <div className="text-[11px] text-muted-foreground/60 italic px-1">—</div>
-              )}
-              {doTerceiro.map((g: any) => {
-                const order = ordemById.get(g.os_id);
-                const extra = (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[hsl(207_78%_45%)] font-medium truncate">
-                      🛡 {g.terceiro_nome ?? "Terceiro"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {g.dias_restantes}d restantes
-                    </span>
-                  </div>
-                );
-                if (order) return renderOSCard(order, { draggable: false, extraLine: extra });
-                return (
-                  <div
-                    key={g.terceirizacao_id}
-                    onClick={() => setSelectedOrderId(g.os_id)}
-                    className="bg-card rounded-lg border p-2.5 space-y-1 cursor-pointer hover:shadow-md"
-                  >
-                    <p className="text-sm font-medium truncate">
-                      {g.servico_realizado ?? "Garantia do terceiro"}
-                    </p>
-                    {extra}
-                  </div>
-                );
-              })}
-            </>
-          ),
-        };
-      },
-    });
-
-    // ---- Em reparo (subagrupado por técnico) ----
-    cols.push({
-      key: "em_reparo",
-      nome: "Em reparo",
-      icon: <Wrench className="h-3.5 w-3.5" />,
-      color: "em_reparo",
-      statusKey: "em_reparo" as Status,
-      render: (q) => {
-        const list = ativas.filter((o: any) => naColuna(o, "em_reparo") && cardMatchesBusca(o, q));
-        const grupos = new Map<string, any[]>();
-        list.forEach((o: any) => {
-          const tecs = tecnicosNomes(o);
-          if (tecs.length === 0) {
-            grupos.set("Sem técnico", [...(grupos.get("Sem técnico") ?? []), o]);
-          } else {
-            tecs.forEach((t) => grupos.set(t, [...(grupos.get(t) ?? []), o]));
-          }
-        });
-        const keys = Array.from(grupos.keys()).sort();
-        return {
-          total: list.length,
-          node: keys.length === 0 ? null : keys.map((k) => (
-            <div key={k} className="space-y-2">
-              <div className="px-1 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/80">
-                👤 {k} ({grupos.get(k)!.length})
-              </div>
-              {grupos.get(k)!.map((o: any) => renderOSCard(o))}
-            </div>
-          )),
-        };
-      },
-    });
-
-    // ---- Prontos p/ entrega ----
-    cols.push({
-      key: "prontos",
-      nome: "Prontos p/ entrega",
-      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-      color: "prontos",
-      statusKey: "pronto" as Status,
-      render: (q) => {
-        const list = ativas.filter((o: any) => naColuna(o, "prontos") && cardMatchesBusca(o, q));
-        return { total: list.length, node: list.map((o: any) => renderOSCard(o)) };
-      },
-    });
-
-    // ---- Outros / sem etapa (rede de segurança: status não mapeado) ----
-    const orfas = ativas.filter((o: any) => !TODOS_STATUS_MAPEADOS.has(o.status as Status));
-    if (orfas.length > 0) {
-      cols.push({
-        key: "outros",
-        nome: "Outros / sem etapa",
-        icon: <AlertTriangle className="h-3.5 w-3.5" />,
-        color: "outros",
-        statusKey: null,
-        render: (q) => {
-          const list = orfas.filter((o: any) => cardMatchesBusca(o, q));
-          return { total: list.length, node: list.map((o: any) => renderOSCard(o, { draggable: false })) };
-        },
-      });
-    }
-
-    return cols;
-  }, [ativas, naRuaList, garantiasTerceiro, ordemById, modo]);
-
+  // ============== Render do painel ==============
+  const colsRender: (ColunaDef & { list: any[] })[] = [
+    ...colunasComDados,
+    ...(orfas.length > 0
+      ? [{
+          key: "outros",
+          nome: "Outros",
+          subtitulo: "Status sem etapa",
+          icon: <AlertTriangle className="h-3.5 w-3.5" />,
+          statuses: [] as Status[],
+          alvo: "recebido" as Status,
+          accent: ACCENTS.gray,
+          list: orfas,
+        }]
+      : []),
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="page-header !mb-0">
-          <h1 className="page-title">Operacional</h1>
-          <p className="page-subtitle">{ativas.length} ordens ativas</p>
+      {/* ============== CABEÇALHO ============== */}
+      <div className="rounded-xl border bg-card/60 backdrop-blur p-3 md:p-4 flex flex-wrap items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-2 shrink-0">
+          <DittLogo size="sm" iconOnly />
+          <div className="leading-tight">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Kanban</div>
+            <div className="text-sm md:text-base font-semibold">Assistência Ditt</div>
+          </div>
         </div>
-        <div className="inline-flex items-center rounded-md border bg-card p-0.5">
-          <button
-            type="button"
-            onClick={() => setModoPersist("fluxo")}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-medium transition-colors",
-              modo === "fluxo" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+
+        <div className="flex-1 min-w-0 overflow-x-auto">
+          <div className="flex items-center gap-2">
+            {(tecnicos as any[]).map((t) => {
+              const c = colorForTec(t.id);
+              const n = ativasPorTec.get(t.id) ?? 0;
+              return (
+                <div
+                  key={t.id}
+                  className={cn("flex items-center gap-2 rounded-full pl-1 pr-3 py-1 border shrink-0", c.bg)}
+                  title={`${t.nome} · ${n} OS ativas`}
+                >
+                  <span className={cn("inline-flex items-center justify-center h-6 w-6 rounded-full text-[10px] font-bold text-white", c.dot)}>
+                    {iniciais(t.nome)}
+                  </span>
+                  <div className="leading-tight">
+                    <div className="text-[11px] font-semibold truncate max-w-[8rem]">{t.nome.split(" ")[0]}</div>
+                    <div className="text-[10px] text-muted-foreground">{n} ativas</div>
+                  </div>
+                </div>
+              );
+            })}
+            {(tecnicos as any[]).length === 0 && (
+              <span className="text-xs text-muted-foreground italic">Nenhum técnico cadastrado</span>
             )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" /> Fluxo
-          </button>
-          <button
-            type="button"
-            onClick={() => setModoPersist("mesa")}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[12px] font-medium transition-colors",
-              modo === "mesa" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Users className="h-3.5 w-3.5" /> Por técnico
-          </button>
+          </div>
+        </div>
+
+        <div className="text-right shrink-0 hidden md:block">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Hoje</div>
+          <div className="text-sm font-semibold tabular-nums">
+            {new Date().toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+          </div>
         </div>
       </div>
 
+      {/* ============== COLUNAS ============== */}
       {isLoading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : modo === "fluxo" ? (
+      ) : (
         <div
           className="flex gap-2.5 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x"
-          style={{ minHeight: "calc(100vh - 200px)" }}
+          style={{ minHeight: "calc(100vh - 380px)" }}
         >
-          {colunasFluxo.map((col) => {
+          {colsRender.map((col) => {
             const q = (busca[col.key] || "").toLowerCase().trim();
-            const { total, node } = col.render(q);
+            const list = (col.list as any[]).filter((o) => cardMatchesBusca(o, q));
             const isDrop = dragOver === col.key;
-            const accepts = !!col.statusKey;
-            const c = FLUXO_COLORS[col.color];
             return (
               <div
                 key={col.key}
-                className={cn(
-                  "flex-shrink-0 w-60 md:w-[17rem] rounded-xl border flex flex-col snap-start transition-all bg-muted/30",
-                  isDrop && accepts && `ring-2 ${c.ring} bg-primary/5`,
-                )}
-                onDragOver={(e) => onDragOver(e, col.key, accepts)}
+                onDragOver={(e) => onDragOver(e, col.key)}
                 onDragLeave={() => setDragOver(null)}
-                onDrop={(e) => onDrop(e, col.statusKey)}
+                onDrop={(e) => onDrop(e, col.alvo)}
+                className={cn(
+                  "flex-shrink-0 w-64 md:w-[17.5rem] rounded-xl border flex flex-col snap-start transition-all bg-muted/30",
+                  isDrop && `ring-2 ${col.accent.ring} bg-primary/5`,
+                )}
               >
-                <div className={cn("px-3 py-2.5 rounded-t-xl flex items-center justify-between", c.header)}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn("w-2 h-2 rounded-full shrink-0", c.dot)} />
-                    <span className="text-xs font-semibold truncate flex items-center gap-1.5">
-                      {col.icon} {col.nome}
+                <div className={cn("px-3 py-2.5 rounded-t-xl", col.accent.header)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={cn("w-2 h-2 rounded-full shrink-0", col.accent.dot)} />
+                      <span className="text-xs font-semibold truncate flex items-center gap-1.5">
+                        {col.icon} {col.nome}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-foreground/80 bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                      {col.list.length}
                     </span>
                   </div>
-                  <span className="text-[11px] text-muted-foreground bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                    {total}
-                  </span>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{col.subtitulo}</div>
                 </div>
 
-                <div className="px-2 pt-2">
-                  <div className="relative">
+                <div className="px-2 pt-2 flex items-center gap-1">
+                  <div className="relative flex-1">
                     <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                       value={busca[col.key] ?? ""}
-                      onChange={(e) => setBusca((prev) => ({ ...prev, [col.key]: e.target.value }))}
-                      placeholder="Buscar nesta coluna…"
+                      onChange={(e) => setBusca((p) => ({ ...p, [col.key]: e.target.value }))}
+                      placeholder="Buscar…"
                       className="h-8 pl-7 text-xs"
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/assistencia?novo=1")}
+                    className="h-8 w-8 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent shrink-0"
+                    title="Adicionar OS"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
                 </div>
 
-                <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
-                  {total === 0 ? (
+                <div className="flex-1 px-2 py-2 space-y-2 min-h-[120px] overflow-y-auto max-h-[calc(100vh-460px)]">
+                  {list.length === 0 ? (
                     <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
                       Nenhum item
                     </div>
                   ) : (
-                    node
+                    list.map(renderCard)
                   )}
                 </div>
               </div>
             );
           })}
-        </div>
-      ) : (
-        // ============== MODO POR TÉCNICO ==============
-        <div
-          className="flex gap-2.5 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x"
-          style={{ minHeight: "calc(100vh - 200px)" }}
-        >
-          {/* Coluna "Sem técnico" — sempre primeira, destacada */}
-          {(() => {
-            const key = "mesa-sem-tecnico";
-            const q = (busca[key] || "").toLowerCase().trim();
-            const list = semTecnico.filter((o: any) => cardMatchesBusca(o, q));
-            const valor = list.reduce((s: number, o: any) => s + valorAberto(o), 0);
-            return (
-              <div
-                key={key}
-                className="flex-shrink-0 w-60 md:w-[17rem] rounded-xl border-2 border-dashed border-warning/50 flex flex-col snap-start bg-warning/5"
-              >
-                <div className="px-3 py-2.5 rounded-t-xl flex items-center justify-between bg-warning/15">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-                    <span className="text-xs font-semibold truncate">Sem técnico</span>
-                  </div>
-                  <span className="text-[11px] text-foreground/80 bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                    {list.length}
-                  </span>
-                </div>
-                {valor > 0 && (
-                  <div className="px-3 py-1 text-[10px] text-warning font-medium border-b border-warning/20">
-                    {fmtBRL(valor)} em aberto
-                  </div>
-                )}
-                <div className="px-2 pt-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      value={busca[key] ?? ""}
-                      onChange={(e) => setBusca((prev) => ({ ...prev, [key]: e.target.value }))}
-                      placeholder="Buscar nesta coluna…"
-                      className="h-8 pl-7 text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
-                  {list.length === 0 ? (
-                    <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
-                      Nenhuma OS sem técnico
-                    </div>
-                  ) : (
-                    list.map((o: any) => (
-                      <div key={o.id}>
-                        {renderOSCard(o, { draggable: false })}
-                        <Badge variant="outline" className="text-[10px] mt-1">
-                          {statusLabels[o.status as Status]}
-                        </Badge>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Uma coluna por técnico cadastrado (mesmo com 0 OS) */}
-          {(tecnicosCadastrados as any[]).map((tec) => {
-            const key = `mesa-${tec.id}`;
-            const q = (busca[key] || "").toLowerCase().trim();
-            const list = ordensDeTrabalho.filter(
-              (o: any) => tecnicosNomes(o).includes(tec.nome) && cardMatchesBusca(o, q)
-            );
-            const valor = list.reduce((s: number, o: any) => s + valorAberto(o), 0);
-            return (
-              <div
-                key={key}
-                className="flex-shrink-0 w-60 md:w-[17rem] rounded-xl border flex flex-col snap-start bg-muted/30"
-              >
-                <div className={cn("px-3 py-2.5 rounded-t-xl flex items-center justify-between", FLUXO_COLORS.em_reparo.header)}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={cn("w-2 h-2 rounded-full shrink-0", FLUXO_COLORS.em_reparo.dot)} />
-                    <span className="text-xs font-semibold truncate">Mesa {tec.nome}</span>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                    {list.length}
-                  </span>
-                </div>
-                {valor > 0 && (
-                  <div className="px-3 py-1 text-[10px] text-muted-foreground font-medium border-b">
-                    {fmtBRL(valor)} em aberto
-                  </div>
-                )}
-
-                <div className="px-2 pt-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      value={busca[key] ?? ""}
-                      onChange={(e) => setBusca((prev) => ({ ...prev, [key]: e.target.value }))}
-                      placeholder="Buscar nesta coluna…"
-                      className="h-8 pl-7 text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
-                  {list.length === 0 ? (
-                    <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
-                      Solte um card aqui
-                    </div>
-                  ) : (
-                    list.map((o: any) => (
-                      <div key={o.id}>
-                        {renderOSCard(o, { draggable: false })}
-                        <Badge variant="outline" className="text-[10px] mt-1">
-                          <span className={cn("w-1.5 h-1.5 rounded-full mr-1", FLUXO_COLORS.em_reparo.dot)} />
-                          {statusLabels[o.status as Status]}
-                        </Badge>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {(tecnicosCadastrados as any[]).length === 0 && semTecnico.length === 0 && (
-            <div className="flex items-center justify-center w-full py-20 text-sm text-muted-foreground italic">
-              Nenhum técnico cadastrado.
-            </div>
-          )}
         </div>
       )}
 
+      {/* ============== RODAPÉ ============== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Total */}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total de ordens (ativas)</div>
+          <div className="text-4xl font-bold tabular-nums mt-1">{ativas.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            distribuídas em {colsRender.filter((c) => c.list.length > 0 && c.key !== "entregue").length} etapas ativas
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {colsRender.filter((c) => c.list.length > 0 && c.key !== "entregue").map((c) => {
+              const pct = ativas.length ? (c.list.length / ativas.length) * 100 : 0;
+              return (
+                <div key={c.key} className="flex items-center gap-1 text-[10px]" title={`${c.nome}: ${c.list.length}`}>
+                  <span className={cn("w-2 h-2 rounded-full", c.accent.dot)} />
+                  <span className="text-muted-foreground">{c.nome}</span>
+                  <span className="font-semibold tabular-nums">{Math.round(pct)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Por técnico */}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            <div className="text-xs font-semibold uppercase tracking-wider">Por técnico</div>
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {resumoTecnicos.length === 0 && (
+              <div className="text-xs text-muted-foreground italic">sem técnicos cadastrados</div>
+            )}
+            {resumoTecnicos.map((t) => {
+              const c = colorForTec(t.id);
+              const pct = (t.ativas / maxAtivasTec) * 100;
+              return (
+                <div key={t.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={cn("w-2 h-2 rounded-full", c.dot)} />
+                      <span className="font-medium truncate">{t.nome}</span>
+                    </div>
+                    <span className="tabular-nums font-semibold">{t.ativas}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className={cn("h-full", c.dot)} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="text-[10px] text-muted-foreground flex gap-2">
+                    <span>{t.emAndamento} em andamento</span>
+                    <span>·</span>
+                    <span>{t.aguardando} aguardando</span>
+                    <span>·</span>
+                    <span>{t.pronto} pronto</span>
+                    <span>·</span>
+                    <span>{t.entregue} entregues/mês</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Indicadores */}
+        <div className="rounded-xl border bg-card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3">Indicadores (mês)</div>
+          <div className="grid grid-cols-2 gap-2">
+            <Indicador
+              icon={<Timer className="h-3.5 w-3.5" />}
+              label="Tempo médio"
+              valor={kpis.tempoMedio !== null ? `${kpis.tempoMedio}d` : "—"}
+              sub={kpis.tempoMedio === null ? "sem dado ainda" : "entrada → pronto"}
+            />
+            <Indicador
+              icon={<TrendingUp className="h-3.5 w-3.5" />}
+              label="Taxa conclusão"
+              valor={kpis.taxa !== null ? `${kpis.taxa}%` : "—"}
+              sub={kpis.taxa === null ? "sem dado ainda" : "concluídas / canceladas"}
+            />
+            <Indicador
+              icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+              label="Concluídas"
+              valor={String(kpis.concluidasMes)}
+              sub="no mês"
+            />
+            <Indicador
+              icon={<Star className="h-3.5 w-3.5" />}
+              label="Satisfação"
+              valor="—"
+              sub="sem dado ainda"
+            />
+          </div>
+        </div>
+      </div>
+
       <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
+    </div>
+  );
+}
+
+function Indicador({
+  icon, label, valor, sub,
+}: {
+  icon: React.ReactNode; label: string; valor: string; sub?: string;
+}) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-2.5">
+      <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className="text-xl font-bold tabular-nums mt-1">{valor}</div>
+      {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
