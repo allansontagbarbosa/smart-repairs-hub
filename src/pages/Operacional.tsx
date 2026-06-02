@@ -106,10 +106,33 @@ export default function Operacional() {
     },
     onSuccess: () => {
       invalidateOrdensDependentes(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["os-aguardando-sem-peca"] });
       toast.success("Status atualizado!");
     },
-    onError: () => toast.error("Erro ao atualizar status"),
+    onError: (err: any) => {
+      const msg = err?.message || "Erro ao atualizar status";
+      // Mensagem clara quando o trigger barra a transição para 'aguardando_peca' sem peça.
+      if (/aguardando peça/i.test(msg) || /peça/i.test(msg)) {
+        toast.error(msg, { duration: 6000 });
+      } else {
+        toast.error("Erro ao atualizar status");
+      }
+    },
   });
+
+  // OS em 'aguardando_peca' que NÃO têm peça em pecas_utilizadas — para alerta visual no card.
+  const { data: osSemPeca = [] } = useQuery({
+    queryKey: ["os-aguardando-sem-peca"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("os_aguardando_sem_peca" as any);
+      if (error) throw error;
+      return ((data as any) ?? []) as Array<{ os_id: string }>;
+    },
+  });
+  const osSemPecaSet = useMemo(
+    () => new Set((osSemPeca as any[]).map((r) => r.os_id)),
+    [osSemPeca]
+  );
 
   const ativas = useMemo(
     () => (orders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
@@ -238,6 +261,11 @@ export default function Operacional() {
         {isAtencao && !isCritica && (
           <div className="flex items-center gap-1 text-[10px] font-semibold text-warning">
             <Clock className="h-3 w-3" /> {prio.motivo}
+          </div>
+        )}
+        {order.status === "aguardando_peca" && osSemPecaSet.has(order.id) && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-warning">
+            <AlertTriangle className="h-3 w-3" /> Peça não especificada
           </div>
         )}
         <p className="text-sm font-medium leading-tight truncate">

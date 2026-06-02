@@ -34,7 +34,7 @@ const DEFAULT_CHECKLIST = [
   { key: "botoes", label: "Botões físicos respondendo" },
 ];
 
-const STATUS_OPCOES = ["em_analise", "aguardando_pecas", "em_reparo", "pronto", "entregue"];
+const STATUS_OPCOES = ["em_analise", "aguardando_peca", "em_reparo", "pronto", "entregue"];
 
 export default function TecnicoOrdemDetalhe() {
   const { id } = useParams<{ id: string }>();
