@@ -6,6 +6,7 @@ import { PedidosCompraList } from "@/components/fornecedores/PedidosCompraList";
 import { PedidoCompraDialog } from "@/components/fornecedores/PedidoCompraDialog";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import ListaComprasDia from "@/pages/compras/ListaComprasDia";
 
 export default function Compras() {
   const { itens, isLoading } = useEstoque();
