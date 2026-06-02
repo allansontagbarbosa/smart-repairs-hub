@@ -124,16 +124,46 @@ export default function Operacional() {
   }, [orders]);
 
   // ============== MODO MESA / POR TÉCNICO ==============
-  // Mostra SOMENTE os em_reparo, uma coluna por técnico.
+  // Mostra todas as OS de trabalho (não entregue/cancelada/pronta), agrupadas
+  // por técnico cadastrado, mais coluna "Sem técnico" (não atribuídas).
   const emReparo = useMemo(
     () => ativas.filter((o: any) => naColuna(o, "em_reparo")),
     [ativas]
   );
+  const ordensDeTrabalho = useMemo(
+    () => ativas.filter((o: any) => o.status !== "pronto"),
+    [ativas]
+  );
 
-  const tecnicosColunas = useMemo(() => {
-    const tecs = Array.from(new Set(emReparo.flatMap(tecnicosNomes))).sort();
-    return tecs;
-  }, [emReparo]);
+  // Lista de TODOS os técnicos cadastrados na empresa (RLS filtra por empresa).
+  const { data: tecnicosCadastrados = [] } = useQuery({
+    queryKey: ["funcionarios", "tecnicos-operacional"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo")
+        .is("deleted_at", null)
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []).filter((f: any) =>
+        (f.cargo ?? "").toLowerCase().includes("tecnic")
+      );
+    },
+  });
+
+  const semTecnico = useMemo(
+    () => ordensDeTrabalho.filter((o: any) => tecnicosNomes(o).length === 0),
+    [ordensDeTrabalho]
+  );
+
+  const valorAberto = (o: any) => {
+    const total = Number(o.valor_total ?? o.valor ?? 0);
+    const sinal = Number(o.sinal_pago ?? 0);
+    return Math.max(0, total - sinal);
+  };
+  const fmtBRL = (n: number) =>
+    `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   const cardMatchesBusca = (o: any, q: string) => {
     if (!q) return true;
@@ -580,18 +610,70 @@ export default function Operacional() {
           className="flex gap-2.5 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 snap-x"
           style={{ minHeight: "calc(100vh - 200px)" }}
         >
-          {tecnicosColunas.length === 0 && (
-            <div className="flex items-center justify-center w-full py-20 text-sm text-muted-foreground italic">
-              Nenhuma OS em reparo no momento.
-            </div>
-          )}
-          {tecnicosColunas.map((tec) => {
-            const key = `mesa-${tec}`;
+          {/* Coluna "Sem técnico" — sempre primeira, destacada */}
+          {(() => {
+            const key = "mesa-sem-tecnico";
             const q = (busca[key] || "").toLowerCase().trim();
-            // Regra-chave: só em_reparo na mesa do técnico.
-            const list = emReparo.filter(
-              (o: any) => tecnicosNomes(o).includes(tec) && cardMatchesBusca(o, q)
+            const list = semTecnico.filter((o: any) => cardMatchesBusca(o, q));
+            const valor = list.reduce((s: number, o: any) => s + valorAberto(o), 0);
+            return (
+              <div
+                key={key}
+                className="flex-shrink-0 w-60 md:w-[17rem] rounded-xl border-2 border-dashed border-warning/50 flex flex-col snap-start bg-warning/5"
+              >
+                <div className="px-3 py-2.5 rounded-t-xl flex items-center justify-between bg-warning/15">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <span className="text-xs font-semibold truncate">Sem técnico</span>
+                  </div>
+                  <span className="text-[11px] text-foreground/80 bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
+                    {list.length}
+                  </span>
+                </div>
+                {valor > 0 && (
+                  <div className="px-3 py-1 text-[10px] text-warning font-medium border-b border-warning/20">
+                    {fmtBRL(valor)} em aberto
+                  </div>
+                )}
+                <div className="px-2 pt-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={busca[key] ?? ""}
+                      onChange={(e) => setBusca((prev) => ({ ...prev, [key]: e.target.value }))}
+                      placeholder="Buscar nesta coluna…"
+                      className="h-8 pl-7 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
+                  {list.length === 0 ? (
+                    <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
+                      Nenhuma OS sem técnico
+                    </div>
+                  ) : (
+                    list.map((o: any) => (
+                      <div key={o.id}>
+                        {renderOSCard(o, { draggable: false })}
+                        <Badge variant="outline" className="text-[10px] mt-1">
+                          {statusLabels[o.status as Status]}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             );
+          })()}
+
+          {/* Uma coluna por técnico cadastrado (mesmo com 0 OS) */}
+          {(tecnicosCadastrados as any[]).map((tec) => {
+            const key = `mesa-${tec.id}`;
+            const q = (busca[key] || "").toLowerCase().trim();
+            const list = ordensDeTrabalho.filter(
+              (o: any) => tecnicosNomes(o).includes(tec.nome) && cardMatchesBusca(o, q)
+            );
+            const valor = list.reduce((s: number, o: any) => s + valorAberto(o), 0);
             return (
               <div
                 key={key}
@@ -600,12 +682,17 @@ export default function Operacional() {
                 <div className={cn("px-3 py-2.5 rounded-t-xl flex items-center justify-between", FLUXO_COLORS.em_reparo.header)}>
                   <div className="flex items-center gap-2 min-w-0">
                     <div className={cn("w-2 h-2 rounded-full shrink-0", FLUXO_COLORS.em_reparo.dot)} />
-                    <span className="text-xs font-semibold truncate">Mesa {tec}</span>
+                    <span className="text-xs font-semibold truncate">Mesa {tec.nome}</span>
                   </div>
                   <span className="text-[11px] text-muted-foreground bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
                     {list.length}
                   </span>
                 </div>
+                {valor > 0 && (
+                  <div className="px-3 py-1 text-[10px] text-muted-foreground font-medium border-b">
+                    {fmtBRL(valor)} em aberto
+                  </div>
+                )}
 
                 <div className="px-2 pt-2">
                   <div className="relative">
@@ -622,7 +709,7 @@ export default function Operacional() {
                 <div className="flex-1 px-2 py-2 space-y-2 min-h-[100px] overflow-y-auto max-h-[calc(100vh-320px)]">
                   {list.length === 0 ? (
                     <div className="flex items-center justify-center h-20 text-[11px] text-muted-foreground/60 italic">
-                      Mesa livre
+                      Solte um card aqui
                     </div>
                   ) : (
                     list.map((o: any) => (
@@ -639,6 +726,12 @@ export default function Operacional() {
               </div>
             );
           })}
+
+          {(tecnicosCadastrados as any[]).length === 0 && semTecnico.length === 0 && (
+            <div className="flex items-center justify-center w-full py-20 text-sm text-muted-foreground italic">
+              Nenhum técnico cadastrado.
+            </div>
+          )}
         </div>
       )}
 
