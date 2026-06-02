@@ -1116,6 +1116,58 @@ export type Database = {
           },
         ]
       }
+      atacado_modelo_assistencias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          modelo_id: string
+          tipo_id: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          modelo_id: string
+          tipo_id: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          modelo_id?: string
+          tipo_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_modelo_assistencias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_modelo_assistencias_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_catalogo_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_modelo_assistencias_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_tipos_assistencia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_modelo_cores: {
         Row: {
           ativo: boolean
@@ -9326,6 +9378,15 @@ export type Database = {
         Args: { p_nome: string; p_valor?: number }
         Returns: string
       }
+      atacado_assist_do_modelo: {
+        Args: { p_modelo_id: string }
+        Returns: {
+          ativo: boolean
+          tipo_id: string
+          tipo_nome: string
+          valor: number
+        }[]
+      }
       atacado_baixar_pagamento: {
         Args: {
           p_data_recebimento?: string
@@ -9349,6 +9410,10 @@ export type Database = {
           ultimo_tipo: string
         }[]
       }
+      atacado_copiar_assist: {
+        Args: { p_destino: string; p_origem: string }
+        Returns: number
+      }
       atacado_dashboard_kpis: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
@@ -9362,6 +9427,10 @@ export type Database = {
           ticket_medio: number
           valor_inadimplencia: number
         }[]
+      }
+      atacado_desativar_assist_modelo: {
+        Args: { p_modelo_id: string; p_tipo_id: string }
+        Returns: undefined
       }
       atacado_dre: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
@@ -9485,6 +9554,10 @@ export type Database = {
           p_valor: number
         }
         Returns: Json
+      }
+      atacado_set_assist_modelo: {
+        Args: { p_modelo_id: string; p_tipo_id: string; p_valor: number }
+        Returns: string
       }
       atacado_top_clientes: {
         Args: {
