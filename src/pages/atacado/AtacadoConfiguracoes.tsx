@@ -101,6 +101,9 @@ export default function AtacadoConfiguracoes() {
           <TabsTrigger value="listas">
             <List className="h-4 w-4 mr-2" /> Cadastros
           </TabsTrigger>
+          <TabsTrigger value="assist-modelo">
+            <Wrench className="h-4 w-4 mr-2" /> Assistências por modelo
+          </TabsTrigger>
         </TabsList>
 
         {/* NF-e */}
