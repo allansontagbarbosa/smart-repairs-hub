@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -51,7 +51,49 @@ interface Props {
   onClose: () => void;
 }
 
+type DetalheProps = {
+  orderId: string;
+  onClose: () => void;
+};
+
+const EMPTY_SERVICOS_DETALHADOS: any[] = [];
+
+function normalizeServicoEditor(item: any) {
+  return {
+    ...item,
+    id: item?.id,
+    servico_id: item?.servico_id,
+    tecnico_id: item?.tecnico_id ?? null,
+    motivo_sem_tecnico: item?.motivo_sem_tecnico ?? null,
+    valor_terceirizado: Number(item?.valor_terceirizado) || 0,
+    valor: Number(item?.valor) || 0,
+    comissao: Number(item?.comissao) || 0,
+  };
+}
+
+function sameServicosEditor(a: any[], b: any[]) {
+  if (a.length !== b.length) return false;
+  return a.every((p, i) => {
+    const n = b[i];
+    return (
+      !!n &&
+      p.id === n.id &&
+      p.servico_id === n.servico_id &&
+      p.tecnico_id === n.tecnico_id &&
+      p.motivo_sem_tecnico === n.motivo_sem_tecnico &&
+      p.valor_terceirizado === n.valor_terceirizado &&
+      p.valor === n.valor &&
+      p.comissao === n.comissao
+    );
+  });
+}
+
 export function OrdemDetalheSheet({ orderId, onClose }: Props) {
+  if (!orderId) return null;
+  return <OrdemDetalheSheetContent orderId={orderId} onClose={onClose} />;
+}
+
+function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
   const { empresa, empresaId } = useEmpresa();
   const { data: etiquetaTemplate } = useEtiquetaTemplateDefault("os_entrada");
   const [editing, setEditing] = useState(false);
