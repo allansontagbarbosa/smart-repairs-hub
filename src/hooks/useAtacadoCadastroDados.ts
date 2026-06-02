@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AtacadoGrade { id: string; nome: string; ordem: number; ativo: boolean }
-export interface AtacadoStatus { id: string; nome: string; cor: string; sistema: boolean; ordem: number }
+export interface AtacadoStatus { id: string; nome: string; cor: string; sistema: boolean; ordem: number; ativo?: boolean }
 export interface AtacadoTipoAssistencia { id: string; nome: string; valor_padrao: number; ativo: boolean }
-export interface AtacadoMoeda { id: string; codigo: string; simbolo: string | null; nome: string | null }
+export interface AtacadoMoeda { id: string; codigo: string; simbolo: string | null; nome: string | null; ativo?: boolean }
 export interface AtacadoCatalogoModelo {
   id: string;
   marca: string;
@@ -13,6 +13,11 @@ export interface AtacadoCatalogoModelo {
   cores: string[];
   ativo: boolean;
 }
+export interface AtacadoPais { id: string; nome: string; codigo: string | null; ativo: boolean; ordem: number }
+export interface AtacadoCapacidade { id: string; nome: string; ativo: boolean; ordem: number }
+export interface AtacadoCondicao { id: string; nome: string; ativo: boolean; ordem: number }
+export interface AtacadoFornecedor { id: string; nome: string; cnpj_cpf?: string | null; telefone?: string | null; ativo?: boolean }
+export interface AtacadoModeloCor { id: string; marca: string | null; modelo: string | null; cor: string; ativo?: boolean }
 
 export function useAtacadoCadastroDados() {
   const [grades, setGrades] = useState<AtacadoGrade[]>([]);
@@ -20,22 +25,37 @@ export function useAtacadoCadastroDados() {
   const [tiposAssist, setTiposAssist] = useState<AtacadoTipoAssistencia[]>([]);
   const [moedas, setMoedas] = useState<AtacadoMoeda[]>([]);
   const [catalogo, setCatalogo] = useState<AtacadoCatalogoModelo[]>([]);
+  const [paises, setPaises] = useState<AtacadoPais[]>([]);
+  const [capacidadesList, setCapacidadesList] = useState<AtacadoCapacidade[]>([]);
+  const [condicoes, setCondicoes] = useState<AtacadoCondicao[]>([]);
+  const [fornecedores, setFornecedores] = useState<AtacadoFornecedor[]>([]);
+  const [coresList, setCoresList] = useState<AtacadoModeloCor[]>([]);
   const [loading, setLoading] = useState(true);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [g, s, t, m, c] = await Promise.all([
-      supabase.from("atacado_grades" as any).select("*").eq("ativo", true).order("ordem"),
+    const [g, s, t, m, c, p, cap, cond, forn, cores] = await Promise.all([
+      supabase.from("atacado_grades" as any).select("*").order("ordem"),
       supabase.from("atacado_status_aparelho" as any).select("*").order("ordem"),
       supabase.from("atacado_tipos_assistencia" as any).select("*").order("nome"),
       supabase.from("atacado_moedas" as any).select("*").order("codigo"),
       supabase.from("atacado_catalogo_modelos" as any).select("*").eq("ativo", true).order("marca"),
+      supabase.from("atacado_paises" as any).select("*").order("ordem"),
+      supabase.from("atacado_capacidades" as any).select("*").order("ordem"),
+      supabase.from("atacado_condicoes" as any).select("*").order("ordem"),
+      supabase.from("fornecedores" as any).select("id,nome,cnpj_cpf,telefone,ativo").order("nome"),
+      supabase.from("atacado_modelo_cores" as any).select("*").order("cor"),
     ]);
     setGrades((g.data as any) ?? []);
     setStatusList((s.data as any) ?? []);
     setTiposAssist((t.data as any) ?? []);
     setMoedas((m.data as any) ?? []);
     setCatalogo((c.data as any) ?? []);
+    setPaises((p.data as any) ?? []);
+    setCapacidadesList((cap.data as any) ?? []);
+    setCondicoes((cond.data as any) ?? []);
+    setFornecedores((forn.data as any) ?? []);
+    setCoresList((cores.data as any) ?? []);
     setLoading(false);
   }, []);
 
@@ -43,73 +63,107 @@ export function useAtacadoCadastroDados() {
 
   const marcas = Array.from(new Set(catalogo.map((x) => x.marca))).sort();
   const modelosDe = (marca: string) =>
-    catalogo.filter((x) => x.marca === marca).map((x) => x.modelo);
+    catalogo.filter((x) => x.marca === marca).map((x) => x.modelo).filter((m) => m && m !== "—");
   const infoModelo = (marca: string, modelo: string) =>
     catalogo.find((x) => x.marca === marca && x.modelo === modelo) ?? null;
 
+  const coresDe = (marca: string, modelo: string) => {
+    const escopo = coresList.filter(
+      (c) => (c.ativo ?? true) &&
+        (c.marca === null || c.marca?.toLowerCase() === (marca || "").toLowerCase()) &&
+        (c.modelo === null || c.modelo?.toLowerCase() === (modelo || "").toLowerCase()),
+    );
+    return Array.from(new Set(escopo.map((c) => c.cor)));
+  };
+
+  // ===== RPCs idempotentes =====
+  const rpc = async (fn: string, args: Record<string, any>) => {
+    const { data, error } = await supabase.rpc(fn as any, args);
+    if (error) throw error;
+    await carregar();
+    return data;
+  };
+
+  const addPais = (nome: string, codigo?: string) =>
+    rpc("atacado_add_pais", { p_nome: nome, p_codigo: codigo ?? null });
+  const addCapacidade = (nome: string) =>
+    rpc("atacado_add_capacidade", { p_nome: nome });
+  const addCondicao = (nome: string) =>
+    rpc("atacado_add_condicao", { p_nome: nome });
+  const addGrade = (nome: string) =>
+    rpc("atacado_add_grade", { p_nome: nome });
+  const addStatusRpc = (nome: string, cor = "#888") =>
+    rpc("atacado_add_status", { p_nome: nome, p_cor: cor });
+  const addTipoAssist = (nome: string, valor = 0) =>
+    rpc("atacado_add_tipo_assistencia", { p_nome: nome, p_valor: valor });
+  const addMoedaRpc = (codigo: string, simbolo?: string, nome?: string) =>
+    rpc("atacado_add_moeda", { p_codigo: codigo, p_simbolo: simbolo ?? null, p_nome: nome ?? null });
+  const addFornecedor = (nome: string, cnpj?: string, telefone?: string) =>
+    rpc("atacado_add_fornecedor", { p_nome: nome, p_cnpj: cnpj ?? null, p_telefone: telefone ?? null });
+  const addMarcaRpc = (marca: string) =>
+    rpc("atacado_add_marca", { p_marca: marca });
+  const addModeloRpc = (marca: string, modelo: string) =>
+    rpc("atacado_add_modelo", { p_marca: marca, p_modelo: modelo });
+  const addCorRpc = (marca: string, modelo: string, cor: string) =>
+    rpc("atacado_add_cor", { p_marca: marca, p_modelo: modelo, p_cor: cor });
+
+  // Legacy helpers (mantidos para compat — usam as RPCs por baixo)
   const adicionarModelo = useCallback(
-    async (empresaId: string, marca: string, modelo: string) => {
-      await supabase.from("atacado_catalogo_modelos" as any).insert({
-        empresa_id: empresaId, marca, modelo, capacidades: [], cores: [],
-      });
-      await carregar();
+    async (_empresaId: string, marca: string, modelo: string) => {
+      await addModeloRpc(marca, modelo);
     },
     [carregar],
   );
 
   const adicionarCapacidade = useCallback(
-    async (modeloId: string, capacidade: string) => {
-      const row = catalogo.find((x) => x.id === modeloId);
-      if (!row) return;
-      const nova = Array.from(new Set([...(row.capacidades ?? []), capacidade]));
-      await supabase.from("atacado_catalogo_modelos" as any).update({ capacidades: nova }).eq("id", modeloId);
-      await carregar();
+    async (_modeloId: string, capacidade: string) => {
+      await addCapacidade(capacidade);
     },
-    [catalogo, carregar],
+    [carregar],
   );
 
   const adicionarCor = useCallback(
-    async (modeloId: string, cor: string) => {
-      const row = catalogo.find((x) => x.id === modeloId);
-      if (!row) return;
-      const nova = Array.from(new Set([...(row.cores ?? []), cor]));
-      await supabase.from("atacado_catalogo_modelos" as any).update({ cores: nova }).eq("id", modeloId);
-      await carregar();
+    async (_modeloId: string, cor: string) => {
+      // _modeloId é o id do registro em atacado_catalogo_modelos
+      const m = catalogo.find((x) => x.id === _modeloId);
+      await addCorRpc(m?.marca ?? "", m?.modelo ?? "", cor);
     },
     [catalogo, carregar],
   );
 
   const adicionarGrade = useCallback(
-    async (empresaId: string, nome: string) => {
-      await supabase.from("atacado_grades" as any)
-        .insert({ empresa_id: empresaId, nome, ordem: grades.length });
-      await carregar();
+    async (_empresaId: string, nome: string) => {
+      await addGrade(nome);
     },
-    [grades.length, carregar],
+    [carregar],
   );
 
   const adicionarStatus = useCallback(
-    async (empresaId: string, nome: string, cor = "#888") => {
-      await supabase.from("atacado_status_aparelho" as any)
-        .insert({ empresa_id: empresaId, nome, cor, ordem: statusList.length });
-      await carregar();
+    async (_empresaId: string, nome: string, cor = "#888") => {
+      await addStatusRpc(nome, cor);
     },
-    [statusList.length, carregar],
+    [carregar],
   );
 
   const adicionarMoeda = useCallback(
-    async (empresaId: string, codigo: string, simbolo?: string, nome?: string) => {
-      await supabase.from("atacado_moedas" as any).insert({ empresa_id: empresaId, codigo, simbolo, nome });
-      await carregar();
+    async (_empresaId: string, codigo: string, simbolo?: string, nome?: string) => {
+      await addMoedaRpc(codigo, simbolo, nome);
     },
     [carregar],
   );
 
   return {
-    grades, statusList, tiposAssist, moedas, catalogo, loading,
-    marcas, modelosDe, infoModelo,
+    grades, statusList, tiposAssist, moedas, catalogo,
+    paises, capacidadesList, condicoes, fornecedores, coresList,
+    loading,
+    marcas, modelosDe, infoModelo, coresDe,
+    // legacy
     adicionarModelo, adicionarCapacidade, adicionarCor,
     adicionarGrade, adicionarStatus, adicionarMoeda,
+    // novos
+    addPais, addCapacidade, addCondicao, addGrade, addStatusRpc,
+    addTipoAssist, addMoedaRpc, addFornecedor,
+    addMarcaRpc, addModeloRpc, addCorRpc,
     recarregar: carregar,
   };
 }

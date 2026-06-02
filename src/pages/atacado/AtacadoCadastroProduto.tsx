@@ -84,12 +84,20 @@ export default function AtacadoCadastroProduto() {
     marcas,
     modelosDe,
     infoModelo,
+    paises,
+    capacidadesList,
+    condicoes,
+    fornecedores,
+    coresDe,
     adicionarModelo,
     adicionarCapacidade,
     adicionarCor,
     adicionarGrade,
     adicionarStatus,
     adicionarMoeda,
+    addPais,
+    addCondicao,
+    addFornecedor,
     recarregar,
   } = useAtacadoCadastroDados();
 
@@ -137,8 +145,8 @@ export default function AtacadoCadastroProduto() {
   const [salvando, setSalvando] = useState(false);
 
   const modeloInfo = useMemo(() => infoModelo(marca, modelo), [marca, modelo, infoModelo]);
-  const capacidadesOpts = modeloInfo?.capacidades ?? [];
-  const coresOpts = modeloInfo?.cores ?? [];
+  const capacidadesOpts = capacidadesList.map((c) => c.nome);
+  const coresOpts = coresDe(marca, modelo);
 
   // Reset ao trocar marca / modelo
   useEffect(() => {
@@ -367,7 +375,13 @@ export default function AtacadoCadastroProduto() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
             <div className="space-y-2">
               <Label>Fornecedor</Label>
-              <Input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} placeholder="Nome do fornecedor" />
+              <EditableCombo
+                value={fornecedor}
+                onValueChange={setFornecedor}
+                options={fornecedores.filter((f) => f.ativo !== false).map((f) => f.nome)}
+                placeholder="Escolher ou cadastrar fornecedor"
+                onCreateNew={async (typed) => { await addFornecedor(typed); }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Nº da invoice</Label>
@@ -379,7 +393,13 @@ export default function AtacadoCadastroProduto() {
             </div>
             <div className="space-y-2">
               <Label>País de origem</Label>
-              <Input value={paisOrigem} onChange={(e) => setPaisOrigem(e.target.value)} placeholder="China, EUA, Paraguai…" />
+              <EditableCombo
+                value={paisOrigem}
+                onValueChange={setPaisOrigem}
+                options={paises.filter((p) => p.ativo).map((p) => p.nome)}
+                placeholder="Escolher ou cadastrar país"
+                onCreateNew={async (typed) => { await addPais(typed); }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Moeda da compra</Label>
@@ -460,11 +480,8 @@ export default function AtacadoCadastroProduto() {
               value={capacidade}
               onValueChange={setCapacidade}
               options={capacidadesOpts}
-              placeholder={modelo ? "Ex: 128 GB" : "Defina o modelo"}
-              disabled={!modelo}
-              onCreateNew={async (typed) => {
-                if (modeloInfo) await adicionarCapacidade(modeloInfo.id, typed);
-              }}
+              placeholder="Ex: 128 GB"
+              onCreateNew={async (typed) => { await adicionarCapacidade("", typed); }}
             />
           </div>
           <div className="space-y-2">
@@ -494,15 +511,14 @@ export default function AtacadoCadastroProduto() {
           </div>
           <div className="space-y-2">
             <Label>Condição</Label>
-            <Select value={condicao} onValueChange={setCondicao}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="novo">Novo</SelectItem>
-                <SelectItem value="seminovo">Seminovo</SelectItem>
-                <SelectItem value="usado">Usado</SelectItem>
-                <SelectItem value="vitrine">Vitrine</SelectItem>
-              </SelectContent>
-            </Select>
+            <EditableCombo
+              value={condicao}
+              onValueChange={setCondicao}
+              options={condicoes.filter((c) => c.ativo).map((c) => c.nome)}
+              placeholder="Escolher ou cadastrar condição"
+              emptyHint="Sem condições cadastradas — digite uma (ex: Novo, Seminovo, Vitrine)"
+              onCreateNew={async (typed) => { await addCondicao(typed); }}
+            />
           </div>
         </div>
 
