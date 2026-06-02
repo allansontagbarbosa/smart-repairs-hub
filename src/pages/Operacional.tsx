@@ -106,6 +106,7 @@ export default function Operacional() {
     },
     onSuccess: () => {
       invalidateOrdensDependentes(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["os-aguardando-sem-peca"] });
       toast.success("Status atualizado!");
     },
     onError: (err: any) => {
