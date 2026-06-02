@@ -340,14 +340,14 @@ export default function Operacional() {
   }, [activeOrders, entreguesLoaded, entreguesTotal]);
 
   const orfas = useMemo(() => {
-    return (orders as any[]).filter(
+    return (activeOrders as any[]).filter(
       (o) => !STATUS_MAPEADOS.has(o.status) && o.status !== "cancelado",
     );
-  }, [orders]);
+  }, [activeOrders]);
 
   const ativas = useMemo(
-    () => (orders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
-    [orders],
+    () => (activeOrders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
+    [activeOrders],
   );
 
   // OS ativas por técnico (para o chip do header)
@@ -360,23 +360,23 @@ export default function Operacional() {
   // Resumo por técnico no rodapé
   const resumoTecnicos = useMemo(() => {
     return (tecnicos as any[]).map((t) => {
-      const minhas = (orders as any[]).filter((o) =>
+      const minhasAtivas = (activeOrders as any[]).filter((o) =>
         tecsDe(o).some((x) => x.id === t.id),
       );
-      const emAndamento = minhas.filter((o) =>
+      const emAndamento = minhasAtivas.filter((o) =>
         ["em_reparo", "em_analise", "aguardando_aprovacao", "aprovado", "recebido"].includes(o.status),
       ).length;
-      const aguardando = minhas.filter((o) =>
+      const aguardando = minhasAtivas.filter((o) =>
         ["aguardando_peca", "terceirizado", "garantia"].includes(o.status),
       ).length;
-      const pronto = minhas.filter((o) => o.status === "pronto").length;
-      const entregue = minhas.filter(
-        (o) => o.status === "entregue" && o.data_conclusao && new Date(o.data_conclusao) >= inicioMes,
+      const pronto = minhasAtivas.filter((o) => o.status === "pronto").length;
+      const entregue = (entreguesMes as any[]).filter((o) =>
+        tecsDe(o).some((x) => x.id === t.id),
       ).length;
       const ativasN = emAndamento + aguardando + pronto;
       return { ...t, emAndamento, aguardando, pronto, entregue, ativas: ativasN };
     }).sort((a, b) => b.ativas - a.ativas);
-  }, [tecnicos, orders, inicioMes]);
+  }, [tecnicos, activeOrders, entreguesMes]);
 
   const maxAtivasTec = Math.max(1, ...resumoTecnicos.map((t) => t.ativas));
 
