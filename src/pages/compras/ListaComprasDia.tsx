@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, RefreshCw, Printer, MessageCircle, ChevronDown, Package, Plus, Minus, Trash2, Info } from "lucide-react";
+import { Loader2, RefreshCw, Printer, MessageCircle, ChevronDown, Package, Plus, Minus, Trash2, Info, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 import { formatCurrency } from "@/lib/format";
 import { abrirWhatsApp } from "@/lib/whatsapp";
 import { format } from "date-fns";
@@ -65,6 +67,16 @@ export default function ListaComprasDia() {
       return (data ?? []) as LinhaConsolidada[];
     },
   });
+
+  const { data: semPeca = [] } = useQuery({
+    queryKey: ["os-aguardando-sem-peca"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("os_aguardando_sem_peca" as any);
+      if (error) throw error;
+      return ((data as any) ?? []) as Array<{ os_id: string; numero: number; cliente: string | null; aparelho: string | null; desde: string | null }>;
+    },
+  });
+  const [semPecaAberto, setSemPecaAberto] = useState(false);
 
   const { data: ajustes, isLoading: loadAju, refetch: refetchAju, isFetching: fAju } = useQuery({
     queryKey: ["compras-ajustes", dataRef],
@@ -312,6 +324,46 @@ export default function ListaComprasDia() {
         <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
         <span>Estimativa baseada no último custo de cada peça. O valor real pode variar na compra.</span>
       </div>
+
+      {semPeca.length > 0 && (
+        <Collapsible open={semPecaAberto} onOpenChange={setSemPecaAberto}>
+          <div className="rounded-md border border-warning/40 bg-warning/5">
+            <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 p-3 text-left">
+              <div className="flex items-center gap-2 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                <span className="font-medium text-warning">
+                  {semPeca.length} OS aguardando peça sem peça especificada
+                </span>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  — clique para revisar e lançar a peça.
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 transition-transform ${semPecaAberto ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="border-t border-warning/30 divide-y divide-warning/20">
+                {semPeca.map((o) => (
+                  <Link
+                    key={o.os_id}
+                    to={`/assistencia?os=${o.os_id}`}
+                    className="flex flex-wrap items-center justify-between gap-2 p-2.5 hover:bg-warning/10 text-xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono font-medium">#{String(o.numero).padStart(3, "0")}</span>
+                      <span className="truncate">{o.cliente ?? "—"}</span>
+                      <span className="text-muted-foreground truncate hidden sm:inline">{o.aparelho ?? ""}</span>
+                    </div>
+                    <span className="text-muted-foreground">
+                      {o.desde ? `há ${formatDistanceToNow(new Date(o.desde), { locale: ptBR })}` : "sem data"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
+      )}
+
 
       {/* Adicionar peça avulsa */}
       <Card>
