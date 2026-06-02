@@ -337,14 +337,19 @@ export default function Operacional() {
   // - Entregue: usa entreguesLoaded (paginado por scroll infinito), mas o contador
   //   do header mostra o TOTAL real (entreguesTotal).
   const colunasComDados = useMemo(() => {
+    const filtraTec = (arr: any[]) =>
+      filtroTecnicoId
+        ? arr.filter((o) => tecsDe(o).some((t) => t.id === filtroTecnicoId))
+        : arr;
     return COLUNAS.map((c) => {
       if (c.key === "entregue") {
-        return { ...c, list: entreguesLoaded, total: entreguesTotal as number };
+        const list = filtraTec(entreguesLoaded);
+        return { ...c, list, total: filtroTecnicoId ? list.length : (entreguesTotal as number) };
       }
-      const list = (activeOrders as any[]).filter((o) => c.statuses.includes(o.status));
+      const list = filtraTec((activeOrders as any[]).filter((o) => c.statuses.includes(o.status)));
       return { ...c, list, total: list.length };
     });
-  }, [activeOrders, entreguesLoaded, entreguesTotal]);
+  }, [activeOrders, entreguesLoaded, entreguesTotal, filtroTecnicoId]);
 
   const orfas = useMemo(() => {
     return (activeOrders as any[]).filter(
