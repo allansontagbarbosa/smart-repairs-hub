@@ -483,6 +483,41 @@ export type Database = {
           },
         ]
       }
+      atacado_capacidades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_capacidades_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_catalogo_acessos: {
         Row: {
           ativo: boolean | null
@@ -788,6 +823,41 @@ export type Database = {
           },
         ]
       }
+      atacado_condicoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_condicoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_configuracoes: {
         Row: {
           bloquear_automatico_se_atrasos_dias: number | null
@@ -1048,6 +1118,7 @@ export type Database = {
       }
       atacado_modelo_cores: {
         Row: {
+          ativo: boolean
           cor: string
           created_at: string | null
           empresa_id: string
@@ -1056,6 +1127,7 @@ export type Database = {
           modelo: string
         }
         Insert: {
+          ativo?: boolean
           cor: string
           created_at?: string | null
           empresa_id: string
@@ -1064,6 +1136,7 @@ export type Database = {
           modelo: string
         }
         Update: {
+          ativo?: boolean
           cor?: string
           created_at?: string | null
           empresa_id?: string
@@ -1075,6 +1148,7 @@ export type Database = {
       }
       atacado_moedas: {
         Row: {
+          ativo: boolean
           codigo: string
           created_at: string | null
           empresa_id: string
@@ -1083,6 +1157,7 @@ export type Database = {
           simbolo: string | null
         }
         Insert: {
+          ativo?: boolean
           codigo: string
           created_at?: string | null
           empresa_id: string
@@ -1091,6 +1166,7 @@ export type Database = {
           simbolo?: string | null
         }
         Update: {
+          ativo?: boolean
           codigo?: string
           created_at?: string | null
           empresa_id?: string
@@ -1099,6 +1175,44 @@ export type Database = {
           simbolo?: string | null
         }
         Relationships: []
+      }
+      atacado_paises: {
+        Row: {
+          ativo: boolean
+          codigo: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_paises_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       atacado_pedidos: {
         Row: {
@@ -1361,6 +1475,7 @@ export type Database = {
       }
       atacado_status_aparelho: {
         Row: {
+          ativo: boolean
           cor: string | null
           created_at: string | null
           empresa_id: string
@@ -1370,6 +1485,7 @@ export type Database = {
           sistema: boolean | null
         }
         Insert: {
+          ativo?: boolean
           cor?: string | null
           created_at?: string | null
           empresa_id: string
@@ -1379,6 +1495,7 @@ export type Database = {
           sistema?: boolean | null
         }
         Update: {
+          ativo?: boolean
           cor?: string | null
           created_at?: string | null
           empresa_id?: string
@@ -9176,6 +9293,38 @@ export type Database = {
           terceirizacao_id: string
           terceiro_nome: string
         }[]
+      }
+      atacado_add_capacidade: { Args: { p_nome: string }; Returns: string }
+      atacado_add_condicao: { Args: { p_nome: string }; Returns: string }
+      atacado_add_cor: {
+        Args: { p_cor: string; p_marca: string; p_modelo: string }
+        Returns: string
+      }
+      atacado_add_fornecedor: {
+        Args: { p_cnpj?: string; p_nome: string; p_telefone?: string }
+        Returns: string
+      }
+      atacado_add_grade: { Args: { p_nome: string }; Returns: string }
+      atacado_add_marca: { Args: { p_marca: string }; Returns: string }
+      atacado_add_modelo: {
+        Args: { p_marca: string; p_modelo: string }
+        Returns: string
+      }
+      atacado_add_moeda: {
+        Args: { p_codigo: string; p_nome?: string; p_simbolo?: string }
+        Returns: string
+      }
+      atacado_add_pais: {
+        Args: { p_codigo?: string; p_nome: string }
+        Returns: string
+      }
+      atacado_add_status: {
+        Args: { p_cor?: string; p_nome: string }
+        Returns: string
+      }
+      atacado_add_tipo_assistencia: {
+        Args: { p_nome: string; p_valor?: number }
+        Returns: string
       }
       atacado_baixar_pagamento: {
         Args: {
