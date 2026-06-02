@@ -57,7 +57,7 @@ const COLUNAS: ColunaDef[] = [
   { key: "terceirizado", nome: "Terceiro / Na rua",   subtitulo: "No técnico externo",  icon: <Truck className="h-3.5 w-3.5" />,       statuses: ["terceirizado"],                      alvo: "terceirizado",        accent: ACCENTS.violet },
   { key: "garantia",     nome: "Garantia",            subtitulo: "Em garantia",         icon: <ShieldCheck className="h-3.5 w-3.5" />, statuses: ["garantia"],                          alvo: "garantia",            accent: ACCENTS.cyan   },
   { key: "pronto",       nome: "Pronto",              subtitulo: "Aguardando retirada", icon: <CheckCircle2 className="h-3.5 w-3.5" />,statuses: ["pronto"],                            alvo: "pronto",              accent: ACCENTS.green  },
-  { key: "entregue",     nome: "Entregue",            subtitulo: "Finalizado (30d)",    icon: <PackageCheck className="h-3.5 w-3.5" />,statuses: ["entregue"],                          alvo: "entregue",            accent: ACCENTS.gray   },
+  { key: "entregue",     nome: "Entregue",            subtitulo: "Finalizado",          icon: <PackageCheck className="h-3.5 w-3.5" />,statuses: ["entregue"],                          alvo: "entregue",            accent: ACCENTS.gray   },
 ];
 
 const STATUS_MAPEADOS = new Set<Status>(COLUNAS.flatMap((c) => c.statuses));
