@@ -148,6 +148,32 @@ export default function AtacadoCadastroProduto() {
   const capacidadesOpts = capacidadesList.map((c) => c.nome);
   const coresOpts = coresDe(marca, modelo);
 
+  // Assistências do modelo selecionado (preço por modelo)
+  const [assistModelo, setAssistModelo] = useState<
+    { tipo_id: string; tipo_nome: string; valor: number }[]
+  >([]);
+  const [loadingAssistModelo, setLoadingAssistModelo] = useState(false);
+  useEffect(() => {
+    let cancel = false;
+    const run = async () => {
+      if (!modeloInfo?.id) {
+        setAssistModelo([]);
+        return;
+      }
+      setLoadingAssistModelo(true);
+      const { data, error } = await supabase.rpc("atacado_assist_do_modelo" as any, {
+        p_modelo_id: modeloInfo.id,
+      });
+      if (cancel) return;
+      setLoadingAssistModelo(false);
+      if (!error) setAssistModelo(((data as any) ?? []) as any);
+    };
+    run();
+    return () => {
+      cancel = true;
+    };
+  }, [modeloInfo?.id]);
+
   // Reset ao trocar marca / modelo
   useEffect(() => {
     setModelo("");
