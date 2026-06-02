@@ -262,6 +262,11 @@ export default function Operacional() {
             <Clock className="h-3 w-3" /> {prio.motivo}
           </div>
         )}
+        {order.status === "aguardando_peca" && osSemPecaSet.has(order.id) && (
+          <div className="flex items-center gap-1 text-[10px] font-semibold text-warning">
+            <AlertTriangle className="h-3 w-3" /> Peça não especificada
+          </div>
+        )}
         <p className="text-sm font-medium leading-tight truncate">
           {order.aparelhos?.clientes?.nome ?? "—"}
         </p>
