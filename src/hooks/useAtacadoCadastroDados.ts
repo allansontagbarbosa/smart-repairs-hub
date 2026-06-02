@@ -107,6 +107,16 @@ export function useAtacadoCadastroDados() {
   const addCorRpc = (marca: string, modelo: string, cor: string) =>
     rpc("atacado_add_cor", { p_marca: marca, p_modelo: modelo, p_cor: cor });
 
+  const excluirItem = async (lista: string, chave: string) => {
+    const { data, error } = await supabase.rpc("atacado_excluir_item" as any, {
+      p_lista: lista,
+      p_chave: chave,
+    });
+    if (error) throw error;
+    await carregar();
+    return data as { success: boolean; error?: string; message?: string };
+  };
+
   // Legacy helpers (mantidos para compat — usam as RPCs por baixo)
   const adicionarModelo = useCallback(
     async (_empresaId: string, marca: string, modelo: string) => {
@@ -164,6 +174,7 @@ export function useAtacadoCadastroDados() {
     addPais, addCapacidade, addCondicao, addGrade, addStatusRpc,
     addTipoAssist, addMoedaRpc, addFornecedor,
     addMarcaRpc, addModeloRpc, addCorRpc,
+    excluirItem,
     recarregar: carregar,
   };
 }
