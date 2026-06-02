@@ -1,6 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Loader2, Package, Settings2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Loader2,
+  Package,
+  Settings2,
+  ClipboardPaste,
+  AlertTriangle,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +39,11 @@ import {
   CURRENCIES_ISO,
 } from "@/hooks/useAtacadoCadastroDados";
 import { GerenciarAssistencias } from "@/components/atacado/GerenciarAssistencias";
+import { EditableCombo } from "@/components/atacado/EditableCombo";
+import { ColarImeisDialog } from "@/components/atacado/ColarImeisDialog";
+import { ScannableInput } from "@/components/ui/scannable-input";
+import { luhnValid } from "@/lib/luhn";
+import { cn } from "@/lib/utils";
 
 type CustoTipo = "frete" | "aduana" | "seguro" | "outro";
 type CustoModo = "fixo" | "pct";
@@ -37,8 +52,8 @@ interface CustoLinha {
   tipo: CustoTipo;
   descricao: string;
   modo: CustoModo;
-  valor: string; // string para permitir vazio
-  moeda: string; // 'BRL' ou moeda da compra
+  valor: string;
+  moeda: string;
 }
 
 interface AssistApl {
@@ -54,8 +69,9 @@ interface UnidadeForm {
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
 const num = (s: string) => parseFloat(String(s).replace(",", ".")) || 0;
+
+const isImei15 = (s: string) => /^\d{15}$/.test(s.trim());
 
 export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
@@ -95,7 +111,7 @@ export default function AtacadoCadastroProduto() {
   const [condicao, setCondicao] = useState("novo");
   const [status, setStatus] = useState("");
 
-  // Custos (vazios)
+  // Custos
   const [custoProduto, setCustoProduto] = useState("");
   const [custos, setCustos] = useState<CustoLinha[]>([]);
 
@@ -108,30 +124,23 @@ export default function AtacadoCadastroProduto() {
     { imei1: "", imei2: "", assistencias: [] },
   ]);
 
-  // Inline-add inputs
-  const [novaMarca, setNovaMarca] = useState("");
-  const [novoModelo, setNovoModelo] = useState("");
-  const [novaCap, setNovaCap] = useState("");
-  const [novaCor, setNovaCor] = useState("");
-  const [novaGrade, setNovaGrade] = useState("");
+  // IMEI: cache de duplicados detectados na base por imei => "modelo existente"
+  const [duplicados, setDuplicados] = useState<Record<string, string>>({});
+
+  // Inline-add (mantém status/moeda como botão simples)
   const [novoStatus, setNovoStatus] = useState("");
   const [showAddMoeda, setShowAddMoeda] = useState(false);
-  const [showAddMarca, setShowAddMarca] = useState(false);
-  const [showAddModelo, setShowAddModelo] = useState(false);
-  const [showAddCap, setShowAddCap] = useState(false);
-  const [showAddCor, setShowAddCor] = useState(false);
-  const [showAddGrade, setShowAddGrade] = useState(false);
   const [showAddStatus, setShowAddStatus] = useState(false);
   const [showGerAssist, setShowGerAssist] = useState(false);
+  const [showColar, setShowColar] = useState(false);
 
   const [salvando, setSalvando] = useState(false);
 
-  // Info do modelo escolhido (capacidades + cores do catalogo)
   const modeloInfo = useMemo(() => infoModelo(marca, modelo), [marca, modelo, infoModelo]);
   const capacidadesOpts = modeloInfo?.capacidades ?? [];
   const coresOpts = modeloInfo?.cores ?? [];
 
-  // Reset modelo/cap/cor ao trocar marca
+  // Reset ao trocar marca / modelo
   useEffect(() => {
     setModelo("");
     setCapacidade("");
@@ -168,24 +177,18 @@ export default function AtacadoCadastroProduto() {
     importado && cotacaoNum > 0 ? produtoMoedaNum * cotacaoNum : produtoMoedaNum;
   const precoNum = num(precoVenda);
 
-  // Símbolo da moeda da compra
   const simboloMoeda =
     moedas.find((m) => m.codigo === moeda)?.simbolo ||
     CURRENCIES_ISO.find((c) => c.codigo === moeda)?.simbolo ||
     moeda;
 
-  // Custo base por unidade em R$ (espelha a RPC)
   const custoBaseUnit = useMemo(() => {
     let base = produtoBRL;
     for (const c of custos) {
       const v = num(c.valor);
-      if (c.modo === "pct") {
-        base += produtoBRL * (v / 100);
-      } else if (c.moeda === "BRL" || !importado) {
-        base += v;
-      } else {
-        base += v * (cotacaoNum > 0 ? cotacaoNum : 1);
-      }
+      if (c.modo === "pct") base += produtoBRL * (v / 100);
+      else if (c.moeda === "BRL" || !importado) base += v;
+      else base += v * (cotacaoNum > 0 ? cotacaoNum : 1);
     }
     return base;
   }, [produtoBRL, custos, cotacaoNum, importado]);
@@ -205,7 +208,7 @@ export default function AtacadoCadastroProduto() {
   const lucroTotal = vendaTotal - investimentoTotal;
   const margem = investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : 0;
 
-  // Handlers
+  // Handlers custos
   const addCusto = () =>
     setCustos((p) => [
       ...p,
@@ -213,66 +216,41 @@ export default function AtacadoCadastroProduto() {
     ]);
   const updCusto = (i: number, patch: Partial<CustoLinha>) =>
     setCustos((p) => p.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
-  const rmCusto = (i: number) =>
-    setCustos((p) => p.filter((_, idx) => idx !== i));
+  const rmCusto = (i: number) => setCustos((p) => p.filter((_, idx) => idx !== i));
 
+  // Unidades
   const toggleAssistencia = (uIdx: number, nome: string, valor: number) => {
     setUnidades((prev) =>
       prev.map((u, i) => {
         if (i !== uIdx) return u;
         const existe = u.assistencias.find((a) => a.nome === nome);
-        if (existe) {
+        if (existe)
           return { ...u, assistencias: u.assistencias.filter((a) => a.nome !== nome) };
-        }
         return { ...u, assistencias: [...u.assistencias, { nome, valor }] };
       }),
     );
   };
-
   const updUnidade = (i: number, patch: Partial<UnidadeForm>) =>
     setUnidades((p) => p.map((u, idx) => (idx === i ? { ...u, ...patch } : u)));
 
-  // Inline-add
-  const handleAddMarca = async () => {
-    if (!novaMarca.trim() || !novoModelo.trim() || !empresaId) {
-      toast.error("Informe marca e modelo");
-      return;
+  // Duplicado: consulta na base ao perder foco
+  const checkDuplicado = async (imei: string) => {
+    if (!isImei15(imei) || !empresaId) return;
+    if (duplicados[imei]) return; // já cacheado
+    const { data } = await supabase
+      .from("atacado_aparelhos" as any)
+      .select("modelo")
+      .eq("empresa_id", empresaId)
+      .is("deleted_at", null)
+      .or(`imei_1.eq.${imei},imei_2.eq.${imei}`)
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      setDuplicados((p) => ({ ...p, [imei]: (data as any).modelo || "outro aparelho" }));
     }
-    await adicionarModelo(empresaId, novaMarca.trim(), novoModelo.trim());
-    setMarca(novaMarca.trim());
-    setModelo(novoModelo.trim());
-    setNovaMarca("");
-    setNovoModelo("");
-    setShowAddMarca(false);
   };
-  const handleAddModelo = async () => {
-    if (!novoModelo.trim() || !marca || !empresaId) return;
-    await adicionarModelo(empresaId, marca, novoModelo.trim());
-    setModelo(novoModelo.trim());
-    setNovoModelo("");
-    setShowAddModelo(false);
-  };
-  const handleAddCap = async () => {
-    if (!novaCap.trim() || !modeloInfo) return;
-    await adicionarCapacidade(modeloInfo.id, novaCap.trim());
-    setCapacidade(novaCap.trim());
-    setNovaCap("");
-    setShowAddCap(false);
-  };
-  const handleAddCor = async () => {
-    if (!novaCor.trim() || !modeloInfo) return;
-    await adicionarCor(modeloInfo.id, novaCor.trim());
-    setCor(novaCor.trim());
-    setNovaCor("");
-    setShowAddCor(false);
-  };
-  const handleAddGrade = async () => {
-    if (!novaGrade.trim() || !empresaId) return;
-    await adicionarGrade(empresaId, novaGrade.trim());
-    setGrade(novaGrade.trim());
-    setNovaGrade("");
-    setShowAddGrade(false);
-  };
+
+  // Inline-add (mantidos)
   const handleAddStatus = async () => {
     if (!novoStatus.trim() || !empresaId) return;
     await adicionarStatus(empresaId, novoStatus.trim());
@@ -288,10 +266,24 @@ export default function AtacadoCadastroProduto() {
     setShowAddMoeda(false);
   };
 
+  // Bloco 3: colar lista
+  const aplicarImeisColados = (lista: string[]) => {
+    setQuantidade(lista.length);
+    setUnidades(
+      lista.map((imei) => ({ imei1: imei, imei2: "", assistencias: [] })),
+    );
+    // verifica duplicados em batch
+    lista.forEach((imei) => checkDuplicado(imei));
+    toast.success(`${lista.length} IMEI${lista.length === 1 ? "" : "s"} aplicado${lista.length === 1 ? "" : "s"}`);
+  };
+
   const handleSalvar = async () => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
     if (unidades.some((u) => !u.imei1.trim()))
       return toast.error("Informe o IMEI 1 de todos os aparelhos");
+    const invalidos = unidades.filter((u) => !isImei15(u.imei1));
+    if (invalidos.length > 0)
+      return toast.error(`${invalidos.length} IMEI(s) inválido(s): devem ter 15 dígitos`);
     if (importado && cotacaoNum <= 0)
       return toast.error("Informe a cotação da moeda da compra");
 
@@ -328,10 +320,9 @@ export default function AtacadoCadastroProduto() {
         assistencias: u.assistencias,
       })),
     };
-    const { data, error } = await supabase.rpc(
-      "atacado_cadastrar_lote" as any,
-      { p_payload: payload },
-    );
+    const { data, error } = await supabase.rpc("atacado_cadastrar_lote" as any, {
+      p_payload: payload,
+    });
     setSalvando(false);
     if (error || (data as any)?.success === false) {
       toast.error(
@@ -345,7 +336,7 @@ export default function AtacadoCadastroProduto() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto pb-32">
       <div className="flex items-center gap-3">
         <Button asChild variant="ghost" size="icon">
           <Link to="/atacado/aparelhos">
@@ -376,35 +367,19 @@ export default function AtacadoCadastroProduto() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
             <div className="space-y-2">
               <Label>Fornecedor</Label>
-              <Input
-                value={fornecedor}
-                onChange={(e) => setFornecedor(e.target.value)}
-                placeholder="Nome do fornecedor"
-              />
+              <Input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} placeholder="Nome do fornecedor" />
             </div>
             <div className="space-y-2">
               <Label>Nº da invoice</Label>
-              <Input
-                value={numero}
-                onChange={(e) => setNumero(e.target.value)}
-                placeholder="INV-001"
-              />
+              <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="INV-001" />
             </div>
             <div className="space-y-2">
               <Label>Data da compra</Label>
-              <Input
-                type="date"
-                value={dataCompra}
-                onChange={(e) => setDataCompra(e.target.value)}
-              />
+              <Input type="date" value={dataCompra} onChange={(e) => setDataCompra(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>País de origem</Label>
-              <Input
-                value={paisOrigem}
-                onChange={(e) => setPaisOrigem(e.target.value)}
-                placeholder="China, EUA, Paraguai…"
-              />
+              <Input value={paisOrigem} onChange={(e) => setPaisOrigem(e.target.value)} placeholder="China, EUA, Paraguai…" />
             </div>
             <div className="space-y-2">
               <Label>Moeda da compra</Label>
@@ -420,13 +395,7 @@ export default function AtacadoCadastroProduto() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowAddMoeda((s) => !s)}
-                  title="+ outra moeda"
-                >
+                <Button type="button" variant="outline" size="icon" onClick={() => setShowAddMoeda((s) => !s)} title="+ outra moeda">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -445,140 +414,84 @@ export default function AtacadoCadastroProduto() {
             </div>
             <div className="space-y-2">
               <Label>Cotação ({simboloMoeda} → R$)</Label>
-              <Input
-                inputMode="decimal"
-                value={cotacao}
-                onChange={(e) => setCotacao(e.target.value)}
-                placeholder="Ex: 5,40"
-              />
+              <Input inputMode="decimal" value={cotacao} onChange={(e) => setCotacao(e.target.value)} placeholder="Ex: 5,40" />
             </div>
           </div>
         )}
       </Card>
 
-      {/* Produto */}
+      {/* Produto — combos editáveis */}
       <Card className="p-5 space-y-4">
-        <h2 className="text-base font-semibold text-foreground">Produto</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-foreground">Produto</h2>
+          <span className="text-xs text-muted-foreground">
+            Não achou? Digite e use — fica salvo no catálogo para o próximo cadastro.
+          </span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Marca */}
           <div className="space-y-2">
             <Label>Marca *</Label>
-            <div className="flex gap-2">
-              <Select value={marca} onValueChange={(v) => v === "__nova" ? setShowAddMarca(true) : setMarca(v)}>
-                <SelectTrigger><SelectValue placeholder="Escolher marca" /></SelectTrigger>
-                <SelectContent>
-                  {marcas.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                  <SelectItem value="__nova">+ nova marca</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {showAddMarca && (
-              <div className="space-y-2 p-2 border rounded-md">
-                <Input value={novaMarca} onChange={(e) => setNovaMarca(e.target.value)} placeholder="Nome da marca" />
-                <Input value={novoModelo} onChange={(e) => setNovoModelo(e.target.value)} placeholder="Nome do primeiro modelo" />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAddMarca}>Salvar</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setShowAddMarca(false)}>Cancelar</Button>
-                </div>
-              </div>
-            )}
+            <EditableCombo
+              value={marca}
+              onValueChange={setMarca}
+              options={marcas}
+              placeholder="Escolher ou digitar marca"
+              emptyHint="Nenhuma marca no catálogo — digite uma nova"
+              /* não persiste sozinha; será criada junto com o primeiro modelo */
+            />
           </div>
-
-          {/* Modelo */}
           <div className="space-y-2">
             <Label>Modelo *</Label>
-            <Select
+            <EditableCombo
               value={modelo}
-              onValueChange={(v) => v === "__novo" ? setShowAddModelo(true) : setModelo(v)}
+              onValueChange={setModelo}
+              options={modelosDe(marca)}
+              placeholder={marca ? "Escolher ou digitar modelo" : "Escolha a marca primeiro"}
               disabled={!marca}
-            >
-              <SelectTrigger><SelectValue placeholder={marca ? "Escolher modelo" : "Escolha a marca primeiro"} /></SelectTrigger>
-              <SelectContent>
-                {modelosDe(marca).map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-                {marca && <SelectItem value="__novo">+ novo modelo</SelectItem>}
-              </SelectContent>
-            </Select>
-            {showAddModelo && (
-              <div className="flex gap-2">
-                <Input value={novoModelo} onChange={(e) => setNovoModelo(e.target.value)} placeholder="Ex: iPhone 15 Pro" />
-                <Button size="sm" onClick={handleAddModelo}>Salvar</Button>
-              </div>
-            )}
+              onCreateNew={async (typed) => {
+                if (!empresaId || !marca) return;
+                await adicionarModelo(empresaId, marca, typed);
+              }}
+            />
           </div>
-
-          {/* Capacidade */}
           <div className="space-y-2">
             <Label>Capacidade</Label>
-            <Select
+            <EditableCombo
               value={capacidade}
-              onValueChange={(v) => v === "__nova" ? setShowAddCap(true) : setCapacidade(v)}
-              disabled={!modeloInfo}
-            >
-              <SelectTrigger><SelectValue placeholder={modeloInfo ? "Escolher capacidade" : "Defina o modelo"} /></SelectTrigger>
-              <SelectContent>
-                {capacidadesOpts.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-                {modeloInfo && <SelectItem value="__nova">+ nova capacidade</SelectItem>}
-              </SelectContent>
-            </Select>
-            {showAddCap && (
-              <div className="flex gap-2">
-                <Input value={novaCap} onChange={(e) => setNovaCap(e.target.value)} placeholder="Ex: 256 GB" />
-                <Button size="sm" onClick={handleAddCap}>Salvar</Button>
-              </div>
-            )}
+              onValueChange={setCapacidade}
+              options={capacidadesOpts}
+              placeholder={modelo ? "Ex: 128 GB" : "Defina o modelo"}
+              disabled={!modelo}
+              onCreateNew={async (typed) => {
+                if (modeloInfo) await adicionarCapacidade(modeloInfo.id, typed);
+              }}
+            />
           </div>
-
-          {/* Cor */}
           <div className="space-y-2">
             <Label>Cor</Label>
-            <Select
+            <EditableCombo
               value={cor}
-              onValueChange={(v) => v === "__nova" ? setShowAddCor(true) : setCor(v)}
-              disabled={!modeloInfo}
-            >
-              <SelectTrigger><SelectValue placeholder={modeloInfo ? "Escolher cor" : "Defina o modelo"} /></SelectTrigger>
-              <SelectContent>
-                {coresOpts.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-                {modeloInfo && <SelectItem value="__nova">+ outra cor</SelectItem>}
-              </SelectContent>
-            </Select>
-            {showAddCor && (
-              <div className="flex gap-2">
-                <Input value={novaCor} onChange={(e) => setNovaCor(e.target.value)} placeholder="Nome da cor" />
-                <Button size="sm" onClick={handleAddCor}>Salvar</Button>
-              </div>
-            )}
+              onValueChange={setCor}
+              options={coresOpts}
+              placeholder={modelo ? "Ex: Preto" : "Defina o modelo"}
+              disabled={!modelo}
+              onCreateNew={async (typed) => {
+                if (modeloInfo) await adicionarCor(modeloInfo.id, typed);
+              }}
+            />
           </div>
-
-          {/* Grade */}
           <div className="space-y-2">
             <Label>Grade</Label>
-            <Select value={grade} onValueChange={(v) => v === "__nova" ? setShowAddGrade(true) : setGrade(v)}>
-              <SelectTrigger><SelectValue placeholder="Escolher grade" /></SelectTrigger>
-              <SelectContent>
-                {grades.map((g) => (
-                  <SelectItem key={g.id} value={g.nome}>{g.nome}</SelectItem>
-                ))}
-                <SelectItem value="__nova">+ cadastrar grade</SelectItem>
-              </SelectContent>
-            </Select>
-            {showAddGrade && (
-              <div className="flex gap-2">
-                <Input value={novaGrade} onChange={(e) => setNovaGrade(e.target.value)} placeholder="Ex: Grade A" />
-                <Button size="sm" onClick={handleAddGrade}>Salvar</Button>
-              </div>
-            )}
+            <EditableCombo
+              value={grade}
+              onValueChange={setGrade}
+              options={grades.map((g) => g.nome)}
+              placeholder="Ex: Grade A"
+              onCreateNew={async (typed) => {
+                if (empresaId) await adicionarGrade(empresaId, typed);
+              }}
+            />
           </div>
-
-          {/* Condição */}
           <div className="space-y-2">
             <Label>Condição</Label>
             <Select value={condicao} onValueChange={setCondicao}>
@@ -593,7 +506,6 @@ export default function AtacadoCadastroProduto() {
           </div>
         </div>
 
-        {/* Status */}
         <div className="space-y-2">
           <Label>Status do aparelho</Label>
           <div className="flex flex-wrap gap-2">
@@ -636,12 +548,7 @@ export default function AtacadoCadastroProduto() {
             <Label>
               Custo do produto / un {importado && simboloMoeda !== "R$" ? `(${simboloMoeda})` : "(R$)"}
             </Label>
-            <Input
-              inputMode="decimal"
-              value={custoProduto}
-              onChange={(e) => setCustoProduto(e.target.value)}
-              placeholder="0,00"
-            />
+            <Input inputMode="decimal" value={custoProduto} onChange={(e) => setCustoProduto(e.target.value)} placeholder="0,00" />
             {importado && cotacaoNum > 0 && produtoMoedaNum > 0 && (
               <p className="text-xs text-muted-foreground">≈ {brl(produtoBRL)} / un</p>
             )}
@@ -679,11 +586,7 @@ export default function AtacadoCadastroProduto() {
                 </div>
                 <div className="col-span-3 space-y-1">
                   <Label className="text-xs">Descrição</Label>
-                  <Input
-                    value={c.descricao}
-                    onChange={(e) => updCusto(i, { descricao: e.target.value })}
-                    placeholder="Ex: Frete internacional"
-                  />
+                  <Input value={c.descricao} onChange={(e) => updCusto(i, { descricao: e.target.value })} placeholder="Ex: Frete internacional" />
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Modo</Label>
@@ -713,12 +616,7 @@ export default function AtacadoCadastroProduto() {
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Valor</Label>
-                  <Input
-                    inputMode="decimal"
-                    value={c.valor}
-                    onChange={(e) => updCusto(i, { valor: e.target.value })}
-                    placeholder={c.modo === "pct" ? "0%" : "0,00"}
-                  />
+                  <Input inputMode="decimal" value={c.valor} onChange={(e) => updCusto(i, { valor: e.target.value })} placeholder={c.modo === "pct" ? "0%" : "0,00"} />
                 </div>
                 <div className="col-span-1">
                   <Button type="button" variant="ghost" size="icon" onClick={() => rmCusto(i)}>
@@ -737,12 +635,7 @@ export default function AtacadoCadastroProduto() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Valor sugerido por unidade (R$)</Label>
-            <Input
-              inputMode="decimal"
-              value={precoVenda}
-              onChange={(e) => setPrecoVenda(e.target.value)}
-              placeholder="0,00"
-            />
+            <Input inputMode="decimal" value={precoVenda} onChange={(e) => setPrecoVenda(e.target.value)} placeholder="0,00" />
           </div>
         </div>
       </Card>
@@ -751,7 +644,7 @@ export default function AtacadoCadastroProduto() {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-base font-semibold text-foreground">Aparelhos do lote</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Label className="text-xs">Quantidade</Label>
             <Input
               type="number"
@@ -761,6 +654,9 @@ export default function AtacadoCadastroProduto() {
               onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 1))}
               className="w-24"
             />
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowColar(true)}>
+              <ClipboardPaste className="h-4 w-4" /> Colar lista de IMEIs
+            </Button>
             <Dialog open={showGerAssist} onOpenChange={setShowGerAssist}>
               <DialogTrigger asChild>
                 <Button type="button" variant="outline" size="sm">
@@ -782,6 +678,10 @@ export default function AtacadoCadastroProduto() {
             const unitTotal =
               custoBaseUnit +
               u.assistencias.reduce((s, a) => s + (Number(a.valor) || 0), 0);
+            const v1 = u.imei1.trim();
+            const imei1Erro = v1.length > 0 && !isImei15(v1);
+            const luhnAviso = !imei1Erro && v1.length === 15 && !luhnValid(v1);
+            const dupModelo = duplicados[v1];
             return (
               <div key={i} className="p-3 border rounded-md space-y-3">
                 <div className="flex items-center justify-between">
@@ -796,17 +696,49 @@ export default function AtacadoCadastroProduto() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">IMEI 1 *</Label>
-                    <Input
+                    <ScannableInput
                       value={u.imei1}
                       onChange={(e) => updUnidade(i, { imei1: e.target.value })}
+                      onBlur={(e) => checkDuplicado(e.target.value.trim())}
                       placeholder="15 dígitos"
+                      scannerTitle="Escanear IMEI"
+                      className={cn(
+                        imei1Erro && "border-destructive focus-visible:ring-destructive",
+                      )}
+                      inputMode="numeric"
+                      maxLength={15}
                     />
+                    {imei1Erro && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        IMEI deve ter 15 dígitos
+                      </p>
+                    )}
+                    {luhnAviso && (
+                      <p className="text-xs text-amber-600 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Dígito verificador não confere (alguns aparelhos importados são assim)
+                      </p>
+                    )}
+                    {!imei1Erro && dupModelo && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        IMEI já cadastrado ({dupModelo})
+                      </p>
+                    )}
+                    {!imei1Erro && v1.length === 15 && !luhnAviso && !dupModelo && (
+                      <p className="text-xs text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> IMEI válido
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">IMEI 2 (opcional)</Label>
                     <Input
                       value={u.imei2}
                       onChange={(e) => updUnidade(i, { imei2: e.target.value })}
+                      inputMode="numeric"
+                      maxLength={15}
                     />
                   </div>
                 </div>
@@ -842,25 +774,6 @@ export default function AtacadoCadastroProduto() {
         </div>
       </Card>
 
-      {/* Visão geral */}
-      <Card className="p-5 space-y-3 bg-primary/5 border-primary/30">
-        <div className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">Visão geral do lote (R$)</h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <KpiMini label="Custo / unidade" value={hasDados ? brl(custoBaseUnit) : "—"} />
-          <KpiMini label="Investimento total" value={hasDados ? brl(investimentoTotal) : "—"} />
-          <KpiMini label="Venda total" value={precoNum > 0 ? brl(vendaTotal) : "—"} />
-          <KpiMini
-            label="Lucro"
-            value={hasDados && precoNum > 0 ? brl(lucroTotal) : "—"}
-            sub={hasDados && precoNum > 0 ? `Margem ${Math.round(margem)}% (s/ investimento)` : undefined}
-            positive={lucroTotal >= 0}
-          />
-        </div>
-      </Card>
-
       <div className="flex items-center justify-end gap-3">
         <Button variant="outline" onClick={() => navigate("/atacado/aparelhos")}>
           Cancelar
@@ -870,11 +783,48 @@ export default function AtacadoCadastroProduto() {
           Cadastrar {unidades.length} aparelho{unidades.length > 1 ? "s" : ""}
         </Button>
       </div>
+
+      {/* Bloco 4: barra sticky de visão geral */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]">
+        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2 text-sm">
+            <Package className="h-4 w-4 text-primary" />
+            <span className="font-semibold text-foreground">
+              Lote · {unidades.length} un
+            </span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-sm flex-1 min-w-0">
+            <StickyKpi label="Custo / un" value={hasDados ? brl(custoBaseUnit) : "—"} />
+            <StickyKpi label="Investimento" value={hasDados ? brl(investimentoTotal) : "—"} />
+            <StickyKpi label="Venda total" value={precoNum > 0 ? brl(vendaTotal) : "—"} />
+            <StickyKpi
+              label="Lucro"
+              value={hasDados && precoNum > 0 ? brl(lucroTotal) : "—"}
+              sub={
+                hasDados && precoNum > 0
+                  ? `Margem ${Math.round(margem)}%`
+                  : undefined
+              }
+              positive={lucroTotal >= 0}
+            />
+          </div>
+          <Button onClick={handleSalvar} disabled={salvando} size="sm">
+            {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
+            Cadastrar {unidades.length}
+          </Button>
+        </div>
+      </div>
+
+      <ColarImeisDialog
+        open={showColar}
+        onOpenChange={setShowColar}
+        onConfirm={aplicarImeisColados}
+      />
     </div>
   );
 }
 
-function KpiMini({
+function StickyKpi({
   label,
   value,
   sub,
@@ -886,16 +836,23 @@ function KpiMini({
   positive?: boolean;
 }) {
   return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+        {label}
+      </p>
       <p
-        className={`text-lg font-bold tabular-nums ${
-          positive === false ? "text-destructive" : "text-foreground"
-        }`}
+        className={cn(
+          "text-sm font-bold tabular-nums truncate",
+          positive === false ? "text-destructive" : "text-foreground",
+        )}
       >
         {value}
+        {sub && (
+          <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+            {sub}
+          </span>
+        )}
       </p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }
