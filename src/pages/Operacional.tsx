@@ -438,7 +438,7 @@ export default function Operacional() {
             </span>
           ) : (
             <div className="flex items-center gap-1 min-w-0">
-              <span className={cn("w-2 h-2 rounded-full shrink-0", colorForTec(tecs[0].id).dot)} />
+              <span className="w-2 h-2 rounded-full shrink-0" style={colorForTec(tecs[0].id).dot} />
               <span className="text-[10px] text-muted-foreground truncate" title={tecs.map((t) => t.nome).join(", ")}>
                 {tecs[0].nome}{tecs.length > 1 ? ` +${tecs.length - 1}` : ""}
               </span>
