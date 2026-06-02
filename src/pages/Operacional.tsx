@@ -460,8 +460,25 @@ export default function Operacional() {
       },
     });
 
+    // ---- Outros / sem etapa (rede de segurança: status não mapeado) ----
+    const orfas = ativas.filter((o: any) => !TODOS_STATUS_MAPEADOS.has(o.status as Status));
+    if (orfas.length > 0) {
+      cols.push({
+        key: "outros",
+        nome: "Outros / sem etapa",
+        icon: <AlertTriangle className="h-3.5 w-3.5" />,
+        color: "outros",
+        statusKey: null,
+        render: (q) => {
+          const list = orfas.filter((o: any) => cardMatchesBusca(o, q));
+          return { total: list.length, node: list.map((o: any) => renderOSCard(o, { draggable: false })) };
+        },
+      });
+    }
+
     return cols;
   }, [ativas, naRuaList, garantiasTerceiro, ordemById, modo]);
+
 
   return (
     <div className="space-y-4">
