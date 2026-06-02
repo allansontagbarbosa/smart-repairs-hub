@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, DragEvent } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useRef, useState, useEffect, DragEvent } from "react";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Loader2, Clock, AlertTriangle, MoreVertical,
