@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -51,7 +51,49 @@ interface Props {
   onClose: () => void;
 }
 
+type DetalheProps = {
+  orderId: string;
+  onClose: () => void;
+};
+
+const EMPTY_SERVICOS_DETALHADOS: any[] = [];
+
+function normalizeServicoEditor(item: any) {
+  return {
+    ...item,
+    id: item?.id,
+    servico_id: item?.servico_id,
+    tecnico_id: item?.tecnico_id ?? null,
+    motivo_sem_tecnico: item?.motivo_sem_tecnico ?? null,
+    valor_terceirizado: Number(item?.valor_terceirizado) || 0,
+    valor: Number(item?.valor) || 0,
+    comissao: Number(item?.comissao) || 0,
+  };
+}
+
+function sameServicosEditor(a: any[], b: any[]) {
+  if (a.length !== b.length) return false;
+  return a.every((p, i) => {
+    const n = b[i];
+    return (
+      !!n &&
+      p.id === n.id &&
+      p.servico_id === n.servico_id &&
+      p.tecnico_id === n.tecnico_id &&
+      p.motivo_sem_tecnico === n.motivo_sem_tecnico &&
+      p.valor_terceirizado === n.valor_terceirizado &&
+      p.valor === n.valor &&
+      p.comissao === n.comissao
+    );
+  });
+}
+
 export function OrdemDetalheSheet({ orderId, onClose }: Props) {
+  if (!orderId) return null;
+  return <OrdemDetalheSheetContent orderId={orderId} onClose={onClose} />;
+}
+
+function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
   const { empresa, empresaId } = useEmpresa();
   const { data: etiquetaTemplate } = useEtiquetaTemplateDefault("os_entrada");
   const [editing, setEditing] = useState(false);
@@ -226,31 +268,17 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
     : null;
   const tecnicos = tecnicoAtualForaDaLista ? [tecnicoAtualForaDaLista, ...funcionariosAtivos] : funcionariosAtivos;
 
-  const { data: servicosOSDetalhados = [] } = useOSServicos(orderId);
+  const { data: servicosOSRaw } = useOSServicos(orderId);
+  const servicosOSDetalhados = useMemo(
+    () => (servicosOSRaw ?? EMPTY_SERVICOS_DETALHADOS).map(normalizeServicoEditor),
+    [servicosOSRaw],
+  );
 
-  // Sincroniza o draft com os dados do servidor SEM causar loop.
-  // Usa updater funcional + comparação rasa por campos relevantes:
-  // se nada mudou, retorna a referência anterior e o React não re-renderiza.
+  // Sincroniza o draft apenas quando os dados reais do servidor mudam.
   useEffect(() => {
-    setServicosEditorDraft((prev) => {
-      if (
-        prev.length === servicosOSDetalhados.length &&
-        prev.every((p, i) => {
-          const n = servicosOSDetalhados[i];
-          return (
-            !!n &&
-            p.id === n.id &&
-            p.servico_id === n.servico_id &&
-            p.tecnico_id === n.tecnico_id &&
-            p.valor === n.valor &&
-            p.comissao === n.comissao
-          );
-        })
-      ) {
-        return prev;
-      }
-      return servicosOSDetalhados;
-    });
+    setServicosEditorDraft((prev) => (
+      sameServicosEditor(prev, servicosOSDetalhados) ? prev : servicosOSDetalhados
+    ));
   }, [servicosOSDetalhados]);
 
   // Lista de lojistas ativos da empresa
@@ -301,17 +329,24 @@ export function OrdemDetalheSheet({ orderId, onClose }: Props) {
 
   // Hidrata servicosSelecionados ao entrar em edição (chave = servico_id, fallback id)
   useEffect(() => {
-    if (editing) {
-      setServicosSelecionados(
-        (servicosAtuais as any[]).map((s) => ({
-          id: s.servico_id ?? s.id,
-          nome: s.nome,
-          categoria: s.categoria ?? undefined,
-          valor_mao_obra: Number(s.valor) || 0,
-          comissao_padrao: Number(s.comissao) || 0,
-        }))
-      );
-    }
+    if (!editing) return;
+    const next = (servicosAtuais as any[]).map((s) => ({
+      id: s.servico_id ?? s.id,
+      nome: s.nome,
+      categoria: s.categoria ?? undefined,
+      valor_mao_obra: Number(s.valor) || 0,
+      comissao_padrao: Number(s.comissao) || 0,
+    }));
+    setServicosSelecionados((prev) => {
+      if (
+        prev.length === next.length &&
+        prev.every((p, i) => {
+          const n = next[i];
+          return !!n && p.id === n.id && p.nome === n.nome && p.categoria === n.categoria && p.valor_mao_obra === n.valor_mao_obra && p.comissao_padrao === n.comissao_padrao;
+        })
+      ) return prev;
+      return next;
+    });
   }, [editing, servicosAtuais]);
 
   // Mutation: editar_os_servicos

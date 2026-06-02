@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { OrdemDetalheSheet } from "@/components/OrdemDetalheSheet";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { calcularPrioridade } from "@/lib/prioridade";
 import { statusLabels, type Status } from "@/lib/status";
 import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
@@ -148,6 +149,10 @@ export default function Operacional() {
     queryKey: ["ordens", "ativas"],
     queryFn: fetchActiveOrders,
   });
+
+  useEffect(() => {
+    if (!isLoading) console.debug("[Operacional] OS ativas pós-fetch:", (activeOrders as any[]).length);
+  }, [activeOrders, isLoading]);
 
   // ============== OS ENTREGUES (scroll infinito, sem filtro de período) ==============
   const entreguesQuery = useInfiniteQuery({
@@ -764,7 +769,19 @@ export default function Operacional() {
         </div>
       </div>
 
-      <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
+      <ErrorBoundary
+        key={selectedOrderId ?? "sem-os"}
+        fallback={
+          <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">
+            <span>Erro ao abrir detalhe</span>
+            <button type="button" className="font-semibold text-primary" onClick={() => setSelectedOrderId(null)}>
+              Fechar
+            </button>
+          </div>
+        }
+      >
+        <OrdemDetalheSheet orderId={selectedOrderId} onClose={() => setSelectedOrderId(null)} />
+      </ErrorBoundary>
     </div>
   );
 }
