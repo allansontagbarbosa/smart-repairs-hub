@@ -772,8 +772,11 @@ export default function Operacional() {
       <ErrorBoundary
         key={selectedOrderId ?? "sem-os"}
         fallback={
-          <div className="fixed bottom-4 right-4 z-50 rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">
-            Erro ao abrir detalhe
+          <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border bg-card px-3 py-2 text-xs shadow-lg">
+            <span>Erro ao abrir detalhe</span>
+            <button type="button" className="font-semibold text-primary" onClick={() => setSelectedOrderId(null)}>
+              Fechar
+            </button>
           </div>
         }
       >
