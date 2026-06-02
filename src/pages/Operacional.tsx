@@ -422,7 +422,7 @@ export default function Operacional() {
       color: "em_reparo",
       statusKey: "em_reparo" as Status,
       render: (q) => {
-        const list = ativas.filter((o: any) => o.status === "em_reparo" && cardMatchesBusca(o, q));
+        const list = ativas.filter((o: any) => naColuna(o, "em_reparo") && cardMatchesBusca(o, q));
         const grupos = new Map<string, any[]>();
         list.forEach((o: any) => {
           const tecs = tecnicosNomes(o);
