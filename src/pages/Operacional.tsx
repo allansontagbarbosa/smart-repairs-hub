@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, DragEvent } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useRef, useState, useEffect, DragEvent } from "react";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Loader2, Clock, AlertTriangle, MoreVertical,
@@ -57,7 +57,7 @@ const COLUNAS: ColunaDef[] = [
   { key: "terceirizado", nome: "Terceiro / Na rua",   subtitulo: "No técnico externo",  icon: <Truck className="h-3.5 w-3.5" />,       statuses: ["terceirizado"],                      alvo: "terceirizado",        accent: ACCENTS.violet },
   { key: "garantia",     nome: "Garantia",            subtitulo: "Em garantia",         icon: <ShieldCheck className="h-3.5 w-3.5" />, statuses: ["garantia"],                          alvo: "garantia",            accent: ACCENTS.cyan   },
   { key: "pronto",       nome: "Pronto",              subtitulo: "Aguardando retirada", icon: <CheckCircle2 className="h-3.5 w-3.5" />,statuses: ["pronto"],                            alvo: "pronto",              accent: ACCENTS.green  },
-  { key: "entregue",     nome: "Entregue",            subtitulo: "Finalizado (30d)",    icon: <PackageCheck className="h-3.5 w-3.5" />,statuses: ["entregue"],                          alvo: "entregue",            accent: ACCENTS.gray   },
+  { key: "entregue",     nome: "Entregue",            subtitulo: "Finalizado",          icon: <PackageCheck className="h-3.5 w-3.5" />,statuses: ["entregue"],                          alvo: "entregue",            accent: ACCENTS.gray   },
 ];
 
 const STATUS_MAPEADOS = new Set<Status>(COLUNAS.flatMap((c) => c.statuses));
@@ -98,14 +98,31 @@ function iniciais(nome: string) {
     .join("");
 }
 
-async function fetchOrders() {
-  const limite = new Date();
-  limite.setDate(limite.getDate() - 90);
+const ATIVOS: Status[] = [
+  "recebido", "em_analise", "aguardando_aprovacao", "aprovado",
+  "em_reparo", "aguardando_peca", "terceirizado", "garantia", "pronto",
+];
+
+const OS_SELECT = `*, aparelhos ( marca, modelo, tipo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`;
+
+async function fetchActiveOrders() {
   const { data, error } = await supabase
     .from("ordens_de_servico")
-    .select(`*, aparelhos ( marca, modelo, tipo, clientes ( nome, telefone ) ), os_servicos ( id, tecnico_id, funcionarios ( id, nome ) )`)
-    .gte("data_entrada", limite.toISOString())
+    .select(OS_SELECT)
+    .in("status", ATIVOS)
     .order("data_entrada", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+const PAGE_ENTREGUES = 50;
+async function fetchEntreguesPage(offset: number) {
+  const { data, error } = await supabase
+    .from("ordens_de_servico")
+    .select(OS_SELECT)
+    .eq("status", "entregue")
+    .order("data_entrada", { ascending: false })
+    .range(offset, offset + PAGE_ENTREGUES - 1);
   if (error) throw error;
   return data ?? [];
 }
@@ -126,10 +143,62 @@ export default function Operacional() {
   const [dragOver, setDragOver] = useState<string | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
 
-  const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["ordens", "ultimos-90"],
-    queryFn: fetchOrders,
+  // ============== OS ATIVAS (sem filtro de período) ==============
+  const { data: activeOrders = [], isLoading } = useQuery({
+    queryKey: ["ordens", "ativas"],
+    queryFn: fetchActiveOrders,
   });
+
+  // ============== OS ENTREGUES (scroll infinito, sem filtro de período) ==============
+  const entreguesQuery = useInfiniteQuery({
+    queryKey: ["ordens", "entregues", "infinite"],
+    queryFn: ({ pageParam = 0 }) => fetchEntreguesPage(pageParam as number),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < PAGE_ENTREGUES) return undefined;
+      return allPages.reduce((acc, p) => acc + p.length, 0);
+    },
+  });
+  const entreguesLoaded = useMemo(
+    () => (entreguesQuery.data?.pages ?? []).flat() as any[],
+    [entreguesQuery.data],
+  );
+
+  // Total real de entregues (para o contador do header da coluna)
+  const { data: entreguesTotal = 0 } = useQuery({
+    queryKey: ["ordens", "entregues", "count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("ordens_de_servico")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "entregue");
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Entregues do mês (para KPIs / resumo por técnico)
+  const inicioMesIso = useMemo(() => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d.toISOString();
+  }, []);
+  const { data: entreguesMes = [] } = useQuery({
+    queryKey: ["ordens", "entregues-mes", inicioMesIso],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ordens_de_servico")
+        .select(`id, data_entrada, data_conclusao, status, os_servicos ( id, funcionarios ( id, nome ) )`)
+        .eq("status", "entregue")
+        .gte("data_conclusao", inicioMesIso);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Combinado para reaproveitar lógica que precisa de ativas + entregues carregadas
+  const orders = useMemo(
+    () => [...(activeOrders as any[]), ...entreguesLoaded],
+    [activeOrders, entreguesLoaded],
+  );
 
   const { data: tecnicos = [] } = useQuery({
     queryKey: ["funcionarios", "tecnicos-operacional"],
@@ -195,36 +264,31 @@ export default function Operacional() {
   });
 
   // ============== KPIs ==============
-  const inicioMes = useMemo(() => {
-    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
-  }, []);
+  const inicioMes = useMemo(() => new Date(inicioMesIso), [inicioMesIso]);
 
   const kpis = useMemo(() => {
-    const all = orders as any[];
-    const concluidasMes = all.filter(
-      (o) => o.data_conclusao && new Date(o.data_conclusao) >= inicioMes,
-    );
-    const tempos = concluidasMes
+    const ent = entreguesMes as any[];
+    const tempos = ent
       .filter((o) => o.data_entrada && o.data_conclusao)
       .map((o) => daysBetween(o.data_entrada, o.data_conclusao));
     const tempoMedio = tempos.length
       ? Math.round((tempos.reduce((a, b) => a + b, 0) / tempos.length) * 10) / 10
       : null;
 
-    const totalMes = all.filter(
-      (o) => new Date(o.data_entrada) >= inicioMes,
-    );
-    const canceladasMes = totalMes.filter((o) => o.status === "cancelado").length;
-    const concl = totalMes.filter((o) => o.status === "entregue" || o.status === "pronto").length;
-    const denom = concl + canceladasMes;
+    // Taxa = entregues no mês / (entregues no mês + prontos do mês), aproximação sem cancelados
+    const prontosMes = (activeOrders as any[]).filter(
+      (o) => o.status === "pronto" && new Date(o.data_entrada) >= inicioMes,
+    ).length;
+    const concl = ent.length;
+    const denom = concl + prontosMes;
     const taxa = denom > 0 ? Math.round((concl / denom) * 100) : null;
 
     return {
       tempoMedio,
       taxa,
-      concluidasMes: concluidasMes.length,
+      concluidasMes: concl,
     };
-  }, [orders, inicioMes]);
+  }, [entreguesMes, activeOrders, inicioMes]);
 
   // ============== Drag & Drop (desktop) ==============
   const onDragStart = (e: DragEvent, id: string) => {
@@ -261,29 +325,29 @@ export default function Operacional() {
   };
 
   // ============== Agrupamento por coluna ==============
-  const trintaDiasAtras = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() - 30); return d;
-  }, []);
-
+  // Sem filtro de período em nenhuma coluna.
+  // - Ativas: vêm de activeOrders (todas, sem corte de data).
+  // - Entregue: usa entreguesLoaded (paginado por scroll infinito), mas o contador
+  //   do header mostra o TOTAL real (entreguesTotal).
   const colunasComDados = useMemo(() => {
     return COLUNAS.map((c) => {
-      let list = (orders as any[]).filter((o) => c.statuses.includes(o.status));
       if (c.key === "entregue") {
-        list = list.filter((o) => o.data_conclusao && new Date(o.data_conclusao) >= trintaDiasAtras);
+        return { ...c, list: entreguesLoaded, total: entreguesTotal as number };
       }
-      return { ...c, list };
+      const list = (activeOrders as any[]).filter((o) => c.statuses.includes(o.status));
+      return { ...c, list, total: list.length };
     });
-  }, [orders, trintaDiasAtras]);
+  }, [activeOrders, entreguesLoaded, entreguesTotal]);
 
   const orfas = useMemo(() => {
-    return (orders as any[]).filter(
+    return (activeOrders as any[]).filter(
       (o) => !STATUS_MAPEADOS.has(o.status) && o.status !== "cancelado",
     );
-  }, [orders]);
+  }, [activeOrders]);
 
   const ativas = useMemo(
-    () => (orders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
-    [orders],
+    () => (activeOrders as any[]).filter((o) => o.status !== "entregue" && o.status !== "cancelado"),
+    [activeOrders],
   );
 
   // OS ativas por técnico (para o chip do header)
@@ -296,23 +360,23 @@ export default function Operacional() {
   // Resumo por técnico no rodapé
   const resumoTecnicos = useMemo(() => {
     return (tecnicos as any[]).map((t) => {
-      const minhas = (orders as any[]).filter((o) =>
+      const minhasAtivas = (activeOrders as any[]).filter((o) =>
         tecsDe(o).some((x) => x.id === t.id),
       );
-      const emAndamento = minhas.filter((o) =>
+      const emAndamento = minhasAtivas.filter((o) =>
         ["em_reparo", "em_analise", "aguardando_aprovacao", "aprovado", "recebido"].includes(o.status),
       ).length;
-      const aguardando = minhas.filter((o) =>
+      const aguardando = minhasAtivas.filter((o) =>
         ["aguardando_peca", "terceirizado", "garantia"].includes(o.status),
       ).length;
-      const pronto = minhas.filter((o) => o.status === "pronto").length;
-      const entregue = minhas.filter(
-        (o) => o.status === "entregue" && o.data_conclusao && new Date(o.data_conclusao) >= inicioMes,
+      const pronto = minhasAtivas.filter((o) => o.status === "pronto").length;
+      const entregue = (entreguesMes as any[]).filter((o) =>
+        tecsDe(o).some((x) => x.id === t.id),
       ).length;
       const ativasN = emAndamento + aguardando + pronto;
       return { ...t, emAndamento, aguardando, pronto, entregue, ativas: ativasN };
     }).sort((a, b) => b.ativas - a.ativas);
-  }, [tecnicos, orders, inicioMes]);
+  }, [tecnicos, activeOrders, entreguesMes]);
 
   const maxAtivasTec = Math.max(1, ...resumoTecnicos.map((t) => t.ativas));
 
@@ -557,7 +621,7 @@ export default function Operacional() {
                       </span>
                     </div>
                     <span className="text-[11px] text-foreground/80 bg-background/80 rounded-full px-2 py-0.5 font-semibold tabular-nums">
-                      {col.list.length}
+                      {(col as any).total ?? col.list.length}
                     </span>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">{col.subtitulo}</div>
@@ -590,6 +654,13 @@ export default function Operacional() {
                     </div>
                   ) : (
                     list.map(renderCard)
+                  )}
+                  {col.key === "entregue" && list.length > 0 && (
+                    <EntreguesSentinel
+                      hasNext={!!entreguesQuery.hasNextPage}
+                      isFetching={entreguesQuery.isFetchingNextPage}
+                      onLoadMore={() => entreguesQuery.fetchNextPage()}
+                    />
                   )}
                 </div>
               </div>
@@ -711,6 +782,51 @@ function Indicador({
       </div>
       <div className="text-xl font-bold tabular-nums mt-1">{valor}</div>
       {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
+    </div>
+  );
+}
+
+function EntreguesSentinel({
+  hasNext,
+  isFetching,
+  onLoadMore,
+}: {
+  hasNext: boolean;
+  isFetching: boolean;
+  onLoadMore: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!hasNext) return;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting) && !isFetching) onLoadMore();
+      },
+      { root: null, rootMargin: "120px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasNext, isFetching, onLoadMore]);
+
+  return (
+    <div ref={ref} className="py-3 flex items-center justify-center">
+      {isFetching ? (
+        <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" /> carregando…
+        </span>
+      ) : hasNext ? (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          className="text-[10px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          carregar mais
+        </button>
+      ) : (
+        <span className="text-[10px] text-muted-foreground/60 italic">— fim —</span>
+      )}
     </div>
   );
 }
