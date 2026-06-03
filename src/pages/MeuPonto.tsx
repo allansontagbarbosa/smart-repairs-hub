@@ -31,6 +31,30 @@ export default function MeuPonto() {
   );
 
   const { data, isLoading, error } = useMeuEspelhoPonto(competencia);
+  const { data: holerite } = useMeuHolerite(competencia);
+  const { data: empresa } = useEmpresaParaHolerite();
+
+  const fmtBRL = (c: number) =>
+    (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const handleBaixarHolerite = () => {
+    if (!holerite || (holerite.eventos?.length ?? 0) === 0) {
+      toast.error("Holerite ainda não montado para esta competência. Peça para o RH.");
+      return;
+    }
+    baixarHoleritePDF({
+      empresa: empresa ?? { nome: "Empresa" },
+      funcionario: holerite.funcionario,
+      competencia,
+      eventos: holerite.eventos,
+      total_proventos_centavos: holerite.total_proventos_centavos,
+      total_descontos_centavos: holerite.total_descontos_centavos,
+      liquido_centavos: holerite.liquido_centavos,
+      horas_trabalhadas: holerite.horas_trabalhadas,
+      dias_trabalhados: holerite.dias_trabalhados,
+      faltas: holerite.faltas,
+    });
+  };
 
   const banco = data?.banco ?? {};
   const batidas: any[] = data?.batidas ?? [];
