@@ -16,7 +16,10 @@ import {
 } from "lucide-react";
 import { useFolhaMensal } from "@/hooks/useFolhaMensal";
 import { useGerarFolhaMensal } from "@/hooks/useRH";
+import { useEmpresaParaHolerite } from "@/hooks/useHoleriteDetalhado";
 import { TIPO_VINCULO_LABELS, type TipoVinculo } from "@/types/rh";
+import { supabase } from "@/integrations/supabase/client";
+import { gerarHoleritesLotePDF } from "@/lib/pdf/gerarHoleritePDF";
 import { toast } from "sonner";
 
 const fmt = (c: number) =>
