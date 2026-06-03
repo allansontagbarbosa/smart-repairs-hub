@@ -6,6 +6,7 @@ export type RetiradaFluxoStatus = "pendente" | "aprovada" | "rejeitada" | "cance
 export type RetiradaFluxo = {
   id: string;
   socio_id: string;
+  socio_user_id: string | null;
   socio_nome: string;
   valor: number;
   descricao: string | null;
