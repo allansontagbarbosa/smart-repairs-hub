@@ -17,6 +17,7 @@ import { TIPO_VINCULO_LABELS, TIPO_MOV_LABELS } from "@/types/rh";
 import { EditarFuncionarioDialog } from "@/components/rh/EditarFuncionarioDialog";
 import { RegistrarFaltaDialog } from "@/components/rh/RegistrarFaltaDialog";
 import { JornadaTab } from "@/components/rh/JornadaTab";
+import { HoleriteDetalhadoTab } from "@/components/rh/HoleriteDetalhadoTab";
 import { toast } from "sonner";
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
