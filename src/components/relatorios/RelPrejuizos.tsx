@@ -168,9 +168,9 @@ export function RelPrejuizos() {
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
+              <YAxis tickFormatter={(v) => `R$${(num(v) / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                formatter={(v: number) => num(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 contentStyle={{ fontSize: 12, borderRadius: 8 }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
