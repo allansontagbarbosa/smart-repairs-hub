@@ -10649,8 +10649,24 @@ export type Database = {
           pode_cancelar: boolean
           socio_id: string
           socio_nome: string
+          socio_user_id: string
           status: string
           valor: number
+        }[]
+      }
+      socios_visao_admin: {
+        Args: never
+        Returns: {
+          eh_voce: boolean
+          nome: string
+          percentual: number
+          qtd_pendentes: number
+          retiradas_pendentes: number
+          saldo: number
+          socio_id: string
+          total_creditado: number
+          total_retirado: number
+          user_id: string
         }[]
       }
       solicitar_lancamento: {
