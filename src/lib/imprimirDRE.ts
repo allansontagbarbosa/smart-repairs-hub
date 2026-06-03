@@ -73,7 +73,29 @@ type Linha =
     };
 
 export function imprimirDRE(params: ImprimirDREParams) {
-  const { empresa, competencia, dre, socios = [], graficosHTML } = params;
+  const { empresa, competencia, dre: rawDre, socios = [], graficosHTML } = params;
+  // Normaliza todos os campos numéricos pra 0 quando vierem undefined/null
+  const dre = {
+    servicosFaturados: n(rawDre.servicosFaturados),
+    outrosReceb: n(rawDre.outrosReceb),
+    receitaBruta: n(rawDre.receitaBruta),
+    impostos: n(rawDre.impostos),
+    receitaLiquida: n(rawDre.receitaLiquida),
+    custoPecas: n(rawDre.custoPecas),
+    comissoesPagas: n(rawDre.comissoesPagas),
+    prejuizosOpTotal: n(rawDre.prejuizosOpTotal),
+    lucroBruto: n(rawDre.lucroBruto),
+    gastosFixos: n(rawDre.gastosFixos),
+    outrosGastos: n(rawDre.outrosGastos),
+    depreciacao: n(rawDre.depreciacao),
+    ebitda: n(rawDre.ebitda),
+    prejuizosNaoOpTotal: n(rawDre.prejuizosNaoOpTotal),
+    resultadoNaoOperacional: n(rawDre.resultadoNaoOperacional),
+    lucroLiquido: rawDre.lucroLiquido != null ? n(rawDre.lucroLiquido) : undefined,
+    reservaPct: rawDre.reservaPct,
+    reserva: rawDre.reserva != null ? n(rawDre.reserva) : undefined,
+    partesSocios: rawDre.partesSocios,
+  };
   const [year, monthN] = competencia.split("-").map(Number);
   const nomeMes = new Date(year, monthN - 1).toLocaleDateString("pt-BR", {
     month: "long",
