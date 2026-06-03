@@ -38,7 +38,7 @@ export default function RHFuncionario() {
   const func = funcionarios.find(f => f.id === id);
 
   const { data: extrato } = useExtratoFuncionario(id || null);
-  const { data: holerite } = useHolerite(id || null, competencia);
+  
   const { data: bancoHoras } = useBancoHoras(id || null, competencia);
   const pagar = usePagarMovimentacoes();
   const aplicarAcao = useAplicarAcaoBancoHoras();
