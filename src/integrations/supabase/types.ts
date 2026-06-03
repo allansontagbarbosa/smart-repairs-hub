@@ -9352,6 +9352,10 @@ export type Database = {
       }
     }
     Functions: {
+      _rh_garantir_conta: {
+        Args: { p_data_pag: string; p_mov_id: string }
+        Returns: string
+      }
       _socio_da_empresa: { Args: { p_empresa_id: string }; Returns: string }
       aceitar_convite_cliente: { Args: { p_token: string }; Returns: Json }
       admin_resetar_senha_lojista: {
@@ -10145,6 +10149,10 @@ export type Database = {
       }
       estornar_pagamento_conta: {
         Args: { p_pagamento_id: string }
+        Returns: Json
+      }
+      estornar_pagamento_funcionario: {
+        Args: { p_motivo?: string; p_movimentacao_id: string }
         Returns: Json
       }
       estornar_recebimento_cliente: {
