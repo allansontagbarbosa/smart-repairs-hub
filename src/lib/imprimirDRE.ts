@@ -145,8 +145,8 @@ export function imprimirDRE(params: ImprimirDREParams) {
     });
     partesSocios.forEach((p) => {
       linhas.push({
-        label: `${p.nome} (${p.percentual.toFixed(2)}%)`,
-        valor: p.valor,
+        label: `${p.nome} (${n(p.percentual).toFixed(2)}%)`,
+        valor: n(p.valor),
         distribuicao: true,
       });
     });
