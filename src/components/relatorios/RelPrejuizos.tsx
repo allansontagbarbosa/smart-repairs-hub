@@ -194,29 +194,29 @@ export function RelPrejuizos() {
         <CardContent>
           {(porTecnico ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhum prejuízo vinculado a técnico neste período.
-              <br />
-              <span className="text-xs">Prejuízos só aparecem aqui se a OS de origem tinha técnico associado.</span>
+              Nenhum prejuízo neste período.
             </p>
           ) : (
             <div className="space-y-2">
-              {(porTecnico ?? []).map((t, idx) => (
-                <div key={t.tecnico_id} className="flex items-center justify-between p-3 rounded-lg border">
+              {(porTecnico ?? []).map((t, idx) => {
+                const semTec = !t.tecnico_id || t.tecnico_id === "sem-tecnico";
+                return (
+                <div key={t.tecnico_id ?? `sem-${idx}`} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
                       {idx + 1}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{t.tecnico_nome}</p>
+                      <p className={`text-sm font-medium ${semTec ? "italic text-muted-foreground" : ""}`}>{t.tecnico_nome}</p>
                       <div className="flex gap-1 mt-1">
-                        {t.qtd_operacionais > 0 && (
+                        {num(t.qtd_operacionais) > 0 && (
                           <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                            {t.qtd_operacionais} operacional
+                            {num(t.qtd_operacionais)} operacional
                           </Badge>
                         )}
-                        {t.qtd_nao_operacionais > 0 && (
+                        {num(t.qtd_nao_operacionais) > 0 && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {t.qtd_nao_operacionais} não-op
+                            {num(t.qtd_nao_operacionais)} não-op
                           </Badge>
                         )}
                       </div>
@@ -225,11 +225,12 @@ export function RelPrejuizos() {
                   <div className="text-right">
                     <p className="text-sm font-semibold text-destructive">{fmt(t.total_centavos)}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {t.qtd_prejuizos} {t.qtd_prejuizos === 1 ? "prejuízo" : "prejuízos"}
+                      {num(t.qtd_prejuizos)} {num(t.qtd_prejuizos) === 1 ? "prejuízo" : "prejuízos"}
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
