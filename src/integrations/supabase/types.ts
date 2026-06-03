@@ -9352,6 +9352,11 @@ export type Database = {
       }
     }
     Functions: {
+      _is_categoria_pessoal: { Args: { p_categoria: string }; Returns: boolean }
+      _map_status_conta_to_rh: {
+        Args: { p_status: Database["public"]["Enums"]["status_conta"] }
+        Returns: Database["public"]["Enums"]["status_movimentacao_func"]
+      }
       _rh_garantir_conta: {
         Args: { p_data_pag: string; p_mov_id: string }
         Returns: string
@@ -10675,6 +10680,17 @@ export type Database = {
       }
       revogar_convite_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       revogar_usuario: { Args: { p_user_profile_id: string }; Returns: Json }
+      rh_fin_reconciliar: {
+        Args: { p_dry_run?: boolean }
+        Returns: {
+          acao: string
+          competencia: string
+          funcionario: string
+          status_fin: string
+          status_rh_antes: string
+          tipo: string
+        }[]
+      }
       saldo_devedor_cliente: { Args: { p_cliente_id: string }; Returns: number }
       salvar_calibracao_etiqueta: {
         Args: {
