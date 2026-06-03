@@ -9,8 +9,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useListarPrejuizos } from "@/hooks/usePrejuizos";
 
 const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const fmt = (centavos: number) =>
-  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (v: unknown) => Number(v ?? 0) || 0;
+const fmt = (centavos?: number | null) =>
+  (num(centavos) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 type TecnicoRow = {
   tecnico_id: string;
