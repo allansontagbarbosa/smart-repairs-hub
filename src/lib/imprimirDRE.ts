@@ -28,9 +28,10 @@ interface ImprimirDREParams {
   graficosHTML?: string;
 }
 
-const fmt = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+const n = (v: unknown) => Number(v ?? 0) || 0;
+const fmt = (v?: number | null) =>
+  n(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtPct = (v?: number | null) => `${n(v).toFixed(1)}%`;
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
