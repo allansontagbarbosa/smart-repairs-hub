@@ -35,6 +35,8 @@ export default function RHFolhaMensal() {
 
   const { data: folha = [], isLoading } = useFolhaMensal(competencia);
   const gerarFolha = useGerarFolhaMensal();
+  const { data: empresa } = useEmpresaParaHolerite();
+  const [baixandoLote, setBaixandoLote] = useState(false);
 
   const totalProventos = folha.reduce((s, f) => s + f.total_proventos_centavos, 0);
   const totalDescontos = folha.reduce((s, f) => s + f.total_descontos_centavos, 0);
