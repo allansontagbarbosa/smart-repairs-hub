@@ -28,9 +28,10 @@ interface ImprimirDREParams {
   graficosHTML?: string;
 }
 
-const fmt = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+const n = (v: unknown) => Number(v ?? 0) || 0;
+const fmt = (v?: number | null) =>
+  n(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtPct = (v?: number | null) => `${n(v).toFixed(1)}%`;
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -72,7 +73,29 @@ type Linha =
     };
 
 export function imprimirDRE(params: ImprimirDREParams) {
-  const { empresa, competencia, dre, socios = [], graficosHTML } = params;
+  const { empresa, competencia, dre: rawDre, socios = [], graficosHTML } = params;
+  // Normaliza todos os campos numéricos pra 0 quando vierem undefined/null
+  const dre = {
+    servicosFaturados: n(rawDre.servicosFaturados),
+    outrosReceb: n(rawDre.outrosReceb),
+    receitaBruta: n(rawDre.receitaBruta),
+    impostos: n(rawDre.impostos),
+    receitaLiquida: n(rawDre.receitaLiquida),
+    custoPecas: n(rawDre.custoPecas),
+    comissoesPagas: n(rawDre.comissoesPagas),
+    prejuizosOpTotal: n(rawDre.prejuizosOpTotal),
+    lucroBruto: n(rawDre.lucroBruto),
+    gastosFixos: n(rawDre.gastosFixos),
+    outrosGastos: n(rawDre.outrosGastos),
+    depreciacao: n(rawDre.depreciacao),
+    ebitda: n(rawDre.ebitda),
+    prejuizosNaoOpTotal: n(rawDre.prejuizosNaoOpTotal),
+    resultadoNaoOperacional: n(rawDre.resultadoNaoOperacional),
+    lucroLiquido: rawDre.lucroLiquido != null ? n(rawDre.lucroLiquido) : undefined,
+    reservaPct: rawDre.reservaPct,
+    reserva: rawDre.reserva != null ? n(rawDre.reserva) : undefined,
+    partesSocios: rawDre.partesSocios,
+  };
   const [year, monthN] = competencia.split("-").map(Number);
   const nomeMes = new Date(year, monthN - 1).toLocaleDateString("pt-BR", {
     month: "long",
@@ -122,8 +145,8 @@ export function imprimirDRE(params: ImprimirDREParams) {
     });
     partesSocios.forEach((p) => {
       linhas.push({
-        label: `${p.nome} (${p.percentual.toFixed(2)}%)`,
-        valor: p.valor,
+        label: `${p.nome} (${n(p.percentual).toFixed(2)}%)`,
+        valor: n(p.valor),
         distribuicao: true,
       });
     });
