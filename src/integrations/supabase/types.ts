@@ -4714,6 +4714,63 @@ export type Database = {
           },
         ]
       }
+      funcionario_dependentes: {
+        Row: {
+          conta_irrf: boolean
+          conta_salario_familia: boolean
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          nome: string
+          parentesco: string | null
+          updated_at: string
+        }
+        Insert: {
+          conta_irrf?: boolean
+          conta_salario_familia?: boolean
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          nome: string
+          parentesco?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conta_irrf?: boolean
+          conta_salario_familia?: boolean
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          nome?: string
+          parentesco?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_dependentes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_dependentes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionario_importacoes_ponto: {
         Row: {
           arquivo_nome: string
@@ -5023,6 +5080,8 @@ export type Database = {
           carga_horaria: string | null
           carga_horaria_semanal: number | null
           cargo: string | null
+          cbo: string | null
+          centro_custo: string | null
           cep: string | null
           chave_pix: string | null
           cidade: string | null
@@ -5030,8 +5089,12 @@ export type Database = {
           conta_bancaria: string | null
           cpf: string | null
           created_at: string
+          ctps_numero: string | null
+          ctps_serie: string | null
+          ctps_uf: string | null
           data_admissao: string | null
           data_demissao: string | null
+          data_nascimento: string | null
           deleted_at: string | null
           eh_funcionario_rh: boolean
           email: string | null
@@ -5039,17 +5102,23 @@ export type Database = {
           endereco: string | null
           especialidade: string | null
           estado: string | null
+          estado_civil: string | null
           funcao: string | null
+          genero: string | null
           id: string
           nome: string
+          nome_mae: string | null
           numero: string | null
           observacoes: string | null
           observacoes_rh: string | null
+          pis_pasep: string | null
+          pix_tipo: string | null
           rg: string | null
           salario_centavos: number | null
           salario_fixo: number | null
           telefone: string | null
           tipo_comissao: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_conta: string | null
           tipo_vinculo: Database["public"]["Enums"]["tipo_vinculo_rh"] | null
           va_centavos: number | null
           vale_alimentacao: number | null
@@ -5066,6 +5135,8 @@ export type Database = {
           carga_horaria?: string | null
           carga_horaria_semanal?: number | null
           cargo?: string | null
+          cbo?: string | null
+          centro_custo?: string | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -5073,8 +5144,12 @@ export type Database = {
           conta_bancaria?: string | null
           cpf?: string | null
           created_at?: string
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          ctps_uf?: string | null
           data_admissao?: string | null
           data_demissao?: string | null
+          data_nascimento?: string | null
           deleted_at?: string | null
           eh_funcionario_rh?: boolean
           email?: string | null
@@ -5082,17 +5157,23 @@ export type Database = {
           endereco?: string | null
           especialidade?: string | null
           estado?: string | null
+          estado_civil?: string | null
           funcao?: string | null
+          genero?: string | null
           id?: string
           nome: string
+          nome_mae?: string | null
           numero?: string | null
           observacoes?: string | null
           observacoes_rh?: string | null
+          pis_pasep?: string | null
+          pix_tipo?: string | null
           rg?: string | null
           salario_centavos?: number | null
           salario_fixo?: number | null
           telefone?: string | null
           tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_conta?: string | null
           tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_rh"] | null
           va_centavos?: number | null
           vale_alimentacao?: number | null
@@ -5109,6 +5190,8 @@ export type Database = {
           carga_horaria?: string | null
           carga_horaria_semanal?: number | null
           cargo?: string | null
+          cbo?: string | null
+          centro_custo?: string | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -5116,8 +5199,12 @@ export type Database = {
           conta_bancaria?: string | null
           cpf?: string | null
           created_at?: string
+          ctps_numero?: string | null
+          ctps_serie?: string | null
+          ctps_uf?: string | null
           data_admissao?: string | null
           data_demissao?: string | null
+          data_nascimento?: string | null
           deleted_at?: string | null
           eh_funcionario_rh?: boolean
           email?: string | null
@@ -5125,17 +5212,23 @@ export type Database = {
           endereco?: string | null
           especialidade?: string | null
           estado?: string | null
+          estado_civil?: string | null
           funcao?: string | null
+          genero?: string | null
           id?: string
           nome?: string
+          nome_mae?: string | null
           numero?: string | null
           observacoes?: string | null
           observacoes_rh?: string | null
+          pis_pasep?: string | null
+          pix_tipo?: string | null
           rg?: string | null
           salario_centavos?: number | null
           salario_fixo?: number | null
           telefone?: string | null
           tipo_comissao?: Database["public"]["Enums"]["tipo_comissao"]
+          tipo_conta?: string | null
           tipo_vinculo?: Database["public"]["Enums"]["tipo_vinculo_rh"] | null
           va_centavos?: number | null
           vale_alimentacao?: number | null
