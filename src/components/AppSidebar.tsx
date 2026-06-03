@@ -110,17 +110,20 @@ export function AppSidebar() {
   const email = user?.email || "";
   const iniciais = getInitials(nome);
 
+  // ADM ou sócio — quem pode ver o Painel do Sócio
   const { data: ehSocio } = useQuery({
-    queryKey: ['sidebar-eh-socio', user?.id],
+    queryKey: ['sidebar-eh-adm-ou-socio', user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase.rpc('is_adm_ou_socio' as any);
+      if (!error) return Boolean(data);
+      const { data: row } = await supabase
         .from('socios')
         .select('id')
         .eq('user_id', user!.id)
         .eq('ativo', true)
         .is('deleted_at', null)
         .maybeSingle();
-      return !!data;
+      return !!row;
     },
     enabled: !!user?.id,
   });
