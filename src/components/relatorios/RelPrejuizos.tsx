@@ -9,8 +9,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useListarPrejuizos } from "@/hooks/usePrejuizos";
 
 const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-const fmt = (centavos: number) =>
-  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (v: unknown) => Number(v ?? 0) || 0;
+const fmt = (centavos?: number | null) =>
+  (num(centavos) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 type TecnicoRow = {
   tecnico_id: string;
@@ -75,29 +76,50 @@ export function RelPrejuizos() {
   const topOSs = useMemo(() => {
     const items = listaPrej?.prejuizos ?? [];
     const porOs = new Map<string, TopOSAcc>();
+    let semOsTotal = 0;
+    let semOsQtd = 0;
+    const semOsTipos = new Set<string>();
     for (const p of items as any[]) {
       const osId = p.os_origem?.id || p.os_retrabalho?.id;
       const osNumero = p.os_origem?.numero || p.os_retrabalho?.numero;
-      if (!osId || !osNumero) continue;
+      const valor = num(p.valor_centavos);
+      const tipo = p.tipo_label ?? p.tipo ?? "—";
+      if (!osId || !osNumero) {
+        semOsTotal += valor;
+        semOsQtd += 1;
+        semOsTipos.add(tipo);
+        continue;
+      }
       const cur = porOs.get(osId) ?? { os_numero: osNumero, total: 0, qtd: 0, tipos: new Set<string>() };
-      cur.total += p.valor_centavos;
+      cur.total += valor;
       cur.qtd += 1;
-      cur.tipos.add(p.tipo_label);
+      cur.tipos.add(tipo);
       porOs.set(osId, cur);
     }
-    return Array.from(porOs.entries())
-      .map(([id, v]) => ({ os_id: id, os_numero: v.os_numero, total: v.total, qtd: v.qtd, tipos: Array.from(v.tipos) }))
+    const lista = Array.from(porOs.entries())
+      .map(([id, v]) => ({ os_id: id, os_numero: v.os_numero, total: v.total, qtd: v.qtd, tipos: Array.from(v.tipos), sem_os: false }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
+    if (semOsQtd > 0) {
+      lista.push({
+        os_id: "sem-os",
+        os_numero: "Outros / Sem OS",
+        total: semOsTotal,
+        qtd: semOsQtd,
+        tipos: Array.from(semOsTipos),
+        sem_os: true,
+      });
+    }
+    return lista;
   }, [listaPrej]);
 
   const chartData = useMemo(() => {
     return (evolucao ?? []).map((m) => {
-      const [y, mm] = m.ano_mes.split("-");
+      const [y, mm] = (m.ano_mes ?? "0000-00").split("-");
       return {
-        mes: `${meses[parseInt(mm) - 1]}/${y.slice(2)}`,
-        Operacional: m.operacional_centavos / 100,
-        "Não-operacional": m.nao_operacional_centavos / 100,
+        mes: `${meses[parseInt(mm) - 1] ?? ""}/${(y ?? "").slice(2)}`,
+        Operacional: num(m.operacional_centavos) / 100,
+        "Não-operacional": num(m.nao_operacional_centavos) / 100,
       };
     });
   }, [evolucao]);
@@ -146,9 +168,9 @@ export function RelPrejuizos() {
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
+              <YAxis tickFormatter={(v) => `R$${(num(v) / 1000).toFixed(1)}k`} tick={{ fontSize: 11 }} />
               <Tooltip
-                formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                formatter={(v: number) => num(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 contentStyle={{ fontSize: 12, borderRadius: 8 }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -172,29 +194,29 @@ export function RelPrejuizos() {
         <CardContent>
           {(porTecnico ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhum prejuízo vinculado a técnico neste período.
-              <br />
-              <span className="text-xs">Prejuízos só aparecem aqui se a OS de origem tinha técnico associado.</span>
+              Nenhum prejuízo neste período.
             </p>
           ) : (
             <div className="space-y-2">
-              {(porTecnico ?? []).map((t, idx) => (
-                <div key={t.tecnico_id} className="flex items-center justify-between p-3 rounded-lg border">
+              {(porTecnico ?? []).map((t, idx) => {
+                const semTec = !t.tecnico_id || t.tecnico_id === "sem-tecnico";
+                return (
+                <div key={t.tecnico_id ?? `sem-${idx}`} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
                       {idx + 1}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{t.tecnico_nome}</p>
+                      <p className={`text-sm font-medium ${semTec ? "italic text-muted-foreground" : ""}`}>{t.tecnico_nome}</p>
                       <div className="flex gap-1 mt-1">
-                        {t.qtd_operacionais > 0 && (
+                        {num(t.qtd_operacionais) > 0 && (
                           <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                            {t.qtd_operacionais} operacional
+                            {num(t.qtd_operacionais)} operacional
                           </Badge>
                         )}
-                        {t.qtd_nao_operacionais > 0 && (
+                        {num(t.qtd_nao_operacionais) > 0 && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {t.qtd_nao_operacionais} não-op
+                            {num(t.qtd_nao_operacionais)} não-op
                           </Badge>
                         )}
                       </div>
@@ -203,11 +225,12 @@ export function RelPrejuizos() {
                   <div className="text-right">
                     <p className="text-sm font-semibold text-destructive">{fmt(t.total_centavos)}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {t.qtd_prejuizos} {t.qtd_prejuizos === 1 ? "prejuízo" : "prejuízos"}
+                      {num(t.qtd_prejuizos)} {num(t.qtd_prejuizos) === 1 ? "prejuízo" : "prejuízos"}
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -227,35 +250,41 @@ export function RelPrejuizos() {
             </p>
           ) : (
             <div className="space-y-2">
-              {topOSs.map((os, idx) => (
-                <a
-                  key={os.os_id}
-                  href={`/assistencia?os=${os.os_id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">OS #{os.os_numero}</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {os.tipos.slice(0, 3).map((t) => (
-                          <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">
-                            {t}
-                          </Badge>
-                        ))}
+              {topOSs.map((os, idx) => {
+                const className = "flex items-center justify-between p-3 rounded-lg border hover:bg-muted/40 transition-colors";
+                const inner = (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                        {os.sem_os ? "—" : idx + 1}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${os.sem_os ? "italic text-muted-foreground" : ""}`}>
+                          {os.sem_os ? os.os_numero : `OS #${os.os_numero}`}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {os.tipos.slice(0, 3).map((t) => (
+                            <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-destructive">{fmt(os.total)}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {os.qtd} {os.qtd === 1 ? "ocorrência" : "ocorrências"}
-                    </p>
-                  </div>
-                </a>
-              ))}
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-destructive">{fmt(os.total)}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {os.qtd} {os.qtd === 1 ? "ocorrência" : "ocorrências"}
+                      </p>
+                    </div>
+                  </>
+                );
+                return os.sem_os ? (
+                  <div key={os.os_id} className={className}>{inner}</div>
+                ) : (
+                  <a key={os.os_id} href={`/assistencia?os=${os.os_id}`} className={className}>{inner}</a>
+                );
+              })}
             </div>
           )}
         </CardContent>
