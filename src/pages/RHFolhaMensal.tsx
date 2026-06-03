@@ -109,8 +109,7 @@ export default function RHFolhaMensal() {
       setBaixandoLote(false);
     }
   };
-
-
+  return (
     <div className="container mx-auto p-6 space-y-6 max-w-6xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
