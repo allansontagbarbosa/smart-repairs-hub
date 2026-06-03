@@ -381,7 +381,12 @@ export default function PainelSocioContas() {
             </CardContent>
           </Card>
         </section>
+        <section>
+          <RetiradasAprovacao />
+        </section>
       </div>
+
+
 
       {/* Dialogs */}
       {meuSocio && (
