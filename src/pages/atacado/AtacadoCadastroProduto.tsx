@@ -612,6 +612,10 @@ export default function AtacadoCadastroProduto() {
           {custos.map((c, i) => {
             const ehImportOnly = c.tipo === "aduana" || c.tipo === "seguro";
             if (!importado && ehImportOnly) return null;
+            const isPct = c.modo === "pct";
+            const pctNum = num(c.valor);
+            const baseProd = produtoBRL ?? 0;
+            const valorCalc = isPct ? (pctNum / 100) * baseProd : num(c.valor);
             return (
               <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-md">
                 <div className="col-span-2 space-y-1">
@@ -632,7 +636,20 @@ export default function AtacadoCadastroProduto() {
                 </div>
                 <div className="col-span-2 space-y-1">
                   <Label className="text-xs">Modo</Label>
-                  <Select value={c.modo} onValueChange={(v) => updCusto(i, { modo: v as CustoModo })}>
+                  <Select
+                    value={c.modo}
+                    onValueChange={(v) => {
+                      const novoModo = v as CustoModo;
+                      if (novoModo === c.modo) return;
+                      // Primeiro troca o modo e ZERA o valor (evita misturar % com R$
+                      // e qualquer cálculo inseguro herdado do modo anterior).
+                      updCusto(i, {
+                        modo: novoModo,
+                        valor: "",
+                        moeda: novoModo === "pct" ? "BRL" : c.moeda,
+                      });
+                    }}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="fixo">Fixo</SelectItem>
@@ -641,24 +658,46 @@ export default function AtacadoCadastroProduto() {
                   </Select>
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Moeda</Label>
-                  <Select
-                    value={c.modo === "pct" ? "BRL" : c.moeda}
-                    onValueChange={(v) => updCusto(i, { moeda: v })}
-                    disabled={c.modo === "pct" || !importado || moeda === "BRL"}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BRL">R$</SelectItem>
-                      {importado && moeda !== "BRL" && (
-                        <SelectItem value={moeda}>{simboloMoeda}</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs">{isPct ? "Base" : "Moeda"}</Label>
+                  {isPct ? (
+                    <div className="h-10 px-3 flex items-center text-xs text-muted-foreground border rounded-md bg-muted/30">
+                      Custo do produto
+                    </div>
+                  ) : (
+                    <Select
+                      value={c.moeda}
+                      onValueChange={(v) => updCusto(i, { moeda: v })}
+                      disabled={!importado || moeda === "BRL"}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BRL">R$</SelectItem>
+                        {importado && moeda !== "BRL" && (
+                          <SelectItem value={moeda}>{simboloMoeda}</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Valor</Label>
-                  <Input inputMode="decimal" value={c.valor} onChange={(e) => updCusto(i, { valor: e.target.value })} placeholder={c.modo === "pct" ? "0%" : "0,00"} />
+                  <Label className="text-xs">Valor {isPct ? "(%)" : "(R$)"}</Label>
+                  <div className="relative">
+                    <Input
+                      inputMode="decimal"
+                      value={c.valor}
+                      onChange={(e) => updCusto(i, { valor: e.target.value })}
+                      placeholder={isPct ? "0" : "0,00"}
+                      className={isPct ? "pr-7" : ""}
+                    />
+                    {isPct && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
+                    )}
+                  </div>
+                  {isPct && (
+                    <p className="text-[10px] text-muted-foreground leading-tight">
+                      = {brl(Number(valorCalc) || 0)} <span className="opacity-70">(sobre o custo do produto)</span>
+                    </p>
+                  )}
                 </div>
                 <div className="col-span-1">
                   <Button type="button" variant="ghost" size="icon" onClick={() => rmCusto(i)}>
