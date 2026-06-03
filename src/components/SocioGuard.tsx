@@ -10,14 +10,20 @@ export function SocioGuard({ children }: { children: React.ReactNode }) {
     queryKey: ["socio-guard", user?.id],
     queryFn: async () => {
       if (!user?.id) return false;
-      const { data: row } = await supabase
-        .from("socios")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("ativo", true)
-        .is("deleted_at", null)
-        .maybeSingle();
-      return !!row;
+      // Permite ADM ou sócio (decisão SOCIO-PERM-01)
+      const { data: ok, error } = await supabase.rpc("is_adm_ou_socio" as any);
+      if (error) {
+        // fallback: tenta verificar sócio direto
+        const { data: row } = await supabase
+          .from("socios")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("ativo", true)
+          .is("deleted_at", null)
+          .maybeSingle();
+        return !!row;
+      }
+      return Boolean(ok);
     },
     enabled: !!user?.id,
   });

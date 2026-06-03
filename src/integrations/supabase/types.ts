@@ -8469,6 +8469,8 @@ export type Database = {
       }
       retiradas_socios: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           cancelado_em: string | null
           cancelado_por: string | null
           created_at: string
@@ -8479,12 +8481,15 @@ export type Database = {
           forma_pagamento: string
           id: string
           motivo_cancelamento: string | null
+          motivo_rejeicao: string | null
           socio_id: string
           status: string
           updated_at: string
           valor: number
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
           created_at?: string
@@ -8495,12 +8500,15 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           motivo_cancelamento?: string | null
+          motivo_rejeicao?: string | null
           socio_id: string
           status?: string
           updated_at?: string
           valor: number
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
           created_at?: string
@@ -8511,6 +8519,7 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           motivo_cancelamento?: string | null
+          motivo_rejeicao?: string | null
           socio_id?: string
           status?: string
           updated_at?: string
@@ -10325,9 +10334,11 @@ export type Database = {
         Returns: Json
       }
       iniciar_servico_os: { Args: { p_os_servico_id: string }; Returns: Json }
+      is_adm_ou_socio: { Args: never; Returns: boolean }
       is_admin_ou_gerente: { Args: never; Returns: boolean }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      is_socio: { Args: never; Returns: boolean }
       kpi_tecnicos: {
         Args: { p_fim: string; p_inicio: string; p_loja_id?: string }
         Returns: Json
@@ -10608,6 +10619,39 @@ export type Database = {
           p_permissoes?: Json
         }
         Returns: Json
+      }
+      socio_retirada_aprovar: { Args: { p_id: string }; Returns: Json }
+      socio_retirada_cancelar: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      socio_retirada_rejeitar: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      socio_retirada_solicitar: {
+        Args: { p_descricao?: string; p_socio_id: string; p_valor: number }
+        Returns: Json
+      }
+      socio_retiradas_listar: {
+        Args: never
+        Returns: {
+          aprovado_em: string
+          aprovado_por: string
+          criado_em: string
+          criado_por: string
+          data_retirada: string
+          descricao: string
+          id: string
+          motivo_cancelamento: string
+          motivo_rejeicao: string
+          pode_aprovar: boolean
+          pode_cancelar: boolean
+          socio_id: string
+          socio_nome: string
+          status: string
+          valor: number
+        }[]
       }
       solicitar_lancamento: {
         Args: {
