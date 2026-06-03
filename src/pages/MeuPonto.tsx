@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Clock } from "lucide-react";
+import { Clock, Download, FileText } from "lucide-react";
 import { useMeuEspelhoPonto } from "@/hooks/useJornada";
+import { useMeuHolerite } from "@/hooks/useMeuHolerite";
+import { useEmpresaParaHolerite } from "@/hooks/useHoleriteDetalhado";
+import { baixarHoleritePDF } from "@/lib/pdf/gerarHoleritePDF";
+import { toast } from "sonner";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
