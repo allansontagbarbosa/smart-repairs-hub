@@ -10,13 +10,14 @@ import {
 import { ArrowLeft, Edit3, CalendarOff, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
-  useListarFuncionariosRH, useExtratoFuncionario, useHolerite, useBancoHoras,
+  useListarFuncionariosRH, useExtratoFuncionario, useBancoHoras,
   usePagarMovimentacoes, useAplicarAcaoBancoHoras, useToggleFuncionarioRH,
 } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS, TIPO_MOV_LABELS } from "@/types/rh";
 import { EditarFuncionarioDialog } from "@/components/rh/EditarFuncionarioDialog";
 import { RegistrarFaltaDialog } from "@/components/rh/RegistrarFaltaDialog";
 import { JornadaTab } from "@/components/rh/JornadaTab";
+import { HoleriteDetalhadoTab } from "@/components/rh/HoleriteDetalhadoTab";
 import { toast } from "sonner";
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -37,7 +38,7 @@ export default function RHFuncionario() {
   const func = funcionarios.find(f => f.id === id);
 
   const { data: extrato } = useExtratoFuncionario(id || null);
-  const { data: holerite } = useHolerite(id || null, competencia);
+  
   const { data: bancoHoras } = useBancoHoras(id || null, competencia);
   const pagar = usePagarMovimentacoes();
   const aplicarAcao = useAplicarAcaoBancoHoras();
@@ -215,66 +216,13 @@ export default function RHFuncionario() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="holerite" className="space-y-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Competência:</label>
-            <input
-              type="month"
-              value={competencia}
-              onChange={(e) => setCompetencia(e.target.value)}
-              className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+        <TabsContent value="holerite">
+          {id && (
+            <HoleriteDetalhadoTab
+              funcionarioId={id}
+              competencia={competencia}
+              setCompetencia={setCompetencia}
             />
-          </div>
-          {holerite && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Holerite — {competencia}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-2">PROVENTOS</p>
-                  {(holerite.movimentacoes ?? []).filter((m: any) => m.valor_centavos > 0).map((m: any) => (
-                    <div key={m.id} className="flex justify-between py-1 text-sm">
-                      <span>{m.descricao || TIPO_MOV_LABELS[m.tipo as keyof typeof TIPO_MOV_LABELS]}</span>
-                      <span>{fmt(m.valor_centavos)}</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between font-semibold border-t pt-2 mt-2">
-                    <span>Total proventos</span>
-                    <span>{fmt(holerite.total_proventos_centavos)}</span>
-                  </div>
-                </div>
-
-                {holerite.total_descontos_centavos > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-2">DESCONTOS</p>
-                    {(holerite.movimentacoes ?? []).filter((m: any) => m.valor_centavos < 0).map((m: any) => (
-                      <div key={m.id} className="flex justify-between py-1 text-sm">
-                        <span>{m.descricao || TIPO_MOV_LABELS[m.tipo as keyof typeof TIPO_MOV_LABELS]}</span>
-                        <span className="text-destructive">{fmt(m.valor_centavos)}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between font-semibold border-t pt-2 mt-2 text-destructive">
-                      <span>Total descontos</span>
-                      <span>{fmt(-holerite.total_descontos_centavos)}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-between text-lg font-bold border-t pt-3">
-                  <span>LÍQUIDO</span>
-                  <span className={holerite.liquido_centavos > 0 ? "text-green-700" : "text-destructive"}>
-                    {fmt(holerite.liquido_centavos)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground border-t pt-3">
-                  <p>Horas trabalhadas: {Number(holerite.horas_trabalhadas ?? 0).toFixed(1)}h</p>
-                  <p>Dias trabalhados: {holerite.dias_trabalhados ?? 0}</p>
-                  <p>Faltas: {holerite.faltas ?? 0}</p>
-                </div>
-              </CardContent>
-            </Card>
           )}
         </TabsContent>
 

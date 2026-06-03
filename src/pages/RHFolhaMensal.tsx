@@ -13,10 +13,14 @@ import {
   AlertCircle,
   Loader2,
   FileText,
+  Download,
 } from "lucide-react";
 import { useFolhaMensal } from "@/hooks/useFolhaMensal";
 import { useGerarFolhaMensal } from "@/hooks/useRH";
+import { useEmpresaParaHolerite } from "@/hooks/useHoleriteDetalhado";
 import { TIPO_VINCULO_LABELS, type TipoVinculo } from "@/types/rh";
+import { supabase } from "@/integrations/supabase/client";
+import { gerarHoleritesLotePDF } from "@/lib/pdf/gerarHoleritePDF";
 import { toast } from "sonner";
 
 const fmt = (c: number) =>
@@ -31,6 +35,8 @@ export default function RHFolhaMensal() {
 
   const { data: folha = [], isLoading } = useFolhaMensal(competencia);
   const gerarFolha = useGerarFolhaMensal();
+  const { data: empresa } = useEmpresaParaHolerite();
+  const [baixandoLote, setBaixandoLote] = useState(false);
 
   const totalProventos = folha.reduce((s, f) => s + f.total_proventos_centavos, 0);
   const totalDescontos = folha.reduce((s, f) => s + f.total_descontos_centavos, 0);
@@ -62,6 +68,47 @@ export default function RHFolhaMensal() {
     }
   };
 
+  const handleBaixarLote = async () => {
+    if (folha.length === 0) return;
+    setBaixandoLote(true);
+    try {
+      const itens: any[] = [];
+      for (const f of folha) {
+        // Garantir que existem eventos: monta antes (idempotente)
+        await (supabase as any).rpc("holerite_montar", {
+          p_funcionario_id: f.funcionario_id,
+          p_competencia: competencia,
+        });
+        const { data } = await (supabase as any).rpc("holerite_detalhado", {
+          p_funcionario_id: f.funcionario_id,
+          p_competencia: competencia,
+        });
+        const r = typeof data === "string" ? JSON.parse(data) : data;
+        if (r?.success && (r.eventos?.length ?? 0) > 0) {
+          itens.push({
+            funcionario: r.funcionario,
+            eventos: r.eventos,
+            total_proventos_centavos: r.total_proventos_centavos,
+            total_descontos_centavos: r.total_descontos_centavos,
+            liquido_centavos: r.liquido_centavos,
+            horas_trabalhadas: r.horas_trabalhadas,
+            dias_trabalhados: r.dias_trabalhados,
+            faltas: r.faltas,
+          });
+        }
+      }
+      if (itens.length === 0) {
+        toast.error("Nenhum holerite com eventos para gerar.");
+        return;
+      }
+      gerarHoleritesLotePDF(empresa ?? { nome: "Empresa" }, competencia, itens);
+      toast.success(`${itens.length} holerites gerados em PDF`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar PDFs em lote");
+    } finally {
+      setBaixandoLote(false);
+    }
+  };
   return (
     <div className="container mx-auto p-6 space-y-6 max-w-6xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -91,6 +138,18 @@ export default function RHFolhaMensal() {
               <FileText className="h-4 w-4 mr-2" />
             )}
             Gerar folha
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleBaixarLote}
+            disabled={baixandoLote || folha.length === 0}
+          >
+            {baixandoLote ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Holerites em PDF
           </Button>
         </div>
       </div>

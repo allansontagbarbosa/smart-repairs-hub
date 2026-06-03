@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Clock } from "lucide-react";
+import { Clock, Download, FileText } from "lucide-react";
 import { useMeuEspelhoPonto } from "@/hooks/useJornada";
+import { useMeuHolerite } from "@/hooks/useMeuHolerite";
+import { useEmpresaParaHolerite } from "@/hooks/useHoleriteDetalhado";
+import { baixarHoleritePDF } from "@/lib/pdf/gerarHoleritePDF";
+import { toast } from "sonner";
 
 const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -26,6 +31,30 @@ export default function MeuPonto() {
   );
 
   const { data, isLoading, error } = useMeuEspelhoPonto(competencia);
+  const { data: holerite } = useMeuHolerite(competencia);
+  const { data: empresa } = useEmpresaParaHolerite();
+
+  const fmtBRL = (c: number) =>
+    (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const handleBaixarHolerite = () => {
+    if (!holerite || (holerite.eventos?.length ?? 0) === 0) {
+      toast.error("Holerite ainda não montado para esta competência. Peça para o RH.");
+      return;
+    }
+    baixarHoleritePDF({
+      empresa: empresa ?? { nome: "Empresa" },
+      funcionario: holerite.funcionario,
+      competencia,
+      eventos: holerite.eventos,
+      total_proventos_centavos: holerite.total_proventos_centavos,
+      total_descontos_centavos: holerite.total_descontos_centavos,
+      liquido_centavos: holerite.liquido_centavos,
+      horas_trabalhadas: holerite.horas_trabalhadas,
+      dias_trabalhados: holerite.dias_trabalhados,
+      faltas: holerite.faltas,
+    });
+  };
 
   const banco = data?.banco ?? {};
   const batidas: any[] = data?.batidas ?? [];
@@ -107,6 +136,32 @@ export default function MeuPonto() {
           </CardContent>
         </Card>
       )}
+
+      {holerite && (
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold">Meu holerite — {competencia}</p>
+                <p className="text-xs text-muted-foreground">
+                  Líquido:{" "}
+                  <span className="font-semibold text-foreground">
+                    {fmtBRL(holerite.liquido_centavos)}
+                  </span>
+                  {" "}· Proventos: {fmtBRL(holerite.total_proventos_centavos)} · Descontos:{" "}
+                  {fmtBRL(holerite.total_descontos_centavos)}
+                </p>
+              </div>
+            </div>
+            <Button size="sm" onClick={handleBaixarHolerite}>
+              <Download className="h-4 w-4 mr-2" /> Baixar PDF
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+
 
       <Card>
         <CardContent className="p-0">

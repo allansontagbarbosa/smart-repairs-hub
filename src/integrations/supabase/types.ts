@@ -4551,6 +4551,72 @@ export type Database = {
           },
         ]
       }
+      folha_eventos: {
+        Row: {
+          codigo: string
+          competencia: string
+          criado_em: string
+          criado_por: string | null
+          descricao: string
+          empresa_id: string
+          funcionario_id: string
+          id: string
+          ordem: number
+          origem: string | null
+          origem_id: string | null
+          referencia: string | null
+          tipo: string
+          valor_centavos: number
+        }
+        Insert: {
+          codigo: string
+          competencia: string
+          criado_em?: string
+          criado_por?: string | null
+          descricao: string
+          empresa_id: string
+          funcionario_id: string
+          id?: string
+          ordem?: number
+          origem?: string | null
+          origem_id?: string | null
+          referencia?: string | null
+          tipo: string
+          valor_centavos?: number
+        }
+        Update: {
+          codigo?: string
+          competencia?: string
+          criado_em?: string
+          criado_por?: string | null
+          descricao?: string
+          empresa_id?: string
+          funcionario_id?: string
+          id?: string
+          ordem?: number
+          origem?: string | null
+          origem_id?: string | null
+          referencia?: string | null
+          tipo?: string
+          valor_centavos?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folha_eventos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "folha_eventos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean
@@ -9086,6 +9152,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tabelas_fiscais: {
+        Row: {
+          aliquota: number
+          criado_em: string
+          deducao: number
+          faixa_max: number | null
+          faixa_min: number
+          id: string
+          ordem: number
+          tipo: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          aliquota?: number
+          criado_em?: string
+          deducao?: number
+          faixa_max?: number | null
+          faixa_min?: number
+          id?: string
+          ordem?: number
+          tipo: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          aliquota?: number
+          criado_em?: string
+          deducao?: number
+          faixa_max?: number | null
+          faixa_min?: number
+          id?: string
+          ordem?: number
+          tipo?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
       tecnico_sessoes: {
         Row: {
           created_at: string
@@ -10319,7 +10424,15 @@ export type Database = {
         Args: { p_conta_pagar_id: string }
         Returns: Json
       }
+      holerite_detalhado: {
+        Args: { p_competencia: string; p_funcionario_id: string }
+        Returns: Json
+      }
       holerite_funcionario: {
+        Args: { p_competencia: string; p_funcionario_id: string }
+        Returns: Json
+      }
+      holerite_montar: {
         Args: { p_competencia: string; p_funcionario_id: string }
         Returns: Json
       }
