@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight, Kanban, Send } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight, Kanban, Send, Clock } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -109,6 +109,7 @@ export function AppSidebar() {
   const nome = (profile as any)?.funcionarios?.nome || profile?.nome_exibicao || user?.email?.split("@")[0] || "Usuário";
   const email = user?.email || "";
   const iniciais = getInitials(nome);
+  const ehFuncionario = !!(profile as any)?.funcionario_id;
 
   // ADM ou sócio — quem pode ver o Painel do Sócio
   const { data: ehSocio } = useQuery({
@@ -210,6 +211,20 @@ export function AppSidebar() {
                     >
                       <PiggyBank className="h-[18px] w-[18px] shrink-0" />
                       {!collapsed && <span className="flex-1">{painelSocioLabel}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {ehFuncionario && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/meu-ponto"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    >
+                      <Clock className="h-[18px] w-[18px] shrink-0" />
+                      {!collapsed && <span className="flex-1">Meu ponto</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

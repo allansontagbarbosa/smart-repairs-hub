@@ -64,6 +64,7 @@ import RHFuncionario from "./pages/RHFuncionario";
 import RHImportPonto from "./pages/RHImportPonto";
 import RHFolhaMensal from "./pages/RHFolhaMensal";
 import RHGerenciarFuncionarios from "./pages/RHGerenciarFuncionarios";
+import MeuPonto from "./pages/MeuPonto";
 import NotificacoesPage from "./pages/Notificacoes";
 import TVConfigurar from "./pages/TVConfigurar";
 import TVAcesso from "./pages/TVAcesso";
@@ -284,6 +285,7 @@ const App = () => (
                     <Route path="/rh/importar-ponto" element={<ProtectedRoute permissao="rh.editar"><RHImportPonto /></ProtectedRoute>} />
                     <Route path="/rh/folha-mensal" element={<ProtectedRoute permissao="rh.ver"><RHFolhaMensal /></ProtectedRoute>} />
                     <Route path="/rh/:id" element={<ProtectedRoute permissao="rh.ver"><RHFuncionario /></ProtectedRoute>} />
+                    <Route path="/meu-ponto" element={<MeuPonto />} />
                     <Route path="/configuracoes/plano" element={<ProtectedRoute permissao="configuracoes"><PlanoCobranca /></ProtectedRoute>} />
                     <Route path="/configuracoes/etiqueta" element={<ProtectedRoute permissao="configuracoes"><CalibrarEtiqueta /></ProtectedRoute>} />
                     <Route path="/minha-conta" element={<MinhaConta />} />
