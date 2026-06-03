@@ -22,6 +22,8 @@ import { ReabrirMesDialog } from "@/components/painel-socio/ReabrirMesDialog";
 import { NovoLancamentoDialog } from "@/components/painel-socio/NovoLancamentoDialog";
 import { SolicitacoesPendentes } from "@/components/painel-socio/SolicitacoesPendentes";
 import { RetiradasAprovacao } from "@/components/painel-socio/RetiradasAprovacao";
+import { usePapelSocio } from "@/hooks/usePapelSocio";
+import PainelSocioAdmin from "@/pages/PainelSocioAdmin";
 
 const reaisToBRL = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
@@ -57,9 +59,23 @@ export default function PainelSocioContas() {
   const [reabrirMes, setReabrirMes] = useState<string | null>(null);
   const [novoLancOpen, setNovoLancOpen] = useState(false);
 
+  const { data: papel, isLoading: loadingPapel } = usePapelSocio();
   const { data, isLoading } = usePainelSocio();
   const { data: contas, isLoading: loadingContas } = useContasSocio();
   const { data: extrato } = useExtratoSocio(filtro);
+
+  // ADM não-sócio: mostra a visão administrativa (não tem "fatia pessoal")
+  if (papel && papel.ehAdmin && !papel.ehSocio) {
+    return <PainelSocioAdmin />;
+  }
+
+  if (loadingPapel) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isLoading || loadingContas) {
     return (
