@@ -21,6 +21,7 @@ import { FecharMesDialog } from "@/components/painel-socio/FecharMesDialog";
 import { ReabrirMesDialog } from "@/components/painel-socio/ReabrirMesDialog";
 import { NovoLancamentoDialog } from "@/components/painel-socio/NovoLancamentoDialog";
 import { SolicitacoesPendentes } from "@/components/painel-socio/SolicitacoesPendentes";
+import { RetiradasAprovacao } from "@/components/painel-socio/RetiradasAprovacao";
 
 const reaisToBRL = (v: number | null | undefined) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
