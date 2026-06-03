@@ -16,6 +16,7 @@ import {
 import { TIPO_VINCULO_LABELS, TIPO_MOV_LABELS } from "@/types/rh";
 import { EditarFuncionarioDialog } from "@/components/rh/EditarFuncionarioDialog";
 import { RegistrarFaltaDialog } from "@/components/rh/RegistrarFaltaDialog";
+import { JornadaTab } from "@/components/rh/JornadaTab";
 import { toast } from "sonner";
 
 const fmt = (c: number) => (Number(c ?? 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -153,6 +154,7 @@ export default function RHFuncionario() {
           <TabsTrigger value="extrato">Extrato</TabsTrigger>
           <TabsTrigger value="holerite">Holerite</TabsTrigger>
           <TabsTrigger value="banco">Banco de horas</TabsTrigger>
+          <TabsTrigger value="jornada">Jornada</TabsTrigger>
           <TabsTrigger value="dados">Dados pessoais</TabsTrigger>
         </TabsList>
 
@@ -338,6 +340,10 @@ export default function RHFuncionario() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="jornada" className="space-y-4">
+          <JornadaTab funcionarioId={func.id} funcionarioNome={func.nome} />
         </TabsContent>
 
         <TabsContent value="dados" className="space-y-4">
