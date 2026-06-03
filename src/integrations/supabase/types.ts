@@ -4701,6 +4701,66 @@ export type Database = {
           },
         ]
       }
+      funcionario_jornada: {
+        Row: {
+          created_at: string
+          dia_semana: number
+          empresa_id: string
+          ent1: string | null
+          ent2: string | null
+          folga: boolean
+          funcionario_id: string
+          horas_previstas: number | null
+          id: string
+          sai1: string | null
+          sai2: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dia_semana: number
+          empresa_id: string
+          ent1?: string | null
+          ent2?: string | null
+          folga?: boolean
+          funcionario_id: string
+          horas_previstas?: number | null
+          id?: string
+          sai1?: string | null
+          sai2?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dia_semana?: number
+          empresa_id?: string
+          ent1?: string | null
+          ent2?: string | null
+          folga?: boolean
+          funcionario_id?: string
+          horas_previstas?: number | null
+          id?: string
+          sai1?: string | null
+          sai2?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_jornada_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_jornada_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionario_movimentacoes: {
         Row: {
           comissao_id: string | null
@@ -10338,7 +10398,13 @@ export type Database = {
       is_admin_ou_gerente: { Args: never; Returns: boolean }
       is_admin_user: { Args: { _user_id: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      is_rh: { Args: never; Returns: boolean }
       is_socio: { Args: never; Returns: boolean }
+      jornada_listar: { Args: { p_funcionario_id: string }; Returns: Json }
+      jornada_salvar: {
+        Args: { p_funcionario_id: string; p_jornada: Json }
+        Returns: Json
+      }
       kpi_tecnicos: {
         Args: { p_fim: string; p_inicio: string; p_loja_id?: string }
         Returns: Json
@@ -10397,6 +10463,9 @@ export type Database = {
       }
       marcar_os_pagas_em_massa: { Args: { p_os_ids: string[] }; Returns: Json }
       marcar_todas_notificacoes_lidas: { Args: never; Returns: Json }
+      meu_banco_horas: { Args: { p_competencia: string }; Returns: Json }
+      meu_espelho_ponto: { Args: { p_competencia: string }; Returns: Json }
+      meu_funcionario_id: { Args: never; Returns: string }
       move_to_dlq: {
         Args: {
           dlq_name: string
