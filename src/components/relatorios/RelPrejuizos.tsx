@@ -76,29 +76,50 @@ export function RelPrejuizos() {
   const topOSs = useMemo(() => {
     const items = listaPrej?.prejuizos ?? [];
     const porOs = new Map<string, TopOSAcc>();
+    let semOsTotal = 0;
+    let semOsQtd = 0;
+    const semOsTipos = new Set<string>();
     for (const p of items as any[]) {
       const osId = p.os_origem?.id || p.os_retrabalho?.id;
       const osNumero = p.os_origem?.numero || p.os_retrabalho?.numero;
-      if (!osId || !osNumero) continue;
+      const valor = num(p.valor_centavos);
+      const tipo = p.tipo_label ?? p.tipo ?? "—";
+      if (!osId || !osNumero) {
+        semOsTotal += valor;
+        semOsQtd += 1;
+        semOsTipos.add(tipo);
+        continue;
+      }
       const cur = porOs.get(osId) ?? { os_numero: osNumero, total: 0, qtd: 0, tipos: new Set<string>() };
-      cur.total += p.valor_centavos;
+      cur.total += valor;
       cur.qtd += 1;
-      cur.tipos.add(p.tipo_label);
+      cur.tipos.add(tipo);
       porOs.set(osId, cur);
     }
-    return Array.from(porOs.entries())
-      .map(([id, v]) => ({ os_id: id, os_numero: v.os_numero, total: v.total, qtd: v.qtd, tipos: Array.from(v.tipos) }))
+    const lista = Array.from(porOs.entries())
+      .map(([id, v]) => ({ os_id: id, os_numero: v.os_numero, total: v.total, qtd: v.qtd, tipos: Array.from(v.tipos), sem_os: false }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
+    if (semOsQtd > 0) {
+      lista.push({
+        os_id: "sem-os",
+        os_numero: "Outros / Sem OS",
+        total: semOsTotal,
+        qtd: semOsQtd,
+        tipos: Array.from(semOsTipos),
+        sem_os: true,
+      });
+    }
+    return lista;
   }, [listaPrej]);
 
   const chartData = useMemo(() => {
     return (evolucao ?? []).map((m) => {
-      const [y, mm] = m.ano_mes.split("-");
+      const [y, mm] = (m.ano_mes ?? "0000-00").split("-");
       return {
-        mes: `${meses[parseInt(mm) - 1]}/${y.slice(2)}`,
-        Operacional: m.operacional_centavos / 100,
-        "Não-operacional": m.nao_operacional_centavos / 100,
+        mes: `${meses[parseInt(mm) - 1] ?? ""}/${(y ?? "").slice(2)}`,
+        Operacional: num(m.operacional_centavos) / 100,
+        "Não-operacional": num(m.nao_operacional_centavos) / 100,
       };
     });
   }, [evolucao]);
