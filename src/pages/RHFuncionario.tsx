@@ -10,7 +10,7 @@ import {
 import { ArrowLeft, Edit3, CalendarOff, CheckCircle2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
-  useListarFuncionariosRH, useExtratoFuncionario, useHolerite, useBancoHoras,
+  useListarFuncionariosRH, useExtratoFuncionario, useBancoHoras,
   usePagarMovimentacoes, useAplicarAcaoBancoHoras, useToggleFuncionarioRH,
 } from "@/hooks/useRH";
 import { TIPO_VINCULO_LABELS, TIPO_MOV_LABELS } from "@/types/rh";
