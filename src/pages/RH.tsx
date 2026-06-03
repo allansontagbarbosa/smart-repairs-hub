@@ -18,14 +18,15 @@ function usePendentesCompletar() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("funcionarios")
-        .select("id, nome, cargo, created_at, cpf, salario_centavos, data_admissao, tipo_vinculo")
+        .select("id, nome, cargo, created_at, cpf, salario_centavos, data_admissao, tipo_vinculo, pis_pasep, chave_pix, conta_bancaria" as any)
         .eq("eh_funcionario_rh", true)
         .eq("ativo", true)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).filter((f: any) =>
-        !f.cpf || !f.salario_centavos || !f.data_admissao || !f.tipo_vinculo
+        !f.cpf || !f.salario_centavos || !f.data_admissao || !f.tipo_vinculo ||
+        !f.pis_pasep || (!f.chave_pix && !f.conta_bancaria)
       );
     },
   });
