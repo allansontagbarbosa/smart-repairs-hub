@@ -137,6 +137,32 @@ export default function MeuPonto() {
         </Card>
       )}
 
+      {holerite && (
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm font-semibold">Meu holerite — {competencia}</p>
+                <p className="text-xs text-muted-foreground">
+                  Líquido:{" "}
+                  <span className="font-semibold text-foreground">
+                    {fmtBRL(holerite.liquido_centavos)}
+                  </span>
+                  {" "}· Proventos: {fmtBRL(holerite.total_proventos_centavos)} · Descontos:{" "}
+                  {fmtBRL(holerite.total_descontos_centavos)}
+                </p>
+              </div>
+            </div>
+            <Button size="sm" onClick={handleBaixarHolerite}>
+              <Download className="h-4 w-4 mr-2" /> Baixar PDF
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+
+
       <Card>
         <CardContent className="p-0">
           <Table>
