@@ -1,21 +1,29 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CurrencyInput } from "@/components/smart-inputs/CurrencyInput";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
+import { useSolicitarRetirada } from "@/hooks/useRetiradasFluxo";
+import { useContasSocio } from "@/hooks/useContasSocio";
 
-const reaisToBRL = (v: number) =>
+const brl = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v ?? 0));
 
 interface Props {
@@ -25,67 +33,95 @@ interface Props {
 }
 
 export function NovaRetiradaDialog({ open, onOpenChange, saldoDisponivel }: Props) {
-  const qc = useQueryClient();
+  const { data: contas } = useContasSocio();
+  const meuSocioId = contas?.socio_id_logado || "";
+  const socios = useMemo(() => contas?.socios ?? [], [contas]);
+
+  const [socioId, setSocioId] = useState<string>("");
   const [valor, setValor] = useState(0);
-  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [descricao, setDescricao] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
-  const mut = useMutation({
-    mutationFn: async () => {
-      const { data: res, error } = await supabase.rpc("criar_retirada" as any, {
-        p_valor: valor,
-        p_descricao: descricao || null,
-        p_data_retirada: data,
-      });
-      if (error) throw error;
-      const r = res as any;
-      if (!r?.success) throw new Error(r?.error || "Erro ao criar retirada");
-      return r;
-    },
-    onSuccess: (r) => {
-      toast.success(`Retirada de ${reaisToBRL(r.valor)} efetivada`);
-      qc.invalidateQueries({ queryKey: ["painel-socio"] });
-      qc.invalidateQueries({ queryKey: ["painel-socio-contas"] });
-      qc.invalidateQueries({ queryKey: ["extrato-socio"] });
-      reset();
-      onOpenChange(false);
-    },
-    onError: (e: any) => setErro(e?.message || "Erro inesperado"),
-  });
+  useEffect(() => {
+    if (!socioId) {
+      setSocioId(meuSocioId || socios[0]?.id || "");
+    }
+  }, [meuSocioId, socios, socioId]);
+
+  const socioSelecionado = socios.find((s) => s.id === socioId);
+  // Saldo disponível do destinatário (sempre que tivermos a lista)
+  const saldoDestinatario = socioSelecionado?.saldo_a_retirar ?? saldoDisponivel;
+
+  const mut = useSolicitarRetirada();
 
   const reset = () => {
     setValor(0);
     setDescricao("");
-    setData(new Date().toISOString().slice(0, 10));
+    setSocioId(meuSocioId || socios[0]?.id || "");
     setErro(null);
   };
 
   const confirmar = () => {
     setErro(null);
+    if (!socioId) return setErro("Selecione o sócio destinatário");
     if (!valor || valor <= 0) return setErro("Informe um valor maior que zero");
-    if (valor > saldoDisponivel) return setErro(`Saldo insuficiente. Disponível: ${reaisToBRL(saldoDisponivel)}`);
-    if (!data) return setErro("Informe a data");
-    mut.mutate();
+    if (valor > saldoDestinatario)
+      return setErro(`Saldo insuficiente. Disponível: ${brl(saldoDestinatario)}`);
+    mut.mutate(
+      { socio_id: socioId, valor, descricao: descricao || null },
+      {
+        onSuccess: () => {
+          toast.success("Retirada solicitada. Aguardando aprovação de outro sócio.");
+          reset();
+          onOpenChange(false);
+        },
+        onError: (e: any) => setErro(e?.message || "Erro inesperado"),
+      },
+    );
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) reset();
+        onOpenChange(v);
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nova retirada</DialogTitle>
+          <DialogDescription className="flex items-start gap-2 text-xs">
+            <ShieldAlert className="h-4 w-4 mt-0.5 text-amber-500 shrink-0" />
+            <span>
+              A retirada será criada como <b>pendente</b> e só será efetivada após a aprovação de outro
+              sócio (você não pode aprovar a própria solicitação).
+            </span>
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Sócio destinatário</Label>
+            <Select value={socioId} onValueChange={setSocioId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione…" />
+              </SelectTrigger>
+              <SelectContent>
+                {socios.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.nome} {s.eh_voce ? "(você)" : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            Saldo disponível: <span className="font-semibold tabular-nums">{reaisToBRL(saldoDisponivel)}</span>
+            Saldo disponível do destinatário:{" "}
+            <span className="font-semibold tabular-nums">{brl(saldoDestinatario)}</span>
           </div>
           <div className="space-y-1.5">
             <Label>Valor</Label>
             <CurrencyInput value={valor} onValueChange={setValor} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Data</Label>
-            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Descrição (opcional)</Label>
@@ -100,7 +136,7 @@ export function NovaRetiradaDialog({ open, onOpenChange, saldoDisponivel }: Prop
           </Button>
           <Button onClick={confirmar} disabled={mut.isPending}>
             {mut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Confirmar
+            Solicitar
           </Button>
         </DialogFooter>
       </DialogContent>
