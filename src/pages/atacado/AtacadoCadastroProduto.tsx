@@ -67,9 +67,10 @@ interface UnidadeForm {
   assistencias: AssistApl[];
 }
 
-const brl = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const num = (s: string) => parseFloat(String(s).replace(",", ".")) || 0;
+const brl = (v: number | null | undefined) =>
+  (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const num = (s: string | number | null | undefined) =>
+  parseFloat(String(s ?? "").replace(",", ".")) || 0;
 
 const isImei15 = (s: string) => /^\d{15}$/.test(s.trim());
 
