@@ -250,35 +250,41 @@ export function RelPrejuizos() {
             </p>
           ) : (
             <div className="space-y-2">
-              {topOSs.map((os, idx) => (
-                <a
-                  key={os.os_id}
-                  href={`/assistencia?os=${os.os_id}`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">OS #{os.os_numero}</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {os.tipos.slice(0, 3).map((t) => (
-                          <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">
-                            {t}
-                          </Badge>
-                        ))}
+              {topOSs.map((os, idx) => {
+                const className = "flex items-center justify-between p-3 rounded-lg border hover:bg-muted/40 transition-colors";
+                const inner = (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                        {os.sem_os ? "—" : idx + 1}
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${os.sem_os ? "italic text-muted-foreground" : ""}`}>
+                          {os.sem_os ? os.os_numero : `OS #${os.os_numero}`}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {os.tipos.slice(0, 3).map((t) => (
+                            <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-destructive">{fmt(os.total)}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {os.qtd} {os.qtd === 1 ? "ocorrência" : "ocorrências"}
-                    </p>
-                  </div>
-                </a>
-              ))}
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-destructive">{fmt(os.total)}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {os.qtd} {os.qtd === 1 ? "ocorrência" : "ocorrências"}
+                      </p>
+                    </div>
+                  </>
+                );
+                return os.sem_os ? (
+                  <div key={os.os_id} className={className}>{inner}</div>
+                ) : (
+                  <a key={os.os_id} href={`/assistencia?os=${os.os_id}`} className={className}>{inner}</a>
+                );
+              })}
             </div>
           )}
         </CardContent>
