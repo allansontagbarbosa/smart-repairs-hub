@@ -139,6 +139,18 @@ export default function RHFolhaMensal() {
             )}
             Gerar folha
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleBaixarLote}
+            disabled={baixandoLote || folha.length === 0}
+          >
+            {baixandoLote ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Holerites em PDF
+          </Button>
         </div>
       </div>
 
