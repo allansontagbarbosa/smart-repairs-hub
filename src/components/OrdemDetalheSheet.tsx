@@ -1651,6 +1651,14 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
                 <ResultadoFinanceiroOS
                   ordem={ordem}
                   totalDespesasVinculadas={despesasOS.reduce((s, d) => s + Number(d.valor), 0)}
+                  totalTerceirizado={servicosOSDetalhados.reduce(
+                    (s, sv) =>
+                      s +
+                      (sv.motivo_sem_tecnico === "terceirizado"
+                        ? Number(sv.valor_terceirizado || 0)
+                        : 0),
+                    0
+                  )}
                   totalComissoesReais={comissoesOS.reduce((s, c) => s + Number(c.valor), 0)}
                   qtdPecasUtilizadas={pecasUtilizadas.length}
                   qtdComissoes={comissoesOS.length}

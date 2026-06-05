@@ -9,6 +9,8 @@ interface Props {
   ordem: any;
   /** Soma das despesas vinculadas a esta OS (calculada no parent). */
   totalDespesasVinculadas?: number;
+  /** Soma do custo terceirizado dos serviços (motivo_sem_tecnico = 'terceirizado'), calculada no parent. */
+  totalTerceirizado?: number;
   /** Soma real das comissões já lançadas para esta OS (preferida sobre custo_mao_de_obra). */
   totalComissoesReais?: number;
   /** Quantidade de peças utilizadas registradas (para alerta de auditoria). */
@@ -31,6 +33,7 @@ const brl = (v: number | null | undefined) =>
 export function ResultadoFinanceiroOS({
   ordem,
   totalDespesasVinculadas = 0,
+  totalTerceirizado = 0,
   totalComissoesReais,
   qtdPecasUtilizadas = 0,
   qtdComissoes = 0,
@@ -67,9 +70,10 @@ export function ResultadoFinanceiroOS({
     : snapshotComissao;
   const comissaoPrevista = !temComissoesReais && snapshotComissao > 0;
   const despesas = Number(totalDespesasVinculadas ?? 0);
+  const terceirizado = Number(totalTerceirizado ?? 0);
 
   const valorCobradoBruto = valorServicos + maoObraAdic;
-  const lucro = valorServicoCobrado - custoPecas - comissao - despesas;
+  const lucro = valorServicoCobrado - custoPecas - comissao - terceirizado - despesas;
   const margem = valorServicoCobrado > 0 ? (lucro / valorServicoCobrado) * 100 : null;
   const lucroPositivo = lucro >= 0;
 
@@ -166,6 +170,27 @@ export function ResultadoFinanceiroOS({
             valor={-comissao}
             className="text-destructive"
           />
+
+          {terceirizado > 0 && (
+            <Linha
+              label={
+                <span className="inline-flex items-center gap-1">
+                  (−) Custo terceirizado
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[260px]">
+                      Valor pago ao técnico/assistência externo nos serviços
+                      marcados como terceirizados. É custo, igual peça — abate do lucro.
+                    </TooltipContent>
+                  </Tooltip>
+                </span>
+              }
+              valor={-terceirizado}
+              className="text-destructive"
+            />
+          )}
 
           <Linha
             label="(−) Despesas vinculadas"
