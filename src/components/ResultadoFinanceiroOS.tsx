@@ -9,6 +9,8 @@ interface Props {
   ordem: any;
   /** Soma das despesas vinculadas a esta OS (calculada no parent). */
   totalDespesasVinculadas?: number;
+  /** Soma do custo terceirizado dos serviços (motivo_sem_tecnico = 'terceirizado'), calculada no parent. */
+  totalTerceirizado?: number;
   /** Soma real das comissões já lançadas para esta OS (preferida sobre custo_mao_de_obra). */
   totalComissoesReais?: number;
   /** Quantidade de peças utilizadas registradas (para alerta de auditoria). */
