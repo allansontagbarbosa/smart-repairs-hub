@@ -70,9 +70,10 @@ export function ResultadoFinanceiroOS({
     : snapshotComissao;
   const comissaoPrevista = !temComissoesReais && snapshotComissao > 0;
   const despesas = Number(totalDespesasVinculadas ?? 0);
+  const terceirizado = Number(totalTerceirizado ?? 0);
 
   const valorCobradoBruto = valorServicos + maoObraAdic;
-  const lucro = valorServicoCobrado - custoPecas - comissao - despesas;
+  const lucro = valorServicoCobrado - custoPecas - comissao - terceirizado - despesas;
   const margem = valorServicoCobrado > 0 ? (lucro / valorServicoCobrado) * 100 : null;
   const lucroPositivo = lucro >= 0;
 
