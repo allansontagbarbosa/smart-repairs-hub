@@ -9,6 +9,8 @@ export type OSServicoItem = {
   comissao: number;
   nome?: string;
   tecnico_nome?: string | null;
+  motivo_sem_tecnico?: "terceirizado" | "sem_atribuicao" | null;
+  valor_terceirizado?: number;
 };
 
 export function useOSServicos(ordemId: string | null | undefined) {
@@ -19,7 +21,7 @@ export function useOSServicos(ordemId: string | null | undefined) {
       if (!ordemId) return [];
       const { data, error } = await supabase
         .from("os_servicos")
-        .select("id, servico_id, tecnico_id, nome, valor, comissao, funcionarios:tecnico_id ( nome ), tipos_servico:servico_id ( nome )")
+        .select("id, servico_id, tecnico_id, nome, valor, comissao, motivo_sem_tecnico, valor_terceirizado, funcionarios:tecnico_id ( nome ), tipos_servico:servico_id ( nome )")
         .eq("ordem_id", ordemId)
         .order("created_at", { ascending: true });
 
@@ -31,6 +33,8 @@ export function useOSServicos(ordemId: string | null | undefined) {
         tecnico_id: item.tecnico_id ?? null,
         valor: Number(item.valor) || 0,
         comissao: Number(item.comissao) || 0,
+        motivo_sem_tecnico: item.motivo_sem_tecnico ?? null,
+        valor_terceirizado: Number(item.valor_terceirizado) || 0,
         nome: item.tipos_servico?.nome ?? item.nome,
         tecnico_nome: item.funcionarios?.nome ?? null,
       }));
