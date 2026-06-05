@@ -33,6 +33,7 @@ const brl = (v: number | null | undefined) =>
 export function ResultadoFinanceiroOS({
   ordem,
   totalDespesasVinculadas = 0,
+  totalTerceirizado = 0,
   totalComissoesReais,
   qtdPecasUtilizadas = 0,
   qtdComissoes = 0,
