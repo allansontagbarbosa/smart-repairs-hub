@@ -171,6 +171,27 @@ export function ResultadoFinanceiroOS({
             className="text-destructive"
           />
 
+          {terceirizado > 0 && (
+            <Linha
+              label={
+                <span className="inline-flex items-center gap-1">
+                  (−) Custo terceirizado
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[260px]">
+                      Valor pago ao técnico/assistência externo nos serviços
+                      marcados como terceirizados. É custo, igual peça — abate do lucro.
+                    </TooltipContent>
+                  </Tooltip>
+                </span>
+              }
+              valor={-terceirizado}
+              className="text-destructive"
+            />
+          )}
+
           <Linha
             label="(−) Despesas vinculadas"
             valor={-despesas}
