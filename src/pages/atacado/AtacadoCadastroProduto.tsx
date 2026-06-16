@@ -731,7 +731,12 @@ export default function AtacadoCadastroProduto() {
                   )}
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Valor {isPct ? "(%)" : "(R$)"}</Label>
+                  <Label className="text-xs">
+                    Valor{" "}
+                    {isPct
+                      ? "(%)"
+                      : `(${importado && c.moeda !== "BRL" ? simboloMoeda : "R$"})`}
+                  </Label>
                   <div className="relative">
                     <Input
                       inputMode="decimal"
@@ -749,6 +754,15 @@ export default function AtacadoCadastroProduto() {
                       = {brl(Number(valorCalc) || 0)} <span className="opacity-70">(sobre o custo do produto)</span>
                     </p>
                   )}
+                  {!isPct &&
+                    importado &&
+                    c.moeda !== "BRL" &&
+                    cotacaoEfetiva !== null &&
+                    num(c.valor) > 0 && (
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        ≈ {brl(num(c.valor) * cotacaoEfetiva)}
+                      </p>
+                    )}
                 </div>
                 <div className="col-span-1">
                   <Button type="button" variant="ghost" size="icon" onClick={() => rmCusto(i)}>
