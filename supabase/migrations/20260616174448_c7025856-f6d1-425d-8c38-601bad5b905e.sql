@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS loja_clientes_all ON public.loja_clientes;
