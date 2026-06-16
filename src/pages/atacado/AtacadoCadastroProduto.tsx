@@ -490,10 +490,29 @@ export default function AtacadoCadastroProduto() {
                 </Select>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Cotação ({simboloMoeda} → R$)</Label>
-              <Input inputMode="decimal" value={cotacao} onChange={(e) => setCotacao(e.target.value)} placeholder="Ex: 5,40" />
-            </div>
+            {moedaEhBRL ? (
+              <div className="space-y-2">
+                <Label>Cotação</Label>
+                <Input value="1,00" disabled />
+                <p className="text-[10px] text-muted-foreground">Moeda BRL — sem conversão</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>
+                  Cotação ({simboloMoeda} → R$) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  value={cotacao}
+                  onChange={(e) => setCotacao(e.target.value)}
+                  placeholder="Ex: 5,40"
+                  className={cn(!cotacaoValida && "border-destructive focus-visible:ring-destructive")}
+                />
+                {!cotacaoValida && (
+                  <p className="text-xs text-destructive">Obrigatória quando a moeda não é BRL</p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card>
