@@ -973,7 +973,7 @@ export default function AtacadoCadastroProduto() {
               value={hasDados && precoNum > 0 ? brl(lucroTotal) : "—"}
               sub={
                 hasDados && precoNum > 0
-                  ? `Margem ${Math.round(margem)}%`
+                  ? `Markup ${fmtPct(markup)} · Margem ${fmtPct(margem)}`
                   : undefined
               }
               positive={lucroTotal >= 0}
