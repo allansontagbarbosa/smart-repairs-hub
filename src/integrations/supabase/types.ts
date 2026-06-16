@@ -10754,6 +10754,10 @@ export type Database = {
         Args: { p_motivo?: string; p_os_id: string }
         Returns: Json
       }
+      portal_responder_orcamento: {
+        Args: { p_aprovado: boolean; p_motivo?: string; p_os_id: string }
+        Returns: Json
+      }
       prejuizos_evolucao_mensal: { Args: { p_meses?: number }; Returns: Json }
       prejuizos_por_tecnico: {
         Args: { p_data_fim?: string; p_data_inicio?: string }
