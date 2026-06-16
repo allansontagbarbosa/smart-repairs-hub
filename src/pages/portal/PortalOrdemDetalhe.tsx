@@ -118,18 +118,14 @@ export default function PortalOrdemDetalhe() {
   const handleApprove = async () => {
     setApprovalState("saving");
     try {
-      const { error: e1 } = await supabase
-        .from("ordens_de_servico")
-        .update({ status: "aprovado" as any, aprovacao_orcamento: "aprovado", data_aprovacao: new Date().toISOString() })
-        .eq("id", ordem.id);
-      if (e1) throw e1;
-
-      await supabase.from("historico_ordens").insert({
-        ordem_id: ordem.id,
-        status_anterior: "aguardando_aprovacao",
-        status_novo: "aprovado",
-        descricao: "Orçamento aprovado pelo cliente via portal",
+      const { data, error } = await supabase.rpc("portal_responder_orcamento" as any, {
+        p_os_id: ordem.id,
+        p_aprovado: true,
+        p_motivo: null,
       });
+      if (error || (data as any)?.success === false) {
+        throw new Error((error?.message || (data as any)?.error) ?? "erro");
+      }
 
       queryClient.invalidateQueries({ queryKey: ["portal-ordens"] });
       queryClient.invalidateQueries({ queryKey: ["portal-historico"] });
@@ -144,19 +140,14 @@ export default function PortalOrdemDetalhe() {
   const handleReject = async () => {
     setApprovalState("saving");
     try {
-      const { error: e1 } = await supabase
-        .from("ordens_de_servico")
-        .update({ status: "recebido" as any, aprovacao_orcamento: "recusado", motivo_reprovacao: rejectReason || null })
-        .eq("id", ordem.id);
-      if (e1) throw e1;
-
-      await supabase.from("historico_ordens").insert({
-        ordem_id: ordem.id,
-        status_anterior: "aguardando_aprovacao",
-        status_novo: "recebido",
-        descricao: "Orçamento recusado pelo cliente via portal",
-        observacao: rejectReason || null,
+      const { data, error } = await supabase.rpc("portal_responder_orcamento" as any, {
+        p_os_id: ordem.id,
+        p_aprovado: false,
+        p_motivo: rejectReason || null,
       });
+      if (error || (data as any)?.success === false) {
+        throw new Error((error?.message || (data as any)?.error) ?? "erro");
+      }
 
       queryClient.invalidateQueries({ queryKey: ["portal-ordens"] });
       queryClient.invalidateQueries({ queryKey: ["portal-historico"] });
@@ -167,6 +158,7 @@ export default function PortalOrdemDetalhe() {
       setApprovalState("idle");
     }
   };
+
 
   const handleSubmitRating = async () => {
     if (rating === 0) return;
