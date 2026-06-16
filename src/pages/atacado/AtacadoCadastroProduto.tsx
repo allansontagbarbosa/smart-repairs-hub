@@ -208,8 +208,17 @@ export default function AtacadoCadastroProduto() {
   // Conversões
   const cotacaoNum = num(cotacao);
   const produtoMoedaNum = num(custoProduto);
+  const moedaEhBRL = moeda === "BRL";
+  const precisaCotacao = importado && !moedaEhBRL;
+  const cotacaoValida = !precisaCotacao || cotacaoNum > 0;
+  // cotacaoEfetiva: 1 quando não importado ou moeda=BRL; senão cotacaoNum (válida) ou null
+  const cotacaoEfetiva: number | null = !precisaCotacao
+    ? 1
+    : cotacaoNum > 0
+    ? cotacaoNum
+    : null;
   const produtoBRL =
-    importado && cotacaoNum > 0 ? produtoMoedaNum * cotacaoNum : produtoMoedaNum;
+    cotacaoEfetiva !== null ? produtoMoedaNum * cotacaoEfetiva : 0;
   const precoNum = num(precoVenda);
 
   const simboloMoeda =
@@ -218,15 +227,16 @@ export default function AtacadoCadastroProduto() {
     moeda;
 
   const custoBaseUnit = useMemo(() => {
+    if (cotacaoEfetiva === null) return 0;
     let base = produtoBRL;
     for (const c of custos) {
       const v = num(c.valor);
       if (c.modo === "pct") base += produtoBRL * (v / 100);
       else if (c.moeda === "BRL" || !importado) base += v;
-      else base += v * (cotacaoNum > 0 ? cotacaoNum : 1);
+      else base += v * cotacaoEfetiva;
     }
     return base;
-  }, [produtoBRL, custos, cotacaoNum, importado]);
+  }, [produtoBRL, custos, cotacaoEfetiva, importado]);
 
   const totalAssistencias = useMemo(
     () =>
@@ -237,7 +247,7 @@ export default function AtacadoCadastroProduto() {
     [unidades],
   );
 
-  const hasDados = produtoBRL > 0 || precoNum > 0;
+  const hasDados = cotacaoValida && (produtoBRL > 0 || precoNum > 0);
   const investimentoTotal = custoBaseUnit * unidades.length + totalAssistencias;
   const vendaTotal = precoNum * unidades.length;
   const lucroTotal = vendaTotal - investimentoTotal;
