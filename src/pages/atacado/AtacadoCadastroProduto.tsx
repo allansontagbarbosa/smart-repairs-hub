@@ -85,6 +85,7 @@ export default function AtacadoCadastroProduto() {
     marcas,
     modelosDe,
     infoModelo,
+    catalogo,
     paises,
     capacidadesList,
     condicoes,
