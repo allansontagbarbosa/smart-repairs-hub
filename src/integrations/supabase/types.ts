@@ -10404,6 +10404,7 @@ export type Database = {
         Returns: Json
       }
       gerar_codigo_tv: { Args: never; Returns: string }
+      gerar_fatura_cliente: { Args: { p_cliente_id: string }; Returns: Json }
       gerar_folha_mensal: { Args: { p_competencia: string }; Returns: Json }
       gerar_folha_mensal_completa: {
         Args: { p_competencia: string; p_dia_vencimento?: number }
