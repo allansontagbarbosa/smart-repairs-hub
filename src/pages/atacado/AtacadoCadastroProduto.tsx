@@ -208,8 +208,17 @@ export default function AtacadoCadastroProduto() {
   // Conversões
   const cotacaoNum = num(cotacao);
   const produtoMoedaNum = num(custoProduto);
+  const moedaEhBRL = moeda === "BRL";
+  const precisaCotacao = importado && !moedaEhBRL;
+  const cotacaoValida = !precisaCotacao || cotacaoNum > 0;
+  // cotacaoEfetiva: 1 quando não importado ou moeda=BRL; senão cotacaoNum (válida) ou null
+  const cotacaoEfetiva: number | null = !precisaCotacao
+    ? 1
+    : cotacaoNum > 0
+    ? cotacaoNum
+    : null;
   const produtoBRL =
-    importado && cotacaoNum > 0 ? produtoMoedaNum * cotacaoNum : produtoMoedaNum;
+    cotacaoEfetiva !== null ? produtoMoedaNum * cotacaoEfetiva : 0;
   const precoNum = num(precoVenda);
 
   const simboloMoeda =
@@ -218,15 +227,16 @@ export default function AtacadoCadastroProduto() {
     moeda;
 
   const custoBaseUnit = useMemo(() => {
+    if (cotacaoEfetiva === null) return 0;
     let base = produtoBRL;
     for (const c of custos) {
       const v = num(c.valor);
       if (c.modo === "pct") base += produtoBRL * (v / 100);
       else if (c.moeda === "BRL" || !importado) base += v;
-      else base += v * (cotacaoNum > 0 ? cotacaoNum : 1);
+      else base += v * cotacaoEfetiva;
     }
     return base;
-  }, [produtoBRL, custos, cotacaoNum, importado]);
+  }, [produtoBRL, custos, cotacaoEfetiva, importado]);
 
   const totalAssistencias = useMemo(
     () =>
@@ -237,7 +247,7 @@ export default function AtacadoCadastroProduto() {
     [unidades],
   );
 
-  const hasDados = produtoBRL > 0 || precoNum > 0;
+  const hasDados = cotacaoValida && (produtoBRL > 0 || precoNum > 0);
   const investimentoTotal = custoBaseUnit * unidades.length + totalAssistencias;
   const vendaTotal = precoNum * unidades.length;
   const lucroTotal = vendaTotal - investimentoTotal;
@@ -314,13 +324,34 @@ export default function AtacadoCadastroProduto() {
 
   const handleSalvar = async () => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
-    if (unidades.some((u) => !u.imei1.trim()))
-      return toast.error("Informe o IMEI 1 de todos os aparelhos");
-    const invalidos = unidades.filter((u) => !isImei15(u.imei1));
-    if (invalidos.length > 0)
-      return toast.error(`${invalidos.length} IMEI(s) inválido(s): devem ter 15 dígitos`);
-    if (importado && cotacaoNum <= 0)
-      return toast.error("Informe a cotação da moeda da compra");
+
+    // Bloco 1.4: cotação obrigatória antes de tudo
+    if (precisaCotacao && cotacaoNum <= 0) {
+      return toast.error(
+        `Informe a cotação da ${moeda} (maior que zero) antes de cadastrar`,
+      );
+    }
+
+    // Bloco 3.1: IMEI 1 obrigatório
+    const idxSemImei = unidades.findIndex((u) => !u.imei1.trim());
+    if (idxSemImei >= 0) {
+      return toast.error(`Aparelho ${idxSemImei + 1}: informe o IMEI 1`);
+    }
+
+    // Bloco 3.1: sem duplicados dentro do lote (IMEI 1 + IMEI 2 não-vazios)
+    const todos: string[] = [];
+    for (const u of unidades) {
+      todos.push(u.imei1.trim());
+      const v2 = u.imei2.trim();
+      if (v2) todos.push(v2);
+    }
+    const vistos = new Set<string>();
+    for (const v of todos) {
+      if (vistos.has(v)) {
+        return toast.error(`IMEI ${v} está repetido em mais de um aparelho do lote`);
+      }
+      vistos.add(v);
+    }
 
     setSalvando(true);
     const payload: any = {
@@ -459,10 +490,29 @@ export default function AtacadoCadastroProduto() {
                 </Select>
               )}
             </div>
-            <div className="space-y-2">
-              <Label>Cotação ({simboloMoeda} → R$)</Label>
-              <Input inputMode="decimal" value={cotacao} onChange={(e) => setCotacao(e.target.value)} placeholder="Ex: 5,40" />
-            </div>
+            {moedaEhBRL ? (
+              <div className="space-y-2">
+                <Label>Cotação</Label>
+                <Input value="1,00" disabled />
+                <p className="text-[10px] text-muted-foreground">Moeda BRL — sem conversão</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>
+                  Cotação ({simboloMoeda} → R$) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  inputMode="decimal"
+                  value={cotacao}
+                  onChange={(e) => setCotacao(e.target.value)}
+                  placeholder="Ex: 5,40"
+                  className={cn(!cotacaoValida && "border-destructive focus-visible:ring-destructive")}
+                />
+                {!cotacaoValida && (
+                  <p className="text-xs text-destructive">Obrigatória quando a moeda não é BRL</p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -681,7 +731,12 @@ export default function AtacadoCadastroProduto() {
                   )}
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <Label className="text-xs">Valor {isPct ? "(%)" : "(R$)"}</Label>
+                  <Label className="text-xs">
+                    Valor{" "}
+                    {isPct
+                      ? "(%)"
+                      : `(${importado && c.moeda !== "BRL" ? simboloMoeda : "R$"})`}
+                  </Label>
                   <div className="relative">
                     <Input
                       inputMode="decimal"
@@ -699,6 +754,15 @@ export default function AtacadoCadastroProduto() {
                       = {brl(Number(valorCalc) || 0)} <span className="opacity-70">(sobre o custo do produto)</span>
                     </p>
                   )}
+                  {!isPct &&
+                    importado &&
+                    c.moeda !== "BRL" &&
+                    cotacaoEfetiva !== null &&
+                    num(c.valor) > 0 && (
+                      <p className="text-[10px] text-muted-foreground leading-tight">
+                        ≈ {brl(num(c.valor) * cotacaoEfetiva)}
+                      </p>
+                    )}
                 </div>
                 <div className="col-span-1">
                   <Button type="button" variant="ghost" size="icon" onClick={() => rmCusto(i)}>
