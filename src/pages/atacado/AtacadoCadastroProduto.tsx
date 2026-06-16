@@ -329,6 +329,20 @@ export default function AtacadoCadastroProduto() {
   const handleSalvar = async () => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
 
+    // Bloco 2: marca nova não pode colidir com nome já existente como modelo
+    const marcaNorm = marca.trim().replace(/\s+/g, " ").toLowerCase();
+    const marcaJaExiste = marcas.some((m) => m.toLowerCase() === marcaNorm);
+    if (!marcaJaExiste) {
+      const colideComModelo = catalogo.some(
+        (c) => c.modelo && c.modelo !== "—" && c.modelo.toLowerCase() === marcaNorm,
+      );
+      if (colideComModelo) {
+        return toast.error(
+          `"${marca.trim()}" já existe como modelo. Cadastre-o escolhendo a marca e depois o modelo.`,
+        );
+      }
+    }
+
     // Bloco 1.4: cotação obrigatória antes de tudo
     if (precisaCotacao && cotacaoNum <= 0) {
       return toast.error(
