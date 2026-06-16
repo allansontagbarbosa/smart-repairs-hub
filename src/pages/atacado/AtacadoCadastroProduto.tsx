@@ -251,7 +251,10 @@ export default function AtacadoCadastroProduto() {
   const investimentoTotal = custoBaseUnit * unidades.length + totalAssistencias;
   const vendaTotal = precoNum * unidades.length;
   const lucroTotal = vendaTotal - investimentoTotal;
-  const margem = investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : 0;
+  const markup = investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : null;
+  const margem = vendaTotal > 0 ? (lucroTotal / vendaTotal) * 100 : null;
+  const fmtPct = (v: number | null) =>
+    v === null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 
   // Handlers custos
   const addCusto = () =>
