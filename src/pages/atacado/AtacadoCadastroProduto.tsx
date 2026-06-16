@@ -324,13 +324,34 @@ export default function AtacadoCadastroProduto() {
 
   const handleSalvar = async () => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
-    if (unidades.some((u) => !u.imei1.trim()))
-      return toast.error("Informe o IMEI 1 de todos os aparelhos");
-    const invalidos = unidades.filter((u) => !isImei15(u.imei1));
-    if (invalidos.length > 0)
-      return toast.error(`${invalidos.length} IMEI(s) inválido(s): devem ter 15 dígitos`);
-    if (importado && cotacaoNum <= 0)
-      return toast.error("Informe a cotação da moeda da compra");
+
+    // Bloco 1.4: cotação obrigatória antes de tudo
+    if (precisaCotacao && cotacaoNum <= 0) {
+      return toast.error(
+        `Informe a cotação da ${moeda} (maior que zero) antes de cadastrar`,
+      );
+    }
+
+    // Bloco 3.1: IMEI 1 obrigatório
+    const idxSemImei = unidades.findIndex((u) => !u.imei1.trim());
+    if (idxSemImei >= 0) {
+      return toast.error(`Aparelho ${idxSemImei + 1}: informe o IMEI 1`);
+    }
+
+    // Bloco 3.1: sem duplicados dentro do lote (IMEI 1 + IMEI 2 não-vazios)
+    const todos: string[] = [];
+    for (const u of unidades) {
+      todos.push(u.imei1.trim());
+      const v2 = u.imei2.trim();
+      if (v2) todos.push(v2);
+    }
+    const vistos = new Set<string>();
+    for (const v of todos) {
+      if (vistos.has(v)) {
+        return toast.error(`IMEI ${v} está repetido em mais de um aparelho do lote`);
+      }
+      vistos.add(v);
+    }
 
     setSalvando(true);
     const payload: any = {
