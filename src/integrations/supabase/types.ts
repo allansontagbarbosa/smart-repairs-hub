@@ -9771,6 +9771,7 @@ export type Database = {
           sucesso: boolean
         }[]
       }
+      atacado_norm_text: { Args: { p: string }; Returns: string }
       atacado_performance_vendedores: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {

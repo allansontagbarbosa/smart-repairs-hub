@@ -85,6 +85,7 @@ export default function AtacadoCadastroProduto() {
     marcas,
     modelosDe,
     infoModelo,
+    catalogo,
     paises,
     capacidadesList,
     condicoes,
@@ -251,7 +252,10 @@ export default function AtacadoCadastroProduto() {
   const investimentoTotal = custoBaseUnit * unidades.length + totalAssistencias;
   const vendaTotal = precoNum * unidades.length;
   const lucroTotal = vendaTotal - investimentoTotal;
-  const margem = investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : 0;
+  const markup = investimentoTotal > 0 ? (lucroTotal / investimentoTotal) * 100 : null;
+  const margem = vendaTotal > 0 ? (lucroTotal / vendaTotal) * 100 : null;
+  const fmtPct = (v: number | null) =>
+    v === null ? "—" : `${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
 
   // Handlers custos
   const addCusto = () =>
@@ -324,6 +328,20 @@ export default function AtacadoCadastroProduto() {
 
   const handleSalvar = async () => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
+
+    // Bloco 2: marca nova não pode colidir com nome já existente como modelo
+    const marcaNorm = marca.trim().replace(/\s+/g, " ").toLowerCase();
+    const marcaJaExiste = marcas.some((m) => m.toLowerCase() === marcaNorm);
+    if (!marcaJaExiste) {
+      const colideComModelo = catalogo.some(
+        (c) => c.modelo && c.modelo !== "—" && c.modelo.toLowerCase() === marcaNorm,
+      );
+      if (colideComModelo) {
+        return toast.error(
+          `"${marca.trim()}" já existe como modelo. Cadastre-o escolhendo a marca e depois o modelo.`,
+        );
+      }
+    }
 
     // Bloco 1.4: cotação obrigatória antes de tudo
     if (precisaCotacao && cotacaoNum <= 0) {
@@ -970,7 +988,7 @@ export default function AtacadoCadastroProduto() {
               value={hasDados && precoNum > 0 ? brl(lucroTotal) : "—"}
               sub={
                 hasDados && precoNum > 0
-                  ? `Margem ${Math.round(margem)}%`
+                  ? `Markup ${fmtPct(markup)} · Margem ${fmtPct(margem)}`
                   : undefined
               }
               positive={lucroTotal >= 0}
