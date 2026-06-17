@@ -262,8 +262,8 @@ export default function AtacadoAparelhos() {
                           (Date.now() - new Date(a.data_entrada).getTime()) / 86400000
                         )
                       : 0;
-                    const baixo = a.status === "estoque" && a.quantidade <= 2;
-                    const lento = a.status === "estoque" && diasParado > 30;
+                    const baixo = statusCategoria(a.status) === "em_estoque" && a.quantidade <= 2;
+                    const lento = statusCategoria(a.status) === "em_estoque" && diasParado > 30;
                     return (
                       <tr key={a.id} className="border-b hover:bg-muted/40 transition-colors">
                         <td className="px-4 py-3">
