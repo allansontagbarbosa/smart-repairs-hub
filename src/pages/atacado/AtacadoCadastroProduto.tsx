@@ -142,7 +142,7 @@ export default function AtacadoCadastroProduto() {
 
   // Inline-add (mantém status/moeda como botão simples)
   const [novoStatus, setNovoStatus] = useState("");
-  const [showAddMoeda, setShowAddMoeda] = useState(false);
+  // (moeda agora usa EditableCombo; sem botão "+ outra moeda" separado)
   const [showAddStatus, setShowAddStatus] = useState(false);
   const [showGerAssist, setShowGerAssist] = useState(false);
   const [showColar, setShowColar] = useState(false);
