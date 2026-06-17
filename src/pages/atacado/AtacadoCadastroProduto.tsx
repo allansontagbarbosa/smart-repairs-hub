@@ -100,6 +100,8 @@ export default function AtacadoCadastroProduto() {
     addPais,
     addCondicao,
     addFornecedor,
+    addMarcaRpc,
+    addMoedaRpc,
     recarregar,
   } = useAtacadoCadastroDados();
 
