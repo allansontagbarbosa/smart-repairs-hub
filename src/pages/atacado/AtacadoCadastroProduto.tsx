@@ -916,7 +916,8 @@ export default function AtacadoCadastroProduto() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <Label className="text-xs">
-                      Assistências{modeloInfo ? ` de ${modeloInfo.marca} ${modeloInfo.modelo}` : ""} (carimba o valor atual)
+                      Marque as assistências deste aparelho{modeloInfo ? ` · ${modeloInfo.marca} ${modeloInfo.modelo}` : ""}{" "}
+                      <span className="text-muted-foreground font-normal">(carimba o valor atual)</span>
                     </Label>
                     {modelo && (
                       <Button
@@ -951,29 +952,49 @@ export default function AtacadoCadastroProduto() {
                       Este modelo ainda não tem assistências configuradas.
                     </p>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {assistModelo.map((t) => {
-                        const ativo = !!u.assistencias.find((a) => a.nome === t.tipo_nome);
-                        return (
-                          <button
-                            key={t.tipo_id}
-                            type="button"
-                            onClick={() =>
-                              toggleAssistencia(i, t.tipo_nome, Number(t.valor) || 0)
-                            }
-                            className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
-                              ativo
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background border-border hover:bg-muted"
-                            }`}
-                          >
-                            {t.tipo_nome} · {brl(Number(t.valor) || 0)}
-                          </button>
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {assistModelo.map((t) => {
+                          const ativo = !!u.assistencias.find((a) => a.nome === t.tipo_nome);
+                          return (
+                            <button
+                              key={t.tipo_id}
+                              type="button"
+                              onClick={() =>
+                                toggleAssistencia(i, t.tipo_nome, Number(t.valor) || 0)
+                              }
+                              aria-pressed={ativo}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border cursor-pointer transition-colors ${
+                                ativo
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background border-dashed border-border hover:bg-muted hover:border-solid"
+                              }`}
+                            >
+                              {ativo ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <Plus className="h-3 w-3 opacity-60" />
+                              )}
+                              {t.tipo_nome} · {brl(Number(t.valor) || 0)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {(() => {
+                        const somaAssist = u.assistencias.reduce(
+                          (s, a) => s + (Number(a.valor) || 0),
+                          0,
                         );
-                      })}
-                    </div>
+                        return somaAssist > 0 ? (
+                          <p className="text-xs text-primary font-medium">
+                            + {brl(somaAssist)} em assistências nesta unidade
+                          </p>
+                        ) : null;
+                      })()}
+                    </>
                   )}
                 </div>
+
 
               </div>
             );
