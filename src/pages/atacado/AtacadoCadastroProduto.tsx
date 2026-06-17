@@ -484,34 +484,33 @@ export default function AtacadoCadastroProduto() {
             </div>
             <div className="space-y-2">
               <Label>Moeda da compra</Label>
-              <div className="flex gap-2">
-                <Select value={moeda} onValueChange={setMoeda}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BRL">BRL — Real</SelectItem>
-                    {moedas.map((m) => (
-                      <SelectItem key={m.id} value={m.codigo}>
-                        {m.codigo} {m.nome ? `— ${m.nome}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setShowAddMoeda((s) => !s)} title="+ outra moeda">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              {showAddMoeda && (
-                <Select onValueChange={handleAddMoeda}>
-                  <SelectTrigger><SelectValue placeholder="Escolher moeda ISO…" /></SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES_ISO.map((c) => (
-                      <SelectItem key={c.codigo} value={c.codigo}>
-                        {c.codigo} — {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <EditableCombo
+                value={moeda}
+                onValueChange={(v) => setMoeda(v.toUpperCase())}
+                options={Array.from(
+                  new Set<string>([
+                    "BRL",
+                    ...moedas.map((m) => m.codigo),
+                    ...CURRENCIES_ISO.map((c) => c.codigo),
+                  ]),
+                )}
+                placeholder="Escolher ou cadastrar moeda"
+                entityLabel="moeda (ex: USD)"
+                onCreateNew={async (typed) => {
+                  const codigo = typed.trim().toUpperCase();
+                  const iso = CURRENCIES_ISO.find((c) => c.codigo === codigo);
+                  await addMoedaRpc(codigo, iso?.simbolo, iso?.nome);
+                }}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {moeda === "BRL"
+                  ? "Real — sem conversão"
+                  : `${simboloMoeda} ${
+                      CURRENCIES_ISO.find((c) => c.codigo === moeda)?.nome ||
+                      moedas.find((m) => m.codigo === moeda)?.nome ||
+                      ""
+                    }`}
+              </p>
             </div>
             {moedaEhBRL ? (
               <div className="space-y-2">
