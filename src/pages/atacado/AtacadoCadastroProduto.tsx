@@ -1032,6 +1032,16 @@ export default function AtacadoCadastroProduto() {
         onOpenChange={setShowColar}
         onConfirm={aplicarImeisColados}
       />
+
+      <AdicionarAssistModeloDialog
+        open={addAssistOpen}
+        onOpenChange={setAddAssistOpen}
+        modeloId={modeloInfo?.id}
+        modeloNome={modeloInfo ? `${modeloInfo.marca} ${modeloInfo.modelo}` : undefined}
+        tipos={tiposAssist}
+        jaVinculados={new Set(assistModelo.map((a) => a.tipo_id))}
+        onSaved={() => setAssistReloadKey((k) => k + 1)}
+      />
     </div>
   );
 }
