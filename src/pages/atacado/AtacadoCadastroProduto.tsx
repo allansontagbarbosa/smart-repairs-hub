@@ -97,7 +97,7 @@ export default function AtacadoCadastroProduto() {
     adicionarCor,
     adicionarGrade,
     adicionarStatus,
-    adicionarMoeda: _adicionarMoedaUnused,
+    
     addPais,
     addCondicao,
     addFornecedor,
