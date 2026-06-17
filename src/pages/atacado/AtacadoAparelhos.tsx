@@ -24,7 +24,7 @@ export default function AtacadoAparelhos() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
-  const [statusFilter, setStatusFilter] = useState("estoque");
+  const [statusFilter, setStatusFilter] = useState("todos");
   const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: empresa } = useQuery({
