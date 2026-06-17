@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AtacadoGrade { id: string; nome: string; ordem: number; ativo: boolean }
-export interface AtacadoStatus { id: string; nome: string; cor: string; sistema: boolean; ordem: number; ativo?: boolean }
+export interface AtacadoStatus { id: string; nome: string; cor: string; sistema: boolean; ordem: number; ativo?: boolean; categoria?: "em_estoque" | "reservado" | "vendido" | "em_transito" | "outro" }
 export interface AtacadoTipoAssistencia { id: string; nome: string; valor_padrao: number; ativo: boolean }
 export interface AtacadoMoeda { id: string; codigo: string; simbolo: string | null; nome: string | null; ativo?: boolean }
 export interface AtacadoCatalogoModelo {
