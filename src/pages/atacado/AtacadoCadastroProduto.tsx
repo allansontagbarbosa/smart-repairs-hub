@@ -459,6 +459,7 @@ export default function AtacadoCadastroProduto() {
                 onValueChange={setFornecedor}
                 options={fornecedores.filter((f) => f.ativo !== false).map((f) => f.nome)}
                 placeholder="Escolher ou cadastrar fornecedor"
+                entityLabel="fornecedor"
                 onCreateNew={async (typed) => { await addFornecedor(typed); }}
               />
             </div>
@@ -477,6 +478,7 @@ export default function AtacadoCadastroProduto() {
                 onValueChange={setPaisOrigem}
                 options={paises.filter((p) => p.ativo).map((p) => p.nome)}
                 placeholder="Escolher ou cadastrar país"
+                entityLabel="país"
                 onCreateNew={async (typed) => { await addPais(typed); }}
               />
             </div>
