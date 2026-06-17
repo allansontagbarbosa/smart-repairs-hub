@@ -40,6 +40,7 @@ import {
 } from "@/hooks/useAtacadoCadastroDados";
 import { GerenciarAssistencias } from "@/components/atacado/GerenciarAssistencias";
 import { EditableCombo } from "@/components/atacado/EditableCombo";
+import { AdicionarAssistModeloDialog } from "@/components/atacado/AdicionarAssistModeloDialog";
 import { ColarImeisDialog } from "@/components/atacado/ColarImeisDialog";
 import { ScannableInput } from "@/components/ui/scannable-input";
 import { luhnValid } from "@/lib/luhn";
@@ -96,10 +97,12 @@ export default function AtacadoCadastroProduto() {
     adicionarCor,
     adicionarGrade,
     adicionarStatus,
-    adicionarMoeda,
+    
     addPais,
     addCondicao,
     addFornecedor,
+    addMarcaRpc,
+    addMoedaRpc,
     recarregar,
   } = useAtacadoCadastroDados();
 
@@ -139,7 +142,7 @@ export default function AtacadoCadastroProduto() {
 
   // Inline-add (mantém status/moeda como botão simples)
   const [novoStatus, setNovoStatus] = useState("");
-  const [showAddMoeda, setShowAddMoeda] = useState(false);
+  // (moeda agora usa EditableCombo; sem botão "+ outra moeda" separado)
   const [showAddStatus, setShowAddStatus] = useState(false);
   const [showGerAssist, setShowGerAssist] = useState(false);
   const [showColar, setShowColar] = useState(false);
@@ -155,6 +158,8 @@ export default function AtacadoCadastroProduto() {
     { tipo_id: string; tipo_nome: string; valor: number }[]
   >([]);
   const [loadingAssistModelo, setLoadingAssistModelo] = useState(false);
+  const [assistReloadKey, setAssistReloadKey] = useState(0);
+  const [addAssistOpen, setAddAssistOpen] = useState(false);
   useEffect(() => {
     let cancel = false;
     const run = async () => {
@@ -174,7 +179,7 @@ export default function AtacadoCadastroProduto() {
     return () => {
       cancel = true;
     };
-  }, [modeloInfo?.id]);
+  }, [modeloInfo?.id, assistReloadKey]);
 
   // Reset ao trocar marca / modelo
   useEffect(() => {
@@ -307,13 +312,7 @@ export default function AtacadoCadastroProduto() {
     setNovoStatus("");
     setShowAddStatus(false);
   };
-  const handleAddMoeda = async (codigo: string) => {
-    if (!empresaId) return;
-    const iso = CURRENCIES_ISO.find((c) => c.codigo === codigo);
-    await adicionarMoeda(empresaId, codigo, iso?.simbolo, iso?.nome);
-    setMoeda(codigo);
-    setShowAddMoeda(false);
-  };
+  // handleAddMoeda removido — Moeda agora usa EditableCombo com onCreateNew.
 
   // Bloco 3: colar lista
   const aplicarImeisColados = (lista: string[]) => {
@@ -456,6 +455,7 @@ export default function AtacadoCadastroProduto() {
                 onValueChange={setFornecedor}
                 options={fornecedores.filter((f) => f.ativo !== false).map((f) => f.nome)}
                 placeholder="Escolher ou cadastrar fornecedor"
+                entityLabel="fornecedor"
                 onCreateNew={async (typed) => { await addFornecedor(typed); }}
               />
             </div>
@@ -474,39 +474,39 @@ export default function AtacadoCadastroProduto() {
                 onValueChange={setPaisOrigem}
                 options={paises.filter((p) => p.ativo).map((p) => p.nome)}
                 placeholder="Escolher ou cadastrar país"
+                entityLabel="país"
                 onCreateNew={async (typed) => { await addPais(typed); }}
               />
             </div>
             <div className="space-y-2">
               <Label>Moeda da compra</Label>
-              <div className="flex gap-2">
-                <Select value={moeda} onValueChange={setMoeda}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BRL">BRL — Real</SelectItem>
-                    {moedas.map((m) => (
-                      <SelectItem key={m.id} value={m.codigo}>
-                        {m.codigo} {m.nome ? `— ${m.nome}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setShowAddMoeda((s) => !s)} title="+ outra moeda">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              {showAddMoeda && (
-                <Select onValueChange={handleAddMoeda}>
-                  <SelectTrigger><SelectValue placeholder="Escolher moeda ISO…" /></SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES_ISO.map((c) => (
-                      <SelectItem key={c.codigo} value={c.codigo}>
-                        {c.codigo} — {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <EditableCombo
+                value={moeda}
+                onValueChange={(v) => setMoeda(v.toUpperCase())}
+                options={Array.from(
+                  new Set<string>([
+                    "BRL",
+                    ...moedas.map((m) => m.codigo),
+                    ...CURRENCIES_ISO.map((c) => c.codigo),
+                  ]),
+                )}
+                placeholder="Escolher ou cadastrar moeda"
+                entityLabel="moeda (ex: USD)"
+                onCreateNew={async (typed) => {
+                  const codigo = typed.trim().toUpperCase();
+                  const iso = CURRENCIES_ISO.find((c) => c.codigo === codigo);
+                  await addMoedaRpc(codigo, iso?.simbolo, iso?.nome);
+                }}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {moeda === "BRL"
+                  ? "Real — sem conversão"
+                  : `${simboloMoeda} ${
+                      CURRENCIES_ISO.find((c) => c.codigo === moeda)?.nome ||
+                      moedas.find((m) => m.codigo === moeda)?.nome ||
+                      ""
+                    }`}
+              </p>
             </div>
             {moedaEhBRL ? (
               <div className="space-y-2">
@@ -551,8 +551,9 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setMarca}
               options={marcas}
               placeholder="Escolher ou digitar marca"
+              entityLabel="marca"
               emptyHint="Nenhuma marca no catálogo — digite uma nova"
-              /* não persiste sozinha; será criada junto com o primeiro modelo */
+              onCreateNew={async (typed) => { await addMarcaRpc(typed); }}
             />
           </div>
           <div className="space-y-2">
@@ -563,6 +564,7 @@ export default function AtacadoCadastroProduto() {
               options={modelosDe(marca)}
               placeholder={marca ? "Escolher ou digitar modelo" : "Escolha a marca primeiro"}
               disabled={!marca}
+              entityLabel="modelo"
               onCreateNew={async (typed) => {
                 if (!empresaId || !marca) return;
                 await adicionarModelo(empresaId, marca, typed);
@@ -576,6 +578,7 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setCapacidade}
               options={capacidadesOpts}
               placeholder="Ex: 128 GB"
+              entityLabel="capacidade"
               onCreateNew={async (typed) => { await adicionarCapacidade("", typed); }}
             />
           </div>
@@ -587,6 +590,7 @@ export default function AtacadoCadastroProduto() {
               options={coresOpts}
               placeholder={modelo ? "Ex: Preto" : "Defina o modelo"}
               disabled={!modelo}
+              entityLabel="cor"
               onCreateNew={async (typed) => {
                 if (modeloInfo) await adicionarCor(modeloInfo.id, typed);
               }}
@@ -599,6 +603,7 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setGrade}
               options={grades.map((g) => g.nome)}
               placeholder="Ex: Grade A"
+              entityLabel="grade"
               onCreateNew={async (typed) => {
                 if (empresaId) await adicionarGrade(empresaId, typed);
               }}
@@ -611,6 +616,7 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setCondicao}
               options={condicoes.filter((c) => c.ativo).map((c) => c.nome)}
               placeholder="Escolher ou cadastrar condição"
+              entityLabel="condição"
               emptyHint="Sem condições cadastradas — digite uma (ex: Novo, Seminovo, Vitrine)"
               onCreateNew={async (typed) => { await addCondicao(typed); }}
             />
@@ -907,28 +913,42 @@ export default function AtacadoCadastroProduto() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs">
-                    Assistências{modeloInfo ? ` de ${modeloInfo.marca} ${modeloInfo.modelo}` : ""} (carimba o valor atual)
-                  </Label>
-                  {!modeloInfo ? (
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label className="text-xs">
+                      Assistências{modeloInfo ? ` de ${modeloInfo.marca} ${modeloInfo.modelo}` : ""} (carimba o valor atual)
+                    </Label>
+                    {modelo && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-primary"
+                        onClick={() => setAddAssistOpen(true)}
+                        disabled={!modeloInfo?.id}
+                        title={
+                          !modeloInfo?.id
+                            ? "Aguardando catálogo sincronizar este modelo…"
+                            : ""
+                        }
+                      >
+                        <Plus className="h-3 w-3" /> Adicionar assistência a este modelo
+                      </Button>
+                    )}
+                  </div>
+                  {!modelo ? (
                     <p className="text-xs text-muted-foreground">
                       Selecione um modelo para ver as assistências disponíveis.
+                    </p>
+                  ) : !modeloInfo?.id ? (
+                    <p className="text-xs text-muted-foreground">
+                      Sincronizando catálogo do modelo recém-criado…
                     </p>
                   ) : loadingAssistModelo ? (
                     <p className="text-xs text-muted-foreground">Carregando…</p>
                   ) : assistModelo.length === 0 ? (
-                    <div className="text-xs flex items-center gap-2 flex-wrap p-2 rounded-md border bg-muted/30">
-                      <span className="text-muted-foreground">
-                        Nenhuma assistência cadastrada para este modelo.
-                      </span>
-                      <Link
-                        to="/atacado/configuracoes"
-                        target="_blank"
-                        className="underline text-primary"
-                      >
-                        Cadastrar agora
-                      </Link>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Este modelo ainda não tem assistências configuradas.
+                    </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {assistModelo.map((t) => {
@@ -1005,6 +1025,16 @@ export default function AtacadoCadastroProduto() {
         open={showColar}
         onOpenChange={setShowColar}
         onConfirm={aplicarImeisColados}
+      />
+
+      <AdicionarAssistModeloDialog
+        open={addAssistOpen}
+        onOpenChange={setAddAssistOpen}
+        modeloId={modeloInfo?.id}
+        modeloNome={modeloInfo ? `${modeloInfo.marca} ${modeloInfo.modelo}` : undefined}
+        tipos={tiposAssist}
+        jaVinculados={new Set(assistModelo.map((a) => a.tipo_id))}
+        onSaved={() => setAssistReloadKey((k) => k + 1)}
       />
     </div>
   );
