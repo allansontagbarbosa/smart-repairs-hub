@@ -1528,6 +1528,7 @@ export type Database = {
       atacado_status_aparelho: {
         Row: {
           ativo: boolean
+          categoria: string
           cor: string | null
           created_at: string | null
           empresa_id: string
@@ -1538,6 +1539,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          categoria?: string
           cor?: string | null
           created_at?: string | null
           empresa_id: string
@@ -1548,6 +1550,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          categoria?: string
           cor?: string | null
           created_at?: string | null
           empresa_id?: string
@@ -9646,10 +9649,12 @@ export type Database = {
         Args: { p_codigo?: string; p_nome: string }
         Returns: string
       }
-      atacado_add_status: {
-        Args: { p_cor?: string; p_nome: string }
-        Returns: string
-      }
+      atacado_add_status:
+        | { Args: { p_cor?: string; p_nome: string }; Returns: string }
+        | {
+            Args: { p_categoria?: string; p_cor?: string; p_nome: string }
+            Returns: string
+          }
       atacado_add_tipo_assistencia: {
         Args: { p_nome: string; p_valor?: number }
         Returns: string

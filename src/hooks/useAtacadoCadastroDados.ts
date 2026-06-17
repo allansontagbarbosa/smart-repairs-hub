@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AtacadoGrade { id: string; nome: string; ordem: number; ativo: boolean }
-export interface AtacadoStatus { id: string; nome: string; cor: string; sistema: boolean; ordem: number; ativo?: boolean }
+export interface AtacadoStatus { id: string; nome: string; cor: string; sistema: boolean; ordem: number; ativo?: boolean; categoria?: "em_estoque" | "reservado" | "vendido" | "em_transito" | "outro" }
 export interface AtacadoTipoAssistencia { id: string; nome: string; valor_padrao: number; ativo: boolean }
 export interface AtacadoMoeda { id: string; codigo: string; simbolo: string | null; nome: string | null; ativo?: boolean }
 export interface AtacadoCatalogoModelo {
@@ -92,8 +92,8 @@ export function useAtacadoCadastroDados() {
     rpc("atacado_add_condicao", { p_nome: nome });
   const addGrade = (nome: string) =>
     rpc("atacado_add_grade", { p_nome: nome });
-  const addStatusRpc = (nome: string, cor = "#888") =>
-    rpc("atacado_add_status", { p_nome: nome, p_cor: cor });
+  const addStatusRpc = (nome: string, cor = "#888", categoria: "em_estoque" | "reservado" | "vendido" | "em_transito" | "outro" = "em_estoque") =>
+    rpc("atacado_add_status", { p_nome: nome, p_cor: cor, p_categoria: categoria });
   const addTipoAssist = (nome: string, valor = 0) =>
     rpc("atacado_add_tipo_assistencia", { p_nome: nome, p_valor: valor });
   const addMoedaRpc = (codigo: string, simbolo?: string, nome?: string) =>

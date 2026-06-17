@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   Plus,
@@ -78,6 +79,7 @@ const isImei15 = (s: string) => /^\d{15}$/.test(s.trim());
 
 export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { empresaId } = useEmpresa();
   const {
     grades,
@@ -416,6 +418,7 @@ export default function AtacadoCadastroProduto() {
       return;
     }
     toast.success(`${(data as any).aparelhos} aparelhos cadastrados`);
+    await qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
     navigate("/atacado/aparelhos");
   };
 

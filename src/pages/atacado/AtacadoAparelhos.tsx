@@ -24,7 +24,7 @@ export default function AtacadoAparelhos() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
-  const [statusFilter, setStatusFilter] = useState("estoque");
+  const [statusFilter, setStatusFilter] = useState("todos");
   const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: empresa } = useQuery({
@@ -60,21 +60,61 @@ export default function AtacadoAparelhos() {
       toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  const { data: aparelhos = [], isLoading } = useQuery({
-    queryKey: ["atacado-aparelhos", empresaId, busca, statusFilter],
+  const { data: statusCatalogo = [] } = useQuery({
+    queryKey: ["atacado-status-catalogo", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_status_aparelho" as any)
+        .select("nome, categoria")
+        .eq("empresa_id", empresaId!);
+      return (data as any[]) ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const statusCategoria = (s: string | null | undefined): string => {
+    if (!s) return "outro";
+    const found = statusCatalogo.find(
+      (r: any) => r.nome?.toLowerCase() === String(s).toLowerCase(),
+    );
+    if (found?.categoria) return found.categoria;
+    const low = String(s).toLowerCase();
+    if (/(transit|transporte|caminho|envio)/.test(low)) return "em_transito";
+    if (/(reserv|separad|aguard)/.test(low)) return "reservado";
+    if (/(vendid|baixad|entregue)/.test(low)) return "vendido";
+    if (/(estoq|stoq|disponiv)/.test(low)) return "em_estoque";
+    if (/(assist|defeito|conserto|manut)/.test(low)) return "outro";
+    return "em_estoque";
+  };
+
+  const { data: aparelhosRaw = [], isLoading } = useQuery({
+    queryKey: ["atacado-aparelhos", empresaId, busca],
     queryFn: async () => {
       let q = supabase
         .from("atacado_aparelhos" as any)
         .select(`*, fornecedor:fornecedores(nome)`)
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null);
-      if (statusFilter !== "todos") q = q.eq("status", statusFilter);
       if (busca) q = q.ilike("modelo", `%${busca.replace(/[%]/g, "")}%`);
       const { data } = await q.order("data_entrada", { ascending: false });
       return (data as any[]) ?? [];
     },
     enabled: !!empresaId,
   });
+
+  const filtroParaCategoria: Record<string, string> = {
+    estoque: "em_estoque",
+    reservado: "reservado",
+    vendido: "vendido",
+    em_transito: "em_transito",
+  };
+
+  const aparelhos =
+    statusFilter === "todos"
+      ? aparelhosRaw
+      : aparelhosRaw.filter(
+          (a: any) => statusCategoria(a.status) === filtroParaCategoria[statusFilter],
+        );
 
   const { data: aparelhosLoja = [] } = useQuery({
     queryKey: ["loja-aparelhos-via-atacado", empresaId, busca],
@@ -102,7 +142,7 @@ export default function AtacadoAparelhos() {
     0
   );
   const lotesBaixoEstoque = aparelhos.filter(
-    (a: any) => a.status === "estoque" && a.quantidade <= 2
+    (a: any) => statusCategoria(a.status) === "em_estoque" && a.quantidade <= 2
   ).length;
 
   return (
@@ -222,8 +262,8 @@ export default function AtacadoAparelhos() {
                           (Date.now() - new Date(a.data_entrada).getTime()) / 86400000
                         )
                       : 0;
-                    const baixo = a.status === "estoque" && a.quantidade <= 2;
-                    const lento = a.status === "estoque" && diasParado > 30;
+                    const baixo = statusCategoria(a.status) === "em_estoque" && a.quantidade <= 2;
+                    const lento = statusCategoria(a.status) === "em_estoque" && diasParado > 30;
                     return (
                       <tr key={a.id} className="border-b hover:bg-muted/40 transition-colors">
                         <td className="px-4 py-3">
