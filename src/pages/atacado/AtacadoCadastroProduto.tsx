@@ -312,13 +312,7 @@ export default function AtacadoCadastroProduto() {
     setNovoStatus("");
     setShowAddStatus(false);
   };
-  const handleAddMoeda = async (codigo: string) => {
-    if (!empresaId) return;
-    const iso = CURRENCIES_ISO.find((c) => c.codigo === codigo);
-    await adicionarMoeda(empresaId, codigo, iso?.simbolo, iso?.nome);
-    setMoeda(codigo);
-    setShowAddMoeda(false);
-  };
+  // handleAddMoeda removido — Moeda agora usa EditableCombo com onCreateNew.
 
   // Bloco 3: colar lista
   const aplicarImeisColados = (lista: string[]) => {
