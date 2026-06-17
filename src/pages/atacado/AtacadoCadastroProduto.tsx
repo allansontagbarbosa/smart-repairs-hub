@@ -555,8 +555,9 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setMarca}
               options={marcas}
               placeholder="Escolher ou digitar marca"
+              entityLabel="marca"
               emptyHint="Nenhuma marca no catálogo — digite uma nova"
-              /* não persiste sozinha; será criada junto com o primeiro modelo */
+              onCreateNew={async (typed) => { await addMarcaRpc(typed); }}
             />
           </div>
           <div className="space-y-2">
@@ -567,6 +568,7 @@ export default function AtacadoCadastroProduto() {
               options={modelosDe(marca)}
               placeholder={marca ? "Escolher ou digitar modelo" : "Escolha a marca primeiro"}
               disabled={!marca}
+              entityLabel="modelo"
               onCreateNew={async (typed) => {
                 if (!empresaId || !marca) return;
                 await adicionarModelo(empresaId, marca, typed);
@@ -580,6 +582,7 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setCapacidade}
               options={capacidadesOpts}
               placeholder="Ex: 128 GB"
+              entityLabel="capacidade"
               onCreateNew={async (typed) => { await adicionarCapacidade("", typed); }}
             />
           </div>
@@ -591,6 +594,7 @@ export default function AtacadoCadastroProduto() {
               options={coresOpts}
               placeholder={modelo ? "Ex: Preto" : "Defina o modelo"}
               disabled={!modelo}
+              entityLabel="cor"
               onCreateNew={async (typed) => {
                 if (modeloInfo) await adicionarCor(modeloInfo.id, typed);
               }}
@@ -603,6 +607,7 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setGrade}
               options={grades.map((g) => g.nome)}
               placeholder="Ex: Grade A"
+              entityLabel="grade"
               onCreateNew={async (typed) => {
                 if (empresaId) await adicionarGrade(empresaId, typed);
               }}
@@ -615,6 +620,7 @@ export default function AtacadoCadastroProduto() {
               onValueChange={setCondicao}
               options={condicoes.filter((c) => c.ativo).map((c) => c.nome)}
               placeholder="Escolher ou cadastrar condição"
+              entityLabel="condição"
               emptyHint="Sem condições cadastradas — digite uma (ex: Novo, Seminovo, Vitrine)"
               onCreateNew={async (typed) => { await addCondicao(typed); }}
             />
