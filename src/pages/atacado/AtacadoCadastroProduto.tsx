@@ -40,6 +40,7 @@ import {
 } from "@/hooks/useAtacadoCadastroDados";
 import { GerenciarAssistencias } from "@/components/atacado/GerenciarAssistencias";
 import { EditableCombo } from "@/components/atacado/EditableCombo";
+import { AdicionarAssistModeloDialog } from "@/components/atacado/AdicionarAssistModeloDialog";
 import { ColarImeisDialog } from "@/components/atacado/ColarImeisDialog";
 import { ScannableInput } from "@/components/ui/scannable-input";
 import { luhnValid } from "@/lib/luhn";
