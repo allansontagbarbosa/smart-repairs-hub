@@ -14,11 +14,15 @@ interface EditableComboProps {
   /** Persistir no catálogo quando usuário cria valor novo. Opcional. */
   onCreateNew?: (typed: string) => Promise<void> | void;
   emptyHint?: string;
+  /** Rótulo do tipo do item (ex: "fornecedor", "marca"). Usado no CTA "+ Cadastrar novo {label}". */
+  entityLabel?: string;
 }
 
 /**
  * Select editável: usuário escolhe da lista OU digita um valor novo.
- * Se onCreateNew for fornecido, persiste no catálogo ao confirmar valor novo.
+ * Se onCreateNew for fornecedo, persiste no catálogo ao confirmar valor novo.
+ * Mostra sempre uma linha "+ Cadastrar novo {entityLabel}" no rodapé da lista
+ * (mesmo sem digitar) para tornar a ação descobrível.
  */
 export function EditableCombo({
   value,
@@ -28,6 +32,7 @@ export function EditableCombo({
   disabled,
   onCreateNew,
   emptyHint,
+  entityLabel,
 }: EditableComboProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -40,8 +45,9 @@ export function EditableCombo({
   }, [options, query]);
 
   const typed = query.trim();
-  const exatcMatch = options.some((o) => o.toLowerCase() === typed.toLowerCase());
-  const canCreate = typed.length > 0 && !exatcMatch;
+  const exactMatch = options.some((o) => o.toLowerCase() === typed.toLowerCase());
+  const canCreate = typed.length > 0 && !exactMatch;
+  const showAlwaysCta = !!entityLabel && typed.length === 0;
 
   const commitExisting = (v: string) => {
     onValueChange(v);
@@ -82,7 +88,7 @@ export function EditableCombo({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="p-0 w-[--radix-popover-trigger-width] min-w-[220px]"
+        className="p-0 w-[--radix-popover-trigger-width] min-w-[240px]"
         align="start"
       >
         <div className="p-2 border-b">
@@ -102,7 +108,7 @@ export function EditableCombo({
           />
         </div>
         <div className="max-h-60 overflow-y-auto py-1">
-          {filtered.length === 0 && !canCreate && (
+          {filtered.length === 0 && !canCreate && !showAlwaysCta && (
             <p className="px-3 py-2 text-xs text-muted-foreground">
               {emptyHint || "Nenhum item"}
             </p>
@@ -131,11 +137,22 @@ export function EditableCombo({
             >
               <Plus className="h-3.5 w-3.5" />
               Usar “{typed}”
-              {onCreateNew && (
-                <span className="ml-auto text-xs text-muted-foreground font-normal">
-                  salvar no catálogo
-                </span>
-              )}
+              <span className="ml-auto text-xs text-muted-foreground font-normal">
+                salvar no catálogo
+              </span>
+            </button>
+          )}
+          {showAlwaysCta && !canCreate && (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.focus()}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted text-left text-primary font-medium border-t mt-1 pt-2"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Cadastrar novo {entityLabel}
+              <span className="ml-auto text-xs text-muted-foreground font-normal">
+                digite o nome
+              </span>
             </button>
           )}
         </div>
