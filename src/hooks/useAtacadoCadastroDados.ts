@@ -92,8 +92,8 @@ export function useAtacadoCadastroDados() {
     rpc("atacado_add_condicao", { p_nome: nome });
   const addGrade = (nome: string) =>
     rpc("atacado_add_grade", { p_nome: nome });
-  const addStatusRpc = (nome: string, cor = "#888") =>
-    rpc("atacado_add_status", { p_nome: nome, p_cor: cor });
+  const addStatusRpc = (nome: string, cor = "#888", categoria: "em_estoque" | "reservado" | "vendido" | "em_transito" | "outro" = "em_estoque") =>
+    rpc("atacado_add_status", { p_nome: nome, p_cor: cor, p_categoria: categoria });
   const addTipoAssist = (nome: string, valor = 0) =>
     rpc("atacado_add_tipo_assistencia", { p_nome: nome, p_valor: valor });
   const addMoedaRpc = (codigo: string, simbolo?: string, nome?: string) =>
