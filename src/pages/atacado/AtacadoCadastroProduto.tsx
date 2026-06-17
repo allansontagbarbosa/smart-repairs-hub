@@ -418,6 +418,7 @@ export default function AtacadoCadastroProduto() {
       return;
     }
     toast.success(`${(data as any).aparelhos} aparelhos cadastrados`);
+    await qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
     navigate("/atacado/aparelhos");
   };
 
