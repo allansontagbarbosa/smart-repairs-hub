@@ -158,6 +158,8 @@ export default function AtacadoCadastroProduto() {
     { tipo_id: string; tipo_nome: string; valor: number }[]
   >([]);
   const [loadingAssistModelo, setLoadingAssistModelo] = useState(false);
+  const [assistReloadKey, setAssistReloadKey] = useState(0);
+  const [addAssistOpen, setAddAssistOpen] = useState(false);
   useEffect(() => {
     let cancel = false;
     const run = async () => {
@@ -177,7 +179,7 @@ export default function AtacadoCadastroProduto() {
     return () => {
       cancel = true;
     };
-  }, [modeloInfo?.id]);
+  }, [modeloInfo?.id, assistReloadKey]);
 
   // Reset ao trocar marca / modelo
   useEffect(() => {
