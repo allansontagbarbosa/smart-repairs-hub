@@ -919,28 +919,42 @@ export default function AtacadoCadastroProduto() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs">
-                    Assistências{modeloInfo ? ` de ${modeloInfo.marca} ${modeloInfo.modelo}` : ""} (carimba o valor atual)
-                  </Label>
-                  {!modeloInfo ? (
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <Label className="text-xs">
+                      Assistências{modeloInfo ? ` de ${modeloInfo.marca} ${modeloInfo.modelo}` : ""} (carimba o valor atual)
+                    </Label>
+                    {modelo && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-primary"
+                        onClick={() => setAddAssistOpen(true)}
+                        disabled={!modeloInfo?.id}
+                        title={
+                          !modeloInfo?.id
+                            ? "Aguardando catálogo sincronizar este modelo…"
+                            : ""
+                        }
+                      >
+                        <Plus className="h-3 w-3" /> Adicionar assistência a este modelo
+                      </Button>
+                    )}
+                  </div>
+                  {!modelo ? (
                     <p className="text-xs text-muted-foreground">
                       Selecione um modelo para ver as assistências disponíveis.
+                    </p>
+                  ) : !modeloInfo?.id ? (
+                    <p className="text-xs text-muted-foreground">
+                      Sincronizando catálogo do modelo recém-criado…
                     </p>
                   ) : loadingAssistModelo ? (
                     <p className="text-xs text-muted-foreground">Carregando…</p>
                   ) : assistModelo.length === 0 ? (
-                    <div className="text-xs flex items-center gap-2 flex-wrap p-2 rounded-md border bg-muted/30">
-                      <span className="text-muted-foreground">
-                        Nenhuma assistência cadastrada para este modelo.
-                      </span>
-                      <Link
-                        to="/atacado/configuracoes"
-                        target="_blank"
-                        className="underline text-primary"
-                      >
-                        Cadastrar agora
-                      </Link>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Este modelo ainda não tem assistências configuradas.
+                    </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {assistModelo.map((t) => {
