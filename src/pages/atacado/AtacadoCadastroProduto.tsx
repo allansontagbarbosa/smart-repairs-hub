@@ -1001,7 +1001,7 @@ export default function AtacadoCadastroProduto() {
             </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-sm flex-1 min-w-0">
-            <StickyKpi label="Custo / un" value={hasDados ? brl(custoBaseUnit) : "—"} />
+            <StickyKpi label="Custo / un" value={hasDados && unidades.length > 0 ? brl(investimentoTotal / unidades.length) : "—"} />
             <StickyKpi label="Investimento" value={hasDados ? brl(investimentoTotal) : "—"} />
             <StickyKpi label="Venda total" value={precoNum > 0 ? brl(vendaTotal) : "—"} />
             <StickyKpi
