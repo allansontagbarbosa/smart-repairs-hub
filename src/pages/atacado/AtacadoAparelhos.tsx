@@ -142,7 +142,7 @@ export default function AtacadoAparelhos() {
     0
   );
   const lotesBaixoEstoque = aparelhos.filter(
-    (a: any) => a.status === "estoque" && a.quantidade <= 2
+    (a: any) => statusCategoria(a.status) === "em_estoque" && a.quantidade <= 2
   ).length;
 
   return (
