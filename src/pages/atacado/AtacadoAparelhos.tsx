@@ -468,10 +468,16 @@ export default function AtacadoAparelhos() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiBox label="Lotes" valor={String(totalLotes)} />
           <KpiBox label="Unidades" valor={String(totalUnidades)} />
-          <KpiBox label="Valor estocado" valor={formatBRL(valorEstoque)} />
+          <KpiBox label="Valor estocado (custo)" valor={formatBRL(valorEstoque)} />
+          <KpiBox label="Valor de venda em estoque" valor={formatBRL(valorVenda)} />
+          <KpiBox
+            label="Lucro potencial"
+            valor={formatBRL(lucroPotencial)}
+            success={lucroPotencial > 0}
+          />
           <KpiBox
             label="Estoque baixo"
             valor={String(lotesBaixoEstoque)}
