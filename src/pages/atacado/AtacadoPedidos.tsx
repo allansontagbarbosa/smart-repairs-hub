@@ -258,7 +258,10 @@ export default function AtacadoPedidos() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={p.status} />
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge status={p.status} />
+                      <PagamentoBadge pagamentos={p.pagamentos} />
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(p.created_at).toLocaleDateString("pt-BR")}
