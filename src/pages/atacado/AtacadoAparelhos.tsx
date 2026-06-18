@@ -1,8 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { Smartphone, Plus, Search, Package, AlertCircle, Loader2 } from "lucide-react";
+import {
+  Smartphone,
+  Plus,
+  Search,
+  Package,
+  AlertCircle,
+  Loader2,
+  Download,
+  LayoutGrid,
+  Rows,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -22,6 +33,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/utils";
+import { exportToCsv } from "@/lib/export-csv";
 import { NovaEntradaAtacadoDialog } from "@/components/atacado/NovaEntradaAtacadoDialog";
 import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
 import {
@@ -29,6 +41,7 @@ import {
   getStatusCategoria,
 } from "@/components/atacado/AtacadoStatusBadge";
 import { AtacadoAparelhoDetalheSheet } from "@/components/atacado/AtacadoAparelhoDetalheSheet";
+import { AtacadoAparelhoAcoesMenu } from "@/components/atacado/AtacadoAparelhoAcoesMenu";
 
 function useDebounced<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -39,6 +52,8 @@ function useDebounced<T>(value: T, delay = 300): T {
   return v;
 }
 
+type ViewMode = "unidade" | "modelo";
+
 export default function AtacadoAparelhos() {
   const { empresaId } = useEmpresa();
   const { toast } = useToast();
@@ -48,6 +63,8 @@ export default function AtacadoAparelhos() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [novoOpen, setNovoOpen] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("unidade");
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
 
   const { data: empresa } = useQuery({
     queryKey: ["empresa-config-atacado", empresaId],
@@ -115,6 +132,31 @@ export default function AtacadoAparelhos() {
     enabled: !!empresaId,
   });
 
+  // Soma de assistências por aparelho (todas, escopo empresa via RLS)
+  const aparelhoIds = useMemo(
+    () => aparelhosRaw.map((a: any) => a.id),
+    [aparelhosRaw],
+  );
+
+  const { data: assistMap = {} as Record<string, number> } = useQuery({
+    queryKey: ["atacado-aparelho-assistencias-soma", empresaId, aparelhoIds],
+    queryFn: async () => {
+      if (aparelhoIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("atacado_aparelho_assistencias" as any)
+        .select("aparelho_id, valor")
+        .eq("empresa_id", empresaId!)
+        .in("aparelho_id", aparelhoIds);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data as any[]).forEach((r) => {
+        map[r.aparelho_id] = (map[r.aparelho_id] ?? 0) + Number(r.valor ?? 0);
+      });
+      return map;
+    },
+    enabled: !!empresaId && aparelhoIds.length > 0,
+  });
+
   const filtroParaCategoria: Record<string, string> = {
     estoque: "em_estoque",
     reservado: "reservado",
@@ -153,17 +195,168 @@ export default function AtacadoAparelhos() {
   const totalLotes = aparelhos.length;
   const totalUnidades = aparelhos.reduce(
     (s: number, a: any) => s + (a.quantidade || 0),
-    0
+    0,
   );
   const valorEstoque = aparelhos.reduce(
     (s: number, a: any) => s + a.quantidade * Number(a.custo),
-    0
+    0,
   );
   const lotesBaixoEstoque = aparelhos.filter(
     (a: any) =>
       getStatusCategoria(a.status, statusCatalogo) === "em_estoque" &&
       a.quantidade <= 2,
   ).length;
+
+  // Agrupado por modelo
+  const grupos = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const a of aparelhos) {
+      const key = `${a.modelo}|${a.capacidade ?? ""}|${a.cor ?? ""}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    }
+    return Array.from(map.entries()).map(([key, itens]) => {
+      const qtd = itens.reduce((s, i) => s + (i.quantidade || 0), 0);
+      const custoMedio =
+        itens.reduce((s, i) => s + Number(i.custo) * i.quantidade, 0) /
+        Math.max(1, qtd);
+      const precoMin = itens
+        .filter((i) => Number(i.preco_sugerido) > 0)
+        .reduce(
+          (m, i) => Math.min(m, Number(i.preco_sugerido)),
+          Number.POSITIVE_INFINITY,
+        );
+      return { key, itens, qtd, custoMedio, precoMin };
+    });
+  }, [aparelhos]);
+
+  const toggleGrupo = (key: string) => {
+    setExpandidos((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+  };
+
+  const handleExport = () => {
+    exportToCsv(
+      `estoque-atacado-${new Date().toISOString().slice(0, 10)}.csv`,
+      aparelhos,
+      [
+        { header: "Modelo", value: (a: any) => a.modelo },
+        { header: "Capacidade", value: (a: any) => a.capacidade ?? "" },
+        { header: "Cor", value: (a: any) => a.cor ?? "" },
+        { header: "Grade", value: (a: any) => a.grade ?? "" },
+        { header: "Condição", value: (a: any) => a.condicao ?? "" },
+        { header: "IMEI 1", value: (a: any) => a.imei_1 ?? "" },
+        { header: "IMEI 2", value: (a: any) => a.imei_2 ?? "" },
+        { header: "Fornecedor", value: (a: any) => a.fornecedor?.nome ?? "" },
+        { header: "Qtd", value: (a: any) => a.quantidade ?? 0 },
+        { header: "Custo total (R$)", value: (a: any) => Number(a.custo).toFixed(2) },
+        {
+          header: "Assistência (R$)",
+          value: (a: any) => Number(assistMap[a.id] ?? 0).toFixed(2),
+        },
+        {
+          header: "Preço sugerido (R$)",
+          value: (a: any) => Number(a.preco_sugerido ?? 0).toFixed(2),
+        },
+        {
+          header: "Lucro (R$)",
+          value: (a: any) =>
+            (Number(a.preco_sugerido ?? 0) - Number(a.custo)).toFixed(2),
+        },
+        { header: "Status", value: (a: any) => a.status ?? "" },
+        {
+          header: "Data entrada",
+          value: (a: any) =>
+            a.data_entrada
+              ? new Date(a.data_entrada).toLocaleDateString("pt-BR")
+              : "",
+        },
+      ],
+    );
+  };
+
+  const renderLinha = (a: any) => {
+    const custoNum = Number(a.custo);
+    const precoNum = Number(a.preco_sugerido ?? 0);
+    const lucro = precoNum > 0 ? precoNum - custoNum : 0;
+    const markup = custoNum > 0 && precoNum > 0 ? (lucro / custoNum) * 100 : 0;
+    const margem = precoNum > 0 ? (lucro / precoNum) * 100 : 0;
+    const diasParado = a.data_entrada
+      ? Math.floor((Date.now() - new Date(a.data_entrada).getTime()) / 86400000)
+      : 0;
+    const cat = getStatusCategoria(a.status, statusCatalogo);
+    const baixo = cat === "em_estoque" && a.quantidade <= 2;
+    const lento = cat === "em_estoque" && diasParado > 30;
+    const imeiTail = a.imei_1 ? `· IMEI …${String(a.imei_1).slice(-4)}` : "";
+    const assist = Number(assistMap[a.id] ?? 0);
+    return (
+      <tr
+        key={a.id}
+        onClick={() => setDetalheId(a.id)}
+        className="border-b hover:bg-muted/40 transition-colors cursor-pointer"
+      >
+        <td className="px-4 py-3">
+          <p className="font-medium text-foreground">
+            {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
+          </p>
+          <p className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+            <span>{a.fornecedor?.nome ?? "—"}</span>
+            {imeiTail && <span className="font-mono">{imeiTail}</span>}
+            {a.data_entrada && <span>· há {diasParado}d</span>}
+            {assist > 0 && (
+              <span className="text-warning">· +{formatBRL(assist)} assist.</span>
+            )}
+            {baixo && <span className="text-warning">· estoque baixo</span>}
+            {lento && <span className="text-destructive">· giro lento</span>}
+          </p>
+        </td>
+        <td className="px-4 py-3 text-center">
+          <Badge
+            variant="outline"
+            className={
+              baixo ? "bg-warning/15 text-warning border-warning/30" : ""
+            }
+          >
+            {a.quantidade}
+          </Badge>
+        </td>
+        <td className="px-4 py-3 text-right tabular-nums">
+          {formatBRL(custoNum)}
+        </td>
+        <td className="px-4 py-3 text-right tabular-nums">
+          {precoNum > 0 ? formatBRL(precoNum) : <span className="text-muted-foreground">—</span>}
+        </td>
+        <td className="px-4 py-3 text-right">
+          {lucro > 0 ? (
+            <div>
+              <div className="tabular-nums text-success font-medium">
+                {formatBRL(lucro)}
+              </div>
+              <div className="text-xs text-muted-foreground tabular-nums">
+                {markup.toFixed(1)}% mk · {margem.toFixed(1)}% mg
+              </div>
+            </div>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <AtacadoStatusBadge status={a.status} catalogo={statusCatalogo} />
+        </td>
+        <td className="px-2 py-3 text-right">
+          <AtacadoAparelhoAcoesMenu
+            aparelho={a}
+            statusCatalogo={statusCatalogo}
+            onVerDetalhes={() => setDetalheId(a.id)}
+          />
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -242,7 +435,7 @@ export default function AtacadoAparelhos() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -253,6 +446,45 @@ export default function AtacadoAparelhos() {
               <SelectItem value="em_transito">Em trânsito</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={viewMode === "unidade" ? "secondary" : "outline"}
+                  onClick={() => setViewMode("unidade")}
+                >
+                  <Rows className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Por unidade</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={viewMode === "modelo" ? "secondary" : "outline"}
+                  onClick={() => setViewMode("modelo")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Agrupar por modelo</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={aparelhos.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar CSV (lista filtrada)</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         {isLoading ? (
@@ -279,7 +511,7 @@ export default function AtacadoAparelhos() {
           />
         ) : (
           <>
-            {aparelhos.length > 0 && (
+            {aparelhos.length > 0 && viewMode === "unidade" && (
               <div className="border rounded-lg overflow-hidden bg-card">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50 text-xs text-muted-foreground">
@@ -288,93 +520,53 @@ export default function AtacadoAparelhos() {
                       <th className="text-center px-4 py-3 font-medium">Qtd</th>
                       <th className="text-right px-4 py-3 font-medium">Custo unit.</th>
                       <th className="text-right px-4 py-3 font-medium">Preço sugerido</th>
-                      <th className="text-right px-4 py-3 font-medium">Markup</th>
+                      <th className="text-right px-4 py-3 font-medium">Lucro</th>
                       <th className="text-left px-4 py-3 font-medium">Status</th>
+                      <th className="px-2 py-3"></th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {aparelhos.map((a: any) => {
-                      const markup =
-                        a.preco_sugerido && Number(a.custo) > 0
-                          ? ((Number(a.preco_sugerido) - Number(a.custo)) / Number(a.custo)) * 100
-                          : 0;
-                      const diasParado = a.data_entrada
-                        ? Math.floor(
-                            (Date.now() - new Date(a.data_entrada).getTime()) / 86400000
-                          )
-                        : 0;
-                      const cat = getStatusCategoria(a.status, statusCatalogo);
-                      const baixo = cat === "em_estoque" && a.quantidade <= 2;
-                      const lento = cat === "em_estoque" && diasParado > 30;
-                      const imeiTail = a.imei_1 ? `· IMEI …${String(a.imei_1).slice(-4)}` : "";
-                      return (
-                        <tr
-                          key={a.id}
-                          onClick={() => setDetalheId(a.id)}
-                          className="border-b hover:bg-muted/40 transition-colors cursor-pointer"
-                        >
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-foreground">
-                              {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
-                            </p>
-                            <p className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
-                              <span>{a.fornecedor?.nome ?? "—"}</span>
-                              {imeiTail && <span className="font-mono">{imeiTail}</span>}
-                              {a.data_entrada && <span>· há {diasParado}d</span>}
-                              {baixo && (
-                                <span className="text-warning">· estoque baixo</span>
-                              )}
-                              {lento && (
-                                <span className="text-destructive">· giro lento</span>
-                              )}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <Badge
-                              variant="outline"
-                              className={
-                                baixo
-                                  ? "bg-warning/15 text-warning border-warning/30"
-                                  : ""
-                              }
-                            >
-                              {a.quantidade}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-right tabular-nums">
-                            {formatBRL(Number(a.custo))}
-                          </td>
-                          <td className="px-4 py-3 text-right tabular-nums">
-                            {a.preco_sugerido ? (
-                              formatBRL(Number(a.preco_sugerido))
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {markup > 0 ? (
-                              <span
-                                className={
-                                  markup >= 15 ? "text-success" : "text-warning"
-                                }
-                              >
-                                {markup.toFixed(1)}%
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <AtacadoStatusBadge
-                              status={a.status}
-                              catalogo={statusCatalogo}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+                  <tbody>{aparelhos.map((a: any) => renderLinha(a))}</tbody>
                 </table>
+              </div>
+            )}
+
+            {aparelhos.length > 0 && viewMode === "modelo" && (
+              <div className="border rounded-lg overflow-hidden bg-card divide-y">
+                {grupos.map((g) => {
+                  const open = expandidos.has(g.key);
+                  const [modelo, capacidade, cor] = g.key.split("|");
+                  return (
+                    <div key={g.key}>
+                      <button
+                        type="button"
+                        onClick={() => toggleGrupo(g.key)}
+                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ChevronRight
+                            className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
+                          />
+                          <div>
+                            <p className="font-medium text-foreground text-sm">
+                              {modelo} {capacidade} {cor}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {g.qtd} em estoque · custo médio {formatBRL(g.custoMedio)}
+                              {Number.isFinite(g.precoMin) &&
+                                ` · a partir de ${formatBRL(g.precoMin)}`}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="outline">{g.itens.length} unid.</Badge>
+                      </button>
+                      {open && (
+                        <table className="w-full text-sm bg-muted/10">
+                          <tbody>{g.itens.map((a: any) => renderLinha(a))}</tbody>
+                        </table>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -439,12 +631,9 @@ function KpiBox({
         danger ? "border-warning/30 bg-warning/5" : "bg-card"
       }`}
     >
-      <p className="text-xs text-muted-foreground flex items-center gap-1">
-        {danger && <AlertCircle className="h-3 w-3 text-warning" />}
-        {label}
-      </p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p
-        className={`text-lg font-bold mt-1 ${
+        className={`text-lg font-semibold tabular-nums ${
           danger ? "text-warning" : "text-foreground"
         }`}
       >
