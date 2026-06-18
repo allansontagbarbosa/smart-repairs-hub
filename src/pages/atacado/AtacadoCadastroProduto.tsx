@@ -545,8 +545,17 @@ export default function AtacadoCadastroProduto() {
       );
       return;
     }
-    toast.success(`${(data as any).aparelhos} aparelhos cadastrados`);
+    toast.success(`${(data as any).aparelhos} aparelho(s) cadastrado(s)`);
     await qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
+    if (opts.chain && modoDuplicar) {
+      // Limpa apenas os IMEIs (mantém custos/assistência/modelo) e refoca
+      setUnidades((prev) =>
+        prev.map((u) => ({ ...u, imei1: "", imei2: "" })),
+      );
+      setDuplicados({});
+      setFocusToken((t) => t + 1);
+      return;
+    }
     navigate("/atacado/aparelhos");
   };
 
