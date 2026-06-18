@@ -432,6 +432,22 @@ function EditarAparelhoDialog({
               onChange={(e) => setForm({ ...form, custo: e.target.value })}
             />
           </div>
+          <div>
+            <Label className="text-xs">Data da compra</Label>
+            <Input
+              type="date"
+              value={form.data_compra}
+              onChange={(e) => setForm({ ...form, data_compra: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Data de entrada em estoque</Label>
+            <Input
+              type="date"
+              value={form.data_entrada}
+              onChange={(e) => setForm({ ...form, data_entrada: e.target.value })}
+            />
+          </div>
           <div className="col-span-2">
             <Label className="text-xs">Observações</Label>
             <Textarea
