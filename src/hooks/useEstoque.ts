@@ -56,9 +56,10 @@ async function fetchMarcas() {
 }
 
 async function fetchModelos() {
-  const { data, error } = await supabase.from("modelos").select("*, marcas ( nome )").eq("ativo", true).order("nome");
+  const { data, error } = await supabase.from("modelos").select("*, marcas ( nome )").eq("ativo", true);
   if (error) throw error;
-  return data ?? [];
+  const { sortByNomeNatural } = await import("@/lib/naturalSort");
+  return sortByNomeNatural(data ?? []);
 }
 
 async function fetchConferencias() {
