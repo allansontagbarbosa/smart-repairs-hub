@@ -53,7 +53,7 @@ export default function AtacadoCatalogoPublico() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("atacado_catalogo_acessos")
-        .select(`*, cliente:atacado_clientes(razao_social, nome_fantasia)`);
+        .select(`id, cliente_id, email_login, ativo, ultimo_login, created_at, cliente:atacado_clientes(razao_social, nome_fantasia)`);
       if (error) throw error;
       return data ?? [];
     },
