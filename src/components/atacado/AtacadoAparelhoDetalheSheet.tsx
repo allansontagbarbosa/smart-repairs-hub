@@ -178,7 +178,7 @@ export function AtacadoAparelhoDetalheSheet({
     0,
   );
   const diasEstoque = daysBetween(aparelho?.data_entrada) ?? 0;
-  const diasCompra = daysBetween(invoice?.data_compra ?? aparelho?.data_entrada) ?? 0;
+  const diasCompra = daysBetween(aparelho?.data_compra ?? invoice?.data_compra ?? aparelho?.data_entrada) ?? 0;
   const custoTotal = Number(aparelho?.custo ?? 0);
   const custoBase = Math.max(0, custoTotal - totalAssistencia);
   const precoNum = Number(aparelho?.preco_sugerido ?? 0);
