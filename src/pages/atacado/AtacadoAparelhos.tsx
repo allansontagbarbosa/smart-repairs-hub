@@ -87,7 +87,7 @@ export default function AtacadoAparelhos() {
     return "em_estoque";
   };
 
-  const { data: aparelhosRaw = [], isLoading } = useQuery({
+  const { data: aparelhosRaw = [], isLoading, error: aparelhosError } = useQuery({
     queryKey: ["atacado-aparelhos", empresaId, busca],
     queryFn: async () => {
       let q = supabase
@@ -96,7 +96,8 @@ export default function AtacadoAparelhos() {
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null);
       if (busca) q = q.ilike("modelo", `%${busca.replace(/[%]/g, "")}%`);
-      const { data } = await q.order("data_entrada", { ascending: false });
+      const { data, error } = await q.order("data_entrada", { ascending: false });
+      if (error) throw error;
       return (data as any[]) ?? [];
     },
     enabled: !!empresaId,
