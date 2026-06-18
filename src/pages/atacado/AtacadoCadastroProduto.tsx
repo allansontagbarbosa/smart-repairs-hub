@@ -1142,13 +1142,25 @@ export default function AtacadoCadastroProduto() {
         </div>
       </Card>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-3 flex-wrap">
         <Button variant="outline" onClick={() => navigate("/atacado/aparelhos")}>
           Cancelar
         </Button>
-        <Button onClick={handleSalvar} disabled={salvando}>
+        {modoDuplicar && (
+          <Button
+            variant="outline"
+            onClick={() => handleSalvar({ chain: true })}
+            disabled={salvando}
+          >
+            {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
+            Salvar e duplicar de novo
+          </Button>
+        )}
+        <Button onClick={() => handleSalvar()} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-          Cadastrar {unidades.length} aparelho{unidades.length > 1 ? "s" : ""}
+          {modoDuplicar
+            ? "Salvar e fechar"
+            : `Cadastrar ${unidades.length} aparelho${unidades.length > 1 ? "s" : ""}`}
         </Button>
       </div>
 
