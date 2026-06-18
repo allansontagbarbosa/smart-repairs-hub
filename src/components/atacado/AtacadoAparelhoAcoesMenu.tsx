@@ -305,6 +305,7 @@ function EditarAparelhoDialog({
   const qc = useQueryClient();
   const perms = usePermissoesAtacado();
   const podeEditarCusto = perms.podeConfigurar; // custo só com permissão de configuração
+  const toDateInput = (v: any) => (v ? new Date(v).toISOString().slice(0, 10) : "");
   const [form, setForm] = useState({
     modelo: aparelho.modelo ?? "",
     capacidade: aparelho.capacidade ?? "",
@@ -314,6 +315,8 @@ function EditarAparelhoDialog({
     preco_sugerido: aparelho.preco_sugerido ?? "",
     custo: aparelho.custo ?? "",
     observacoes: aparelho.observacoes ?? "",
+    data_compra: toDateInput(aparelho.data_compra),
+    data_entrada: toDateInput(aparelho.data_entrada),
   });
 
   const salvar = useMutation({
@@ -326,6 +329,8 @@ function EditarAparelhoDialog({
         condicao: form.condicao,
         preco_sugerido: form.preco_sugerido ? Number(form.preco_sugerido) : null,
         observacoes: form.observacoes || null,
+        data_compra: form.data_compra ? new Date(form.data_compra + "T12:00:00").toISOString() : null,
+        data_entrada: form.data_entrada ? new Date(form.data_entrada + "T12:00:00").toISOString() : null,
       };
       if (podeEditarCusto) payload.custo = Number(form.custo);
       const { error } = await supabase
@@ -425,6 +430,22 @@ function EditarAparelhoDialog({
               value={form.custo}
               disabled={!podeEditarCusto}
               onChange={(e) => setForm({ ...form, custo: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Data da compra</Label>
+            <Input
+              type="date"
+              value={form.data_compra}
+              onChange={(e) => setForm({ ...form, data_compra: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Data de entrada em estoque</Label>
+            <Input
+              type="date"
+              value={form.data_entrada}
+              onChange={(e) => setForm({ ...form, data_entrada: e.target.value })}
             />
           </div>
           <div className="col-span-2">

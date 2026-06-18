@@ -178,7 +178,7 @@ export function AtacadoAparelhoDetalheSheet({
     0,
   );
   const diasEstoque = daysBetween(aparelho?.data_entrada) ?? 0;
-  const diasCompra = daysBetween(invoice?.data_compra ?? aparelho?.data_entrada) ?? 0;
+  const diasCompra = daysBetween(aparelho?.data_compra ?? invoice?.data_compra ?? aparelho?.data_entrada) ?? 0;
   const custoTotal = Number(aparelho?.custo ?? 0);
   const custoBase = Math.max(0, custoTotal - totalAssistencia);
   const precoNum = Number(aparelho?.preco_sugerido ?? 0);
@@ -332,13 +332,16 @@ export function AtacadoAparelhoDetalheSheet({
                 <Info
                   label="Data da compra"
                   value={
-                    invoice?.data_compra
+                    aparelho.data_compra
+                      ? new Date(aparelho.data_compra).toLocaleDateString("pt-BR")
+                      : invoice?.data_compra
                       ? new Date(invoice.data_compra).toLocaleDateString("pt-BR")
                       : aparelho.data_entrada
                       ? new Date(aparelho.data_entrada).toLocaleDateString("pt-BR")
                       : "—"
                   }
                 />
+
                 <Info
                   label="Entrada no estoque"
                   value={

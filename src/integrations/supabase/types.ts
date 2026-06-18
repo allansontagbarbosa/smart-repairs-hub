@@ -397,6 +397,7 @@ export type Database = {
           cor: string | null
           created_at: string | null
           custo: number
+          data_compra: string | null
           data_entrada: string | null
           deleted_at: string | null
           empresa_id: string
@@ -422,6 +423,7 @@ export type Database = {
           cor?: string | null
           created_at?: string | null
           custo: number
+          data_compra?: string | null
           data_entrada?: string | null
           deleted_at?: string | null
           empresa_id: string
@@ -447,6 +449,7 @@ export type Database = {
           cor?: string | null
           created_at?: string | null
           custo?: number
+          data_compra?: string | null
           data_entrada?: string | null
           deleted_at?: string | null
           empresa_id?: string

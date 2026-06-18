@@ -15,6 +15,8 @@ import {
   ArrowRight,
   Trophy,
   Wallet,
+  Package,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -74,6 +76,55 @@ export default function AtacadoDashboard() {
     },
     enabled: !!empresaId,
   });
+
+  // Estoque (independente de vendas)
+  const { data: estoqueAparelhos = [] } = useQuery({
+    queryKey: ["atacado-dashboard-estoque", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_aparelhos" as any)
+        .select("id, modelo, capacidade, custo, preco_sugerido, quantidade, status, data_entrada, data_compra")
+        .eq("empresa_id", empresaId!)
+        .is("deleted_at", null)
+        .gt("quantidade", 0);
+      return (data as any[]) ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const estoque = (() => {
+    const aps = estoqueAparelhos.filter((a: any) =>
+      ["estoque", "em_estoque", "disponivel", "STOQUE", "ESTOQUE", "DISPONIVEL"].some(
+        (s) => String(a.status ?? "").toLowerCase() === s.toLowerCase(),
+      ),
+    );
+    const unidades = aps.reduce((s, a: any) => s + Number(a.quantidade || 0), 0);
+    const custoTotal = aps.reduce((s, a: any) => s + Number(a.custo || 0) * Number(a.quantidade || 0), 0);
+    const vendaTotal = aps.reduce(
+      (s, a: any) => s + Number(a.preco_sugerido || a.custo || 0) * Number(a.quantidade || 0),
+      0,
+    );
+    const lucroPotencial = vendaTotal - custoTotal;
+    const agora = Date.now();
+    const diasOf = (a: any) =>
+      a.data_entrada ? Math.floor((agora - new Date(a.data_entrada).getTime()) / 86400000) : 0;
+    const lentos = aps.filter((a: any) => diasOf(a) > 60).length;
+    const idadeMedia = aps.length
+      ? Math.round(aps.reduce((s, a: any) => s + diasOf(a), 0) / aps.length)
+      : 0;
+
+    // Top modelos
+    const map = new Map<string, { modelo: string; qtd: number; venda: number }>();
+    for (const a of aps as any[]) {
+      const k = `${a.modelo}${a.capacidade ? " · " + a.capacidade : ""}`;
+      const cur = map.get(k) ?? { modelo: k, qtd: 0, venda: 0 };
+      cur.qtd += Number(a.quantidade || 0);
+      cur.venda += Number(a.preco_sugerido || a.custo || 0) * Number(a.quantidade || 0);
+      map.set(k, cur);
+    }
+    const topModelos = Array.from(map.values()).sort((a, b) => b.venda - a.venda).slice(0, 5);
+    return { unidades, custoTotal, vendaTotal, lucroPotencial, lentos, idadeMedia, topModelos };
+  })();
 
   const fat = Number(kpis?.faturamento ?? 0);
   const qtd = Number(kpis?.qtd_pedidos ?? 0);
@@ -174,6 +225,58 @@ export default function AtacadoDashboard() {
           danger={inadimplencia > 0}
           loading={kpisLoading}
         />
+      </div>
+
+      {/* Estoque (informação útil mesmo sem vendas) */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Estoque B2B
+          </h3>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/atacado/aparelhos">
+              Ver estoque <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Kpi label="Unidades em estoque" valor={String(estoque.unidades)} icon={<Package className="h-4 w-4" />} />
+          <Kpi label="Custo estocado" valor={formatBRL(estoque.custoTotal)} icon={<DollarSign className="h-4 w-4" />} />
+          <Kpi label="Valor de venda" valor={formatBRL(estoque.vendaTotal)} icon={<TrendingUp className="h-4 w-4" />} />
+          <Kpi
+            label="Lucro potencial"
+            valor={formatBRL(estoque.lucroPotencial)}
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="gap-1">
+            <Clock className="h-3 w-3" /> Idade média: {estoque.idadeMedia} dias
+          </Badge>
+          {estoque.lentos > 0 && (
+            <Badge variant="outline" className="text-warning border-warning/30">
+              {estoque.lentos} parado{estoque.lentos > 1 ? "s" : ""} há +60 dias
+            </Badge>
+          )}
+        </div>
+        {estoque.topModelos.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Top modelos em estoque
+            </p>
+            <ul className="divide-y divide-border">
+              {estoque.topModelos.map((m) => (
+                <li key={m.modelo} className="flex items-center justify-between py-2 text-sm">
+                  <span className="truncate">{m.modelo}</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {m.qtd} un · <strong className="text-foreground">{formatBRL(m.venda)}</strong>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Alertas operacionais */}
