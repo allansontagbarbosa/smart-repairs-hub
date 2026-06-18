@@ -16,6 +16,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
+import {
+  calcularStatusPagamento,
+  labelStatusPagamento,
+  classesStatusPagamento,
+} from "@/lib/atacadoPagamentoStatus";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
