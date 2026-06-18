@@ -32,9 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Trash2, Copy, Check, Printer } from "lucide-react";
+import { Loader2, Trash2, Copy, Check, Printer, Files } from "lucide-react";
 import { AtacadoStatusBadge } from "./AtacadoStatusBadge";
 import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   aparelhoId: string | null;
