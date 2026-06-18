@@ -456,7 +456,7 @@ export default function AtacadoCadastroProduto() {
     toast.success(`${lista.length} IMEI${lista.length === 1 ? "" : "s"} aplicado${lista.length === 1 ? "" : "s"}`);
   };
 
-  const handleSalvar = async () => {
+  const handleSalvar = async (opts: { chain?: boolean } = {}) => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
 
     // Bloco 2: marca nova não pode colidir com nome já existente como modelo
