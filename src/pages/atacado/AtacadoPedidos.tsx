@@ -330,6 +330,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function PagamentoBadge({ pagamentos }: { pagamentos: any[] | null | undefined }) {
+  const s = calcularStatusPagamento(pagamentos as any);
+  if (s === "sem_pagamentos") return null;
+  return (
+    <Badge variant="outline" className={classesStatusPagamento(s)}>
+      {labelStatusPagamento(s)}
+    </Badge>
+  );
+}
+
 function PedidoActions({ pedido, perms, mudarStatus }: any) {
   const acoes: {
     label: string;
