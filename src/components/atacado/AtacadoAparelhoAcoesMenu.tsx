@@ -329,6 +329,8 @@ function EditarAparelhoDialog({
         condicao: form.condicao,
         preco_sugerido: form.preco_sugerido ? Number(form.preco_sugerido) : null,
         observacoes: form.observacoes || null,
+        data_compra: form.data_compra ? new Date(form.data_compra + "T12:00:00").toISOString() : null,
+        data_entrada: form.data_entrada ? new Date(form.data_entrada + "T12:00:00").toISOString() : null,
       };
       if (podeEditarCusto) payload.custo = Number(form.custo);
       const { error } = await supabase
