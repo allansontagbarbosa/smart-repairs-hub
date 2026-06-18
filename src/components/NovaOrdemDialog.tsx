@@ -12,6 +12,7 @@ import { lookupCep, maskCep } from "@/lib/cep";
 import { formatCpfCnpj, onlyDigits, isValidCpfCnpj } from "@/lib/cpfCnpj";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sortByNomeNatural, sortCapacidades } from "@/lib/naturalSort";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScannableInput } from "@/components/ui/scannable-input";
@@ -350,24 +351,24 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const { data: modelosList = [] } = useQuery({
     queryKey: ["modelos"],
     queryFn: async () => {
-      const { data } = await supabase.from("modelos").select("id, nome, marca_id").eq("ativo", true).order("nome");
-      return data ?? [];
+      const { data } = await supabase.from("modelos").select("id, nome, marca_id").eq("ativo", true);
+      return sortByNomeNatural(data ?? []);
     },
   });
 
   const { data: coresList = [] } = useQuery({
     queryKey: ["cores"],
     queryFn: async () => {
-      const { data } = await supabase.from("cores").select("id, nome").eq("ativo", true).order("nome");
-      return data ?? [];
+      const { data } = await supabase.from("cores").select("id, nome").eq("ativo", true);
+      return sortByNomeNatural(data ?? []);
     },
   });
 
   const { data: capacidadesList = [] } = useQuery({
     queryKey: ["capacidades"],
     queryFn: async () => {
-      const { data } = await supabase.from("capacidades").select("id, nome, ordem").eq("ativo", true).order("ordem").order("nome");
-      return data ?? [];
+      const { data } = await supabase.from("capacidades").select("id, nome, ordem").eq("ativo", true);
+      return sortCapacidades(data ?? []);
     },
   });
 

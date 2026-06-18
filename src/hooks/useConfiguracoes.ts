@@ -155,24 +155,27 @@ export function useConfiguracoes() {
   const { data: modelos = [] } = useQuery({
     queryKey: ["modelos"],
     queryFn: async () => {
-      const { data } = await supabase.from("modelos").select("*, marcas(nome)").order("nome");
-      return data || [];
+      const { data } = await supabase.from("modelos").select("*, marcas(nome)");
+      const { sortByNomeNatural } = await import("@/lib/naturalSort");
+      return sortByNomeNatural(data || []);
     },
   });
 
   const { data: cores = [] } = useQuery({
     queryKey: ["cores"],
     queryFn: async () => {
-      const { data } = await supabase.from("cores").select("*").order("nome");
-      return data || [];
+      const { data } = await supabase.from("cores").select("*");
+      const { sortByNomeNatural } = await import("@/lib/naturalSort");
+      return sortByNomeNatural(data || []);
     },
   });
 
   const { data: capacidades = [] } = useQuery({
     queryKey: ["capacidades"],
     queryFn: async () => {
-      const { data } = await supabase.from("capacidades").select("*").order("ordem").order("nome");
-      return data || [];
+      const { data } = await supabase.from("capacidades").select("*");
+      const { sortCapacidades } = await import("@/lib/naturalSort");
+      return sortCapacidades(data || []);
     },
   });
 
