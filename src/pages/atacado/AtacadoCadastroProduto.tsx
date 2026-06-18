@@ -79,6 +79,9 @@ const isImei15 = (s: string) => /^\d{15}$/.test(s.trim());
 
 export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const duplicarId = searchParams.get("duplicar");
+  const modoDuplicar = !!duplicarId;
   const qc = useQueryClient();
   const { empresaId } = useEmpresa();
   const {
