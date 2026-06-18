@@ -341,8 +341,24 @@ export default function AtacadoNovoPedido() {
       toast({ title: "Adicione ao menos 1 item", variant: "destructive" });
       return;
     }
-    if (passo === 3 && pagamentos.length === 0) {
-      gerarPagamentos();
+    if (passo === 3) {
+      if (pagamentos.length === 0) {
+        gerarPagamentos();
+        return;
+      }
+      if (Math.abs(diferenca) > 0.01) {
+        toast({
+          title: "Soma das parcelas não bate com o total",
+          description: `Diferença de ${formatBRL(diferenca)}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const hojeISO = new Date().toISOString().slice(0, 10);
+      if (pagamentos.some((p) => p.vencimento && p.vencimento < hojeISO)) {
+        toast({ title: "Vencimento anterior à data do pedido", variant: "destructive" });
+        return;
+      }
     }
     setPasso(Math.min(4, passo + 1) as Passo);
   };
