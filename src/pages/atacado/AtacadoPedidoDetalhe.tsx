@@ -92,14 +92,6 @@ export default function AtacadoPedidoDetalhe() {
     onError: (e: any) =>
       toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
-    },
-    onError: (e: any) =>
-      toast({
-        title: "Erro",
-        description: e.message,
-        variant: "destructive",
-      }),
-  });
 
   if (isLoading) {
     return (
