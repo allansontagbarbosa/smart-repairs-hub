@@ -592,42 +592,71 @@ export default function AtacadoAparelhos() {
             )}
 
             {aparelhos.length > 0 && viewMode === "modelo" && (
-              <div className="border rounded-lg overflow-hidden bg-card divide-y">
-                {grupos.map((g) => {
-                  const open = expandidos.has(g.key);
-                  const [modelo, capacidade, cor] = g.key.split("|");
-                  return (
-                    <div key={g.key}>
-                      <button
-                        type="button"
-                        onClick={() => toggleGrupo(g.key)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ChevronRight
-                            className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
-                          />
-                          <div>
-                            <p className="font-medium text-foreground text-sm">
-                              {modelo} {capacidade} {cor}
+              <div className="space-y-3">
+                <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+                  Ordenar por:
+                  <Select
+                    value={grupoSort}
+                    onValueChange={(v) => setGrupoSort(v as "valor" | "qtd")}
+                  >
+                    <SelectTrigger className="h-8 w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="valor">Valor de venda</SelectItem>
+                      <SelectItem value="qtd">Quantidade em estoque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="border rounded-lg overflow-hidden bg-card divide-y">
+                  {grupos.map((g) => {
+                    const open = expandidos.has(g.key);
+                    const [modelo, capacidade, cor] = g.key.split("|");
+                    return (
+                      <div key={g.key}>
+                        <button
+                          type="button"
+                          onClick={() => toggleGrupo(g.key)}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ChevronRight
+                              className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
+                            />
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground text-sm truncate">
+                                {modelo} {capacidade} {cor}{" "}
+                                <span className="text-muted-foreground font-normal">
+                                  · {g.qtdEmEstoque} un em estoque
+                                </span>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                custo médio {formatBRL(g.custoMedio)}
+                                {g.ticketMedio > 0 &&
+                                  ` · ticket médio ${formatBRL(g.ticketMedio)}`}
+                                {Number.isFinite(g.precoMin) &&
+                                  ` · a partir de ${formatBRL(g.precoMin)}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-semibold text-success tabular-nums">
+                              {formatBRL(g.valorVendavel)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {g.qtd} em estoque · custo médio {formatBRL(g.custoMedio)}
-                              {Number.isFinite(g.precoMin) &&
-                                ` · a partir de ${formatBRL(g.precoMin)}`}
+                            <p className="text-[10px] text-muted-foreground">
+                              vendável · {g.itens.length} lote{g.itens.length > 1 ? "s" : ""}
                             </p>
                           </div>
-                        </div>
-                        <Badge variant="outline">{g.itens.length} unid.</Badge>
-                      </button>
-                      {open && (
-                        <table className="w-full text-sm bg-muted/10">
-                          <tbody>{g.itens.map((a: any) => renderLinha(a))}</tbody>
-                        </table>
-                      )}
-                    </div>
-                  );
-                })}
+                        </button>
+                        {open && (
+                          <table className="w-full text-sm bg-muted/10">
+                            <tbody>{g.itens.map((a: any) => renderLinha(a))}</tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
