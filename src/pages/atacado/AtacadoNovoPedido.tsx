@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -60,6 +60,8 @@ export default function AtacadoNovoPedido() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const aparelhoPreselectId = searchParams.get("aparelho");
 
   const [passo, setPasso] = useState<Passo>(1);
   const [clienteId, setClienteId] = useState("");
@@ -72,6 +74,7 @@ export default function AtacadoNovoPedido() {
   const [desconto, setDesconto] = useState("0");
   const [observacoes, setObservacoes] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const preselectAppliedRef = useRef(false);
 
   // Clientes
   const { data: clientes = [] } = useQuery({
@@ -155,8 +158,8 @@ export default function AtacadoNovoPedido() {
       atualizarQtd(aparelho.id, existente.quantidade + 1);
       return;
     }
-    setCarrinho([
-      ...carrinho,
+    setCarrinho((cur) => [
+      ...cur,
       {
         aparelho_id: aparelho.id,
         modelo: aparelho.modelo,
@@ -168,6 +171,29 @@ export default function AtacadoNovoPedido() {
       },
     ]);
   };
+
+  // Pré-seleciona o aparelho vindo de "Vender / dar baixa" no Estoque (uma vez)
+  useEffect(() => {
+    if (!empresaId || !aparelhoPreselectId || preselectAppliedRef.current) return;
+    preselectAppliedRef.current = true;
+    (async () => {
+      const { data } = await supabase
+        .from("atacado_aparelhos" as any)
+        .select("*")
+        .eq("id", aparelhoPreselectId)
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+      if (data) {
+        adicionarItem({
+          ...(data as any),
+          preco_tabela: (data as any).preco_sugerido,
+        });
+        toast({ title: "Aparelho adicionado ao pedido" });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId, aparelhoPreselectId]);
+
 
   const atualizarQtd = (aparelhoId: string, novaQtd: number) => {
     setCarrinho(

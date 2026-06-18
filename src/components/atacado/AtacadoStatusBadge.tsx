@@ -28,6 +28,22 @@ const CLASSES: Record<string, string> = {
   outro: "bg-muted/50 text-foreground border-border",
 };
 
+const LABELS: Record<string, string> = {
+  em_estoque: "Em estoque",
+  reservado: "Reservado",
+  vendido: "Vendido",
+  em_transito: "Em trânsito",
+};
+
+export function statusLabel(
+  status: string | null | undefined,
+  catalogo: StatusCatalogoRow[],
+): string {
+  if (!status) return "—";
+  const cat = getStatusCategoria(status, catalogo);
+  return LABELS[cat] ?? status;
+}
+
 export function AtacadoStatusBadge({
   status,
   catalogo,
@@ -39,7 +55,7 @@ export function AtacadoStatusBadge({
   const cls = CLASSES[cat] ?? CLASSES.outro;
   return (
     <Badge variant="outline" className={cls}>
-      {status ?? "—"}
+      {statusLabel(status, catalogo)}
     </Badge>
   );
 }
