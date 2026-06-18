@@ -35,6 +35,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
 import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
+import {
+  calcularStatusPagamento,
+  labelStatusPagamento,
+  classesStatusPagamento,
+} from "@/lib/atacadoPagamentoStatus";
 
 export default function AtacadoPedidos() {
   const { empresaId } = useEmpresa();
@@ -69,7 +74,7 @@ export default function AtacadoPedidos() {
       let q = supabase
         .from("atacado_pedidos")
         .select(
-          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios(nome)`
+          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios(nome), pagamentos:atacado_pedidos_pagamentos(status, vencimento)`
         )
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null)
@@ -253,7 +258,10 @@ export default function AtacadoPedidos() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={p.status} />
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge status={p.status} />
+                      <PagamentoBadge pagamentos={p.pagamentos} />
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(p.created_at).toLocaleDateString("pt-BR")}
@@ -318,6 +326,16 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <Badge variant="outline" className={m.cls}>
       {m.label}
+    </Badge>
+  );
+}
+
+function PagamentoBadge({ pagamentos }: { pagamentos: any[] | null | undefined }) {
+  const s = calcularStatusPagamento(pagamentos as any);
+  if (s === "sem_pagamentos") return null;
+  return (
+    <Badge variant="outline" className={classesStatusPagamento(s)}>
+      {labelStatusPagamento(s)}
     </Badge>
   );
 }

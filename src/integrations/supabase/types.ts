@@ -9769,6 +9769,10 @@ export type Database = {
           valor_imobilizado: number
         }[]
       }
+      atacado_marcar_pagamento_pago: {
+        Args: { p_forma_recebido?: string; p_pagamento_id: string }
+        Returns: undefined
+      }
       atacado_mudar_status_pedido: {
         Args: {
           p_motivo?: string

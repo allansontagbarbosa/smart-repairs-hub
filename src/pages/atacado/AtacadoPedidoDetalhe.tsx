@@ -16,6 +16,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
+import {
+  calcularStatusPagamento,
+  labelStatusPagamento,
+  classesStatusPagamento,
+} from "@/lib/atacadoPagamentoStatus";
 
 const STATUS_LABEL: Record<string, string> = {
   rascunho: "Rascunho",
@@ -69,11 +74,23 @@ export default function AtacadoPedidoDetalhe() {
       toast({ title: "✓ Status atualizado" });
     },
     onError: (e: any) =>
-      toast({
-        title: "Erro",
-        description: e.message,
-        variant: "destructive",
-      }),
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const marcarPago = useMutation({
+    mutationFn: async (pagamentoId: string) => {
+      const { error } = await supabase.rpc("atacado_marcar_pagamento_pago" as any, {
+        p_pagamento_id: pagamentoId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["atacado-pedido-detalhe", id] });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      toast({ title: "✓ Pagamento recebido" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   if (isLoading) {
@@ -113,6 +130,15 @@ export default function AtacadoPedidoDetalhe() {
             <Badge variant="outline">
               {STATUS_LABEL[p.status] ?? p.status}
             </Badge>
+            {(() => {
+              const sp = calcularStatusPagamento(p.pagamentos as any);
+              if (sp === "sem_pagamentos") return null;
+              return (
+                <Badge variant="outline" className={classesStatusPagamento(sp)}>
+                  {labelStatusPagamento(sp)}
+                </Badge>
+              );
+            })()}
             {p.nfe_numero && (
               <>
                 <span>·</span>
@@ -263,13 +289,26 @@ export default function AtacadoPedidoDetalhe() {
                       : "—"}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right space-y-1">
                   <div className="font-medium">
                     {formatBRL(Number(pg.valor))}
                   </div>
-                  <Badge variant="outline" className="mt-1">
+                  <Badge variant="outline">
                     {pg.status}
+                    {pg.pago_em ? ` · ${new Date(pg.pago_em).toLocaleDateString("pt-BR")}` : ""}
                   </Badge>
+                  {pg.status !== "pago" && pg.status !== "cancelado" && (
+                    <div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={marcarPago.isPending}
+                        onClick={() => marcarPago.mutate(pg.id)}
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar recebido
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))
