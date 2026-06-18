@@ -12,6 +12,7 @@ import { lookupCep, maskCep } from "@/lib/cep";
 import { formatCpfCnpj, onlyDigits, isValidCpfCnpj } from "@/lib/cpfCnpj";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { sortByNomeNatural, sortCapacidades } from "@/lib/naturalSort";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScannableInput } from "@/components/ui/scannable-input";
