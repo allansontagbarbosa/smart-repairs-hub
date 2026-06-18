@@ -204,6 +204,20 @@ export default function AtacadoAparelhos() {
     (s: number, a: any) => s + a.quantidade * Number(a.custo),
     0,
   );
+  // Valor de venda (somente itens em estoque)
+  const aparelhosEmEstoque = aparelhos.filter(
+    (a: any) => getStatusCategoria(a.status, statusCatalogo) === "em_estoque",
+  );
+  const valorVenda = aparelhosEmEstoque.reduce(
+    (s: number, a: any) =>
+      s + (Number(a.preco_sugerido ?? 0) || 0) * (a.quantidade || 0),
+    0,
+  );
+  const custoEmEstoque = aparelhosEmEstoque.reduce(
+    (s: number, a: any) => s + Number(a.custo) * (a.quantidade || 0),
+    0,
+  );
+  const lucroPotencial = Math.max(0, valorVenda - custoEmEstoque);
   const lotesBaixoEstoque = aparelhos.filter(
     (a: any) =>
       getStatusCategoria(a.status, statusCatalogo) === "em_estoque" &&
@@ -218,7 +232,7 @@ export default function AtacadoAparelhos() {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(a);
     }
-    return Array.from(map.entries()).map(([key, itens]) => {
+    const lista = Array.from(map.entries()).map(([key, itens]) => {
       const qtd = itens.reduce((s, i) => s + (i.quantidade || 0), 0);
       const custoMedio =
         itens.reduce((s, i) => s + Number(i.custo) * i.quantidade, 0) /
@@ -229,9 +243,43 @@ export default function AtacadoAparelhos() {
           (m, i) => Math.min(m, Number(i.preco_sugerido)),
           Number.POSITIVE_INFINITY,
         );
-      return { key, itens, qtd, custoMedio, precoMin };
+      const emEstoque = itens.filter(
+        (i) => getStatusCategoria(i.status, statusCatalogo) === "em_estoque",
+      );
+      const qtdEmEstoque = emEstoque.reduce(
+        (s, i) => s + (i.quantidade || 0),
+        0,
+      );
+      const valorVendavel = emEstoque.reduce(
+        (s, i) =>
+          s + (Number(i.preco_sugerido ?? 0) || 0) * (i.quantidade || 0),
+        0,
+      );
+      const custoTotalGrupo = itens.reduce(
+        (s, i) => s + Number(i.custo) * (i.quantidade || 0),
+        0,
+      );
+      const ticketMedio =
+        qtdEmEstoque > 0 ? valorVendavel / qtdEmEstoque : 0;
+      return {
+        key,
+        itens,
+        qtd,
+        qtdEmEstoque,
+        custoMedio,
+        precoMin,
+        valorVendavel,
+        custoTotalGrupo,
+        ticketMedio,
+      };
     });
-  }, [aparelhos]);
+    lista.sort((a, b) =>
+      grupoSort === "valor"
+        ? b.valorVendavel - a.valorVendavel
+        : b.qtdEmEstoque - a.qtdEmEstoque,
+    );
+    return lista;
+  }, [aparelhos, statusCatalogo, grupoSort]);
 
   const toggleGrupo = (key: string) => {
     setExpandidos((prev) => {
