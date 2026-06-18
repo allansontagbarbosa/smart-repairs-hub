@@ -66,6 +66,7 @@ export default function AtacadoAparelhos() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("unidade");
+  const [grupoSort, setGrupoSort] = useState<"valor" | "qtd">("valor");
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
 
   const { data: empresa } = useQuery({
