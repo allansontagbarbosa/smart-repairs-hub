@@ -1188,9 +1188,9 @@ export default function AtacadoCadastroProduto() {
               positive={lucroTotal >= 0}
             />
           </div>
-          <Button onClick={handleSalvar} disabled={salvando} size="sm">
+          <Button onClick={() => handleSalvar()} disabled={salvando} size="sm">
             {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cadastrar {unidades.length}
+            {modoDuplicar ? "Salvar" : `Cadastrar ${unidades.length}`}
           </Button>
         </div>
       </div>
