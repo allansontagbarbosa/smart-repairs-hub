@@ -77,6 +77,55 @@ export default function AtacadoDashboard() {
     enabled: !!empresaId,
   });
 
+  // Estoque (independente de vendas)
+  const { data: estoqueAparelhos = [] } = useQuery({
+    queryKey: ["atacado-dashboard-estoque", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_aparelhos" as any)
+        .select("id, modelo, capacidade, custo, preco_sugerido, quantidade, status, data_entrada, data_compra")
+        .eq("empresa_id", empresaId!)
+        .is("deleted_at", null)
+        .gt("quantidade", 0);
+      return (data as any[]) ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const estoque = (() => {
+    const aps = estoqueAparelhos.filter((a: any) =>
+      ["estoque", "em_estoque", "disponivel", "STOQUE", "ESTOQUE", "DISPONIVEL"].some(
+        (s) => String(a.status ?? "").toLowerCase() === s.toLowerCase(),
+      ),
+    );
+    const unidades = aps.reduce((s, a: any) => s + Number(a.quantidade || 0), 0);
+    const custoTotal = aps.reduce((s, a: any) => s + Number(a.custo || 0) * Number(a.quantidade || 0), 0);
+    const vendaTotal = aps.reduce(
+      (s, a: any) => s + Number(a.preco_sugerido || a.custo || 0) * Number(a.quantidade || 0),
+      0,
+    );
+    const lucroPotencial = vendaTotal - custoTotal;
+    const agora = Date.now();
+    const diasOf = (a: any) =>
+      a.data_entrada ? Math.floor((agora - new Date(a.data_entrada).getTime()) / 86400000) : 0;
+    const lentos = aps.filter((a: any) => diasOf(a) > 60).length;
+    const idadeMedia = aps.length
+      ? Math.round(aps.reduce((s, a: any) => s + diasOf(a), 0) / aps.length)
+      : 0;
+
+    // Top modelos
+    const map = new Map<string, { modelo: string; qtd: number; venda: number }>();
+    for (const a of aps as any[]) {
+      const k = `${a.modelo}${a.capacidade ? " · " + a.capacidade : ""}`;
+      const cur = map.get(k) ?? { modelo: k, qtd: 0, venda: 0 };
+      cur.qtd += Number(a.quantidade || 0);
+      cur.venda += Number(a.preco_sugerido || a.custo || 0) * Number(a.quantidade || 0);
+      map.set(k, cur);
+    }
+    const topModelos = Array.from(map.values()).sort((a, b) => b.venda - a.venda).slice(0, 5);
+    return { unidades, custoTotal, vendaTotal, lucroPotencial, lentos, idadeMedia, topModelos };
+  })();
+
   const fat = Number(kpis?.faturamento ?? 0);
   const qtd = Number(kpis?.qtd_pedidos ?? 0);
   const ticket = Number(kpis?.ticket_medio ?? 0);
