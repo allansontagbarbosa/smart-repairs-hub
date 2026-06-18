@@ -111,14 +111,32 @@ export default function AtacadoNovoPedido() {
       clienteSelecionado?.tabela_preco_id,
     ],
     queryFn: async () => {
+      // Robusto: pega TODOS os nomes de status da categoria "em_estoque" da empresa
+      const { data: statusRows } = await supabase
+        .from("atacado_status_aparelho" as any)
+        .select("nome,categoria")
+        .eq("empresa_id", empresaId!)
+        .eq("categoria", "em_estoque");
+      const nomesEstoque = Array.from(
+        new Set([
+          "estoque",
+          ...(((statusRows as any[]) ?? []).map((s) => s.nome).filter(Boolean)),
+        ]),
+      );
+
       let q = supabase
         .from("atacado_aparelhos" as any)
         .select("*")
         .eq("empresa_id", empresaId!)
-        .eq("status", "estoque")
+        .in("status", nomesEstoque)
         .gt("quantidade", 0)
         .is("deleted_at", null);
-      if (buscaItem) q = q.ilike("modelo", `%${buscaItem}%`);
+      if (buscaItem) {
+        const termo = buscaItem.trim();
+        q = q.or(
+          `modelo.ilike.%${termo}%,imei_1.ilike.%${termo}%,imei_2.ilike.%${termo}%`,
+        );
+      }
       const { data: aps } = await q.order("modelo");
 
       if (!clienteSelecionado?.tabela_preco_id) return (aps ?? []) as any[];
