@@ -57,6 +57,7 @@ import {
   ArrowLeftRight,
   PackageMinus,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
 import { garantirStatusCategoria } from "@/lib/atacadoStatus";
