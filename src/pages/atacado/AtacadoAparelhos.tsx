@@ -761,7 +761,3 @@ function CopyImei({ value }: { value: string }) {
     </button>
   );
 }
-      </p>
-    </div>
-  );
-}
