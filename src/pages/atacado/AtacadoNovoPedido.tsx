@@ -235,51 +235,100 @@ export default function AtacadoNovoPedido() {
   const descontoNum = parseFloat(desconto.replace(",", ".")) || 0;
   const total = Math.max(0, subtotal - descontoNum);
 
-  const gerarPagamentos = () => {
+  const gerarPagamentos = (cond?: string) => {
+    const c = cond ?? condicaoPagamento;
     const hoje = new Date();
     const iso = (d: Date) => d.toISOString().slice(0, 10);
-    if (condicaoPagamento === "à vista") {
+    const addDias = (n: number) => {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() + n);
+      return iso(d);
+    };
+    if (c === "à vista") {
+      setPagamentos([{ forma: "pix", valor: total, vencimento: iso(hoje), parcela: 1, total_parcelas: 1 }]);
+    } else if (c === "30 dias") {
+      setPagamentos([{ forma: "boleto", valor: total, vencimento: addDias(30), parcela: 1, total_parcelas: 1 }]);
+    } else if (c === "30/60") {
+      const meio = +(total / 2).toFixed(2);
       setPagamentos([
-        { forma: "pix", valor: total, vencimento: iso(hoje), parcela: 1, total_parcelas: 1 },
+        { forma: "boleto", valor: meio, vencimento: addDias(30), parcela: 1, total_parcelas: 2 },
+        { forma: "boleto", valor: +(total - meio).toFixed(2), vencimento: addDias(60), parcela: 2, total_parcelas: 2 },
       ]);
-    } else if (condicaoPagamento === "30 dias") {
-      const v = new Date(hoje);
-      v.setDate(v.getDate() + 30);
+    } else if (c === "30/60/90") {
+      const terco = +(total / 3).toFixed(2);
       setPagamentos([
-        { forma: "boleto", valor: total, vencimento: iso(v), parcela: 1, total_parcelas: 1 },
+        { forma: "boleto", valor: terco, vencimento: addDias(30), parcela: 1, total_parcelas: 3 },
+        { forma: "boleto", valor: terco, vencimento: addDias(60), parcela: 2, total_parcelas: 3 },
+        { forma: "boleto", valor: +(total - terco * 2).toFixed(2), vencimento: addDias(90), parcela: 3, total_parcelas: 3 },
       ]);
-    } else if (condicaoPagamento === "30/60") {
-      const meio = total / 2;
-      setPagamentos(
-        [1, 2].map((i) => {
-          const v = new Date(hoje);
-          v.setDate(v.getDate() + 30 * i);
-          return {
-            forma: "boleto",
-            valor: meio,
-            vencimento: iso(v),
-            parcela: i,
-            total_parcelas: 2,
-          };
-        }),
-      );
-    } else if (condicaoPagamento === "30/60/90") {
-      const terco = total / 3;
-      setPagamentos(
-        [1, 2, 3].map((i) => {
-          const v = new Date(hoje);
-          v.setDate(v.getDate() + 30 * i);
-          return {
-            forma: "boleto",
-            valor: terco,
-            vencimento: iso(v),
-            parcela: i,
-            total_parcelas: 3,
-          };
-        }),
-      );
+    } else if (c === "2x") {
+      const meio = +(total / 2).toFixed(2);
+      setPagamentos([
+        { forma: "boleto", valor: meio, vencimento: iso(hoje), parcela: 1, total_parcelas: 2 },
+        { forma: "boleto", valor: +(total - meio).toFixed(2), vencimento: addDias(30), parcela: 2, total_parcelas: 2 },
+      ]);
+    } else if (c === "3x") {
+      const terco = +(total / 3).toFixed(2);
+      setPagamentos([
+        { forma: "boleto", valor: terco, vencimento: iso(hoje), parcela: 1, total_parcelas: 3 },
+        { forma: "boleto", valor: terco, vencimento: addDias(30), parcela: 2, total_parcelas: 3 },
+        { forma: "boleto", valor: +(total - terco * 2).toFixed(2), vencimento: addDias(60), parcela: 3, total_parcelas: 3 },
+      ]);
+    } else if (c === "customizar") {
+      // não regenera — usa o builder
+      if (pagamentos.length === 0) {
+        setPagamentos([{ forma: "boleto", valor: total, vencimento: addDias(30), parcela: 1, total_parcelas: 1 }]);
+      }
     }
   };
+
+  const gerarCustomizado = (n: number, entrada: number) => {
+    const hoje = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const addDias = (k: number) => {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() + k);
+      return iso(d);
+    };
+    const entradaVal = Math.max(0, Math.min(entrada, total));
+    const restante = +(total - entradaVal).toFixed(2);
+    const parcelas: Pagamento[] = [];
+    const totalParc = entradaVal > 0 ? n + 1 : n;
+    let idx = 1;
+    if (entradaVal > 0) {
+      parcelas.push({ forma: "pix", valor: entradaVal, vencimento: iso(hoje), parcela: idx++, total_parcelas: totalParc });
+    }
+    if (n > 0 && restante > 0) {
+      const cota = +(restante / n).toFixed(2);
+      let acc = 0;
+      for (let i = 1; i <= n; i++) {
+        const v = i === n ? +(restante - acc).toFixed(2) : cota;
+        acc += cota;
+        parcelas.push({ forma: "boleto", valor: v, vencimento: addDias(30 * i), parcela: idx++, total_parcelas: totalParc });
+      }
+    }
+    setPagamentos(parcelas);
+  };
+
+  const atualizarPagamento = (idx: number, patch: Partial<Pagamento>) => {
+    setPagamentos((cur) => cur.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+  const removerPagamento = (idx: number) => {
+    setPagamentos((cur) =>
+      cur
+        .filter((_, i) => i !== idx)
+        .map((p, i, arr) => ({ ...p, parcela: i + 1, total_parcelas: arr.length })),
+    );
+  };
+  const adicionarPagamento = () => {
+    setPagamentos((cur) => {
+      const next = [...cur, { forma: "boleto", valor: 0, vencimento: new Date().toISOString().slice(0, 10), parcela: cur.length + 1, total_parcelas: cur.length + 1 }];
+      return next.map((p, i, arr) => ({ ...p, parcela: i + 1, total_parcelas: arr.length }));
+    });
+  };
+
+  const somaPagamentos = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
+  const diferenca = +(total - somaPagamentos).toFixed(2);
 
   const handleProximo = () => {
     if (passo === 1 && !clienteId) {
