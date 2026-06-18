@@ -206,6 +206,123 @@ export default function AtacadoCadastroProduto() {
     setCor("");
   }, [modelo]);
 
+  // Carrega aparelho de origem para duplicar (?duplicar=<id>)
+  useEffect(() => {
+    if (!duplicarId || !empresaId) return;
+    let cancel = false;
+    (async () => {
+      const { data: ap, error } = await supabase
+        .from("atacado_aparelhos" as any)
+        .select("*, fornecedor:fornecedores(nome)")
+        .eq("id", duplicarId)
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+      if (cancel || error || !ap) {
+        if (!cancel && error) toast.error("Não foi possível carregar o aparelho de origem");
+        return;
+      }
+      const aparelho = ap as any;
+
+      const [{ data: assists }, invRes] = await Promise.all([
+        supabase
+          .from("atacado_aparelho_assistencias" as any)
+          .select("tipo_nome, valor")
+          .eq("aparelho_id", duplicarId)
+          .eq("empresa_id", empresaId),
+        aparelho.invoice_id
+          ? supabase
+              .from("atacado_invoices" as any)
+              .select("*")
+              .eq("id", aparelho.invoice_id)
+              .eq("empresa_id", empresaId)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+      if (cancel) return;
+      const invoice = (invRes as any)?.data ?? null;
+
+      let invoiceCustos: any[] = [];
+      if (invoice?.id) {
+        const { data: ic } = await supabase
+          .from("atacado_invoice_custos" as any)
+          .select("tipo, descricao, modo, valor, moeda")
+          .eq("invoice_id", invoice.id)
+          .eq("empresa_id", empresaId);
+        if (cancel) return;
+        invoiceCustos = (ic as any[]) ?? [];
+      }
+
+      hydratingRef.current = true;
+
+      if (invoice) {
+        setImportado(!!invoice.importado);
+        setFornecedor(invoice.fornecedor ?? "");
+        setNumero(invoice.numero ?? "");
+        setDataCompra(invoice.data_compra ?? "");
+        setPaisOrigem(invoice.pais_origem ?? "");
+        setMoeda(invoice.moeda || "BRL");
+        setCotacao(invoice.cotacao != null ? String(invoice.cotacao) : "");
+      }
+
+      setMarca(aparelho.marca ?? "");
+      setModelo(aparelho.modelo ?? "");
+      setCapacidade(aparelho.capacidade ?? "");
+      setCor(aparelho.cor ?? "");
+      setGrade(aparelho.grade ?? "");
+      setCondicao(aparelho.condicao ?? "novo");
+      setStatus("estoque");
+      setCustoProduto(aparelho.custo != null ? String(aparelho.custo) : "");
+      setPrecoVenda(
+        aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
+      );
+      setCustos(
+        invoiceCustos.map((c) => ({
+          tipo: (c.tipo as CustoTipo) ?? "outro",
+          descricao: c.descricao ?? "",
+          modo: (c.modo as CustoModo) ?? "fixo",
+          valor: c.valor != null ? String(c.valor) : "",
+          moeda: c.moeda || "BRL",
+        })),
+      );
+      setQuantidade(1);
+      setUnidades([
+        {
+          imei1: "",
+          imei2: "",
+          assistencias: ((assists as any[]) ?? []).map((a) => ({
+            nome: a.tipo_nome,
+            valor: Number(a.valor) || 0,
+          })),
+        },
+      ]);
+      setDuplicarOrigem(
+        [aparelho.marca, aparelho.modelo, aparelho.capacidade, aparelho.cor]
+          .filter(Boolean)
+          .join(" "),
+      );
+
+      // libera os resets em cascata na próxima volta
+      setTimeout(() => {
+        hydratingRef.current = false;
+        setFocusToken((t) => t + 1);
+      }, 0);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [duplicarId, empresaId]);
+
+  // Foco automático no campo IMEI 1 quando o duplicar termina de hidratar
+  useEffect(() => {
+    if (!modoDuplicar) return;
+    const el = imeiInputRef.current;
+    if (el) {
+      el.focus();
+      el.select?.();
+    }
+  }, [focusToken, modoDuplicar]);
+
+
   // Ajusta lista de unidades quando quantidade muda
   useEffect(() => {
     setUnidades((prev) => {
