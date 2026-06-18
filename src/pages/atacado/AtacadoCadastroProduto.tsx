@@ -960,20 +960,26 @@ export default function AtacadoCadastroProduto() {
       {/* Unidades */}
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-base font-semibold text-foreground">Aparelhos do lote</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {modoDuplicar ? "Aparelho duplicado" : "Aparelhos do lote"}
+          </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <Label className="text-xs">Quantidade</Label>
-            <Input
-              type="number"
-              min={1}
-              max={500}
-              value={quantidade}
-              onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 1))}
-              className="w-24"
-            />
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowColar(true)}>
-              <ClipboardPaste className="h-4 w-4" /> Colar lista de IMEIs
-            </Button>
+            {!modoDuplicar && (
+              <>
+                <Label className="text-xs">Quantidade</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-24"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowColar(true)}>
+                  <ClipboardPaste className="h-4 w-4" /> Colar lista de IMEIs
+                </Button>
+              </>
+            )}
             <Dialog open={showGerAssist} onOpenChange={setShowGerAssist}>
               <DialogTrigger asChild>
                 <Button type="button" variant="outline" size="sm">
