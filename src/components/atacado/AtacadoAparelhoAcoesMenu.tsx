@@ -170,6 +170,16 @@ export function AtacadoAparelhoAcoesMenu({
             </DropdownMenuItem>
           )}
 
+          {perms.podeEditarEstoque && (
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(`/atacado/aparelhos/novo?duplicar=${aparelho.id}`)
+              }
+            >
+              <Copy className="h-4 w-4 mr-2" /> Duplicar
+            </DropdownMenuItem>
+          )}
+
           {perms.podeEditarEstoque && statusCatalogo.length > 0 && (
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
