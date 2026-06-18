@@ -71,6 +71,8 @@ export default function AtacadoNovoPedido() {
   const [buscaItem, setBuscaItem] = useState("");
   const [condicaoPagamento, setCondicaoPagamento] = useState("30 dias");
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [customNumParcelas, setCustomNumParcelas] = useState(2);
+  const [customEntrada, setCustomEntrada] = useState(0);
   const [desconto, setDesconto] = useState("0");
   const [observacoes, setObservacoes] = useState("");
   const [salvando, setSalvando] = useState(false);
