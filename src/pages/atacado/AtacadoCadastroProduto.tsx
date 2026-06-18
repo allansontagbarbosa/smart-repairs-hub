@@ -1020,6 +1020,7 @@ export default function AtacadoCadastroProduto() {
                   <div className="space-y-1">
                     <Label className="text-xs">IMEI 1 *</Label>
                     <ScannableInput
+                      ref={i === 0 ? imeiInputRef : undefined}
                       value={u.imei1}
                       onChange={(e) => updUnidade(i, { imei1: e.target.value })}
                       onBlur={(e) => checkDuplicado(e.target.value.trim())}
