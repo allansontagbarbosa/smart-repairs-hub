@@ -130,6 +130,15 @@ export default function AtacadoPedidoDetalhe() {
             <Badge variant="outline">
               {STATUS_LABEL[p.status] ?? p.status}
             </Badge>
+            {(() => {
+              const sp = calcularStatusPagamento(p.pagamentos as any);
+              if (sp === "sem_pagamentos") return null;
+              return (
+                <Badge variant="outline" className={classesStatusPagamento(sp)}>
+                  {labelStatusPagamento(sp)}
+                </Badge>
+              );
+            })()}
             {p.nfe_numero && (
               <>
                 <span>·</span>
