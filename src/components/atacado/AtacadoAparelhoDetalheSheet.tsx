@@ -440,6 +440,19 @@ export function AtacadoAparelhoDetalheSheet({
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/atacado/aparelhos/novo?duplicar=${aparelho.id}`);
+                      }}
+                    >
+                      <Files className="h-4 w-4" /> Duplicar
+                    </Button>
+                  )}
+
+                  {perms.podeEditarEstoque && (
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() => setConfirmDelete(true)}
                     >
