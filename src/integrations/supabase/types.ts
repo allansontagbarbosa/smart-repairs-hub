@@ -475,6 +475,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "atacado_aparelhos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "atacado_aparelhos_loja_aparelho_id_fkey"
             columns: ["loja_aparelho_id"]
             isOneToOne: false

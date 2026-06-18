@@ -87,7 +87,7 @@ export default function AtacadoAparelhos() {
     return "em_estoque";
   };
 
-  const { data: aparelhosRaw = [], isLoading } = useQuery({
+  const { data: aparelhosRaw = [], isLoading, error: aparelhosError } = useQuery({
     queryKey: ["atacado-aparelhos", empresaId, busca],
     queryFn: async () => {
       let q = supabase
@@ -96,7 +96,8 @@ export default function AtacadoAparelhos() {
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null);
       if (busca) q = q.ilike("modelo", `%${busca.replace(/[%]/g, "")}%`);
-      const { data } = await q.order("data_entrada", { ascending: false });
+      const { data, error } = await q.order("data_entrada", { ascending: false });
+      if (error) throw error;
       return (data as any[]) ?? [];
     },
     enabled: !!empresaId,
@@ -223,6 +224,12 @@ export default function AtacadoAparelhos() {
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : aparelhosError ? (
+        <div className="border border-destructive/30 bg-destructive/5 rounded-lg p-6 text-center space-y-2">
+          <AlertCircle className="h-6 w-6 text-destructive mx-auto" />
+          <p className="text-sm font-medium text-destructive">Erro ao carregar aparelhos</p>
+          <p className="text-xs text-muted-foreground">{(aparelhosError as any)?.message ?? "Tente novamente."}</p>
         </div>
       ) : totalLotes === 0 && aparelhosLoja.length === 0 ? (
         <AtacadoEmptyState
