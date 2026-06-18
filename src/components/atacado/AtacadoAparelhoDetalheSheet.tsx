@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,13 +32,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Copy, Check, Printer } from "lucide-react";
 import { AtacadoStatusBadge } from "./AtacadoStatusBadge";
+import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
 
 interface Props {
   aparelhoId: string | null;
   onOpenChange: (v: boolean) => void;
   statusCatalogo: Array<{ nome: string; categoria: string | null }>;
+}
+
+function CopyBtn({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  if (!value) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="text-muted-foreground hover:text-foreground transition-colors"
+      aria-label="Copiar"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
 }
 
 export function AtacadoAparelhoDetalheSheet({
@@ -67,6 +88,34 @@ export function AtacadoAparelhoDetalheSheet({
     enabled: !!aparelhoId && !!empresaId,
   });
 
+  const { data: assistencias = [] } = useQuery({
+    queryKey: ["atacado-aparelho-assistencias", aparelhoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("atacado_aparelho_assistencias" as any)
+        .select("tipo_nome, valor")
+        .eq("aparelho_id", aparelhoId!)
+        .eq("empresa_id", empresaId!);
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+    enabled: !!aparelhoId && !!empresaId,
+  });
+
+  const { data: invoice } = useQuery({
+    queryKey: ["atacado-aparelho-invoice", aparelho?.invoice_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_invoices" as any)
+        .select("numero, pais_origem, moeda, cotacao, data_compra, importado")
+        .eq("id", aparelho!.invoice_id)
+        .eq("empresa_id", empresaId!)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: !!aparelho?.invoice_id && !!empresaId,
+  });
+
   useEffect(() => {
     if (aparelho?.status) setNovoStatus(aparelho.status);
   }, [aparelho?.status]);
@@ -91,29 +140,44 @@ export function AtacadoAparelhoDetalheSheet({
 
   const excluir = useMutation({
     mutationFn: async () => {
+      const { count } = await supabase
+        .from("atacado_pedidos_itens" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("aparelho_id", aparelhoId!);
       const { error } = await supabase
         .from("atacado_aparelhos" as any)
         .update({ deleted_at: new Date().toISOString() })
         .eq("id", aparelhoId!)
         .eq("empresa_id", empresaId!);
       if (error) throw error;
+      return { semHistorico: (count ?? 0) === 0 };
     },
-    onSuccess: () => {
+    onSuccess: ({ semHistorico }) => {
       qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
-      toast({ title: "✓ Aparelho removido do estoque" });
+      toast({
+        title: semHistorico
+          ? "✓ Aparelho excluído"
+          : "✓ Aparelho desativado (mantém histórico)",
+      });
       onOpenChange(false);
     },
     onError: (e: any) =>
       toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const totalAssistencia = assistencias.reduce(
+    (s: number, a: any) => s + Number(a.valor ?? 0),
+    0,
+  );
   const diasParado = aparelho?.data_entrada
     ? Math.floor((Date.now() - new Date(aparelho.data_entrada).getTime()) / 86400000)
     : 0;
-  const custoNum = Number(aparelho?.custo ?? 0);
+  const custoTotal = Number(aparelho?.custo ?? 0);
+  const custoBase = Math.max(0, custoTotal - totalAssistencia);
   const precoNum = Number(aparelho?.preco_sugerido ?? 0);
-  const markup = custoNum > 0 && precoNum > 0 ? ((precoNum - custoNum) / custoNum) * 100 : 0;
-  const margem = precoNum > 0 ? ((precoNum - custoNum) / precoNum) * 100 : 0;
+  const lucro = precoNum > 0 ? precoNum - custoTotal : 0;
+  const markup = custoTotal > 0 && precoNum > 0 ? ((precoNum - custoTotal) / custoTotal) * 100 : 0;
+  const margem = precoNum > 0 ? ((precoNum - custoTotal) / precoNum) * 100 : 0;
 
   return (
     <>
@@ -140,44 +204,87 @@ export function AtacadoAparelhoDetalheSheet({
                   {aparelho.marca && <span>{aparelho.marca}</span>}
                   {aparelho.grade && <span>· Grade {aparelho.grade}</span>}
                   {aparelho.condicao && <span>· {aparelho.condicao}</span>}
+                  {aparelho.data_entrada && <span>· {diasParado}d em estoque</span>}
                 </div>
                 <div className="mt-2">
-                  <AtacadoStatusBadge
-                    status={aparelho.status}
-                    catalogo={statusCatalogo}
-                  />
+                  <AtacadoStatusBadge status={aparelho.status} catalogo={statusCatalogo} />
                 </div>
               </div>
 
               <Separator />
 
+              {/* IMEIs com copiar */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">IMEI</p>
+                {aparelho.imei_1 && (
+                  <div className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-2">
+                    <span className="font-mono text-sm">{aparelho.imei_1}</span>
+                    <CopyBtn value={aparelho.imei_1} />
+                  </div>
+                )}
+                {aparelho.imei_2 && (
+                  <div className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-2">
+                    <span className="font-mono text-sm">{aparelho.imei_2}</span>
+                    <CopyBtn value={aparelho.imei_2} />
+                  </div>
+                )}
+                {!aparelho.imei_1 && !aparelho.imei_2 && (
+                  <p className="text-sm text-muted-foreground">—</p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Quebra de custo */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Quebra de custo</p>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Custo do aparelho</span>
+                    <span className="tabular-nums">{formatBRL(custoBase)}</span>
+                  </div>
+                  {totalAssistencia > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">+ Assistência</span>
+                      <span className="tabular-nums text-warning">
+                        {formatBRL(totalAssistencia)}
+                      </span>
+                    </div>
+                  )}
+                  <Separator />
+                  <div className="flex justify-between font-medium">
+                    <span>Custo total</span>
+                    <span className="tabular-nums">{formatBRL(custoTotal)}</span>
+                  </div>
+                </div>
+
+                {assistencias.length > 0 && (
+                  <div className="pt-1 flex flex-wrap gap-1.5">
+                    {assistencias.map((a: any, i: number) => (
+                      <Badge key={i} variant="secondary" className="text-xs">
+                        {a.tipo_nome} · {formatBRL(Number(a.valor))}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Preço/Lucro */}
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <Info label="IMEI 1" value={aparelho.imei_1 ?? "—"} mono />
-                <Info label="IMEI 2" value={aparelho.imei_2 ?? "—"} mono />
+                <Info label="Preço sugerido" value={precoNum ? formatBRL(precoNum) : "—"} />
+                <Info
+                  label="Lucro"
+                  value={lucro > 0 ? formatBRL(lucro) : "—"}
+                  valueClass={lucro > 0 ? "text-success font-medium" : ""}
+                />
+                <Info label="Markup" value={markup > 0 ? `${markup.toFixed(1)}%` : "—"} />
+                <Info label="Margem" value={margem > 0 ? `${margem.toFixed(1)}%` : "—"} />
                 <Info label="Quantidade" value={String(aparelho.quantidade ?? 0)} />
+                <Info label="Fornecedor" value={aparelho.fornecedor?.nome ?? "—"} />
                 <Info
-                  label="Dias em estoque"
-                  value={aparelho.data_entrada ? `${diasParado}d` : "—"}
-                />
-                <Info label="Custo unit." value={formatBRL(custoNum)} />
-                <Info
-                  label="Preço sugerido"
-                  value={precoNum ? formatBRL(precoNum) : "—"}
-                />
-                <Info
-                  label="Markup"
-                  value={markup > 0 ? `${markup.toFixed(1)}%` : "—"}
-                />
-                <Info
-                  label="Margem"
-                  value={margem > 0 ? `${margem.toFixed(1)}%` : "—"}
-                />
-                <Info
-                  label="Fornecedor"
-                  value={aparelho.fornecedor?.nome ?? "—"}
-                />
-                <Info
-                  label="Entrada"
+                  label="Data da compra"
                   value={
                     aparelho.data_entrada
                       ? new Date(aparelho.data_entrada).toLocaleDateString("pt-BR")
@@ -185,6 +292,25 @@ export function AtacadoAparelhoDetalheSheet({
                   }
                 />
               </div>
+
+              {invoice && (
+                <>
+                  <Separator />
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Origem {invoice.importado ? "(importado)" : ""}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {invoice.pais_origem && <Info label="País" value={invoice.pais_origem} />}
+                      {invoice.numero && <Info label="Invoice" value={invoice.numero} />}
+                      {invoice.moeda && <Info label="Moeda" value={invoice.moeda} />}
+                      {invoice.cotacao && (
+                        <Info label="Cotação" value={Number(invoice.cotacao).toFixed(4)} />
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {aparelho.observacoes && (
                 <div>
@@ -195,13 +321,13 @@ export function AtacadoAparelhoDetalheSheet({
                 </div>
               )}
 
-              {perms.podeEditarEstoque && (
-                <>
-                  <Separator />
+              <Separator />
+
+              {/* Ações */}
+              <div className="space-y-3">
+                {perms.podeEditarEstoque && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      Mudar status
-                    </p>
+                    <p className="text-xs font-medium text-muted-foreground">Mudar status</p>
                     <div className="flex gap-2">
                       <Select value={novoStatus} onValueChange={setNovoStatus}>
                         <SelectTrigger className="flex-1">
@@ -232,18 +358,37 @@ export function AtacadoAparelhoDetalheSheet({
                       </Button>
                     </div>
                   </div>
+                )}
 
-                  <Separator />
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setConfirmDelete(true)}
+                    onClick={() =>
+                      printEtiquetaAtacado({
+                        modelo: aparelho.modelo,
+                        capacidade: aparelho.capacidade,
+                        cor: aparelho.cor,
+                        imei: aparelho.imei_1,
+                        preco: precoNum,
+                      })
+                    }
                   >
-                    <Trash2 className="h-4 w-4" /> Remover do estoque
+                    <Printer className="h-4 w-4" /> Etiqueta
                   </Button>
-                </>
-              )}
+
+                  {perms.podeEditarEstoque && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setConfirmDelete(true)}
+                    >
+                      <Trash2 className="h-4 w-4" /> Remover
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </SheetContent>
@@ -254,8 +399,9 @@ export function AtacadoAparelhoDetalheSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Remover aparelho do estoque?</AlertDialogTitle>
             <AlertDialogDescription>
-              O aparelho será arquivado (soft delete). Esta ação pode ser
-              revertida pelo suporte. Histórico é mantido.
+              Se já há histórico (pedido/venda), o aparelho será apenas
+              desativado. Caso contrário, será arquivado (soft delete) e pode
+              ser revertido pelo suporte.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -276,18 +422,16 @@ export function AtacadoAparelhoDetalheSheet({
 function Info({
   label,
   value,
-  mono,
+  valueClass,
 }: {
   label: string;
   value: string;
-  mono?: boolean;
+  valueClass?: string;
 }) {
   return (
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-sm text-foreground ${mono ? "font-mono" : ""}`}>
-        {value}
-      </p>
+      <p className={`text-sm text-foreground tabular-nums ${valueClass ?? ""}`}>{value}</p>
     </div>
   );
 }
