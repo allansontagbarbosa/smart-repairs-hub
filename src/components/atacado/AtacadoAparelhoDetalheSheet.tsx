@@ -332,13 +332,16 @@ export function AtacadoAparelhoDetalheSheet({
                 <Info
                   label="Data da compra"
                   value={
-                    invoice?.data_compra
+                    aparelho.data_compra
+                      ? new Date(aparelho.data_compra).toLocaleDateString("pt-BR")
+                      : invoice?.data_compra
                       ? new Date(invoice.data_compra).toLocaleDateString("pt-BR")
                       : aparelho.data_entrada
                       ? new Date(aparelho.data_entrada).toLocaleDateString("pt-BR")
                       : "—"
                   }
                 />
+
                 <Info
                   label="Entrada no estoque"
                   value={
