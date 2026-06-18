@@ -227,6 +227,58 @@ export default function AtacadoDashboard() {
         />
       </div>
 
+      {/* Estoque (informação útil mesmo sem vendas) */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Estoque B2B
+          </h3>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/atacado/aparelhos">
+              Ver estoque <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Kpi label="Unidades em estoque" valor={String(estoque.unidades)} icon={<Package className="h-4 w-4" />} />
+          <Kpi label="Custo estocado" valor={formatBRL(estoque.custoTotal)} icon={<DollarSign className="h-4 w-4" />} />
+          <Kpi label="Valor de venda" valor={formatBRL(estoque.vendaTotal)} icon={<TrendingUp className="h-4 w-4" />} />
+          <Kpi
+            label="Lucro potencial"
+            valor={formatBRL(estoque.lucroPotencial)}
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          <Badge variant="outline" className="gap-1">
+            <Clock className="h-3 w-3" /> Idade média: {estoque.idadeMedia} dias
+          </Badge>
+          {estoque.lentos > 0 && (
+            <Badge variant="outline" className="text-warning border-warning/30">
+              {estoque.lentos} parado{estoque.lentos > 1 ? "s" : ""} há +60 dias
+            </Badge>
+          )}
+        </div>
+        {estoque.topModelos.length > 0 && (
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Top modelos em estoque
+            </p>
+            <ul className="divide-y divide-border">
+              {estoque.topModelos.map((m) => (
+                <li key={m.modelo} className="flex items-center justify-between py-2 text-sm">
+                  <span className="truncate">{m.modelo}</span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {m.qtd} un · <strong className="text-foreground">{formatBRL(m.venda)}</strong>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
       {/* Alertas operacionais */}
       {(aguardando > 0 || boletos > 0) && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
