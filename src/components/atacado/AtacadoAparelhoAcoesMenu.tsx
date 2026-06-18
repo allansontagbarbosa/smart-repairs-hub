@@ -143,7 +143,7 @@ export function AtacadoAparelhoAcoesMenu({
     });
 
   const onVender = () =>
-    navigate(`/atacado/pedidos/novo?aparelho=${aparelho.id}`);
+    navigate(`/atacado/novo-pedido?aparelho=${aparelho.id}`);
 
   return (
     <>
