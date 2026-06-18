@@ -63,7 +63,7 @@ export default function AtacadoNovoPedido() {
   const [searchParams] = useSearchParams();
   const aparelhoPreselectId = searchParams.get("aparelho");
 
-  const [passo, setPasso] = useState<Passo>(aparelhoPreselectId ? 2 : 1);
+  const [passo, setPasso] = useState<Passo>(1);
   const [clienteId, setClienteId] = useState("");
   const [buscaCliente, setBuscaCliente] = useState("");
   const [novoClienteOpen, setNovoClienteOpen] = useState(false);
@@ -172,21 +172,27 @@ export default function AtacadoNovoPedido() {
     ]);
   };
 
-  // Pré-seleciona o aparelho vindo de "Vender / dar baixa" no Estoque
+  // Pré-seleciona o aparelho vindo de "Vender / dar baixa" no Estoque (uma vez)
   useEffect(() => {
-    if (
-      aparelhoPreselectId &&
-      !preselectAppliedRef.current &&
-      (aparelhos as any[]).length > 0
-    ) {
-      const ap = (aparelhos as any[]).find((a) => a.id === aparelhoPreselectId);
-      if (ap) {
-        preselectAppliedRef.current = true;
-        adicionarItem(ap);
+    if (!empresaId || !aparelhoPreselectId || preselectAppliedRef.current) return;
+    preselectAppliedRef.current = true;
+    (async () => {
+      const { data } = await supabase
+        .from("atacado_aparelhos" as any)
+        .select("*")
+        .eq("id", aparelhoPreselectId)
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+      if (data) {
+        adicionarItem({
+          ...(data as any),
+          preco_tabela: (data as any).preco_sugerido,
+        });
+        toast({ title: "Aparelho adicionado ao pedido" });
       }
-    }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aparelhos, aparelhoPreselectId]);
+  }, [empresaId, aparelhoPreselectId]);
 
 
   const atualizarQtd = (aparelhoId: string, novaQtd: number) => {
