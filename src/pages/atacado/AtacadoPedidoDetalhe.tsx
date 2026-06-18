@@ -289,13 +289,26 @@ export default function AtacadoPedidoDetalhe() {
                       : "—"}
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right space-y-1">
                   <div className="font-medium">
                     {formatBRL(Number(pg.valor))}
                   </div>
-                  <Badge variant="outline" className="mt-1">
+                  <Badge variant="outline">
                     {pg.status}
+                    {pg.pago_em ? ` · ${new Date(pg.pago_em).toLocaleDateString("pt-BR")}` : ""}
                   </Badge>
+                  {pg.status !== "pago" && pg.status !== "cancelado" && (
+                    <div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={marcarPago.isPending}
+                        onClick={() => marcarPago.mutate(pg.id)}
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar recebido
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))
