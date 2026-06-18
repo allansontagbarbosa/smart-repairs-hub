@@ -74,6 +74,26 @@ export default function AtacadoPedidoDetalhe() {
       toast({ title: "✓ Status atualizado" });
     },
     onError: (e: any) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const marcarPago = useMutation({
+    mutationFn: async (pagamentoId: string) => {
+      const { error } = await supabase.rpc("atacado_marcar_pagamento_pago" as any, {
+        p_pagamento_id: pagamentoId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["atacado-pedido-detalhe", id] });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      toast({ title: "✓ Pagamento recebido" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+    },
+    onError: (e: any) =>
       toast({
         title: "Erro",
         description: e.message,
