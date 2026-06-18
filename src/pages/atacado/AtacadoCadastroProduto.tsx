@@ -568,9 +568,15 @@ export default function AtacadoCadastroProduto() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Novo produto</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {modoDuplicar
+              ? `Duplicar${duplicarOrigem ? ` de ${duplicarOrigem}` : ""}`
+              : "Novo produto"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Cadastre um lote: N aparelhos individuais com IMEI próprio
+            {modoDuplicar
+              ? "Pré-preenchido com os dados do aparelho original — informe o novo IMEI"
+              : "Cadastre um lote: N aparelhos individuais com IMEI próprio"}
           </p>
         </div>
       </div>
