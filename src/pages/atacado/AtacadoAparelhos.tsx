@@ -342,7 +342,6 @@ export default function AtacadoAparelhos() {
     const cat = getStatusCategoria(a.status, statusCatalogo);
     const baixo = cat === "em_estoque" && a.quantidade <= 2;
     const lento = cat === "em_estoque" && diasParado > 30;
-    const imeiTail = a.imei_1 ? `· IMEI …${String(a.imei_1).slice(-4)}` : "";
     const assist = Number(assistMap[a.id] ?? 0);
     return (
       <tr
@@ -354,10 +353,15 @@ export default function AtacadoAparelhos() {
           <p className="font-medium text-foreground">
             {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
           </p>
-          <p className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+          <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
             <span>{a.fornecedor?.nome ?? "—"}</span>
-            {imeiTail && <span className="font-mono">{imeiTail}</span>}
-            {a.data_entrada && <span>· há {diasParado}d</span>}
+            {a.imei_1 && (
+              <span className="inline-flex items-center gap-1 font-mono">
+                · IMEI {a.imei_1}
+                <CopyImei value={a.imei_1} />
+              </span>
+            )}
+            {a.data_entrada && <span>· há {diasParado}d em estoque</span>}
             {assist > 0 && (
               <span className="text-warning">· +{formatBRL(assist)} assist.</span>
             )}
