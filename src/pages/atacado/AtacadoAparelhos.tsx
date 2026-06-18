@@ -225,6 +225,12 @@ export default function AtacadoAparelhos() {
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : aparelhosError ? (
+        <div className="border border-destructive/30 bg-destructive/5 rounded-lg p-6 text-center space-y-2">
+          <AlertCircle className="h-6 w-6 text-destructive mx-auto" />
+          <p className="text-sm font-medium text-destructive">Erro ao carregar aparelhos</p>
+          <p className="text-xs text-muted-foreground">{(aparelhosError as any)?.message ?? "Tente novamente."}</p>
+        </div>
       ) : totalLotes === 0 && aparelhosLoja.length === 0 ? (
         <AtacadoEmptyState
           icon={Smartphone}
