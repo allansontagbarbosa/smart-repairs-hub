@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -79,6 +79,9 @@ const isImei15 = (s: string) => /^\d{15}$/.test(s.trim());
 
 export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const duplicarId = searchParams.get("duplicar");
+  const modoDuplicar = !!duplicarId;
   const qc = useQueryClient();
   const { empresaId } = useEmpresa();
   const {
@@ -184,16 +187,141 @@ export default function AtacadoCadastroProduto() {
     };
   }, [modeloInfo?.id, assistReloadKey]);
 
-  // Reset ao trocar marca / modelo
+  // Hidratação (duplicar): bloqueia os resets em cascata enquanto preenchemos
+  const hydratingRef = useRef(false);
+  const imeiInputRef = useRef<HTMLInputElement | null>(null);
+  const [duplicarOrigem, setDuplicarOrigem] = useState<string>("");
+  const [focusToken, setFocusToken] = useState(0);
+
+  // Reset ao trocar marca / modelo (ignora durante hidratação do duplicar)
   useEffect(() => {
+    if (hydratingRef.current) return;
     setModelo("");
     setCapacidade("");
     setCor("");
   }, [marca]);
   useEffect(() => {
+    if (hydratingRef.current) return;
     setCapacidade("");
     setCor("");
   }, [modelo]);
+
+  // Carrega aparelho de origem para duplicar (?duplicar=<id>)
+  useEffect(() => {
+    if (!duplicarId || !empresaId) return;
+    let cancel = false;
+    (async () => {
+      const { data: ap, error } = await supabase
+        .from("atacado_aparelhos" as any)
+        .select("*, fornecedor:fornecedores(nome)")
+        .eq("id", duplicarId)
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+      if (cancel || error || !ap) {
+        if (!cancel && error) toast.error("Não foi possível carregar o aparelho de origem");
+        return;
+      }
+      const aparelho = ap as any;
+
+      const [{ data: assists }, invRes] = await Promise.all([
+        supabase
+          .from("atacado_aparelho_assistencias" as any)
+          .select("tipo_nome, valor")
+          .eq("aparelho_id", duplicarId)
+          .eq("empresa_id", empresaId),
+        aparelho.invoice_id
+          ? supabase
+              .from("atacado_invoices" as any)
+              .select("*")
+              .eq("id", aparelho.invoice_id)
+              .eq("empresa_id", empresaId)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+      ]);
+      if (cancel) return;
+      const invoice = (invRes as any)?.data ?? null;
+
+      let invoiceCustos: any[] = [];
+      if (invoice?.id) {
+        const { data: ic } = await supabase
+          .from("atacado_invoice_custos" as any)
+          .select("tipo, descricao, modo, valor, moeda")
+          .eq("invoice_id", invoice.id)
+          .eq("empresa_id", empresaId);
+        if (cancel) return;
+        invoiceCustos = (ic as any[]) ?? [];
+      }
+
+      hydratingRef.current = true;
+
+      if (invoice) {
+        setImportado(!!invoice.importado);
+        setFornecedor(invoice.fornecedor ?? "");
+        setNumero(invoice.numero ?? "");
+        setDataCompra(invoice.data_compra ?? "");
+        setPaisOrigem(invoice.pais_origem ?? "");
+        setMoeda(invoice.moeda || "BRL");
+        setCotacao(invoice.cotacao != null ? String(invoice.cotacao) : "");
+      }
+
+      setMarca(aparelho.marca ?? "");
+      setModelo(aparelho.modelo ?? "");
+      setCapacidade(aparelho.capacidade ?? "");
+      setCor(aparelho.cor ?? "");
+      setGrade(aparelho.grade ?? "");
+      setCondicao(aparelho.condicao ?? "novo");
+      setStatus("estoque");
+      setCustoProduto(aparelho.custo != null ? String(aparelho.custo) : "");
+      setPrecoVenda(
+        aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
+      );
+      setCustos(
+        invoiceCustos.map((c) => ({
+          tipo: (c.tipo as CustoTipo) ?? "outro",
+          descricao: c.descricao ?? "",
+          modo: (c.modo as CustoModo) ?? "fixo",
+          valor: c.valor != null ? String(c.valor) : "",
+          moeda: c.moeda || "BRL",
+        })),
+      );
+      setQuantidade(1);
+      setUnidades([
+        {
+          imei1: "",
+          imei2: "",
+          assistencias: ((assists as any[]) ?? []).map((a) => ({
+            nome: a.tipo_nome,
+            valor: Number(a.valor) || 0,
+          })),
+        },
+      ]);
+      setDuplicarOrigem(
+        [aparelho.marca, aparelho.modelo, aparelho.capacidade, aparelho.cor]
+          .filter(Boolean)
+          .join(" "),
+      );
+
+      // libera os resets em cascata na próxima volta
+      setTimeout(() => {
+        hydratingRef.current = false;
+        setFocusToken((t) => t + 1);
+      }, 0);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [duplicarId, empresaId]);
+
+  // Foco automático no campo IMEI 1 quando o duplicar termina de hidratar
+  useEffect(() => {
+    if (!modoDuplicar) return;
+    const el = imeiInputRef.current;
+    if (el) {
+      el.focus();
+      el.select?.();
+    }
+  }, [focusToken, modoDuplicar]);
+
 
   // Ajusta lista de unidades quando quantidade muda
   useEffect(() => {
@@ -328,7 +456,7 @@ export default function AtacadoCadastroProduto() {
     toast.success(`${lista.length} IMEI${lista.length === 1 ? "" : "s"} aplicado${lista.length === 1 ? "" : "s"}`);
   };
 
-  const handleSalvar = async () => {
+  const handleSalvar = async (opts: { chain?: boolean } = {}) => {
     if (!marca || !modelo) return toast.error("Informe marca e modelo");
 
     // Bloco 2: marca nova não pode colidir com nome já existente como modelo
@@ -417,8 +545,17 @@ export default function AtacadoCadastroProduto() {
       );
       return;
     }
-    toast.success(`${(data as any).aparelhos} aparelhos cadastrados`);
+    toast.success(`${(data as any).aparelhos} aparelho(s) cadastrado(s)`);
     await qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
+    if (opts.chain && modoDuplicar) {
+      // Limpa apenas os IMEIs (mantém custos/assistência/modelo) e refoca
+      setUnidades((prev) =>
+        prev.map((u) => ({ ...u, imei1: "", imei2: "" })),
+      );
+      setDuplicados({});
+      setFocusToken((t) => t + 1);
+      return;
+    }
     navigate("/atacado/aparelhos");
   };
 
@@ -431,9 +568,15 @@ export default function AtacadoCadastroProduto() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Novo produto</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {modoDuplicar
+              ? `Duplicar${duplicarOrigem ? ` de ${duplicarOrigem}` : ""}`
+              : "Novo produto"}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Cadastre um lote: N aparelhos individuais com IMEI próprio
+            {modoDuplicar
+              ? "Pré-preenchido com os dados do aparelho original — informe o novo IMEI"
+              : "Cadastre um lote: N aparelhos individuais com IMEI próprio"}
           </p>
         </div>
       </div>
@@ -817,20 +960,26 @@ export default function AtacadoCadastroProduto() {
       {/* Unidades */}
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-base font-semibold text-foreground">Aparelhos do lote</h2>
+          <h2 className="text-base font-semibold text-foreground">
+            {modoDuplicar ? "Aparelho duplicado" : "Aparelhos do lote"}
+          </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <Label className="text-xs">Quantidade</Label>
-            <Input
-              type="number"
-              min={1}
-              max={500}
-              value={quantidade}
-              onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 1))}
-              className="w-24"
-            />
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowColar(true)}>
-              <ClipboardPaste className="h-4 w-4" /> Colar lista de IMEIs
-            </Button>
+            {!modoDuplicar && (
+              <>
+                <Label className="text-xs">Quantidade</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-24"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowColar(true)}>
+                  <ClipboardPaste className="h-4 w-4" /> Colar lista de IMEIs
+                </Button>
+              </>
+            )}
             <Dialog open={showGerAssist} onOpenChange={setShowGerAssist}>
               <DialogTrigger asChild>
                 <Button type="button" variant="outline" size="sm">
@@ -871,6 +1020,7 @@ export default function AtacadoCadastroProduto() {
                   <div className="space-y-1">
                     <Label className="text-xs">IMEI 1 *</Label>
                     <ScannableInput
+                      ref={i === 0 ? imeiInputRef : undefined}
                       value={u.imei1}
                       onChange={(e) => updUnidade(i, { imei1: e.target.value })}
                       onBlur={(e) => checkDuplicado(e.target.value.trim())}
@@ -1005,13 +1155,25 @@ export default function AtacadoCadastroProduto() {
         </div>
       </Card>
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-3 flex-wrap">
         <Button variant="outline" onClick={() => navigate("/atacado/aparelhos")}>
           Cancelar
         </Button>
-        <Button onClick={handleSalvar} disabled={salvando}>
+        {modoDuplicar && (
+          <Button
+            variant="outline"
+            onClick={() => handleSalvar({ chain: true })}
+            disabled={salvando}
+          >
+            {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
+            Salvar e duplicar de novo
+          </Button>
+        )}
+        <Button onClick={() => handleSalvar()} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-          Cadastrar {unidades.length} aparelho{unidades.length > 1 ? "s" : ""}
+          {modoDuplicar
+            ? "Salvar e fechar"
+            : `Cadastrar ${unidades.length} aparelho${unidades.length > 1 ? "s" : ""}`}
         </Button>
       </div>
 
@@ -1039,9 +1201,9 @@ export default function AtacadoCadastroProduto() {
               positive={lucroTotal >= 0}
             />
           </div>
-          <Button onClick={handleSalvar} disabled={salvando} size="sm">
+          <Button onClick={() => handleSalvar()} disabled={salvando} size="sm">
             {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cadastrar {unidades.length}
+            {modoDuplicar ? "Salvar" : `Cadastrar ${unidades.length}`}
           </Button>
         </div>
       </div>

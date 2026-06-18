@@ -57,6 +57,7 @@ import {
   ArrowLeftRight,
   PackageMinus,
   Loader2,
+  Copy,
 } from "lucide-react";
 import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
 import { garantirStatusCategoria } from "@/lib/atacadoStatus";
@@ -166,6 +167,16 @@ export function AtacadoAparelhoAcoesMenu({
           {perms.podeEditarEstoque && (
             <DropdownMenuItem onClick={() => setOpen("editar")}>
               <Pencil className="h-4 w-4 mr-2" /> Editar
+            </DropdownMenuItem>
+          )}
+
+          {perms.podeEditarEstoque && (
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(`/atacado/aparelhos/novo?duplicar=${aparelho.id}`)
+              }
+            >
+              <Copy className="h-4 w-4 mr-2" /> Duplicar
             </DropdownMenuItem>
           )}
 

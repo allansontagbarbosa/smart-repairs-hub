@@ -32,9 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Trash2, Copy, Check, Printer } from "lucide-react";
+import { Loader2, Trash2, Copy, Check, Printer, Files } from "lucide-react";
 import { AtacadoStatusBadge } from "./AtacadoStatusBadge";
 import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   aparelhoId: string | null;
@@ -76,6 +77,7 @@ export function AtacadoAparelhoDetalheSheet({
   const { toast } = useToast();
   const qc = useQueryClient();
   const perms = usePermissoesAtacado();
+  const navigate = useNavigate();
   const [novoStatus, setNovoStatus] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -433,6 +435,19 @@ export function AtacadoAparelhoDetalheSheet({
                   >
                     <Printer className="h-4 w-4" /> Etiqueta
                   </Button>
+
+                  {perms.podeEditarEstoque && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/atacado/aparelhos/novo?duplicar=${aparelho.id}`);
+                      }}
+                    >
+                      <Files className="h-4 w-4" /> Duplicar
+                    </Button>
+                  )}
 
                   {perms.podeEditarEstoque && (
                     <Button
