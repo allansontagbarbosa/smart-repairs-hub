@@ -60,8 +60,10 @@ export default function AtacadoNovoPedido() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const aparelhoPreselectId = searchParams.get("aparelho");
 
-  const [passo, setPasso] = useState<Passo>(1);
+  const [passo, setPasso] = useState<Passo>(aparelhoPreselectId ? 2 : 1);
   const [clienteId, setClienteId] = useState("");
   const [buscaCliente, setBuscaCliente] = useState("");
   const [novoClienteOpen, setNovoClienteOpen] = useState(false);
@@ -72,6 +74,7 @@ export default function AtacadoNovoPedido() {
   const [desconto, setDesconto] = useState("0");
   const [observacoes, setObservacoes] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const preselectAppliedRef = useRef(false);
 
   // Clientes
   const { data: clientes = [] } = useQuery({
