@@ -305,6 +305,7 @@ function EditarAparelhoDialog({
   const qc = useQueryClient();
   const perms = usePermissoesAtacado();
   const podeEditarCusto = perms.podeConfigurar; // custo só com permissão de configuração
+  const toDateInput = (v: any) => (v ? new Date(v).toISOString().slice(0, 10) : "");
   const [form, setForm] = useState({
     modelo: aparelho.modelo ?? "",
     capacidade: aparelho.capacidade ?? "",
@@ -314,6 +315,8 @@ function EditarAparelhoDialog({
     preco_sugerido: aparelho.preco_sugerido ?? "",
     custo: aparelho.custo ?? "",
     observacoes: aparelho.observacoes ?? "",
+    data_compra: toDateInput(aparelho.data_compra),
+    data_entrada: toDateInput(aparelho.data_entrada),
   });
 
   const salvar = useMutation({
