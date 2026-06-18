@@ -74,6 +74,9 @@ export function AtacadoAparelhoDetalheSheet({
   statusCatalogo,
 }: Props) {
   const { empresaId } = useEmpresa();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const perms = usePermissoesAtacado();
   const navigate = useNavigate();
   const [novoStatus, setNovoStatus] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState(false);
