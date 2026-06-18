@@ -672,12 +672,17 @@ export default function AtacadoNovoPedido() {
           <h2 className="font-bold">3. Condição de pagamento</h2>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label>Condição</Label>
+              <Label>Atalho</Label>
               <Select
                 value={condicaoPagamento}
                 onValueChange={(v) => {
                   setCondicaoPagamento(v);
-                  setPagamentos([]);
+                  if (v !== "customizar") {
+                    setPagamentos([]);
+                    gerarPagamentos(v);
+                  } else {
+                    gerarPagamentos("customizar");
+                  }
                 }}
               >
                 <SelectTrigger>
@@ -686,8 +691,11 @@ export default function AtacadoNovoPedido() {
                 <SelectContent>
                   <SelectItem value="à vista">À vista (Pix)</SelectItem>
                   <SelectItem value="30 dias">30 dias (boleto)</SelectItem>
-                  <SelectItem value="30/60">30/60 dias (2 boletos)</SelectItem>
-                  <SelectItem value="30/60/90">30/60/90 dias (3 boletos)</SelectItem>
+                  <SelectItem value="30/60">30/60 dias</SelectItem>
+                  <SelectItem value="30/60/90">30/60/90 dias</SelectItem>
+                  <SelectItem value="2x">2x sem entrada</SelectItem>
+                  <SelectItem value="3x">3x sem entrada</SelectItem>
+                  <SelectItem value="customizar">Customizar parcelamento</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -712,22 +720,112 @@ export default function AtacadoNovoPedido() {
               />
             </div>
 
-            <Button onClick={gerarPagamentos} variant="outline">
-              Gerar parcelas
-            </Button>
+            {condicaoPagamento === "customizar" && (
+              <Card className="p-4 space-y-3 bg-muted/20">
+                <h3 className="text-sm font-semibold">Construtor de parcelamento</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nº de parcelas (sem entrada)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={customNumParcelas}
+                      onChange={(e) => setCustomNumParcelas(Math.max(1, parseInt(e.target.value) || 1))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Entrada (R$)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={customEntrada}
+                      onChange={(e) => setCustomEntrada(Math.max(0, parseFloat(e.target.value) || 0))}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => gerarCustomizado(customNumParcelas, customEntrada)}
+                    >
+                      Gerar
+                    </Button>
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={adicionarPagamento}>
+                  <Plus className="h-3 w-3 mr-1" /> Adicionar parcela manual
+                </Button>
+              </Card>
+            )}
 
             {pagamentos.length > 0 && (
               <div className="bg-muted/30 rounded-lg p-3 space-y-2">
-                <h3 className="text-sm font-semibold">Pagamentos gerados</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Parcelas ({pagamentos.length})</h3>
+                  <div className="text-xs tabular-nums">
+                    Soma: <strong>{formatBRL(somaPagamentos)}</strong> · Total: <strong>{formatBRL(total)}</strong>
+                    {Math.abs(diferenca) > 0.01 && (
+                      <span className={diferenca > 0 ? "text-warning ml-2" : "text-destructive ml-2"}>
+                        Δ {formatBRL(diferenca)}
+                      </span>
+                    )}
+                  </div>
+                </div>
                 {pagamentos.map((p, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span>
-                      Parcela {p.parcela}/{p.total_parcelas} · {p.forma} · venc{" "}
-                      {p.vencimento
-                        ? new Date(p.vencimento + "T00:00:00").toLocaleDateString("pt-BR")
-                        : "—"}
-                    </span>
-                    <strong className="tabular-nums">{formatBRL(p.valor)}</strong>
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-1 text-xs text-muted-foreground text-center">
+                      {p.parcela}/{p.total_parcelas}
+                    </div>
+                    <div className="col-span-3">
+                      <Select
+                        value={p.forma}
+                        onValueChange={(v) => atualizarPagamento(i, { forma: v })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pix">PIX</SelectItem>
+                          <SelectItem value="boleto">Boleto</SelectItem>
+                          <SelectItem value="transferencia">Transferência</SelectItem>
+                          <SelectItem value="cartao">Cartão</SelectItem>
+                          <SelectItem value="cheque">Cheque</SelectItem>
+                          <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-3">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="h-8 text-xs tabular-nums"
+                        value={p.valor}
+                        onChange={(e) =>
+                          atualizarPagamento(i, { valor: parseFloat(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                    <div className="col-span-4">
+                      <Input
+                        type="date"
+                        className="h-8 text-xs"
+                        value={p.vencimento ?? ""}
+                        onChange={(e) => atualizarPagamento(i, { vencimento: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      {pagamentos.length > 1 && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => removerPagamento(i)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -735,6 +833,7 @@ export default function AtacadoNovoPedido() {
           </div>
         </Card>
       )}
+
 
       {/* PASSO 4: REVISÃO */}
       {passo === 4 && (
