@@ -188,25 +188,6 @@ export default function AtacadoNovoPedido() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aparelhos, aparelhoPreselectId]);
 
-  const _adicionarItem_DUPLICATE = (aparelho: any) => {
-    const existente = carrinho.find((c) => c.aparelho_id === aparelho.id);
-    if (existente) {
-      atualizarQtd(aparelho.id, existente.quantidade + 1);
-      return;
-    }
-    setCarrinho([
-      ...carrinho,
-      {
-        aparelho_id: aparelho.id,
-        modelo: aparelho.modelo,
-        capacidade: aparelho.capacidade,
-        cor: aparelho.cor,
-        quantidade: 1,
-        preco_unitario: calcPreco(aparelho, 1),
-        estoque_disponivel: aparelho.quantidade,
-      },
-    ]);
-  };
 
   const atualizarQtd = (aparelhoId: string, novaQtd: number) => {
     setCarrinho(
