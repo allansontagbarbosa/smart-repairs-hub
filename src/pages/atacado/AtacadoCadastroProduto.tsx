@@ -187,13 +187,21 @@ export default function AtacadoCadastroProduto() {
     };
   }, [modeloInfo?.id, assistReloadKey]);
 
-  // Reset ao trocar marca / modelo
+  // Hidratação (duplicar): bloqueia os resets em cascata enquanto preenchemos
+  const hydratingRef = useRef(false);
+  const imeiInputRef = useRef<HTMLInputElement | null>(null);
+  const [duplicarOrigem, setDuplicarOrigem] = useState<string>("");
+  const [focusToken, setFocusToken] = useState(0);
+
+  // Reset ao trocar marca / modelo (ignora durante hidratação do duplicar)
   useEffect(() => {
+    if (hydratingRef.current) return;
     setModelo("");
     setCapacidade("");
     setCor("");
   }, [marca]);
   useEffect(() => {
+    if (hydratingRef.current) return;
     setCapacidade("");
     setCor("");
   }, [modelo]);
