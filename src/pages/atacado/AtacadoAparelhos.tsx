@@ -710,24 +710,57 @@ function KpiBox({
   label,
   valor,
   danger,
+  success,
 }: {
   label: string;
   valor: string;
   danger?: boolean;
+  success?: boolean;
 }) {
   return (
     <div
       className={`border rounded-lg p-3 ${
-        danger ? "border-warning/30 bg-warning/5" : "bg-card"
+        danger
+          ? "border-warning/30 bg-warning/5"
+          : success
+          ? "border-success/30 bg-success/5"
+          : "bg-card"
       }`}
     >
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
         className={`text-lg font-semibold tabular-nums ${
-          danger ? "text-warning" : "text-foreground"
+          danger ? "text-warning" : success ? "text-success" : "text-foreground"
         }`}
       >
         {valor}
+      </p>
+    </div>
+  );
+}
+
+function CopyImei({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="text-muted-foreground hover:text-foreground transition-colors"
+      aria-label="Copiar IMEI"
+    >
+      {copied ? (
+        <Check className="h-3 w-3 text-success" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </button>
+  );
+}
       </p>
     </div>
   );
