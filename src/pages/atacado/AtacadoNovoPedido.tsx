@@ -111,14 +111,32 @@ export default function AtacadoNovoPedido() {
       clienteSelecionado?.tabela_preco_id,
     ],
     queryFn: async () => {
+      // Robusto: pega TODOS os nomes de status da categoria "em_estoque" da empresa
+      const { data: statusRows } = await supabase
+        .from("atacado_status_aparelho" as any)
+        .select("nome,categoria")
+        .eq("empresa_id", empresaId!)
+        .eq("categoria", "em_estoque");
+      const nomesEstoque = Array.from(
+        new Set([
+          "estoque",
+          ...(((statusRows as any[]) ?? []).map((s) => s.nome).filter(Boolean)),
+        ]),
+      );
+
       let q = supabase
         .from("atacado_aparelhos" as any)
         .select("*")
         .eq("empresa_id", empresaId!)
-        .eq("status", "estoque")
+        .in("status", nomesEstoque)
         .gt("quantidade", 0)
         .is("deleted_at", null);
-      if (buscaItem) q = q.ilike("modelo", `%${buscaItem}%`);
+      if (buscaItem) {
+        const termo = buscaItem.trim();
+        q = q.or(
+          `modelo.ilike.%${termo}%,imei_1.ilike.%${termo}%,imei_2.ilike.%${termo}%`,
+        );
+      }
       const { data: aps } = await q.order("modelo");
 
       if (!clienteSelecionado?.tabela_preco_id) return (aps ?? []) as any[];
@@ -469,40 +487,55 @@ export default function AtacadoNovoPedido() {
             <div className="relative">
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar modelo..."
+                placeholder="Buscar por modelo ou IMEI..."
                 className="pl-9"
                 value={buscaItem}
                 onChange={(e) => setBuscaItem(e.target.value)}
               />
             </div>
+            {!clienteSelecionado?.tabela_preco_id && (
+              <p className="text-xs text-muted-foreground bg-muted/40 border border-border rounded p-2">
+                Cliente sem tabela de preço — usando preço sugerido como fallback.
+              </p>
+            )}
             <div className="space-y-2 max-h-[480px] overflow-auto">
-              {(aparelhos as any[]).map((a: any) => (
-                <button
-                  key={a.id}
-                  onClick={() => adicionarItem(a)}
-                  className="w-full text-left p-3 bg-card border hover:border-warning rounded-lg transition-colors"
-                >
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
-                      </p>
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
-                        <span>Estoque: {a.quantidade}</span>
-                        {a.preco_5 && <span>5+: {formatBRL(Number(a.preco_5))}</span>}
-                        {a.preco_10 && <span>10+: {formatBRL(Number(a.preco_10))}</span>}
+              {(aparelhos as any[]).map((a: any) => {
+                const preco = Number(a.preco_tabela ?? a.preco_sugerido ?? a.custo ?? 0);
+                const lucro = preco - Number(a.custo ?? 0);
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => adicionarItem(a)}
+                    className="w-full text-left p-3 bg-card border hover:border-warning rounded-lg transition-colors"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
+                        </p>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-1">
+                          {a.imei_1 && (
+                            <span className="font-mono">IMEI {a.imei_1}</span>
+                          )}
+                          <span>Estoque: {a.quantidade}</span>
+                          {a.preco_5 && <span>5+: {formatBRL(Number(a.preco_5))}</span>}
+                          {a.preco_10 && <span>10+: {formatBRL(Number(a.preco_10))}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold text-warning tabular-nums">
+                          {formatBRL(preco)}
+                        </p>
+                        {lucro > 0 && (
+                          <p className="text-[11px] text-success tabular-nums">
+                            +{formatBRL(lucro)} lucro
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-semibold text-warning tabular-nums">
-                        {formatBRL(
-                          Number(a.preco_tabela ?? a.preco_sugerido ?? a.custo),
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
               {(aparelhos as any[]).length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">
                   Nenhum aparelho disponível.
