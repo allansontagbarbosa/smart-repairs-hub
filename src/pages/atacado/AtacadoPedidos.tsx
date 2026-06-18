@@ -35,6 +35,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
 import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
+import {
+  calcularStatusPagamento,
+  labelStatusPagamento,
+  classesStatusPagamento,
+} from "@/lib/atacadoPagamentoStatus";
 
 export default function AtacadoPedidos() {
   const { empresaId } = useEmpresa();
