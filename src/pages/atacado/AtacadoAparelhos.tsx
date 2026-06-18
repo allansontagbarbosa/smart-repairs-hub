@@ -13,6 +13,8 @@ import {
   LayoutGrid,
   Rows,
   ChevronRight,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +66,7 @@ export default function AtacadoAparelhos() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("unidade");
+  const [grupoSort, setGrupoSort] = useState<"valor" | "qtd">("valor");
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
 
   const { data: empresa } = useQuery({
@@ -201,6 +204,20 @@ export default function AtacadoAparelhos() {
     (s: number, a: any) => s + a.quantidade * Number(a.custo),
     0,
   );
+  // Valor de venda (somente itens em estoque)
+  const aparelhosEmEstoque = aparelhos.filter(
+    (a: any) => getStatusCategoria(a.status, statusCatalogo) === "em_estoque",
+  );
+  const valorVenda = aparelhosEmEstoque.reduce(
+    (s: number, a: any) =>
+      s + (Number(a.preco_sugerido ?? 0) || 0) * (a.quantidade || 0),
+    0,
+  );
+  const custoEmEstoque = aparelhosEmEstoque.reduce(
+    (s: number, a: any) => s + Number(a.custo) * (a.quantidade || 0),
+    0,
+  );
+  const lucroPotencial = Math.max(0, valorVenda - custoEmEstoque);
   const lotesBaixoEstoque = aparelhos.filter(
     (a: any) =>
       getStatusCategoria(a.status, statusCatalogo) === "em_estoque" &&
@@ -215,7 +232,7 @@ export default function AtacadoAparelhos() {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(a);
     }
-    return Array.from(map.entries()).map(([key, itens]) => {
+    const lista = Array.from(map.entries()).map(([key, itens]) => {
       const qtd = itens.reduce((s, i) => s + (i.quantidade || 0), 0);
       const custoMedio =
         itens.reduce((s, i) => s + Number(i.custo) * i.quantidade, 0) /
@@ -226,9 +243,43 @@ export default function AtacadoAparelhos() {
           (m, i) => Math.min(m, Number(i.preco_sugerido)),
           Number.POSITIVE_INFINITY,
         );
-      return { key, itens, qtd, custoMedio, precoMin };
+      const emEstoque = itens.filter(
+        (i) => getStatusCategoria(i.status, statusCatalogo) === "em_estoque",
+      );
+      const qtdEmEstoque = emEstoque.reduce(
+        (s, i) => s + (i.quantidade || 0),
+        0,
+      );
+      const valorVendavel = emEstoque.reduce(
+        (s, i) =>
+          s + (Number(i.preco_sugerido ?? 0) || 0) * (i.quantidade || 0),
+        0,
+      );
+      const custoTotalGrupo = itens.reduce(
+        (s, i) => s + Number(i.custo) * (i.quantidade || 0),
+        0,
+      );
+      const ticketMedio =
+        qtdEmEstoque > 0 ? valorVendavel / qtdEmEstoque : 0;
+      return {
+        key,
+        itens,
+        qtd,
+        qtdEmEstoque,
+        custoMedio,
+        precoMin,
+        valorVendavel,
+        custoTotalGrupo,
+        ticketMedio,
+      };
     });
-  }, [aparelhos]);
+    lista.sort((a, b) =>
+      grupoSort === "valor"
+        ? b.valorVendavel - a.valorVendavel
+        : b.qtdEmEstoque - a.qtdEmEstoque,
+    );
+    return lista;
+  }, [aparelhos, statusCatalogo, grupoSort]);
 
   const toggleGrupo = (key: string) => {
     setExpandidos((prev) => {
@@ -291,7 +342,6 @@ export default function AtacadoAparelhos() {
     const cat = getStatusCategoria(a.status, statusCatalogo);
     const baixo = cat === "em_estoque" && a.quantidade <= 2;
     const lento = cat === "em_estoque" && diasParado > 30;
-    const imeiTail = a.imei_1 ? `· IMEI …${String(a.imei_1).slice(-4)}` : "";
     const assist = Number(assistMap[a.id] ?? 0);
     return (
       <tr
@@ -303,10 +353,15 @@ export default function AtacadoAparelhos() {
           <p className="font-medium text-foreground">
             {a.modelo} {a.capacidade ?? ""} {a.cor ?? ""}
           </p>
-          <p className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+          <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
             <span>{a.fornecedor?.nome ?? "—"}</span>
-            {imeiTail && <span className="font-mono">{imeiTail}</span>}
-            {a.data_entrada && <span>· há {diasParado}d</span>}
+            {a.imei_1 && (
+              <span className="inline-flex items-center gap-1 font-mono">
+                · IMEI {a.imei_1}
+                <CopyImei value={a.imei_1} />
+              </span>
+            )}
+            {a.data_entrada && <span>· há {diasParado}d em estoque</span>}
             {assist > 0 && (
               <span className="text-warning">· +{formatBRL(assist)} assist.</span>
             )}
@@ -413,10 +468,16 @@ export default function AtacadoAparelhos() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiBox label="Lotes" valor={String(totalLotes)} />
           <KpiBox label="Unidades" valor={String(totalUnidades)} />
-          <KpiBox label="Valor estocado" valor={formatBRL(valorEstoque)} />
+          <KpiBox label="Valor estocado (custo)" valor={formatBRL(valorEstoque)} />
+          <KpiBox label="Valor de venda em estoque" valor={formatBRL(valorVenda)} />
+          <KpiBox
+            label="Lucro potencial"
+            valor={formatBRL(lucroPotencial)}
+            success={lucroPotencial > 0}
+          />
           <KpiBox
             label="Estoque baixo"
             valor={String(lotesBaixoEstoque)}
@@ -531,42 +592,71 @@ export default function AtacadoAparelhos() {
             )}
 
             {aparelhos.length > 0 && viewMode === "modelo" && (
-              <div className="border rounded-lg overflow-hidden bg-card divide-y">
-                {grupos.map((g) => {
-                  const open = expandidos.has(g.key);
-                  const [modelo, capacidade, cor] = g.key.split("|");
-                  return (
-                    <div key={g.key}>
-                      <button
-                        type="button"
-                        onClick={() => toggleGrupo(g.key)}
-                        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ChevronRight
-                            className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
-                          />
-                          <div>
-                            <p className="font-medium text-foreground text-sm">
-                              {modelo} {capacidade} {cor}
+              <div className="space-y-3">
+                <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+                  Ordenar por:
+                  <Select
+                    value={grupoSort}
+                    onValueChange={(v) => setGrupoSort(v as "valor" | "qtd")}
+                  >
+                    <SelectTrigger className="h-8 w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="valor">Valor de venda</SelectItem>
+                      <SelectItem value="qtd">Quantidade em estoque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="border rounded-lg overflow-hidden bg-card divide-y">
+                  {grupos.map((g) => {
+                    const open = expandidos.has(g.key);
+                    const [modelo, capacidade, cor] = g.key.split("|");
+                    return (
+                      <div key={g.key}>
+                        <button
+                          type="button"
+                          onClick={() => toggleGrupo(g.key)}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ChevronRight
+                              className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`}
+                            />
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground text-sm truncate">
+                                {modelo} {capacidade} {cor}{" "}
+                                <span className="text-muted-foreground font-normal">
+                                  · {g.qtdEmEstoque} un em estoque
+                                </span>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                custo médio {formatBRL(g.custoMedio)}
+                                {g.ticketMedio > 0 &&
+                                  ` · ticket médio ${formatBRL(g.ticketMedio)}`}
+                                {Number.isFinite(g.precoMin) &&
+                                  ` · a partir de ${formatBRL(g.precoMin)}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm font-semibold text-success tabular-nums">
+                              {formatBRL(g.valorVendavel)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {g.qtd} em estoque · custo médio {formatBRL(g.custoMedio)}
-                              {Number.isFinite(g.precoMin) &&
-                                ` · a partir de ${formatBRL(g.precoMin)}`}
+                            <p className="text-[10px] text-muted-foreground">
+                              vendável · {g.itens.length} lote{g.itens.length > 1 ? "s" : ""}
                             </p>
                           </div>
-                        </div>
-                        <Badge variant="outline">{g.itens.length} unid.</Badge>
-                      </button>
-                      {open && (
-                        <table className="w-full text-sm bg-muted/10">
-                          <tbody>{g.itens.map((a: any) => renderLinha(a))}</tbody>
-                        </table>
-                      )}
-                    </div>
-                  );
-                })}
+                        </button>
+                        {open && (
+                          <table className="w-full text-sm bg-muted/10">
+                            <tbody>{g.itens.map((a: any) => renderLinha(a))}</tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -620,25 +710,54 @@ function KpiBox({
   label,
   valor,
   danger,
+  success,
 }: {
   label: string;
   valor: string;
   danger?: boolean;
+  success?: boolean;
 }) {
   return (
     <div
       className={`border rounded-lg p-3 ${
-        danger ? "border-warning/30 bg-warning/5" : "bg-card"
+        danger
+          ? "border-warning/30 bg-warning/5"
+          : success
+          ? "border-success/30 bg-success/5"
+          : "bg-card"
       }`}
     >
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
         className={`text-lg font-semibold tabular-nums ${
-          danger ? "text-warning" : "text-foreground"
+          danger ? "text-warning" : success ? "text-success" : "text-foreground"
         }`}
       >
         {valor}
       </p>
     </div>
+  );
+}
+
+function CopyImei({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="text-muted-foreground hover:text-foreground transition-colors"
+      aria-label="Copiar IMEI"
+    >
+      {copied ? (
+        <Check className="h-3 w-3 text-success" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </button>
   );
 }
