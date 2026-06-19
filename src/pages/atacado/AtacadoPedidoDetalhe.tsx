@@ -15,7 +15,7 @@ import {
   RotateCcw,
   Loader2,
 } from "lucide-react";
-import { formatBRL, maskCNPJ } from "@/lib/utils";
+import { formatBRL, maskCNPJ, maskIMEI } from "@/lib/utils";
 import {
   calcularStatusPagamento,
   labelStatusPagamento,
@@ -31,12 +31,17 @@ const STATUS_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+function fmtDate(d?: string | null) {
+  return d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+}
+
 export default function AtacadoPedidoDetalhe() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
   const perms = usePermissoesAtacado();
+  const podeVerCusto = perms.podeVerFinanceiro;
 
   const { data: pedido, isLoading } = useQuery({
     queryKey: ["atacado-pedido-detalhe", id],
@@ -48,7 +53,7 @@ export default function AtacadoPedidoDetalhe() {
           cliente:atacado_clientes(*),
           vendedor:funcionarios!vendedor_id(nome),
           aprovador:funcionarios!aprovado_por(nome),
-          itens:atacado_pedidos_itens(*),
+          itens:atacado_pedidos_itens(*, aparelho:atacado_aparelhos(id, imei_1, imei_2, custo, grade, condicao)),
           pagamentos:atacado_pedidos_pagamentos(*),
           historico:atacado_pedidos_historico(*, funcionario:funcionarios!funcionario_id(nome))`
         )
@@ -107,6 +112,29 @@ export default function AtacadoPedidoDetalhe() {
   }
 
   const p: any = pedido;
+  const itens: any[] = p.itens ?? [];
+  const pagamentos: any[] = p.pagamentos ?? [];
+
+  // Rentabilidade
+  const custoTotal = itens.reduce((acc, it) => {
+    const custoUn = Number(it.aparelho?.custo ?? 0);
+    return acc + custoUn * Number(it.quantidade ?? 0);
+  }, 0);
+  const totalVenda = Number(p.total ?? 0);
+  const lucro = totalVenda - custoTotal;
+  const markup = custoTotal > 0 ? (lucro / custoTotal) * 100 : 0;
+  const margem = totalVenda > 0 ? (lucro / totalVenda) * 100 : 0;
+
+  // Pagamento
+  const ativas = pagamentos.filter((pg) => pg.status !== "cancelado");
+  const totalPago = ativas
+    .filter((pg) => pg.status === "pago")
+    .reduce((a, pg) => a + Number(pg.valor ?? 0), 0);
+  const saldoAberto = Math.max(0, totalVenda - totalPago);
+  const proxima = ativas
+    .filter((pg) => pg.status !== "pago" && pg.vencimento)
+    .sort((a, b) => (a.vencimento ?? "").localeCompare(b.vencimento ?? ""))[0];
+  const sp = calcularStatusPagamento(pagamentos as any);
 
   return (
     <div className="p-6 space-y-6">
@@ -125,22 +153,18 @@ export default function AtacadoPedidoDetalhe() {
             #P-{String(p.numero_pedido).padStart(6, "0")}
           </h1>
           <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1 flex-wrap">
-            <span>{new Date(p.created_at).toLocaleDateString("pt-BR")}</span>
+            <span>{fmtDate(p.created_at)}</span>
             <span>·</span>
             <span>{p.vendedor?.nome ?? "—"}</span>
             <span>·</span>
             <Badge variant="outline">
               {STATUS_LABEL[p.status] ?? p.status}
             </Badge>
-            {(() => {
-              const sp = calcularStatusPagamento(p.pagamentos as any);
-              if (sp === "sem_pagamentos") return null;
-              return (
-                <Badge variant="outline" className={classesStatusPagamento(sp)}>
-                  {labelStatusPagamento(sp)}
-                </Badge>
-              );
-            })()}
+            {sp !== "sem_pagamentos" && (
+              <Badge variant="outline" className={classesStatusPagamento(sp)}>
+                {labelStatusPagamento(sp)}
+              </Badge>
+            )}
             {p.nfe_numero && (
               <>
                 <span>·</span>
@@ -151,11 +175,80 @@ export default function AtacadoPedidoDetalhe() {
         </div>
         <div className="text-right">
           <div className="text-xs uppercase text-muted-foreground">Total</div>
-          <div className="text-2xl font-bold">
-            {formatBRL(Number(p.total))}
+          <div className="text-2xl font-bold">{formatBRL(totalVenda)}</div>
+          {Number(p.desconto) > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Subtotal {formatBRL(Number(p.subtotal))} − desconto {formatBRL(Number(p.desconto))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Cards de resumo */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {podeVerCusto && (
+          <div className="border rounded-lg p-3 space-y-1">
+            <div className="text-xs uppercase text-muted-foreground">Rentabilidade</div>
+            <div className="text-sm">Custo: <span className="font-medium">{formatBRL(custoTotal)}</span></div>
+            <div className="text-sm">
+              Lucro:{" "}
+              <span className={`font-medium ${lucro >= 0 ? "text-success" : "text-destructive"}`}>
+                {formatBRL(lucro)}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Markup {markup.toFixed(1)}% · Margem {margem.toFixed(1)}%
+            </div>
+          </div>
+        )}
+
+        <div className="border rounded-lg p-3 space-y-1">
+          <div className="text-xs uppercase text-muted-foreground">Pagamento</div>
+          <div className="text-sm">Pago: <span className="font-medium">{formatBRL(totalPago)}</span></div>
+          <div className="text-sm">Saldo: <span className="font-medium">{formatBRL(saldoAberto)}</span></div>
+          {proxima && (
+            <div className="text-xs text-muted-foreground">
+              Próx. venc: {fmtDate(proxima.vencimento)} · {formatBRL(Number(proxima.valor))}
+            </div>
+          )}
+          {p.condicao_pagamento && (
+            <div className="text-xs text-muted-foreground">Condição: {p.condicao_pagamento}</div>
+          )}
+        </div>
+
+        <div className="border rounded-lg p-3 space-y-1">
+          <div className="text-xs uppercase text-muted-foreground">Cliente</div>
+          <div className="text-sm font-medium truncate">{p.cliente?.razao_social ?? "—"}</div>
+          <div className="text-xs text-muted-foreground">
+            {p.cliente?.cnpj ? maskCNPJ(p.cliente.cnpj) : "—"}
+          </div>
+          {p.cliente?.limite_credito != null && (
+            <div className="text-xs text-muted-foreground">
+              Limite {formatBRL(Number(p.cliente.limite_credito))}
+              {p.cliente?.prazo_pagamento_padrao
+                ? ` · ${p.cliente.prazo_pagamento_padrao}d`
+                : ""}
+            </div>
+          )}
+        </div>
+
+        <div className="border rounded-lg p-3 space-y-1">
+          <div className="text-xs uppercase text-muted-foreground">Datas / NF-e</div>
+          <div className="text-xs">Pedido: {fmtDate(p.created_at)}</div>
+          <div className="text-xs">Aprovado: {fmtDate(p.aprovado_em)}</div>
+          <div className="text-xs">Faturado: {fmtDate(p.faturado_em)}</div>
+          <div className="text-xs">
+            NF-e: {p.nfe_numero ? `${p.nfe_numero}` : "pendente"}
           </div>
         </div>
       </div>
+
+      {p.observacoes && (
+        <div className="border rounded-lg p-3 text-sm">
+          <div className="text-xs uppercase text-muted-foreground mb-1">Observações</div>
+          {p.observacoes}
+        </div>
+      )}
 
       {/* Ações */}
       <div className="flex flex-wrap gap-2">
@@ -183,9 +276,7 @@ export default function AtacadoPedidoDetalhe() {
         )}
         {p.status === "aprovado" && (
           <>
-            <Button
-              onClick={() => mudarStatus.mutate({ novoStatus: "faturado" })}
-            >
+            <Button onClick={() => mudarStatus.mutate({ novoStatus: "faturado" })}>
               <FileText className="h-4 w-4 mr-2" /> Faturar
             </Button>
             <Button
@@ -214,11 +305,9 @@ export default function AtacadoPedidoDetalhe() {
 
       <Tabs defaultValue="itens">
         <TabsList>
-          <TabsTrigger value="itens">
-            Itens ({p.itens?.length ?? 0})
-          </TabsTrigger>
+          <TabsTrigger value="itens">Itens ({itens.length})</TabsTrigger>
           <TabsTrigger value="pagamentos">
-            Pagamentos ({p.pagamentos?.length ?? 0})
+            Pagamentos ({pagamentos.length})
           </TabsTrigger>
           <TabsTrigger value="cliente">Cliente</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
@@ -230,28 +319,59 @@ export default function AtacadoPedidoDetalhe() {
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="text-left px-4 py-2">Produto</th>
+                  <th className="text-left px-4 py-2">IMEI</th>
                   <th className="text-right px-4 py-2">Qtd</th>
+                  {podeVerCusto && <th className="text-right px-4 py-2">Custo un.</th>}
                   <th className="text-right px-4 py-2">Preço un.</th>
+                  {podeVerCusto && <th className="text-right px-4 py-2">Lucro</th>}
                   <th className="text-right px-4 py-2">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {p.itens?.map((it: any) => (
-                  <tr key={it.id} className="border-t">
-                    <td className="px-4 py-3">
-                      {it.modelo}{" "}
-                      {it.capacidade ? `· ${it.capacidade}` : ""}{" "}
-                      {it.cor ? `· ${it.cor}` : ""}
-                    </td>
-                    <td className="px-4 py-3 text-right">{it.quantidade}</td>
-                    <td className="px-4 py-3 text-right">
-                      {formatBRL(Number(it.preco_unitario))}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">
-                      {formatBRL(Number(it.total_item))}
-                    </td>
-                  </tr>
-                ))}
+                {itens.map((it: any) => {
+                  const qtd = Number(it.quantidade ?? 0);
+                  const preco = Number(it.preco_unitario ?? 0);
+                  const custoUn = Number(it.aparelho?.custo ?? 0);
+                  const totalItem = Number(it.total_item ?? preco * qtd);
+                  const lucroItem = (preco - custoUn) * qtd;
+                  const margemItem = preco > 0 ? ((preco - custoUn) / preco) * 100 : 0;
+                  const imei = it.aparelho?.imei_1;
+                  return (
+                    <tr key={it.id} className="border-t align-top">
+                      <td className="px-4 py-3">
+                        <div>{it.modelo}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {[it.capacidade, it.cor, it.aparelho?.grade, it.aparelho?.condicao]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {imei ? maskIMEI(imei) : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right">{qtd}</td>
+                      {podeVerCusto && (
+                        <td className="px-4 py-3 text-right text-muted-foreground">
+                          {custoUn > 0 ? formatBRL(custoUn) : "—"}
+                        </td>
+                      )}
+                      <td className="px-4 py-3 text-right">{formatBRL(preco)}</td>
+                      {podeVerCusto && (
+                        <td className="px-4 py-3 text-right">
+                          <div className={lucroItem >= 0 ? "text-success" : "text-destructive"}>
+                            {formatBRL(lucroItem)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {margemItem.toFixed(1)}%
+                          </div>
+                        </td>
+                      )}
+                      <td className="px-4 py-3 text-right font-medium">
+                        {formatBRL(totalItem)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -268,14 +388,32 @@ export default function AtacadoPedidoDetalhe() {
             )}
             <div className="flex justify-between font-bold text-base pt-2 border-t">
               <span>Total</span>
-              <span>{formatBRL(Number(p.total))}</span>
+              <span>{formatBRL(totalVenda)}</span>
             </div>
+            {podeVerCusto && (
+              <>
+                <div className="flex justify-between text-muted-foreground pt-2">
+                  <span>Custo total</span>
+                  <span>{formatBRL(custoTotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Lucro</span>
+                  <span className={lucro >= 0 ? "text-success" : "text-destructive"}>
+                    {formatBRL(lucro)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Markup / Margem</span>
+                  <span>{markup.toFixed(1)}% / {margem.toFixed(1)}%</span>
+                </div>
+              </>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="pagamentos" className="space-y-2">
-          {p.pagamentos?.length ? (
-            p.pagamentos.map((pg: any) => (
+          {pagamentos.length ? (
+            pagamentos.map((pg: any) => (
               <div
                 key={pg.id}
                 className="border rounded-lg p-3 flex items-center justify-between"
@@ -285,19 +423,14 @@ export default function AtacadoPedidoDetalhe() {
                     Parcela {pg.parcela}/{pg.total_parcelas} · {pg.forma}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Venc:{" "}
-                    {pg.vencimento
-                      ? new Date(pg.vencimento).toLocaleDateString("pt-BR")
-                      : "—"}
+                    Venc: {fmtDate(pg.vencimento)}
                   </div>
                 </div>
                 <div className="text-right space-y-1">
-                  <div className="font-medium">
-                    {formatBRL(Number(pg.valor))}
-                  </div>
+                  <div className="font-medium">{formatBRL(Number(pg.valor))}</div>
                   <Badge variant="outline">
                     {pg.status}
-                    {pg.pago_em ? ` · ${new Date(pg.pago_em).toLocaleDateString("pt-BR")}` : ""}
+                    {pg.pago_em ? ` · ${fmtDate(pg.pago_em)}` : ""}
                   </Badge>
                   {pg.status !== "pago" && pg.status !== "cancelado" && (
                     <div>
@@ -322,19 +455,19 @@ export default function AtacadoPedidoDetalhe() {
         </TabsContent>
 
         <TabsContent value="cliente" className="space-y-1 text-sm">
-          <div className="font-semibold text-base">
-            {p.cliente?.razao_social}
-          </div>
-          <div>
-            CNPJ: {p.cliente?.cnpj ? maskCNPJ(p.cliente.cnpj) : "—"}
-          </div>
+          <div className="font-semibold text-base">{p.cliente?.razao_social}</div>
+          <div>CNPJ: {p.cliente?.cnpj ? maskCNPJ(p.cliente.cnpj) : "—"}</div>
           <div>IE: {p.cliente?.inscricao_estadual ?? "—"}</div>
           <div>Tel: {p.cliente?.telefone ?? "—"}</div>
           <div>Email: {p.cliente?.email ?? "—"}</div>
           <div>
+            Limite: {formatBRL(Number(p.cliente?.limite_credito ?? 0))} · Prazo:{" "}
+            {p.cliente?.prazo_pagamento_padrao ?? "—"}d
+          </div>
+          <div>
             Endereço: {p.cliente?.endereco ?? "—"}
             {p.cliente?.numero ? `, ${p.cliente.numero}` : ""} ·{" "}
-            {p.cliente?.cidade ?? "—"}/{p.cliente?.uf ?? p.cliente?.estado ?? "—"}
+            {p.cliente?.cidade ?? "—"}/{p.cliente?.uf ?? "—"}
           </div>
           {p.cliente?.id && (
             <Link
@@ -348,9 +481,7 @@ export default function AtacadoPedidoDetalhe() {
 
         <TabsContent value="historico" className="space-y-2">
           {!p.historico?.length ? (
-            <p className="text-sm text-muted-foreground">
-              Sem histórico ainda.
-            </p>
+            <p className="text-sm text-muted-foreground">Sem histórico ainda.</p>
           ) : (
             [...p.historico]
               .sort(
