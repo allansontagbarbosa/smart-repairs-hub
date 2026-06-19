@@ -27,6 +27,7 @@ import {
   useAtacadoCadastroDados,
   CURRENCIES_ISO,
 } from "@/hooks/useAtacadoCadastroDados";
+import { buscarStatusSimilar } from "@/lib/atacadoStatus";
 
 type Item = { id: string; nome: string; ativo?: boolean; extra?: string };
 type Lista = {
