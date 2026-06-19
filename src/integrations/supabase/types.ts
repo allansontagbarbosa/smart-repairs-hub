@@ -1544,6 +1544,7 @@ export type Database = {
           empresa_id: string
           id: string
           nome: string
+          nome_normalizado: string | null
           ordem: number | null
           sistema: boolean | null
         }
@@ -1555,6 +1556,7 @@ export type Database = {
           empresa_id: string
           id?: string
           nome: string
+          nome_normalizado?: string | null
           ordem?: number | null
           sistema?: boolean | null
         }
@@ -1566,6 +1568,7 @@ export type Database = {
           empresa_id?: string
           id?: string
           nome?: string
+          nome_normalizado?: string | null
           ordem?: number | null
           sistema?: boolean | null
         }
@@ -9659,12 +9662,10 @@ export type Database = {
         Args: { p_codigo?: string; p_nome: string }
         Returns: string
       }
-      atacado_add_status:
-        | { Args: { p_cor?: string; p_nome: string }; Returns: string }
-        | {
-            Args: { p_categoria?: string; p_cor?: string; p_nome: string }
-            Returns: string
-          }
+      atacado_add_status: {
+        Args: { p_categoria?: string; p_cor?: string; p_nome: string }
+        Returns: string
+      }
       atacado_add_tipo_assistencia: {
         Args: { p_nome: string; p_valor?: number }
         Returns: string
@@ -9859,6 +9860,17 @@ export type Database = {
         Args: { p_modelo_id: string; p_tipo_id: string; p_valor: number }
         Returns: string
       }
+      atacado_status_buscar_similar: {
+        Args: { p_min_sim?: number; p_nome: string }
+        Returns: {
+          categoria: string
+          id: string
+          is_exato: boolean
+          nome: string
+          similaridade: number
+        }[]
+      }
+      atacado_status_norm: { Args: { p: string }; Returns: string }
       atacado_top_clientes: {
         Args: {
           p_empresa_id: string
@@ -10944,6 +10956,8 @@ export type Database = {
         }
         Returns: Json
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       socio_retirada_aprovar: { Args: { p_id: string }; Returns: Json }
       socio_retirada_cancelar: {
         Args: { p_id: string; p_motivo?: string }
