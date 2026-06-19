@@ -44,6 +44,7 @@ import {
 } from "@/components/atacado/AtacadoStatusBadge";
 import { AtacadoAparelhoDetalheSheet } from "@/components/atacado/AtacadoAparelhoDetalheSheet";
 import { AtacadoAparelhoAcoesMenu } from "@/components/atacado/AtacadoAparelhoAcoesMenu";
+import { computeInventarioKpis } from "@/lib/atacadoInventarioKpis";
 
 function useDebounced<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
