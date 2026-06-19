@@ -34,12 +34,25 @@ export default function AtacadoCatalogoPublico() {
       const { data, error } = await supabase
         .from("atacado_configuracoes" as any)
         .select(
-          "catalogo_publico_ativo, catalogo_publico_slug, catalogo_publico_titulo, catalogo_publico_descricao"
+          "catalogo_publico_ativo, catalogo_publico_slug, catalogo_publico_titulo, catalogo_publico_descricao, catalogo_modo, catalogo_whatsapp, catalogo_whatsapp_mensagem, catalogo_preco_publico_origem, catalogo_tabela_preco_publica_id"
         )
         .eq("empresa_id", empresaId!)
         .maybeSingle();
       if (error) throw error;
       return (data as any) ?? {};
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: tabelas = [] } = useQuery({
+    queryKey: ["atacado-tabelas-preco-catalogo", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_tabelas_preco")
+        .select("id, nome")
+        .eq("empresa_id", empresaId!)
+        .order("nome");
+      return data ?? [];
     },
     enabled: !!empresaId,
   });
