@@ -102,6 +102,29 @@ export function AssistenciasPorModelo() {
     carregar();
   };
 
+  const handleCriarVincular = async () => {
+    if (!modeloId) return;
+    const nome = novoNome.trim();
+    if (!nome) {
+      toast.error("Informe o nome da assistência");
+      return;
+    }
+    const valor = parseFloat(novoValor.replace(",", ".")) || 0;
+    setCriandoNova(true);
+    const { error } = await supabase.rpc("atacado_criar_assist_e_vincular" as any, {
+      p_modelo_id: modeloId,
+      p_nome: nome,
+      p_valor: valor,
+    });
+    setCriandoNova(false);
+    if (error) return toast.error("Erro ao criar", { description: error.message });
+    toast.success("Assistência criada e vinculada");
+    setNovoNome("");
+    setNovoValor("");
+    carregar();
+  };
+
+
   const handleSalvarEdit = async (tipoId: string) => {
     const valor = parseFloat(valorEdit.replace(",", ".")) || 0;
     const { error } = await supabase.rpc("atacado_set_assist_modelo" as any, {
