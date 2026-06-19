@@ -722,6 +722,7 @@ interface GrupoAberto {
   condicao: string | null;
   quantidade: number;
   preco_publico: number | null;
+  imagem_url: string | null;
 }
 interface ItemAberto {
   grupo_key: string;
