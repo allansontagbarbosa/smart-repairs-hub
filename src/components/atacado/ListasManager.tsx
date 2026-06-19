@@ -219,11 +219,40 @@ export function ListasManager() {
     if (!nome) return;
     setSavingKey(lista.key);
     try {
+      // Status: bloqueia duplicados (caixa/acento/espaço) e sugere parecidos
+      if (lista.key === "status") {
+        const similares = await buscarStatusSimilar(nome, 0.6);
+        const exato = similares.find((s) => s.is_exato);
+        if (exato) {
+          toast.info(`Já existe o status "${exato.nome}" — usando ele.`);
+          setInputs((s) => ({ ...s, [lista.key]: "" }));
+          return;
+        }
+        const parecido = similares[0];
+        if (parecido && parecido.similaridade >= 0.6) {
+          const usar = window.confirm(
+            `Parecido com "${parecido.nome}". Clique em OK para usar o existente, ou Cancelar para criar "${nome}" mesmo assim.`,
+          );
+          if (usar) {
+            toast.info(`Usando status existente "${parecido.nome}".`);
+            setInputs((s) => ({ ...s, [lista.key]: "" }));
+            return;
+          }
+        }
+      }
+
       await lista.add(nome);
       setInputs((s) => ({ ...s, [lista.key]: "" }));
       toast.success(`${lista.label}: "${nome}" adicionado`);
     } catch (e: any) {
-      toast.error("Erro ao adicionar", { description: e.message });
+      const msg = String(e?.message || "");
+      if (/uq_atacado_status_norm|duplicate key/i.test(msg)) {
+        toast.error("Status já existe", {
+          description: "Já existe um status equivalente (variação de caixa/acento).",
+        });
+      } else {
+        toast.error("Erro ao adicionar", { description: e.message });
+      }
     } finally {
       setSavingKey(null);
     }
