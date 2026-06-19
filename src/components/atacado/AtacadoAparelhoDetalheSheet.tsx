@@ -81,7 +81,6 @@ export function AtacadoAparelhoDetalheSheet({
   const navigate = useNavigate();
   const [novoStatus, setNovoStatus] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   const { data: aparelho, isLoading } = useQuery({
     queryKey: ["atacado-aparelho-detalhe", aparelhoId],
