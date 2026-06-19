@@ -479,6 +479,42 @@ export function EditarAparelhoDialog({
               onChange={(e) => setForm({ ...form, data_entrada: e.target.value })}
             />
           </div>
+          <div>
+            <Label className="text-xs">IMEI 1</Label>
+            <Input
+              value={form.imei_1}
+              onChange={(e) => setForm({ ...form, imei_1: e.target.value })}
+              placeholder="—"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">IMEI 2</Label>
+            <Input
+              value={form.imei_2}
+              onChange={(e) => setForm({ ...form, imei_2: e.target.value })}
+              placeholder="—"
+            />
+          </div>
+          {statusCatalogo && statusCatalogo.length > 0 && (
+            <div className="col-span-2">
+              <Label className="text-xs">Status</Label>
+              <Select
+                value={form.status}
+                onValueChange={(v) => setForm({ ...form, status: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusCatalogo.map((s) => (
+                    <SelectItem key={s.nome} value={s.nome}>
+                      {s.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="col-span-2">
             <Label className="text-xs">Observações</Label>
             <Textarea
