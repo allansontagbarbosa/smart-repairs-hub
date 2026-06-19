@@ -742,6 +742,10 @@ function CatalogoAberto({ slug, config }: { slug: string; config: any }) {
   const [nome, setNome] = useState("");
   const [loja, setLoja] = useState("");
   const [contato, setContato] = useState("");
+  const [tab, setTab] = useState<"catalogo" | "ofertas">("catalogo");
+  const [ofertaGrupo, setOfertaGrupo] = useState<GrupoOferta | null>(null);
+  const [tokens, setTokens] = useState<string[]>(() => getTokensLocal(slug));
+  const refreshTokens = () => setTokens(getTokensLocal(slug));
 
   const aparelhosQuery = useQuery({
     queryKey: ["catalogo-aberto", slug],
