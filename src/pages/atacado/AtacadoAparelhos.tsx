@@ -225,6 +225,12 @@ export default function AtacadoAparelhos() {
       a.quantidade <= 2,
   ).length;
 
+  // KPIs do inventário inteiro (todos os aparelhos não-vendidos)
+  const invKpis = useMemo(
+    () => computeInventarioKpis(aparelhosRaw, statusCatalogo),
+    [aparelhosRaw, statusCatalogo],
+  );
+
   // Agrupado por modelo
   const grupos = useMemo(() => {
     const map = new Map<string, any[]>();
