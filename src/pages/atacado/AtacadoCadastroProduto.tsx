@@ -81,7 +81,9 @@ export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const duplicarId = searchParams.get("duplicar");
+  const editarId = searchParams.get("editar");
   const modoDuplicar = !!duplicarId;
+  const modoEditar = !!editarId;
   const qc = useQueryClient();
   const { empresaId } = useEmpresa();
   const {
