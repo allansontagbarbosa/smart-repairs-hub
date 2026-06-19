@@ -1153,10 +1153,10 @@ export default function AtacadoCadastroProduto() {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-base font-semibold text-foreground">
-            {modoDuplicar ? "Aparelho duplicado" : "Aparelhos do lote"}
+            {modoEditar ? "Aparelho" : modoDuplicar ? "Aparelho duplicado" : "Aparelhos do lote"}
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            {!modoDuplicar && (
+            {!modoDuplicar && !modoEditar && (
               <>
                 <Label className="text-xs">Quantidade</Label>
                 <Input
