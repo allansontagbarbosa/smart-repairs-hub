@@ -1377,7 +1377,7 @@ export default function AtacadoCadastroProduto() {
           <div className="flex items-center gap-2 text-sm">
             <Package className="h-4 w-4 text-primary" />
             <span className="font-semibold text-foreground">
-              Lote · {unidades.length} un
+              {modoEditar ? "Editando · 1 un" : `Lote · ${unidades.length} un`}
             </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-sm flex-1 min-w-0">
@@ -1397,7 +1397,7 @@ export default function AtacadoCadastroProduto() {
           </div>
           <Button onClick={() => handleSalvar()} disabled={salvando} size="sm">
             {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-            {modoDuplicar ? "Salvar" : `Cadastrar ${unidades.length}`}
+            {modoEditar ? "Salvar" : modoDuplicar ? "Salvar" : `Cadastrar ${unidades.length}`}
           </Button>
         </div>
       </div>
