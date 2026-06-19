@@ -291,6 +291,10 @@ export default function AtacadoCatalogoPublico() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="imagens" className="mt-3">
+          <CatalogoImagensTab />
+        </TabsContent>
+
         <TabsContent value="acessos">
           <Card className="p-5 mt-3">
             <div className="flex items-center justify-between mb-3">
