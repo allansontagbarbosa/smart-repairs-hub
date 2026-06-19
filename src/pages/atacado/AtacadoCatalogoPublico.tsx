@@ -19,6 +19,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import CatalogoImagensTab from "./CatalogoImagensTab";
 
 type Cfg = Record<string, any>;
 
@@ -132,6 +133,7 @@ export default function AtacadoCatalogoPublico() {
       <Tabs defaultValue="config">
         <TabsList>
           <TabsTrigger value="config">Configurações</TabsTrigger>
+          <TabsTrigger value="imagens">Imagens</TabsTrigger>
           <TabsTrigger value="acessos">Acessos ({acessos.length})</TabsTrigger>
         </TabsList>
 
