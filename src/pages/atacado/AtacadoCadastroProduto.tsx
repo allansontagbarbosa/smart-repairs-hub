@@ -258,7 +258,14 @@ export default function AtacadoCadastroProduto() {
       hydratingRef.current = true;
 
       if (invoice) {
-        setImportado(!!invoice.importado);
+        // ATACADO-CAD-12: no modo EDITAR, NÃO reaplicar conversão US$×cotação+fretes.
+        // O banco só guarda o custo final em R$ (sem breakdown). Reusar moeda/cotação
+        // da invoice faria dupla conversão (R$ tratado como US$). Por isso, em edit,
+        // forçamos importado=false / moeda=BRL / cotacao vazio e não carregamos os
+        // custos da invoice — o usuário edita direto o "Custo final (R$)".
+        // Metadados informativos (fornecedor, nº, data, país) seguem preenchidos.
+        const editarComoBRL = modoEditar;
+        setImportado(editarComoBRL ? false : !!invoice.importado);
         setFornecedor(invoice.fornecedor ?? "");
         setNumero(invoice.numero ?? "");
         setDataCompra(
@@ -269,8 +276,8 @@ export default function AtacadoCadastroProduto() {
             : "",
         );
         setPaisOrigem(invoice.pais_origem ?? "");
-        setMoeda(invoice.moeda || "BRL");
-        setCotacao(invoice.cotacao != null ? String(invoice.cotacao) : "");
+        setMoeda(editarComoBRL ? "BRL" : (invoice.moeda || "BRL"));
+        setCotacao(editarComoBRL ? "" : (invoice.cotacao != null ? String(invoice.cotacao) : ""));
       } else if (modoEditar && aparelho.data_compra) {
         setDataCompra(new Date(aparelho.data_compra).toISOString().slice(0, 10));
       }
@@ -291,24 +298,27 @@ export default function AtacadoCadastroProduto() {
         0,
       );
       const custoBaseAp = Math.max(0, Number(aparelho.custo ?? 0) - somaAssistsAp);
-      // Recupera o custoProduto na moeda original (sem rateio de outros custos):
-      // aproximação — custoBase pode incluir frete/aduana; deixamos o usuário ver
-      // o que está em "Custo do produto" e os custos extras vêm da invoice.
       setCustoProduto(
         aparelho.custo != null ? String(custoBaseAp) : "",
       );
       setPrecoVenda(
         aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
       );
+      // ATACADO-CAD-12: em modo EDITAR, não carregar custos da invoice — o custo
+      // salvo em atacado_aparelhos.custo já inclui o rateio de frete/aduana/etc.
+      // Carregá-los aqui causaria dupla contagem no recálculo do rodapé.
       setCustos(
-        invoiceCustos.map((c) => ({
-          tipo: (c.tipo as CustoTipo) ?? "outro",
-          descricao: c.descricao ?? "",
-          modo: (c.modo as CustoModo) ?? "fixo",
-          valor: c.valor != null ? String(c.valor) : "",
-          moeda: c.moeda || "BRL",
-        })),
+        modoEditar
+          ? []
+          : invoiceCustos.map((c) => ({
+              tipo: (c.tipo as CustoTipo) ?? "outro",
+              descricao: c.descricao ?? "",
+              modo: (c.modo as CustoModo) ?? "fixo",
+              valor: c.valor != null ? String(c.valor) : "",
+              moeda: c.moeda || "BRL",
+            })),
       );
+
       setQuantidade(1);
       setUnidades([
         {
