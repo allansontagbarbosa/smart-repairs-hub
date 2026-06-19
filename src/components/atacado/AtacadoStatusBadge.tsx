@@ -13,10 +13,10 @@ export function getStatusCategoria(
   if (found?.categoria) return found.categoria;
   const low = String(s).toLowerCase();
   if (/(transit|transporte|caminho|envio)/.test(low)) return "em_transito";
+  if (/(assist|defeito|conserto|manut)/.test(low)) return "em_assistencia";
   if (/(reserv|separad|aguard)/.test(low)) return "reservado";
   if (/(vendid|baixad|entregue)/.test(low)) return "vendido";
   if (/(estoq|stoq|disponiv)/.test(low)) return "em_estoque";
-  if (/(assist|defeito|conserto|manut)/.test(low)) return "outro";
   return "em_estoque";
 }
 
@@ -25,6 +25,7 @@ const CLASSES: Record<string, string> = {
   reservado: "bg-warning/15 text-warning border-warning/30",
   vendido: "bg-muted text-muted-foreground border-border",
   em_transito: "bg-info/15 text-info border-info/30",
+  em_assistencia: "bg-orange-500/15 text-orange-600 border-orange-500/30",
   outro: "bg-muted/50 text-foreground border-border",
 };
 
@@ -33,6 +34,7 @@ const LABELS: Record<string, string> = {
   reservado: "Reservado",
   vendido: "Vendido",
   em_transito: "Em trânsito",
+  em_assistencia: "Na assistência",
 };
 
 export function statusLabel(

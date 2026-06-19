@@ -44,6 +44,7 @@ import {
 } from "@/components/atacado/AtacadoStatusBadge";
 import { AtacadoAparelhoDetalheSheet } from "@/components/atacado/AtacadoAparelhoDetalheSheet";
 import { AtacadoAparelhoAcoesMenu } from "@/components/atacado/AtacadoAparelhoAcoesMenu";
+import { computeInventarioKpis } from "@/lib/atacadoInventarioKpis";
 
 function useDebounced<T>(value: T, delay = 300): T {
   const [v, setV] = useState(value);
@@ -223,6 +224,12 @@ export default function AtacadoAparelhos() {
       getStatusCategoria(a.status, statusCatalogo) === "em_estoque" &&
       a.quantidade <= 2,
   ).length;
+
+  // KPIs do inventário inteiro (todos os aparelhos não-vendidos)
+  const invKpis = useMemo(
+    () => computeInventarioKpis(aparelhosRaw, statusCatalogo),
+    [aparelhosRaw, statusCatalogo],
+  );
 
   // Agrupado por modelo
   const grupos = useMemo(() => {
@@ -468,16 +475,62 @@ export default function AtacadoAparelhos() {
           </div>
         )}
 
+        {/* KPIs do inventário inteiro (estoque + transporte + assistência) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiBox label="Lotes" valor={String(totalLotes)} />
-          <KpiBox label="Unidades" valor={String(totalUnidades)} />
-          <KpiBox label="Valor estocado (custo)" valor={formatBRL(valorEstoque)} />
-          <KpiBox label="Valor de venda em estoque" valor={formatBRL(valorVenda)} />
           <KpiBox
-            label="Lucro potencial"
-            valor={formatBRL(lucroPotencial)}
-            success={lucroPotencial > 0}
+            label="Unidades no inventário"
+            valor={String(invKpis.unidades)}
+            hint={`${invKpis.totalAparelhosNaoVendidos} aparelhos não-vendidos`}
           />
+          <KpiBox
+            label="Custo total"
+            valor={formatBRL(invKpis.custoTotal)}
+          />
+          <KpiBox
+            label="Valor de venda total"
+            valor={formatBRL(invKpis.vendaTotal)}
+            hint="estoque + transporte + assistência"
+          />
+          <KpiBox
+            label="Lucro potencial total"
+            valor={formatBRL(invKpis.lucroPotencial)}
+            success={invKpis.lucroPotencial > 0}
+          />
+          <KpiBox
+            label="Lucro médio por aparelho"
+            valor={formatBRL(invKpis.lucroMedioPorAparelho)}
+          />
+          <KpiBox
+            label="Markup médio"
+            valor={`${invKpis.markupMedioPct.toFixed(1)}%`}
+            hint={`margem ${invKpis.margemMediaPct.toFixed(1)}%`}
+          />
+        </div>
+
+        {/* Valor por local */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <LocalCard
+            label="Em estoque"
+            color="text-success"
+            local={invKpis.porLocal.em_estoque}
+          />
+          <LocalCard
+            label="Em transporte"
+            color="text-info"
+            local={invKpis.porLocal.em_transito}
+          />
+          <LocalCard
+            label="Na assistência"
+            color="text-orange-600"
+            local={invKpis.porLocal.em_assistencia}
+          />
+        </div>
+
+        {/* KPIs auxiliares (filtro atual) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiBox label="Lotes (filtro)" valor={String(totalLotes)} />
+          <KpiBox label="Unidades (filtro)" valor={String(totalUnidades)} />
+          <KpiBox label="Valor de venda em estoque" valor={formatBRL(valorVenda)} />
           <KpiBox
             label="Estoque baixo"
             valor={String(lotesBaixoEstoque)}
@@ -711,11 +764,13 @@ function KpiBox({
   valor,
   danger,
   success,
+  hint,
 }: {
   label: string;
   valor: string;
   danger?: boolean;
   success?: boolean;
+  hint?: string;
 }) {
   return (
     <div
@@ -735,6 +790,34 @@ function KpiBox({
       >
         {valor}
       </p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>}
+    </div>
+  );
+}
+
+function LocalCard({
+  label,
+  color,
+  local,
+}: {
+  label: string;
+  color: string;
+  local: { unidades: number; custo: number; venda: number; lucro: number };
+}) {
+  return (
+    <div className="border rounded-lg p-3 bg-card">
+      <p className={`text-xs font-medium ${color}`}>{label}</p>
+      <p className="text-lg font-semibold tabular-nums text-foreground">
+        {local.unidades} <span className="text-xs font-normal text-muted-foreground">un</span>
+      </p>
+      <div className="mt-1.5 grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
+        <span>Custo</span>
+        <span className="text-right tabular-nums text-foreground">{formatBRL(local.custo)}</span>
+        <span>Venda</span>
+        <span className="text-right tabular-nums text-foreground">{formatBRL(local.venda)}</span>
+        <span>Lucro</span>
+        <span className="text-right tabular-nums text-success">{formatBRL(local.lucro)}</span>
+      </div>
     </div>
   );
 }

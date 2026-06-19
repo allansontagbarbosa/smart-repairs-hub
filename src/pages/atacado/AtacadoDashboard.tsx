@@ -23,6 +23,8 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { computeInventarioKpis } from "@/lib/atacadoInventarioKpis";
+import { getStatusCategoria } from "@/components/atacado/AtacadoStatusBadge";
 
 type Periodo = "hoje" | "este_mes" | "ultimos_30" | "este_ano";
 
@@ -77,7 +79,7 @@ export default function AtacadoDashboard() {
     enabled: !!empresaId,
   });
 
-  // Estoque (independente de vendas)
+  // Estoque (independente de vendas) — inventário inteiro
   const { data: estoqueAparelhos = [] } = useQuery({
     queryKey: ["atacado-dashboard-estoque", empresaId],
     queryFn: async () => {
@@ -85,26 +87,30 @@ export default function AtacadoDashboard() {
         .from("atacado_aparelhos" as any)
         .select("id, modelo, capacidade, custo, preco_sugerido, quantidade, status, data_entrada, data_compra")
         .eq("empresa_id", empresaId!)
-        .is("deleted_at", null)
-        .gt("quantidade", 0);
+        .is("deleted_at", null);
       return (data as any[]) ?? [];
     },
     enabled: !!empresaId,
   });
 
+  const { data: statusCatalogo = [] } = useQuery({
+    queryKey: ["atacado-status-catalogo", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_status_aparelho" as any)
+        .select("nome, categoria")
+        .eq("empresa_id", empresaId!);
+      return (data as any[]) ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const invKpis = computeInventarioKpis(estoqueAparelhos, statusCatalogo as any);
+
   const estoque = (() => {
-    const aps = estoqueAparelhos.filter((a: any) =>
-      ["estoque", "em_estoque", "disponivel", "STOQUE", "ESTOQUE", "DISPONIVEL"].some(
-        (s) => String(a.status ?? "").toLowerCase() === s.toLowerCase(),
-      ),
+    const aps = estoqueAparelhos.filter(
+      (a: any) => getStatusCategoria(a.status, statusCatalogo as any) === "em_estoque",
     );
-    const unidades = aps.reduce((s, a: any) => s + Number(a.quantidade || 0), 0);
-    const custoTotal = aps.reduce((s, a: any) => s + Number(a.custo || 0) * Number(a.quantidade || 0), 0);
-    const vendaTotal = aps.reduce(
-      (s, a: any) => s + Number(a.preco_sugerido || a.custo || 0) * Number(a.quantidade || 0),
-      0,
-    );
-    const lucroPotencial = vendaTotal - custoTotal;
     const agora = Date.now();
     const diasOf = (a: any) =>
       a.data_entrada ? Math.floor((agora - new Date(a.data_entrada).getTime()) / 86400000) : 0;
@@ -113,9 +119,10 @@ export default function AtacadoDashboard() {
       ? Math.round(aps.reduce((s, a: any) => s + diasOf(a), 0) / aps.length)
       : 0;
 
-    // Top modelos
+    // Top modelos (todos os locais, excluindo vendido)
     const map = new Map<string, { modelo: string; qtd: number; venda: number }>();
-    for (const a of aps as any[]) {
+    for (const a of estoqueAparelhos as any[]) {
+      if (getStatusCategoria(a.status, statusCatalogo as any) === "vendido") continue;
       const k = `${a.modelo}${a.capacidade ? " · " + a.capacidade : ""}`;
       const cur = map.get(k) ?? { modelo: k, qtd: 0, venda: 0 };
       cur.qtd += Number(a.quantidade || 0);
@@ -123,7 +130,7 @@ export default function AtacadoDashboard() {
       map.set(k, cur);
     }
     const topModelos = Array.from(map.values()).sort((a, b) => b.venda - a.venda).slice(0, 5);
-    return { unidades, custoTotal, vendaTotal, lucroPotencial, lentos, idadeMedia, topModelos };
+    return { lentos, idadeMedia, topModelos };
   })();
 
   const fat = Number(kpis?.faturamento ?? 0);
@@ -232,7 +239,7 @@ export default function AtacadoDashboard() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Package className="h-4 w-4 text-primary" />
-            Estoque B2B
+            Inventário B2B
           </h3>
           <Button asChild variant="ghost" size="sm">
             <Link to="/atacado/aparelhos">
@@ -241,18 +248,63 @@ export default function AtacadoDashboard() {
           </Button>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi label="Unidades em estoque" valor={String(estoque.unidades)} icon={<Package className="h-4 w-4" />} />
-          <Kpi label="Custo estocado" valor={formatBRL(estoque.custoTotal)} icon={<DollarSign className="h-4 w-4" />} />
-          <Kpi label="Valor de venda" valor={formatBRL(estoque.vendaTotal)} icon={<TrendingUp className="h-4 w-4" />} />
+          <Kpi label="Unidades (todos locais)" valor={String(invKpis.unidades)} icon={<Package className="h-4 w-4" />} />
+          <Kpi label="Custo total" valor={formatBRL(invKpis.custoTotal)} icon={<DollarSign className="h-4 w-4" />} />
+          <Kpi label="Valor de venda total" valor={formatBRL(invKpis.vendaTotal)} icon={<TrendingUp className="h-4 w-4" />} />
           <Kpi
             label="Lucro potencial"
-            valor={formatBRL(estoque.lucroPotencial)}
+            valor={formatBRL(invKpis.lucroPotencial)}
             icon={<TrendingUp className="h-4 w-4" />}
           />
         </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Kpi
+            label="Lucro médio / aparelho"
+            valor={formatBRL(invKpis.lucroMedioPorAparelho)}
+            icon={<DollarSign className="h-4 w-4" />}
+          />
+          <Kpi
+            label="Markup médio"
+            valor={`${invKpis.markupMedioPct.toFixed(1)}%`}
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+          <Kpi
+            label="Margem média"
+            valor={`${invKpis.margemMediaPct.toFixed(1)}%`}
+            icon={<TrendingUp className="h-4 w-4" />}
+          />
+          <Kpi
+            label="Em estoque"
+            valor={`${invKpis.porLocal.em_estoque.unidades} un`}
+            icon={<Package className="h-4 w-4" />}
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {(["em_estoque", "em_transito", "em_assistencia"] as const).map((loc) => {
+            const l = invKpis.porLocal[loc];
+            const label =
+              loc === "em_estoque" ? "Em estoque" : loc === "em_transito" ? "Em transporte" : "Na assistência";
+            const color =
+              loc === "em_estoque" ? "text-success" : loc === "em_transito" ? "text-info" : "text-orange-600";
+            return (
+              <div key={loc} className="rounded-lg border border-border bg-card p-3">
+                <p className={`text-xs font-medium ${color}`}>{label}</p>
+                <p className="text-base font-semibold tabular-nums text-foreground">
+                  {l.unidades} <span className="text-xs font-normal text-muted-foreground">un</span>
+                </p>
+                <div className="mt-1 grid grid-cols-2 gap-x-2 text-[11px] text-muted-foreground">
+                  <span>Custo</span>
+                  <span className="text-right tabular-nums text-foreground">{formatBRL(l.custo)}</span>
+                  <span>Venda</span>
+                  <span className="text-right tabular-nums text-foreground">{formatBRL(l.venda)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="gap-1">
-            <Clock className="h-3 w-3" /> Idade média: {estoque.idadeMedia} dias
+            <Clock className="h-3 w-3" /> Idade média (em estoque): {estoque.idadeMedia} dias
           </Badge>
           {estoque.lentos > 0 && (
             <Badge variant="outline" className="text-warning border-warning/30">
@@ -263,7 +315,7 @@ export default function AtacadoDashboard() {
         {estoque.topModelos.length > 0 && (
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">
-              Top modelos em estoque
+              Top modelos no inventário
             </p>
             <ul className="divide-y divide-border">
               {estoque.topModelos.map((m) => (
