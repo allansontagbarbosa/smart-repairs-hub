@@ -38,8 +38,12 @@ export function AssistenciasPorModelo() {
   const [loading, setLoading] = useState(false);
 
   // adicionar
+  const [modoAdd, setModoAdd] = useState<"existente" | "nova">("existente");
   const [novoTipo, setNovoTipo] = useState("");
   const [novoValor, setNovoValor] = useState("");
+  const [novoNome, setNovoNome] = useState("");
+  const [criandoNova, setCriandoNova] = useState(false);
+
 
   // editar inline
   const [editando, setEditando] = useState<string | null>(null);
