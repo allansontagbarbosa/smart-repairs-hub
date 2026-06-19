@@ -10122,6 +10122,36 @@ export type Database = {
           empresa_id: string
         }[]
       }
+      catalogo_listar_aparelhos: {
+        Args: { p_acesso_id: string }
+        Returns: {
+          capacidade: string
+          cliente_nome: string
+          condicao: string
+          condicao_pagamento_padrao: string
+          cor: string
+          grade: string
+          grupo_key: string
+          modelo: string
+          preco_10: number
+          preco_5: number
+          preco_aplicado: number
+          quantidade: number
+          tabela_preco_id: string
+        }[]
+      }
+      catalogo_listar_pedidos: {
+        Args: { p_acesso_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          nfe_numero: string
+          numero_pedido: number
+          observacoes: string
+          status: string
+          total: number
+        }[]
+      }
       catalogo_login: {
         Args: { p_email: string; p_senha: string; p_slug: string }
         Returns: {
