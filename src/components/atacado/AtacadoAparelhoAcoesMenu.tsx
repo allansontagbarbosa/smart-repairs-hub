@@ -165,7 +165,11 @@ export function AtacadoAparelhoAcoesMenu({
           </DropdownMenuItem>
 
           {perms.podeEditarEstoque && (
-            <DropdownMenuItem onClick={() => setOpen("editar")}>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(`/atacado/aparelhos/novo?editar=${aparelho.id}`)
+              }
+            >
               <Pencil className="h-4 w-4 mr-2" /> Editar
             </DropdownMenuItem>
           )}
