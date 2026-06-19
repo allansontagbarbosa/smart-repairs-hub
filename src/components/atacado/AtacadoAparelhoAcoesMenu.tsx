@@ -291,14 +291,16 @@ export function AtacadoAparelhoAcoesMenu({
 }
 
 /* ===================== EDITAR ===================== */
-function EditarAparelhoDialog({
+export function EditarAparelhoDialog({
   open,
   onClose,
   aparelho,
+  statusCatalogo,
 }: {
   open: boolean;
   onClose: () => void;
   aparelho: any;
+  statusCatalogo?: Array<{ nome: string; categoria: string | null }>;
 }) {
   const { empresaId } = useEmpresa();
   const { toast } = useToast();
@@ -317,7 +319,11 @@ function EditarAparelhoDialog({
     observacoes: aparelho.observacoes ?? "",
     data_compra: toDateInput(aparelho.data_compra),
     data_entrada: toDateInput(aparelho.data_entrada),
+    imei_1: aparelho.imei_1 ?? "",
+    imei_2: aparelho.imei_2 ?? "",
+    status: aparelho.status ?? "",
   });
+
 
   const salvar = useMutation({
     mutationFn: async () => {
