@@ -32,8 +32,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Trash2, Copy, Check, Printer, Files } from "lucide-react";
+import { Loader2, Trash2, Copy, Check, Printer, Files, Pencil } from "lucide-react";
 import { AtacadoStatusBadge } from "./AtacadoStatusBadge";
+import { EditarAparelhoDialog } from "./AtacadoAparelhoAcoesMenu";
 import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
 import { useNavigate } from "react-router-dom";
 
