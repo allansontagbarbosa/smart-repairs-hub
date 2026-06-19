@@ -722,6 +722,7 @@ interface GrupoAberto {
   condicao: string | null;
   quantidade: number;
   preco_publico: number | null;
+  imagem_url: string | null;
 }
 interface ItemAberto {
   grupo_key: string;
@@ -916,6 +917,23 @@ function CatalogoAberto({ slug, config }: { slug: string; config: any }) {
                   const noCart = carrinho.find((c) => c.grupo_key === g.grupo_key);
                   return (
                     <Card key={g.grupo_key} className="p-4 space-y-2 flex flex-col">
+                      <div className="aspect-square w-full bg-muted/40 rounded-md overflow-hidden flex items-center justify-center">
+                        {g.imagem_url ? (
+                          <img
+                            src={g.imagem_url}
+                            alt={`${g.modelo}${g.cor ? ` ${g.cor}` : ""}`}
+                            loading="lazy"
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              const t = e.target as HTMLImageElement;
+                              t.style.display = "none";
+                              t.parentElement?.classList.add("after:content-['']");
+                            }}
+                          />
+                        ) : (
+                          <Package className="h-10 w-10 text-muted-foreground/40" />
+                        )}
+                      </div>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="font-semibold truncate">
