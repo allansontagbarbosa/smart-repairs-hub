@@ -475,16 +475,62 @@ export default function AtacadoAparelhos() {
           </div>
         )}
 
+        {/* KPIs do inventário inteiro (estoque + transporte + assistência) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <KpiBox label="Lotes" valor={String(totalLotes)} />
-          <KpiBox label="Unidades" valor={String(totalUnidades)} />
-          <KpiBox label="Valor estocado (custo)" valor={formatBRL(valorEstoque)} />
-          <KpiBox label="Valor de venda em estoque" valor={formatBRL(valorVenda)} />
           <KpiBox
-            label="Lucro potencial"
-            valor={formatBRL(lucroPotencial)}
-            success={lucroPotencial > 0}
+            label="Unidades no inventário"
+            valor={String(invKpis.unidades)}
+            hint={`${invKpis.totalAparelhosNaoVendidos} aparelhos não-vendidos`}
           />
+          <KpiBox
+            label="Custo total"
+            valor={formatBRL(invKpis.custoTotal)}
+          />
+          <KpiBox
+            label="Valor de venda total"
+            valor={formatBRL(invKpis.vendaTotal)}
+            hint="estoque + transporte + assistência"
+          />
+          <KpiBox
+            label="Lucro potencial total"
+            valor={formatBRL(invKpis.lucroPotencial)}
+            success={invKpis.lucroPotencial > 0}
+          />
+          <KpiBox
+            label="Lucro médio por aparelho"
+            valor={formatBRL(invKpis.lucroMedioPorAparelho)}
+          />
+          <KpiBox
+            label="Markup médio"
+            valor={`${invKpis.markupMedioPct.toFixed(1)}%`}
+            hint={`margem ${invKpis.margemMediaPct.toFixed(1)}%`}
+          />
+        </div>
+
+        {/* Valor por local */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <LocalCard
+            label="Em estoque"
+            color="text-success"
+            local={invKpis.porLocal.em_estoque}
+          />
+          <LocalCard
+            label="Em transporte"
+            color="text-info"
+            local={invKpis.porLocal.em_transito}
+          />
+          <LocalCard
+            label="Na assistência"
+            color="text-orange-600"
+            local={invKpis.porLocal.em_assistencia}
+          />
+        </div>
+
+        {/* KPIs auxiliares (filtro atual) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiBox label="Lotes (filtro)" valor={String(totalLotes)} />
+          <KpiBox label="Unidades (filtro)" valor={String(totalUnidades)} />
+          <KpiBox label="Valor de venda em estoque" valor={formatBRL(valorVenda)} />
           <KpiBox
             label="Estoque baixo"
             valor={String(lotesBaixoEstoque)}
