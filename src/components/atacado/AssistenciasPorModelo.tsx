@@ -38,8 +38,12 @@ export function AssistenciasPorModelo() {
   const [loading, setLoading] = useState(false);
 
   // adicionar
+  const [modoAdd, setModoAdd] = useState<"existente" | "nova">("existente");
   const [novoTipo, setNovoTipo] = useState("");
   const [novoValor, setNovoValor] = useState("");
+  const [novoNome, setNovoNome] = useState("");
+  const [criandoNova, setCriandoNova] = useState(false);
+
 
   // editar inline
   const [editando, setEditando] = useState<string | null>(null);
@@ -97,6 +101,29 @@ export function AssistenciasPorModelo() {
     setNovoValor("");
     carregar();
   };
+
+  const handleCriarVincular = async () => {
+    if (!modeloId) return;
+    const nome = novoNome.trim();
+    if (!nome) {
+      toast.error("Informe o nome da assistência");
+      return;
+    }
+    const valor = parseFloat(novoValor.replace(",", ".")) || 0;
+    setCriandoNova(true);
+    const { error } = await supabase.rpc("atacado_criar_assist_e_vincular" as any, {
+      p_modelo_id: modeloId,
+      p_nome: nome,
+      p_valor: valor,
+    });
+    setCriandoNova(false);
+    if (error) return toast.error("Erro ao criar", { description: error.message });
+    toast.success("Assistência criada e vinculada");
+    setNovoNome("");
+    setNovoValor("");
+    carregar();
+  };
+
 
   const handleSalvarEdit = async (tipoId: string) => {
     const valor = parseFloat(valorEdit.replace(",", ".")) || 0;
@@ -180,51 +207,97 @@ export function AssistenciasPorModelo() {
         <div className="space-y-4">
           {/* Adicionar */}
           <div className="border rounded-lg p-4 space-y-3">
-            <p className="text-sm font-medium">Adicionar tipo a este modelo</p>
-            <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo de assistência</Label>
-                <Select value={novoTipo} onValueChange={setNovoTipo}>
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        tiposDisponiveis.length === 0
-                          ? "Todos os tipos já vinculados"
-                          : "Escolha um tipo"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tiposDisponiveis.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.nome}
-                        {t.valor_padrao > 0 && (
-                          <span className="text-muted-foreground ml-2 text-xs">
-                            sugerido: {brl(Number(t.valor_padrao))}
-                          </span>
-                        )}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-sm font-medium">Adicionar a este modelo</p>
+              <div className="flex rounded-md border overflow-hidden text-xs">
+                <button
+                  type="button"
+                  onClick={() => setModoAdd("existente")}
+                  className={`px-3 py-1.5 ${modoAdd === "existente" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                >
+                  Usar existente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoAdd("nova")}
+                  className={`px-3 py-1.5 ${modoAdd === "nova" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+                >
+                  Criar nova
+                </button>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Preço para este modelo (R$)</Label>
-                <Input
-                  inputMode="decimal"
-                  value={novoValor}
-                  onChange={(e) => setNovoValor(e.target.value)}
-                  placeholder="0,00"
-                />
-              </div>
-              <Button onClick={handleAdd} disabled={!novoTipo}>
-                <Plus className="h-4 w-4 mr-2" /> Adicionar
-              </Button>
             </div>
+
+            {modoAdd === "existente" ? (
+              <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tipo de assistência</Label>
+                  <Select value={novoTipo} onValueChange={setNovoTipo}>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          tiposDisponiveis.length === 0
+                            ? "Todos os tipos já vinculados"
+                            : "Escolha um tipo"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiposDisponiveis.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.nome}
+                          {t.valor_padrao > 0 && (
+                            <span className="text-muted-foreground ml-2 text-xs">
+                              sugerido: {brl(Number(t.valor_padrao))}
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Preço para este modelo (R$)</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={novoValor}
+                    onChange={(e) => setNovoValor(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+                <Button onClick={handleAdd} disabled={!novoTipo}>
+                  <Plus className="h-4 w-4 mr-2" /> Adicionar
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_auto] gap-3 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nome da nova assistência</Label>
+                  <Input
+                    value={novoNome}
+                    onChange={(e) => setNovoNome(e.target.value)}
+                    placeholder="Ex.: Bateria, Tela…"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Preço para este modelo (R$)</Label>
+                  <Input
+                    inputMode="decimal"
+                    value={novoValor}
+                    onChange={(e) => setNovoValor(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+                <Button onClick={handleCriarVincular} disabled={criandoNova || !novoNome.trim()}>
+                  {criandoNova ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                  Criar e vincular
+                </Button>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              Os tipos (CHOQUE, VIDRO…) são gerenciados na aba "Cadastros".
+              Se já existir um tipo com o mesmo nome, ele será reaproveitado (não duplica).
             </p>
           </div>
+
 
           {/* Lista */}
           <div className="border rounded-lg">

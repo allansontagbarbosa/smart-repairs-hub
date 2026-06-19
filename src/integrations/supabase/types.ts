@@ -9859,6 +9859,10 @@ export type Database = {
         Args: { p_destino: string; p_origem: string }
         Returns: number
       }
+      atacado_criar_assist_e_vincular: {
+        Args: { p_modelo_id: string; p_nome: string; p_valor: number }
+        Returns: string
+      }
       atacado_dashboard_kpis: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
