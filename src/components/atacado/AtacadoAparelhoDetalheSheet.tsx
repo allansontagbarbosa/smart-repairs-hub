@@ -506,14 +506,6 @@ export function AtacadoAparelhoDetalheSheet({
         </AlertDialogContent>
       </AlertDialog>
 
-      {aparelho && (
-        <EditarAparelhoDialog
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          aparelho={aparelho}
-          statusCatalogo={statusCatalogo}
-        />
-      )}
     </>
   );
 }
