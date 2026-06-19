@@ -208,19 +208,20 @@ export default function AtacadoCadastroProduto() {
     setCor("");
   }, [modelo]);
 
-  // Carrega aparelho de origem para duplicar (?duplicar=<id>)
+  // Carrega aparelho de origem para duplicar (?duplicar=<id>) ou editar (?editar=<id>)
   useEffect(() => {
-    if (!duplicarId || !empresaId) return;
+    const sourceId = duplicarId || editarId;
+    if (!sourceId || !empresaId) return;
     let cancel = false;
     (async () => {
       const { data: ap, error } = await supabase
         .from("atacado_aparelhos" as any)
         .select("*, fornecedor:fornecedores(nome)")
-        .eq("id", duplicarId)
+        .eq("id", sourceId)
         .eq("empresa_id", empresaId)
         .maybeSingle();
       if (cancel || error || !ap) {
-        if (!cancel && error) toast.error("Não foi possível carregar o aparelho de origem");
+        if (!cancel && error) toast.error("Não foi possível carregar o aparelho");
         return;
       }
       const aparelho = ap as any;
@@ -229,7 +230,7 @@ export default function AtacadoCadastroProduto() {
         supabase
           .from("atacado_aparelho_assistencias" as any)
           .select("tipo_nome, valor")
-          .eq("aparelho_id", duplicarId)
+          .eq("aparelho_id", sourceId)
           .eq("empresa_id", empresaId),
         aparelho.invoice_id
           ? supabase
@@ -260,10 +261,18 @@ export default function AtacadoCadastroProduto() {
         setImportado(!!invoice.importado);
         setFornecedor(invoice.fornecedor ?? "");
         setNumero(invoice.numero ?? "");
-        setDataCompra(invoice.data_compra ?? "");
+        setDataCompra(
+          invoice.data_compra
+            ? String(invoice.data_compra).slice(0, 10)
+            : aparelho.data_compra
+            ? new Date(aparelho.data_compra).toISOString().slice(0, 10)
+            : "",
+        );
         setPaisOrigem(invoice.pais_origem ?? "");
         setMoeda(invoice.moeda || "BRL");
         setCotacao(invoice.cotacao != null ? String(invoice.cotacao) : "");
+      } else if (modoEditar && aparelho.data_compra) {
+        setDataCompra(new Date(aparelho.data_compra).toISOString().slice(0, 10));
       }
 
       setMarca(aparelho.marca ?? "");
@@ -272,8 +281,22 @@ export default function AtacadoCadastroProduto() {
       setCor(aparelho.cor ?? "");
       setGrade(aparelho.grade ?? "");
       setCondicao(aparelho.condicao ?? "novo");
-      setStatus("estoque");
-      setCustoProduto(aparelho.custo != null ? String(aparelho.custo) : "");
+      // No modo editar mantém o status atual; ao duplicar, força "estoque"
+      setStatus(modoEditar ? (aparelho.status ?? "") : "estoque");
+
+      // Custos: no duplicar, mantém só custo do produto (assists do "ap" são da unidade);
+      // no editar, queremos refletir o que foi pago: usa o custo total descontando assists.
+      const somaAssistsAp = ((assists as any[]) ?? []).reduce(
+        (s, a) => s + (Number(a.valor) || 0),
+        0,
+      );
+      const custoBaseAp = Math.max(0, Number(aparelho.custo ?? 0) - somaAssistsAp);
+      // Recupera o custoProduto na moeda original (sem rateio de outros custos):
+      // aproximação — custoBase pode incluir frete/aduana; deixamos o usuário ver
+      // o que está em "Custo do produto" e os custos extras vêm da invoice.
+      setCustoProduto(
+        aparelho.custo != null ? String(custoBaseAp) : "",
+      );
       setPrecoVenda(
         aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
       );
@@ -289,19 +312,21 @@ export default function AtacadoCadastroProduto() {
       setQuantidade(1);
       setUnidades([
         {
-          imei1: "",
-          imei2: "",
+          imei1: modoEditar ? (aparelho.imei_1 ?? "") : "",
+          imei2: modoEditar ? (aparelho.imei_2 ?? "") : "",
           assistencias: ((assists as any[]) ?? []).map((a) => ({
             nome: a.tipo_nome,
             valor: Number(a.valor) || 0,
           })),
         },
       ]);
-      setDuplicarOrigem(
-        [aparelho.marca, aparelho.modelo, aparelho.capacidade, aparelho.cor]
-          .filter(Boolean)
-          .join(" "),
-      );
+      if (modoDuplicar) {
+        setDuplicarOrigem(
+          [aparelho.marca, aparelho.modelo, aparelho.capacidade, aparelho.cor]
+            .filter(Boolean)
+            .join(" "),
+        );
+      }
 
       // libera os resets em cascata na próxima volta
       setTimeout(() => {
@@ -312,7 +337,7 @@ export default function AtacadoCadastroProduto() {
     return () => {
       cancel = true;
     };
-  }, [duplicarId, empresaId]);
+  }, [duplicarId, editarId, empresaId, modoEditar, modoDuplicar]);
 
   // Foco automático no campo IMEI 1 quando o duplicar termina de hidratar
   useEffect(() => {
