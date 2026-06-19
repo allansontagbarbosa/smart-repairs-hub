@@ -249,11 +249,6 @@ export function AtacadoAparelhoAcoesMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditarAparelhoDialog
-        open={open === "editar"}
-        onClose={() => setOpen(null)}
-        aparelho={aparelho}
-      />
       <ReservarAparelhoDialog
         open={open === "reservar"}
         onClose={() => setOpen(null)}
