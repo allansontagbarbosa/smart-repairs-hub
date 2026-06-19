@@ -566,6 +566,36 @@ export type Database = {
           },
         ]
       }
+      atacado_catalogo_imagens: {
+        Row: {
+          cor: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          imagem_url: string
+          modelo: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          imagem_url: string
+          modelo: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          imagem_url?: string
+          modelo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       atacado_catalogo_modelos: {
         Row: {
           ativo: boolean | null
@@ -10299,6 +10329,7 @@ export type Database = {
           cor: string
           grade: string
           grupo_key: string
+          imagem_url: string
           modelo: string
           preco_publico: number
           quantidade: number
