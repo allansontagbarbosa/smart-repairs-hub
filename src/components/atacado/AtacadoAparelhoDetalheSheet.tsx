@@ -445,6 +445,16 @@ export function AtacadoAparelhoDetalheSheet({
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      <Pencil className="h-4 w-4" /> Editar
+                    </Button>
+                  )}
+
+                  {perms.podeEditarEstoque && (
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         onOpenChange(false);
                         navigate(`/atacado/aparelhos/novo?duplicar=${aparelho.id}`);
