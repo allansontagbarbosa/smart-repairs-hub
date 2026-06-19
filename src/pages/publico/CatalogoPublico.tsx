@@ -20,6 +20,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/utils";
+import {
+  FazerOfertaDialog, MinhaOfertaCard, getTokensLocal,
+  type GrupoOferta,
+} from "@/components/atacado/OfertaDialogs";
+import { Handshake } from "lucide-react";
 
 interface Sessao {
   acessoId: string;
