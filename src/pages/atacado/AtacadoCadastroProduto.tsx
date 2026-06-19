@@ -530,6 +530,166 @@ export default function AtacadoCadastroProduto() {
     }
 
     setSalvando(true);
+
+    // ===== Modo EDITAR: UPDATE em atacado_aparelhos (+ assistências + invoice) =====
+    if (modoEditar && editarId && empresaId) {
+      try {
+        const u0 = unidades[0];
+        const imei1 = u0.imei1.trim();
+        const imei2 = u0.imei2.trim();
+
+        // Unicidade IMEI (excluindo o próprio)
+        const novosImeis = [imei1, imei2].filter(Boolean);
+        if (novosImeis.length) {
+          const orExpr = novosImeis
+            .flatMap((i) => [`imei_1.eq.${i}`, `imei_2.eq.${i}`])
+            .join(",");
+          const { data: dups } = await supabase
+            .from("atacado_aparelhos" as any)
+            .select("id")
+            .eq("empresa_id", empresaId)
+            .is("deleted_at", null)
+            .neq("id", editarId)
+            .or(orExpr);
+          if (dups && (dups as any[]).length > 0) {
+            setSalvando(false);
+            return toast.error("IMEI já cadastrado em outro aparelho.");
+          }
+        }
+
+        const somaAssist = u0.assistencias.reduce(
+          (s, a) => s + (Number(a.valor) || 0),
+          0,
+        );
+        const custoTotalUnit = custoBaseUnit + somaAssist;
+
+        // Garante invoice se importado e ainda não tem
+        const { data: apAtual } = await supabase
+          .from("atacado_aparelhos" as any)
+          .select("invoice_id")
+          .eq("id", editarId)
+          .eq("empresa_id", empresaId)
+          .maybeSingle();
+        let invoiceId: string | null = (apAtual as any)?.invoice_id ?? null;
+
+        const invoicePayload = {
+          empresa_id: empresaId,
+          importado,
+          fornecedor: fornecedor || null,
+          numero: numero || null,
+          data_compra: dataCompra || null,
+          pais_origem: paisOrigem || null,
+          moeda: importado ? moeda : "BRL",
+          cotacao: importado ? cotacaoNum || null : null,
+        };
+
+        if (invoiceId) {
+          await supabase
+            .from("atacado_invoices" as any)
+            .update(invoicePayload)
+            .eq("id", invoiceId)
+            .eq("empresa_id", empresaId);
+          // Replace custos da invoice
+          await supabase
+            .from("atacado_invoice_custos" as any)
+            .delete()
+            .eq("invoice_id", invoiceId)
+            .eq("empresa_id", empresaId);
+          const linhas = custos
+            .filter((c) => importado || (c.tipo !== "aduana" && c.tipo !== "seguro"))
+            .map((c) => ({
+              empresa_id: empresaId,
+              invoice_id: invoiceId,
+              tipo: c.tipo,
+              descricao: c.descricao || null,
+              modo: c.modo,
+              moeda: c.moeda,
+              valor: num(c.valor),
+            }));
+          if (linhas.length) {
+            await supabase.from("atacado_invoice_custos" as any).insert(linhas);
+          }
+        } else if (importado || custos.length > 0) {
+          const { data: novaInv } = await supabase
+            .from("atacado_invoices" as any)
+            .insert(invoicePayload)
+            .select("id")
+            .single();
+          invoiceId = (novaInv as any)?.id ?? null;
+          if (invoiceId) {
+            const linhas = custos
+              .filter((c) => importado || (c.tipo !== "aduana" && c.tipo !== "seguro"))
+              .map((c) => ({
+                empresa_id: empresaId,
+                invoice_id: invoiceId,
+                tipo: c.tipo,
+                descricao: c.descricao || null,
+                modo: c.modo,
+                moeda: c.moeda,
+                valor: num(c.valor),
+              }));
+            if (linhas.length) {
+              await supabase.from("atacado_invoice_custos" as any).insert(linhas);
+            }
+          }
+        }
+
+        // UPDATE no aparelho
+        const apPayload: any = {
+          marca,
+          modelo,
+          capacidade: capacidade || null,
+          cor: cor || null,
+          grade: grade || null,
+          condicao,
+          status: status || "estoque",
+          imei_1: imei1 || null,
+          imei_2: imei2 || null,
+          custo: custoTotalUnit,
+          preco_sugerido: precoNum || null,
+          data_compra: dataCompra
+            ? new Date(dataCompra + "T12:00:00").toISOString()
+            : null,
+          invoice_id: invoiceId,
+        };
+        const { error: errUp } = await supabase
+          .from("atacado_aparelhos" as any)
+          .update(apPayload)
+          .eq("id", editarId)
+          .eq("empresa_id", empresaId);
+        if (errUp) throw errUp;
+
+        // Replace assistências da unidade
+        await supabase
+          .from("atacado_aparelho_assistencias" as any)
+          .delete()
+          .eq("aparelho_id", editarId)
+          .eq("empresa_id", empresaId);
+        if (u0.assistencias.length > 0) {
+          await supabase.from("atacado_aparelho_assistencias" as any).insert(
+            u0.assistencias.map((a) => ({
+              empresa_id: empresaId,
+              aparelho_id: editarId,
+              tipo_nome: a.nome,
+              valor: Number(a.valor) || 0,
+            })),
+          );
+        }
+
+        setSalvando(false);
+        toast.success("Aparelho atualizado");
+        await qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
+        await qc.invalidateQueries({ queryKey: ["atacado-aparelho-detalhe"] });
+        navigate("/atacado/aparelhos");
+        return;
+      } catch (e: any) {
+        setSalvando(false);
+        toast.error("Erro ao salvar: " + (e?.message || "tente novamente"));
+        return;
+      }
+    }
+
+    // ===== Modo NOVO/DUPLICAR: cadastra lote =====
     const payload: any = {
       importado,
       fornecedor,
