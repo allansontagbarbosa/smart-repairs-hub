@@ -109,6 +109,11 @@ export default function CatalogoPublico() {
     );
   }
 
+  // Modo aberto: catálogo acessível sem login, finaliza no WhatsApp.
+  if (config.catalogo_modo === "aberto") {
+    return <CatalogoAberto slug={slug!} config={config} />;
+  }
+
   if (!sessao) {
     return (
       <Login
@@ -698,4 +703,294 @@ function StatusBadge({ status }: { status: string }) {
   };
   const cfg = map[status] ?? { label: status, variant: "outline" };
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
+}
+
+// ============================================================
+// Modo ABERTO — sem login, finaliza no WhatsApp
+// ============================================================
+interface GrupoAberto {
+  grupo_key: string;
+  modelo: string;
+  capacidade: string | null;
+  cor: string | null;
+  grade: string | null;
+  condicao: string | null;
+  quantidade: number;
+  preco_publico: number | null;
+}
+interface ItemAberto {
+  grupo_key: string;
+  modelo: string;
+  capacidade: string | null;
+  cor: string | null;
+  grade: string | null;
+  quantidade: number;
+  preco_unitario: number;
+  estoque_disponivel: number;
+}
+
+function CatalogoAberto({ slug, config }: { slug: string; config: any }) {
+  const [carrinho, setCarrinho] = useState<ItemAberto[]>([]);
+  const [busca, setBusca] = useState("");
+  const [ordenar, setOrdenar] = useState<"modelo" | "preco_asc" | "preco_desc" | "disponivel_desc">("modelo");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [nome, setNome] = useState("");
+  const [loja, setLoja] = useState("");
+  const [contato, setContato] = useState("");
+
+  const aparelhosQuery = useQuery({
+    queryKey: ["catalogo-aberto", slug],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "catalogo_listar_aparelhos_publico" as any,
+        { p_slug: slug },
+      );
+      if (error) throw error;
+      return (data as GrupoAberto[]) ?? [];
+    },
+  });
+
+  const grupos = aparelhosQuery.data ?? [];
+
+  const gruposFiltrados = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    let arr = grupos;
+    if (t) {
+      arr = arr.filter((g) =>
+        [g.modelo, g.capacidade, g.cor, g.grade, g.condicao]
+          .filter(Boolean).join(" ").toLowerCase().includes(t),
+      );
+    }
+    const s = [...arr];
+    if (ordenar === "preco_asc") s.sort((a, b) => (Number(a.preco_publico) || 0) - (Number(b.preco_publico) || 0));
+    else if (ordenar === "preco_desc") s.sort((a, b) => (Number(b.preco_publico) || 0) - (Number(a.preco_publico) || 0));
+    else if (ordenar === "disponivel_desc") s.sort((a, b) => b.quantidade - a.quantidade);
+    return s;
+  }, [grupos, busca, ordenar]);
+
+  const adicionar = (g: GrupoAberto) => {
+    const ex = carrinho.find((c) => c.grupo_key === g.grupo_key);
+    if (ex) {
+      setCarrinho(carrinho.map((c) =>
+        c.grupo_key === g.grupo_key
+          ? { ...c, quantidade: Math.min(c.quantidade + 1, c.estoque_disponivel) }
+          : c,
+      ));
+      return;
+    }
+    setCarrinho([
+      ...carrinho,
+      {
+        grupo_key: g.grupo_key,
+        modelo: g.modelo, capacidade: g.capacidade, cor: g.cor, grade: g.grade,
+        quantidade: 1,
+        preco_unitario: Number(g.preco_publico ?? 0),
+        estoque_disponivel: g.quantidade,
+      },
+    ]);
+  };
+
+  const atualizarQtd = (key: string, nova: number) => {
+    setCarrinho(
+      carrinho.map((c) => {
+        if (c.grupo_key !== key) return c;
+        const q = Math.max(0, Math.min(nova, c.estoque_disponivel));
+        return q === 0 ? null : { ...c, quantidade: q };
+      }).filter(Boolean) as ItemAberto[],
+    );
+  };
+
+  const subtotal = carrinho.reduce((s, c) => s + c.quantidade * c.preco_unitario, 0);
+
+  const finalizarWhatsApp = () => {
+    const wpp = (config.catalogo_whatsapp ?? "").replace(/\D/g, "");
+    if (!wpp) {
+      alert("Catálogo sem WhatsApp configurado. Contate o vendedor.");
+      return;
+    }
+    const saud = config.catalogo_whatsapp_mensagem
+      ? `${config.catalogo_whatsapp_mensagem}\n\n`
+      : `Olá! Quero fazer este pedido pelo catálogo ${config.catalogo_publico_titulo || ""}:\n\n`;
+    const linhas = carrinho.map((c) => {
+      const desc = [c.modelo, c.capacidade, c.cor, c.grade].filter(Boolean).join(" ");
+      return `• ${c.quantidade}x ${desc} — ${formatBRL(c.preco_unitario)} cada`;
+    }).join("\n");
+    const ident: string[] = [];
+    if (nome) ident.push(`Nome: ${nome}`);
+    if (loja) ident.push(`Loja: ${loja}`);
+    if (contato) ident.push(`Contato: ${contato}`);
+    const msg = `${saud}${linhas}\n\nTotal: ${formatBRL(subtotal)}${ident.length ? "\n\n" + ident.join("\n") : ""}`;
+    window.open(`https://wa.me/${wpp}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-card border-b">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Store className="h-6 w-6 text-primary shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold truncate">
+                {config.catalogo_publico_titulo || "Catálogo"}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                Pedido pelo WhatsApp
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setCheckoutOpen(true)}
+            disabled={carrinho.length === 0}
+          >
+            <ShoppingCart className="h-4 w-4 mr-1" /> Carrinho ({carrinho.length})
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto p-4 space-y-3">
+        {config.catalogo_publico_descricao && (
+          <p className="text-sm text-muted-foreground whitespace-pre-line">
+            {config.catalogo_publico_descricao}
+          </p>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar modelo, cor, capacidade…"
+              className="pl-8"
+            />
+          </div>
+          <Select value={ordenar} onValueChange={(v) => setOrdenar(v as any)}>
+            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="modelo">Modelo (A→Z)</SelectItem>
+              <SelectItem value="preco_asc">Preço (menor)</SelectItem>
+              <SelectItem value="preco_desc">Preço (maior)</SelectItem>
+              <SelectItem value="disponivel_desc">Mais disponíveis</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {aparelhosQuery.isLoading ? (
+          <div className="py-16 flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : aparelhosQuery.isError ? (
+          <Card className="p-6 text-center space-y-2 border-destructive/50">
+            <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+            <p className="font-medium text-sm">Erro ao carregar catálogo</p>
+            <p className="text-xs text-muted-foreground">
+              {(aparelhosQuery.error as any)?.message}
+            </p>
+            <Button size="sm" variant="outline" onClick={() => aparelhosQuery.refetch()}>
+              Tentar novamente
+            </Button>
+          </Card>
+        ) : gruposFiltrados.length === 0 ? (
+          <Card className="p-8 text-center text-sm text-muted-foreground">
+            {busca ? "Nenhum produto encontrado" : "Sem produtos disponíveis no momento"}
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {gruposFiltrados.map((g) => {
+              const noCart = carrinho.find((c) => c.grupo_key === g.grupo_key);
+              return (
+                <Card key={g.grupo_key} className="p-4 space-y-2 flex flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">
+                        {g.modelo} {g.capacidade ?? ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[g.cor, g.grade, g.condicao].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="shrink-0">{g.quantidade} un</Badge>
+                  </div>
+                  <p className="text-lg font-bold text-primary">
+                    {g.preco_publico ? formatBRL(Number(g.preco_publico)) : "Sob consulta"}
+                  </p>
+                  <div className="mt-auto pt-2">
+                    {noCart ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="outline" className="h-8 w-8"
+                            onClick={() => atualizarQtd(g.grupo_key, noCart.quantidade - 1)}>
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input className="h-8 w-14 text-center" type="number"
+                            value={noCart.quantidade}
+                            onChange={(e) => atualizarQtd(g.grupo_key, parseInt(e.target.value) || 0)} />
+                          <Button size="icon" variant="outline" className="h-8 w-8"
+                            onClick={() => atualizarQtd(g.grupo_key, noCart.quantidade + 1)}>
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <span className="font-semibold text-sm">
+                          {formatBRL(noCart.quantidade * noCart.preco_unitario)}
+                        </span>
+                      </div>
+                    ) : (
+                      <Button size="sm" className="w-full" onClick={() => adicionar(g)}
+                        disabled={!g.preco_publico}>
+                        <Plus className="h-3 w-3 mr-1" /> Adicionar
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Finalizar pedido no WhatsApp</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="max-h-60 overflow-auto space-y-1 text-sm">
+              {carrinho.map((c) => (
+                <div key={c.grupo_key} className="flex justify-between gap-2">
+                  <span className="truncate">
+                    {c.quantidade}x {[c.modelo, c.capacidade, c.cor, c.grade].filter(Boolean).join(" ")}
+                  </span>
+                  <span className="font-medium shrink-0">{formatBRL(c.quantidade * c.preco_unitario)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between border-t pt-2 font-semibold">
+              <span>Total</span><span>{formatBRL(subtotal)}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Seu nome</Label>
+                <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Loja (opcional)</Label>
+                <Input value={loja} onChange={(e) => setLoja(e.target.value)} />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Contato (opcional)</Label>
+                <Input value={contato} onChange={(e) => setContato(e.target.value)} placeholder="WhatsApp ou e-mail" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckoutOpen(false)}>Cancelar</Button>
+            <Button onClick={finalizarWhatsApp} disabled={carrinho.length === 0}>
+              Enviar no WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

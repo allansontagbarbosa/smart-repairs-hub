@@ -871,10 +871,15 @@ export type Database = {
       atacado_configuracoes: {
         Row: {
           bloquear_automatico_se_atrasos_dias: number | null
+          catalogo_modo: string
+          catalogo_preco_publico_origem: string
           catalogo_publico_ativo: boolean | null
           catalogo_publico_descricao: string | null
           catalogo_publico_slug: string | null
           catalogo_publico_titulo: string | null
+          catalogo_tabela_preco_publica_id: string | null
+          catalogo_whatsapp: string | null
+          catalogo_whatsapp_mensagem: string | null
           condicao_pagamento_padrao: string | null
           created_at: string | null
           empresa_id: string
@@ -899,10 +904,15 @@ export type Database = {
         }
         Insert: {
           bloquear_automatico_se_atrasos_dias?: number | null
+          catalogo_modo?: string
+          catalogo_preco_publico_origem?: string
           catalogo_publico_ativo?: boolean | null
           catalogo_publico_descricao?: string | null
           catalogo_publico_slug?: string | null
           catalogo_publico_titulo?: string | null
+          catalogo_tabela_preco_publica_id?: string | null
+          catalogo_whatsapp?: string | null
+          catalogo_whatsapp_mensagem?: string | null
           condicao_pagamento_padrao?: string | null
           created_at?: string | null
           empresa_id: string
@@ -927,10 +937,15 @@ export type Database = {
         }
         Update: {
           bloquear_automatico_se_atrasos_dias?: number | null
+          catalogo_modo?: string
+          catalogo_preco_publico_origem?: string
           catalogo_publico_ativo?: boolean | null
           catalogo_publico_descricao?: string | null
           catalogo_publico_slug?: string | null
           catalogo_publico_titulo?: string | null
+          catalogo_tabela_preco_publica_id?: string | null
+          catalogo_whatsapp?: string | null
+          catalogo_whatsapp_mensagem?: string | null
           condicao_pagamento_padrao?: string | null
           created_at?: string | null
           empresa_id?: string
@@ -954,6 +969,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "atacado_configuracoes_catalogo_tabela_preco_publica_id_fkey"
+            columns: ["catalogo_tabela_preco_publica_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_tabelas_preco"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "atacado_configuracoes_empresa_id_fkey"
             columns: ["empresa_id"]
@@ -10116,9 +10138,12 @@ export type Database = {
       catalogo_get_config: {
         Args: { p_slug: string }
         Returns: {
+          catalogo_modo: string
           catalogo_publico_ativo: boolean
           catalogo_publico_descricao: string
           catalogo_publico_titulo: string
+          catalogo_whatsapp: string
+          catalogo_whatsapp_mensagem: string
           empresa_id: string
         }[]
       }
@@ -10138,6 +10163,19 @@ export type Database = {
           preco_aplicado: number
           quantidade: number
           tabela_preco_id: string
+        }[]
+      }
+      catalogo_listar_aparelhos_publico: {
+        Args: { p_slug: string }
+        Returns: {
+          capacidade: string
+          condicao: string
+          cor: string
+          grade: string
+          grupo_key: string
+          modelo: string
+          preco_publico: number
+          quantidade: number
         }[]
       }
       catalogo_listar_pedidos: {

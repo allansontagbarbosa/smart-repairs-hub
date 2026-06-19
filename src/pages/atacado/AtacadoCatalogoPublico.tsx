@@ -34,12 +34,25 @@ export default function AtacadoCatalogoPublico() {
       const { data, error } = await supabase
         .from("atacado_configuracoes" as any)
         .select(
-          "catalogo_publico_ativo, catalogo_publico_slug, catalogo_publico_titulo, catalogo_publico_descricao"
+          "catalogo_publico_ativo, catalogo_publico_slug, catalogo_publico_titulo, catalogo_publico_descricao, catalogo_modo, catalogo_whatsapp, catalogo_whatsapp_mensagem, catalogo_preco_publico_origem, catalogo_tabela_preco_publica_id"
         )
         .eq("empresa_id", empresaId!)
         .maybeSingle();
       if (error) throw error;
       return (data as any) ?? {};
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: tabelas = [] } = useQuery({
+    queryKey: ["atacado-tabelas-preco-catalogo", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_tabelas_preco")
+        .select("id, nome")
+        .eq("empresa_id", empresaId!)
+        .order("nome");
+      return data ?? [];
     },
     enabled: !!empresaId,
   });
@@ -195,6 +208,77 @@ export default function AtacadoCatalogoPublico() {
                 rows={3}
               />
             </div>
+
+            <div className="pt-4 border-t space-y-4">
+              <div className="space-y-1.5">
+                <Label>Modo de acesso</Label>
+                <Select
+                  value={form.catalogo_modo ?? "aberto"}
+                  onValueChange={(v) => setForm({ ...form, catalogo_modo: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aberto">Aberto — sem login, finaliza no WhatsApp</SelectItem>
+                    <SelectItem value="login">Login — lojista entra e gera pedido para aprovação</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  No modo aberto, qualquer pessoa com o link vê o catálogo. Não exponha custo, IMEI ou fornecedor.
+                </p>
+              </div>
+
+              {(form.catalogo_modo ?? "aberto") === "aberto" && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>WhatsApp do vendedor (com DDI/DDD)</Label>
+                    <Input
+                      value={form.catalogo_whatsapp ?? ""}
+                      onChange={(e) => setForm({ ...form, catalogo_whatsapp: e.target.value })}
+                      placeholder="5511999990000"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Mensagem de saudação (opcional)</Label>
+                    <Textarea
+                      value={form.catalogo_whatsapp_mensagem ?? ""}
+                      onChange={(e) => setForm({ ...form, catalogo_whatsapp_mensagem: e.target.value })}
+                      placeholder="Olá! Quero fazer este pedido pelo catálogo:"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Preço público a exibir</Label>
+                    <Select
+                      value={form.catalogo_preco_publico_origem ?? "preco_sugerido"}
+                      onValueChange={(v) => setForm({ ...form, catalogo_preco_publico_origem: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="preco_sugerido">Preço sugerido do aparelho</SelectItem>
+                        <SelectItem value="tabela">Tabela de preço</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {form.catalogo_preco_publico_origem === "tabela" && (
+                    <div className="space-y-1.5">
+                      <Label>Tabela de preço pública</Label>
+                      <Select
+                        value={form.catalogo_tabela_preco_publica_id ?? ""}
+                        onValueChange={(v) => setForm({ ...form, catalogo_tabela_preco_publica_id: v })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {tabelas.map((t: any) => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
 
             <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
               {salvar.isPending ? (
