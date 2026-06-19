@@ -291,14 +291,16 @@ export function AtacadoAparelhoAcoesMenu({
 }
 
 /* ===================== EDITAR ===================== */
-function EditarAparelhoDialog({
+export function EditarAparelhoDialog({
   open,
   onClose,
   aparelho,
+  statusCatalogo,
 }: {
   open: boolean;
   onClose: () => void;
   aparelho: any;
+  statusCatalogo?: Array<{ nome: string; categoria: string | null }>;
 }) {
   const { empresaId } = useEmpresa();
   const { toast } = useToast();
@@ -317,10 +319,35 @@ function EditarAparelhoDialog({
     observacoes: aparelho.observacoes ?? "",
     data_compra: toDateInput(aparelho.data_compra),
     data_entrada: toDateInput(aparelho.data_entrada),
+    imei_1: aparelho.imei_1 ?? "",
+    imei_2: aparelho.imei_2 ?? "",
+    status: aparelho.status ?? "",
   });
+
 
   const salvar = useMutation({
     mutationFn: async () => {
+      // Validação de unicidade dos IMEIs (na empresa, excluindo o próprio)
+      const novosImeis = [form.imei_1, form.imei_2]
+        .map((v) => (v ?? "").trim())
+        .filter(Boolean);
+      if (novosImeis.length) {
+        const { data: dups } = await supabase
+          .from("atacado_aparelhos" as any)
+          .select("id, imei_1, imei_2")
+          .eq("empresa_id", empresaId!)
+          .is("deleted_at", null)
+          .neq("id", aparelho.id)
+          .or(
+            novosImeis
+              .flatMap((i) => [`imei_1.eq.${i}`, `imei_2.eq.${i}`])
+              .join(","),
+          );
+        if (dups && dups.length > 0) {
+          throw new Error("IMEI já cadastrado em outro aparelho.");
+        }
+      }
+
       const payload: any = {
         modelo: form.modelo,
         capacidade: form.capacidade || null,
@@ -331,7 +358,10 @@ function EditarAparelhoDialog({
         observacoes: form.observacoes || null,
         data_compra: form.data_compra ? new Date(form.data_compra + "T12:00:00").toISOString() : null,
         data_entrada: form.data_entrada ? new Date(form.data_entrada + "T12:00:00").toISOString() : null,
+        imei_1: form.imei_1?.trim() || null,
+        imei_2: form.imei_2?.trim() || null,
       };
+      if (form.status) payload.status = form.status;
       if (podeEditarCusto) payload.custo = Number(form.custo);
       const { error } = await supabase
         .from("atacado_aparelhos" as any)
@@ -349,6 +379,7 @@ function EditarAparelhoDialog({
     onError: (e: any) =>
       toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -448,6 +479,42 @@ function EditarAparelhoDialog({
               onChange={(e) => setForm({ ...form, data_entrada: e.target.value })}
             />
           </div>
+          <div>
+            <Label className="text-xs">IMEI 1</Label>
+            <Input
+              value={form.imei_1}
+              onChange={(e) => setForm({ ...form, imei_1: e.target.value })}
+              placeholder="—"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">IMEI 2</Label>
+            <Input
+              value={form.imei_2}
+              onChange={(e) => setForm({ ...form, imei_2: e.target.value })}
+              placeholder="—"
+            />
+          </div>
+          {statusCatalogo && statusCatalogo.length > 0 && (
+            <div className="col-span-2">
+              <Label className="text-xs">Status</Label>
+              <Select
+                value={form.status}
+                onValueChange={(v) => setForm({ ...form, status: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusCatalogo.map((s) => (
+                    <SelectItem key={s.nome} value={s.nome}>
+                      {s.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="col-span-2">
             <Label className="text-xs">Observações</Label>
             <Textarea
