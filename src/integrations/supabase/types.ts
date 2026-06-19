@@ -1260,6 +1260,107 @@ export type Database = {
         }
         Relationships: []
       }
+      atacado_ofertas: {
+        Row: {
+          aparelho_id: string | null
+          capacidade: string | null
+          catalogo_slug: string
+          cliente_contato: string
+          cliente_nome: string
+          condicao: string | null
+          cor: string | null
+          created_at: string
+          empresa_id: string
+          expires_at: string
+          grade: string | null
+          id: string
+          mensagem: string | null
+          modelo: string | null
+          quantidade: number
+          status: string
+          token: string
+          updated_at: string
+          valor_oferta: number
+        }
+        Insert: {
+          aparelho_id?: string | null
+          capacidade?: string | null
+          catalogo_slug: string
+          cliente_contato: string
+          cliente_nome: string
+          condicao?: string | null
+          cor?: string | null
+          created_at?: string
+          empresa_id: string
+          expires_at?: string
+          grade?: string | null
+          id?: string
+          mensagem?: string | null
+          modelo?: string | null
+          quantidade?: number
+          status?: string
+          token?: string
+          updated_at?: string
+          valor_oferta: number
+        }
+        Update: {
+          aparelho_id?: string | null
+          capacidade?: string | null
+          catalogo_slug?: string
+          cliente_contato?: string
+          cliente_nome?: string
+          condicao?: string | null
+          cor?: string | null
+          created_at?: string
+          empresa_id?: string
+          expires_at?: string
+          grade?: string | null
+          id?: string
+          mensagem?: string | null
+          modelo?: string | null
+          quantidade?: number
+          status?: string
+          token?: string
+          updated_at?: string
+          valor_oferta?: number
+        }
+        Relationships: []
+      }
+      atacado_ofertas_rounds: {
+        Row: {
+          autor: string
+          created_at: string
+          id: string
+          mensagem: string | null
+          oferta_id: string
+          valor: number
+        }
+        Insert: {
+          autor: string
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          oferta_id: string
+          valor: number
+        }
+        Update: {
+          autor?: string
+          created_at?: string
+          id?: string
+          mensagem?: string | null
+          oferta_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_ofertas_rounds_oferta_id_fkey"
+            columns: ["oferta_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_ofertas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atacado_paises: {
         Row: {
           ativo: boolean
@@ -10128,12 +10229,36 @@ export type Database = {
         }
         Returns: Json
       }
+      catalogo_criar_oferta: {
+        Args: {
+          p_aparelho_id: string
+          p_capacidade: string
+          p_condicao: string
+          p_contato: string
+          p_cor: string
+          p_grade: string
+          p_mensagem?: string
+          p_modelo: string
+          p_nome: string
+          p_quantidade: number
+          p_slug: string
+          p_valor: number
+        }
+        Returns: {
+          oferta_id: string
+          token: string
+        }[]
+      }
       catalogo_criar_pedido: {
         Args: { p_acesso_id: string; p_itens: Json; p_observacoes?: string }
         Returns: {
           numero_pedido: number
           pedido_id: string
         }[]
+      }
+      catalogo_finalizar_oferta: {
+        Args: { p_token: string }
+        Returns: undefined
       }
       catalogo_get_config: {
         Args: { p_slug: string }
@@ -10147,6 +10272,7 @@ export type Database = {
           empresa_id: string
         }[]
       }
+      catalogo_get_oferta: { Args: { p_token: string }; Returns: Json }
       catalogo_listar_aparelhos: {
         Args: { p_acesso_id: string }
         Returns: {
@@ -10199,6 +10325,15 @@ export type Database = {
           empresa_id: string
           token: string
         }[]
+      }
+      catalogo_responder_oferta_cliente: {
+        Args: {
+          p_acao: string
+          p_msg?: string
+          p_token: string
+          p_valor?: number
+        }
+        Returns: Json
       }
       catalogo_setar_senha: {
         Args: { p_cliente_id: string; p_email: string; p_senha: string }
@@ -10794,6 +10929,15 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      oferta_responder_vendedor: {
+        Args: {
+          p_acao: string
+          p_msg?: string
+          p_oferta_id: string
+          p_valor?: number
+        }
+        Returns: Json
       }
       onboarding_criar_empresa: { Args: { p_payload: Json }; Returns: Json }
       os_aguardando_sem_peca: {
