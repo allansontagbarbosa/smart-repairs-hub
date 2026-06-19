@@ -20,6 +20,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { formatBRL } from "@/lib/utils";
+import {
+  FazerOfertaDialog, MinhaOfertaCard, getTokensLocal,
+  type GrupoOferta,
+} from "@/components/atacado/OfertaDialogs";
+import { Handshake } from "lucide-react";
 
 interface Sessao {
   acessoId: string;
@@ -737,6 +742,10 @@ function CatalogoAberto({ slug, config }: { slug: string; config: any }) {
   const [nome, setNome] = useState("");
   const [loja, setLoja] = useState("");
   const [contato, setContato] = useState("");
+  const [tab, setTab] = useState<"catalogo" | "ofertas">("catalogo");
+  const [ofertaGrupo, setOfertaGrupo] = useState<GrupoOferta | null>(null);
+  const [tokens, setTokens] = useState<string[]>(() => getTokensLocal(slug));
+  const refreshTokens = () => setTokens(getTokensLocal(slug));
 
   const aparelhosQuery = useQuery({
     queryKey: ["catalogo-aberto", slug],
@@ -855,99 +864,145 @@ function CatalogoAberto({ slug, config }: { slug: string; config: any }) {
           </p>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar modelo, cor, capacidade…"
-              className="pl-8"
-            />
-          </div>
-          <Select value={ordenar} onValueChange={(v) => setOrdenar(v as any)}>
-            <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="modelo">Modelo (A→Z)</SelectItem>
-              <SelectItem value="preco_asc">Preço (menor)</SelectItem>
-              <SelectItem value="preco_desc">Preço (maior)</SelectItem>
-              <SelectItem value="disponivel_desc">Mais disponíveis</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Tabs value={tab} onValueChange={(v) => { setTab(v as any); if (v === "ofertas") refreshTokens(); }}>
+          <TabsList>
+            <TabsTrigger value="catalogo"><Package className="h-4 w-4 mr-1" />Catálogo</TabsTrigger>
+            <TabsTrigger value="ofertas">
+              <Handshake className="h-4 w-4 mr-1" />Minhas ofertas
+              {tokens.length > 0 && <Badge variant="secondary" className="ml-2">{tokens.length}</Badge>}
+            </TabsTrigger>
+          </TabsList>
 
-        {aparelhosQuery.isLoading ? (
-          <div className="py-16 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : aparelhosQuery.isError ? (
-          <Card className="p-6 text-center space-y-2 border-destructive/50">
-            <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
-            <p className="font-medium text-sm">Erro ao carregar catálogo</p>
-            <p className="text-xs text-muted-foreground">
-              {(aparelhosQuery.error as any)?.message}
-            </p>
-            <Button size="sm" variant="outline" onClick={() => aparelhosQuery.refetch()}>
-              Tentar novamente
-            </Button>
-          </Card>
-        ) : gruposFiltrados.length === 0 ? (
-          <Card className="p-8 text-center text-sm text-muted-foreground">
-            {busca ? "Nenhum produto encontrado" : "Sem produtos disponíveis no momento"}
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {gruposFiltrados.map((g) => {
-              const noCart = carrinho.find((c) => c.grupo_key === g.grupo_key);
-              return (
-                <Card key={g.grupo_key} className="p-4 space-y-2 flex flex-col">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">
-                        {g.modelo} {g.capacidade ?? ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {[g.cor, g.grade, g.condicao].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">{g.quantidade} un</Badge>
-                  </div>
-                  <p className="text-lg font-bold text-primary">
-                    {g.preco_publico ? formatBRL(Number(g.preco_publico)) : "Sob consulta"}
-                  </p>
-                  <div className="mt-auto pt-2">
-                    {noCart ? (
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1">
-                          <Button size="icon" variant="outline" className="h-8 w-8"
-                            onClick={() => atualizarQtd(g.grupo_key, noCart.quantidade - 1)}>
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <Input className="h-8 w-14 text-center" type="number"
-                            value={noCart.quantidade}
-                            onChange={(e) => atualizarQtd(g.grupo_key, parseInt(e.target.value) || 0)} />
-                          <Button size="icon" variant="outline" className="h-8 w-8"
-                            onClick={() => atualizarQtd(g.grupo_key, noCart.quantidade + 1)}>
-                            <Plus className="h-3 w-3" />
-                          </Button>
+          <TabsContent value="catalogo" className="mt-4 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input value={busca} onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar modelo, cor, capacidade…" className="pl-8" />
+              </div>
+              <Select value={ordenar} onValueChange={(v) => setOrdenar(v as any)}>
+                <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="modelo">Modelo (A→Z)</SelectItem>
+                  <SelectItem value="preco_asc">Preço (menor)</SelectItem>
+                  <SelectItem value="preco_desc">Preço (maior)</SelectItem>
+                  <SelectItem value="disponivel_desc">Mais disponíveis</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {aparelhosQuery.isLoading ? (
+              <div className="py-16 flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : aparelhosQuery.isError ? (
+              <Card className="p-6 text-center space-y-2 border-destructive/50">
+                <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+                <p className="font-medium text-sm">Erro ao carregar catálogo</p>
+                <p className="text-xs text-muted-foreground">
+                  {(aparelhosQuery.error as any)?.message}
+                </p>
+                <Button size="sm" variant="outline" onClick={() => aparelhosQuery.refetch()}>
+                  Tentar novamente
+                </Button>
+              </Card>
+            ) : gruposFiltrados.length === 0 ? (
+              <Card className="p-8 text-center text-sm text-muted-foreground">
+                {busca ? "Nenhum produto encontrado" : "Sem produtos disponíveis no momento"}
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {gruposFiltrados.map((g) => {
+                  const noCart = carrinho.find((c) => c.grupo_key === g.grupo_key);
+                  return (
+                    <Card key={g.grupo_key} className="p-4 space-y-2 flex flex-col">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">
+                            {g.modelo} {g.capacidade ?? ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {[g.cor, g.grade, g.condicao].filter(Boolean).join(" · ") || "—"}
+                          </p>
                         </div>
-                        <span className="font-semibold text-sm">
-                          {formatBRL(noCart.quantidade * noCart.preco_unitario)}
-                        </span>
+                        <Badge variant="secondary" className="shrink-0">{g.quantidade} un</Badge>
                       </div>
-                    ) : (
-                      <Button size="sm" className="w-full" onClick={() => adicionar(g)}
-                        disabled={!g.preco_publico}>
-                        <Plus className="h-3 w-3 mr-1" /> Adicionar
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                      <p className="text-lg font-bold text-primary">
+                        {g.preco_publico ? formatBRL(Number(g.preco_publico)) : "Sob consulta"}
+                      </p>
+                      <div className="mt-auto pt-2 space-y-2">
+                        {noCart ? (
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1">
+                              <Button size="icon" variant="outline" className="h-8 w-8"
+                                onClick={() => atualizarQtd(g.grupo_key, noCart.quantidade - 1)}>
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <Input className="h-8 w-14 text-center" type="number"
+                                value={noCart.quantidade}
+                                onChange={(e) => atualizarQtd(g.grupo_key, parseInt(e.target.value) || 0)} />
+                              <Button size="icon" variant="outline" className="h-8 w-8"
+                                onClick={() => atualizarQtd(g.grupo_key, noCart.quantidade + 1)}>
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <span className="font-semibold text-sm">
+                              {formatBRL(noCart.quantidade * noCart.preco_unitario)}
+                            </span>
+                          </div>
+                        ) : (
+                          <Button size="sm" className="w-full" onClick={() => adicionar(g)}
+                            disabled={!g.preco_publico}>
+                            <Plus className="h-3 w-3 mr-1" /> Adicionar
+                          </Button>
+                        )}
+                        <Button
+                          size="sm" variant="outline" className="w-full"
+                          onClick={() => setOfertaGrupo({
+                            modelo: g.modelo, capacidade: g.capacidade, cor: g.cor,
+                            grade: g.grade, condicao: g.condicao, quantidade: g.quantidade,
+                            preco_publico: g.preco_publico,
+                          })}
+                        >
+                          <Handshake className="h-3 w-3 mr-1" /> Fazer oferta
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ofertas" className="mt-4 space-y-3">
+            {tokens.length === 0 ? (
+              <Card className="p-8 text-center text-sm text-muted-foreground">
+                Você ainda não enviou ofertas. Use "Fazer oferta" em qualquer produto do catálogo.
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {tokens.map((tk) => (
+                  <MinhaOfertaCard
+                    key={tk}
+                    slug={slug}
+                    token={tk}
+                    whatsapp={config.catalogo_whatsapp ?? null}
+                    tituloCatalogo={config.catalogo_publico_titulo ?? null}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
+
+      <FazerOfertaDialog
+        open={!!ofertaGrupo}
+        onOpenChange={(b) => { if (!b) setOfertaGrupo(null); }}
+        slug={slug}
+        grupo={ofertaGrupo}
+        onCreated={() => { refreshTokens(); setTab("ofertas"); }}
+      />
 
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent className="max-w-lg">

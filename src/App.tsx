@@ -113,6 +113,7 @@ import AtacadoFinanceiro from "@/pages/atacado/AtacadoFinanceiro";
 import AtacadoCobranca from "@/pages/atacado/AtacadoCobranca";
 import AtacadoRelatorios from "@/pages/atacado/AtacadoRelatorios";
 import AtacadoCatalogoPublico from "@/pages/atacado/AtacadoCatalogoPublico";
+import AtacadoOfertas from "@/pages/atacado/AtacadoOfertas";
 import AtacadoConfiguracoes from "@/pages/atacado/AtacadoConfiguracoes";
 import CatalogoPublico from "@/pages/publico/CatalogoPublico";
 
@@ -332,6 +333,7 @@ const App = () => (
                     <Route path="/atacado/cobranca" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_cobranca.ver"><AtacadoCobranca /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/relatorios" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_relatorios.ver"><AtacadoRelatorios /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/catalogo-publico" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_configuracoes.editar"><AtacadoCatalogoPublico /></ProtectedRoute></ModuloAtacadoGuard>} />
+                    <Route path="/atacado/ofertas" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_pedidos.ver"><AtacadoOfertas /></ProtectedRoute></ModuloAtacadoGuard>} />
                     <Route path="/atacado/configuracoes" element={<ModuloAtacadoGuard><ProtectedRoute permissao="atacado_configuracoes.editar"><AtacadoConfiguracoes /></ProtectedRoute></ModuloAtacadoGuard>} />
 
                     <Route path="*" element={<NotFound />} />
