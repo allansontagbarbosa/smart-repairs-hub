@@ -764,11 +764,13 @@ function KpiBox({
   valor,
   danger,
   success,
+  hint,
 }: {
   label: string;
   valor: string;
   danger?: boolean;
   success?: boolean;
+  hint?: string;
 }) {
   return (
     <div
@@ -788,6 +790,34 @@ function KpiBox({
       >
         {valor}
       </p>
+      {hint && <p className="text-[10px] text-muted-foreground mt-0.5">{hint}</p>}
+    </div>
+  );
+}
+
+function LocalCard({
+  label,
+  color,
+  local,
+}: {
+  label: string;
+  color: string;
+  local: { unidades: number; custo: number; venda: number; lucro: number };
+}) {
+  return (
+    <div className="border rounded-lg p-3 bg-card">
+      <p className={`text-xs font-medium ${color}`}>{label}</p>
+      <p className="text-lg font-semibold tabular-nums text-foreground">
+        {local.unidades} <span className="text-xs font-normal text-muted-foreground">un</span>
+      </p>
+      <div className="mt-1.5 grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
+        <span>Custo</span>
+        <span className="text-right tabular-nums text-foreground">{formatBRL(local.custo)}</span>
+        <span>Venda</span>
+        <span className="text-right tabular-nums text-foreground">{formatBRL(local.venda)}</span>
+        <span>Lucro</span>
+        <span className="text-right tabular-nums text-success">{formatBRL(local.lucro)}</span>
+      </div>
     </div>
   );
 }
