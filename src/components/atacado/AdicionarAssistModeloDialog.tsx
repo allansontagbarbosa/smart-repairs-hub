@@ -40,7 +40,9 @@ export function AdicionarAssistModeloDialog({
   jaVinculados,
   onSaved,
 }: Props) {
+  const [modo, setModo] = useState<"existente" | "nova">("existente");
   const [tipoId, setTipoId] = useState("");
+  const [novoNome, setNovoNome] = useState("");
   const [valor, setValor] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -49,9 +51,11 @@ export function AdicionarAssistModeloDialog({
   useEffect(() => {
     if (!open) {
       setTipoId("");
+      setNovoNome("");
       setValor("");
-      return;
+      setModo(disponiveis.length === 0 ? "nova" : "existente");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -65,23 +69,44 @@ export function AdicionarAssistModeloDialog({
       toast.error("Modelo ainda não está disponível. Aguarde um instante e tente novamente.");
       return;
     }
-    if (!tipoId) return;
     const v = parseFloat(valor.replace(",", ".")) || 0;
     setSaving(true);
-    const { error } = await supabase.rpc("atacado_set_assist_modelo" as any, {
-      p_modelo_id: modeloId,
-      p_tipo_id: tipoId,
-      p_valor: v,
-    });
+    let error;
+    if (modo === "nova") {
+      const nome = novoNome.trim();
+      if (!nome) {
+        setSaving(false);
+        toast.error("Informe o nome da assistência");
+        return;
+      }
+      ({ error } = await supabase.rpc("atacado_criar_assist_e_vincular" as any, {
+        p_modelo_id: modeloId,
+        p_nome: nome,
+        p_valor: v,
+      }));
+    } else {
+      if (!tipoId) {
+        setSaving(false);
+        return;
+      }
+      ({ error } = await supabase.rpc("atacado_set_assist_modelo" as any, {
+        p_modelo_id: modeloId,
+        p_tipo_id: tipoId,
+        p_valor: v,
+      }));
+    }
     setSaving(false);
     if (error) {
       toast.error("Erro ao vincular: " + error.message);
       return;
     }
-    toast.success("Assistência vinculada ao modelo");
+    toast.success(modo === "nova" ? "Assistência criada e vinculada" : "Assistência vinculada");
     onOpenChange(false);
     onSaved();
   };
+
+  const disabled =
+    saving || (modo === "existente" ? !tipoId : !novoNome.trim());
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,13 +117,29 @@ export function AdicionarAssistModeloDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          {tipos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum tipo de assistência cadastrado. Use "Gerenciar assistências" para
-              criar os tipos globais primeiro (ex.: Bateria, Tela…).
-            </p>
-          ) : (
-            <>
+          <div className="flex rounded-md border overflow-hidden text-xs">
+            <button
+              type="button"
+              onClick={() => setModo("existente")}
+              className={`flex-1 px-3 py-1.5 ${modo === "existente" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+            >
+              Usar existente
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo("nova")}
+              className={`flex-1 px-3 py-1.5 ${modo === "nova" ? "bg-primary text-primary-foreground" : "bg-background"}`}
+            >
+              Criar nova
+            </button>
+          </div>
+
+          {modo === "existente" ? (
+            tipos.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhum tipo de assistência cadastrado. Use "Criar nova" acima.
+              </p>
+            ) : (
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo de assistência</Label>
                 <Select value={tipoId} onValueChange={setTipoId}>
@@ -125,32 +166,45 @@ export function AdicionarAssistModeloDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Preço para este modelo (R$)</Label>
-                <Input
-                  inputMode="decimal"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  placeholder="0,00"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Esse preço fica salvo neste modelo e será sugerido nos próximos cadastros.
-                </p>
-              </div>
-            </>
+            )
+          ) : (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome da nova assistência</Label>
+              <Input
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                placeholder="Ex.: Bateria, Tela…"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Se já existir um tipo com esse nome, será reaproveitado.
+              </p>
+            </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Preço para este modelo (R$)</Label>
+            <Input
+              inputMode="decimal"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              placeholder="0,00"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Esse preço fica salvo neste modelo e será sugerido nos próximos cadastros.
+            </p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar} disabled={saving || !tipoId}>
+          <Button onClick={handleSalvar} disabled={disabled}>
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Plus className="h-4 w-4" />
             )}
-            Vincular ao modelo
+            {modo === "nova" ? "Criar e vincular" : "Vincular ao modelo"}
           </Button>
         </DialogFooter>
       </DialogContent>
