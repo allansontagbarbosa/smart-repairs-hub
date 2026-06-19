@@ -445,7 +445,10 @@ export function AtacadoAparelhoDetalheSheet({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditOpen(true)}
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/atacado/aparelhos/novo?editar=${aparelho.id}`);
+                      }}
                     >
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>
