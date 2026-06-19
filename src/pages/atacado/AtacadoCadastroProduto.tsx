@@ -449,14 +449,15 @@ export default function AtacadoCadastroProduto() {
   const checkDuplicado = async (imei: string) => {
     if (!isImei15(imei) || !empresaId) return;
     if (duplicados[imei]) return; // já cacheado
-    const { data } = await supabase
+    let q = supabase
       .from("atacado_aparelhos" as any)
-      .select("modelo")
+      .select("id, modelo")
       .eq("empresa_id", empresaId)
       .is("deleted_at", null)
       .or(`imei_1.eq.${imei},imei_2.eq.${imei}`)
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (editarId) q = q.neq("id", editarId);
+    const { data } = await q.maybeSingle();
     if (data) {
       setDuplicados((p) => ({ ...p, [imei]: (data as any).modelo || "outro aparelho" }));
     }
