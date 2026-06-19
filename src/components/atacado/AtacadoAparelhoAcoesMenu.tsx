@@ -327,6 +327,27 @@ export function EditarAparelhoDialog({
 
   const salvar = useMutation({
     mutationFn: async () => {
+      // Validação de unicidade dos IMEIs (na empresa, excluindo o próprio)
+      const novosImeis = [form.imei_1, form.imei_2]
+        .map((v) => (v ?? "").trim())
+        .filter(Boolean);
+      if (novosImeis.length) {
+        const { data: dups } = await supabase
+          .from("atacado_aparelhos" as any)
+          .select("id, imei_1, imei_2")
+          .eq("empresa_id", empresaId!)
+          .is("deleted_at", null)
+          .neq("id", aparelho.id)
+          .or(
+            novosImeis
+              .flatMap((i) => [`imei_1.eq.${i}`, `imei_2.eq.${i}`])
+              .join(","),
+          );
+        if (dups && dups.length > 0) {
+          throw new Error("IMEI já cadastrado em outro aparelho.");
+        }
+      }
+
       const payload: any = {
         modelo: form.modelo,
         capacidade: form.capacidade || null,
@@ -337,7 +358,10 @@ export function EditarAparelhoDialog({
         observacoes: form.observacoes || null,
         data_compra: form.data_compra ? new Date(form.data_compra + "T12:00:00").toISOString() : null,
         data_entrada: form.data_entrada ? new Date(form.data_entrada + "T12:00:00").toISOString() : null,
+        imei_1: form.imei_1?.trim() || null,
+        imei_2: form.imei_2?.trim() || null,
       };
+      if (form.status) payload.status = form.status;
       if (podeEditarCusto) payload.custo = Number(form.custo);
       const { error } = await supabase
         .from("atacado_aparelhos" as any)
@@ -355,6 +379,7 @@ export function EditarAparelhoDialog({
     onError: (e: any) =>
       toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
