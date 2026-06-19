@@ -1363,7 +1363,9 @@ export default function AtacadoCadastroProduto() {
         )}
         <Button onClick={() => handleSalvar()} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-          {modoDuplicar
+          {modoEditar
+            ? "Salvar alterações"
+            : modoDuplicar
             ? "Salvar e fechar"
             : `Cadastrar ${unidades.length} aparelho${unidades.length > 1 ? "s" : ""}`}
         </Button>
