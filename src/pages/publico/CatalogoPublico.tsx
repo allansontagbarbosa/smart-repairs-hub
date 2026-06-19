@@ -109,6 +109,11 @@ export default function CatalogoPublico() {
     );
   }
 
+  // Modo aberto: catálogo acessível sem login, finaliza no WhatsApp.
+  if (config.catalogo_modo === "aberto") {
+    return <CatalogoAberto slug={slug!} config={config} />;
+  }
+
   if (!sessao) {
     return (
       <Login
