@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight, Kanban, Send, Clock } from "lucide-react";
+import { LayoutDashboard, Wrench, DollarSign, Users, Cpu, Settings, Smartphone, BarChart2, Truck, LogOut, ShoppingCart, ReceiptText, Trophy, Target, UserCog, Tv, PiggyBank, Wallet, Store, Zap, ArrowLeftRight, CreditCard, ClipboardList, Tv2, Briefcase, ShoppingBag, Sparkles, ChevronRight, Kanban, Send, Clock, Handshake } from "lucide-react";
 import { DittLogo } from "@/components/DittLogo";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -75,6 +75,7 @@ const itemsAtacado = [
   { title: "Financeiro Atacado", url: "/atacado/financeiro", icon: DollarSign, permissao: "atacado_financeiro" as keyof Permissoes },
   { title: "Cobrança", url: "/atacado/cobranca", icon: Wallet, permissao: "atacado_cobranca" as keyof Permissoes },
   { title: "Relatórios Atacado", url: "/atacado/relatorios", icon: BarChart2, permissao: "atacado_relatorios" as keyof Permissoes },
+  { title: "Ofertas", url: "/atacado/ofertas", icon: Handshake, permissao: "atacado_pedidos" as keyof Permissoes },
   { title: "Catálogo Público", url: "/atacado/catalogo-publico", icon: Store, permissao: "atacado_configuracoes" as keyof Permissoes },
   { title: "Config. Atacado", url: "/atacado/configuracoes", icon: Settings, permissao: "atacado_configuracoes" as keyof Permissoes },
 ];
