@@ -23,6 +23,8 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { computeInventarioKpis } from "@/lib/atacadoInventarioKpis";
+import { getStatusCategoria } from "@/components/atacado/AtacadoStatusBadge";
 
 type Periodo = "hoje" | "este_mes" | "ultimos_30" | "este_ano";
 
