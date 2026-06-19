@@ -74,7 +74,7 @@ export default function AtacadoPedidos() {
       let q = supabase
         .from("atacado_pedidos")
         .select(
-          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios(nome), pagamentos:atacado_pedidos_pagamentos(status, vencimento)`
+          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(status, vencimento)`
         )
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null)
@@ -84,9 +84,10 @@ export default function AtacadoPedidos() {
         const num = busca.replace(/\D/g, "");
         if (num) q = q.eq("numero_pedido", parseInt(num));
       }
-      const { data } = await q
+      const { data, error } = await q
         .order("created_at", { ascending: false })
         .limit(200);
+      if (error) throw error;
       return data ?? [];
     },
     enabled: !!empresaId,

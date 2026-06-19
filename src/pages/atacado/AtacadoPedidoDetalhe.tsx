@@ -41,18 +41,20 @@ export default function AtacadoPedidoDetalhe() {
   const { data: pedido, isLoading } = useQuery({
     queryKey: ["atacado-pedido-detalhe", id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("atacado_pedidos")
         .select(
           `*,
           cliente:atacado_clientes(*),
-          vendedor:funcionarios(nome),
+          vendedor:funcionarios!vendedor_id(nome),
+          aprovador:funcionarios!aprovado_por(nome),
           itens:atacado_pedidos_itens(*),
           pagamentos:atacado_pedidos_pagamentos(*),
-          historico:atacado_pedidos_historico(*, funcionario:funcionarios(nome))`
+          historico:atacado_pedidos_historico(*, funcionario:funcionarios!funcionario_id(nome))`
         )
         .eq("id", id!)
         .single();
+      if (error) throw error;
       return data;
     },
     enabled: !!id,
