@@ -81,7 +81,9 @@ export default function AtacadoCadastroProduto() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const duplicarId = searchParams.get("duplicar");
+  const editarId = searchParams.get("editar");
   const modoDuplicar = !!duplicarId;
+  const modoEditar = !!editarId;
   const qc = useQueryClient();
   const { empresaId } = useEmpresa();
   const {
@@ -206,19 +208,20 @@ export default function AtacadoCadastroProduto() {
     setCor("");
   }, [modelo]);
 
-  // Carrega aparelho de origem para duplicar (?duplicar=<id>)
+  // Carrega aparelho de origem para duplicar (?duplicar=<id>) ou editar (?editar=<id>)
   useEffect(() => {
-    if (!duplicarId || !empresaId) return;
+    const sourceId = duplicarId || editarId;
+    if (!sourceId || !empresaId) return;
     let cancel = false;
     (async () => {
       const { data: ap, error } = await supabase
         .from("atacado_aparelhos" as any)
         .select("*, fornecedor:fornecedores(nome)")
-        .eq("id", duplicarId)
+        .eq("id", sourceId)
         .eq("empresa_id", empresaId)
         .maybeSingle();
       if (cancel || error || !ap) {
-        if (!cancel && error) toast.error("Não foi possível carregar o aparelho de origem");
+        if (!cancel && error) toast.error("Não foi possível carregar o aparelho");
         return;
       }
       const aparelho = ap as any;
@@ -227,7 +230,7 @@ export default function AtacadoCadastroProduto() {
         supabase
           .from("atacado_aparelho_assistencias" as any)
           .select("tipo_nome, valor")
-          .eq("aparelho_id", duplicarId)
+          .eq("aparelho_id", sourceId)
           .eq("empresa_id", empresaId),
         aparelho.invoice_id
           ? supabase
@@ -258,10 +261,18 @@ export default function AtacadoCadastroProduto() {
         setImportado(!!invoice.importado);
         setFornecedor(invoice.fornecedor ?? "");
         setNumero(invoice.numero ?? "");
-        setDataCompra(invoice.data_compra ?? "");
+        setDataCompra(
+          invoice.data_compra
+            ? String(invoice.data_compra).slice(0, 10)
+            : aparelho.data_compra
+            ? new Date(aparelho.data_compra).toISOString().slice(0, 10)
+            : "",
+        );
         setPaisOrigem(invoice.pais_origem ?? "");
         setMoeda(invoice.moeda || "BRL");
         setCotacao(invoice.cotacao != null ? String(invoice.cotacao) : "");
+      } else if (modoEditar && aparelho.data_compra) {
+        setDataCompra(new Date(aparelho.data_compra).toISOString().slice(0, 10));
       }
 
       setMarca(aparelho.marca ?? "");
@@ -270,8 +281,22 @@ export default function AtacadoCadastroProduto() {
       setCor(aparelho.cor ?? "");
       setGrade(aparelho.grade ?? "");
       setCondicao(aparelho.condicao ?? "novo");
-      setStatus("estoque");
-      setCustoProduto(aparelho.custo != null ? String(aparelho.custo) : "");
+      // No modo editar mantém o status atual; ao duplicar, força "estoque"
+      setStatus(modoEditar ? (aparelho.status ?? "") : "estoque");
+
+      // Custos: no duplicar, mantém só custo do produto (assists do "ap" são da unidade);
+      // no editar, queremos refletir o que foi pago: usa o custo total descontando assists.
+      const somaAssistsAp = ((assists as any[]) ?? []).reduce(
+        (s, a) => s + (Number(a.valor) || 0),
+        0,
+      );
+      const custoBaseAp = Math.max(0, Number(aparelho.custo ?? 0) - somaAssistsAp);
+      // Recupera o custoProduto na moeda original (sem rateio de outros custos):
+      // aproximação — custoBase pode incluir frete/aduana; deixamos o usuário ver
+      // o que está em "Custo do produto" e os custos extras vêm da invoice.
+      setCustoProduto(
+        aparelho.custo != null ? String(custoBaseAp) : "",
+      );
       setPrecoVenda(
         aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
       );
@@ -287,19 +312,21 @@ export default function AtacadoCadastroProduto() {
       setQuantidade(1);
       setUnidades([
         {
-          imei1: "",
-          imei2: "",
+          imei1: modoEditar ? (aparelho.imei_1 ?? "") : "",
+          imei2: modoEditar ? (aparelho.imei_2 ?? "") : "",
           assistencias: ((assists as any[]) ?? []).map((a) => ({
             nome: a.tipo_nome,
             valor: Number(a.valor) || 0,
           })),
         },
       ]);
-      setDuplicarOrigem(
-        [aparelho.marca, aparelho.modelo, aparelho.capacidade, aparelho.cor]
-          .filter(Boolean)
-          .join(" "),
-      );
+      if (modoDuplicar) {
+        setDuplicarOrigem(
+          [aparelho.marca, aparelho.modelo, aparelho.capacidade, aparelho.cor]
+            .filter(Boolean)
+            .join(" "),
+        );
+      }
 
       // libera os resets em cascata na próxima volta
       setTimeout(() => {
@@ -310,7 +337,7 @@ export default function AtacadoCadastroProduto() {
     return () => {
       cancel = true;
     };
-  }, [duplicarId, empresaId]);
+  }, [duplicarId, editarId, empresaId, modoEditar, modoDuplicar]);
 
   // Foco automático no campo IMEI 1 quando o duplicar termina de hidratar
   useEffect(() => {
@@ -422,14 +449,15 @@ export default function AtacadoCadastroProduto() {
   const checkDuplicado = async (imei: string) => {
     if (!isImei15(imei) || !empresaId) return;
     if (duplicados[imei]) return; // já cacheado
-    const { data } = await supabase
+    let q = supabase
       .from("atacado_aparelhos" as any)
-      .select("modelo")
+      .select("id, modelo")
       .eq("empresa_id", empresaId)
       .is("deleted_at", null)
       .or(`imei_1.eq.${imei},imei_2.eq.${imei}`)
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (editarId) q = q.neq("id", editarId);
+    const { data } = await q.maybeSingle();
     if (data) {
       setDuplicados((p) => ({ ...p, [imei]: (data as any).modelo || "outro aparelho" }));
     }
@@ -502,6 +530,166 @@ export default function AtacadoCadastroProduto() {
     }
 
     setSalvando(true);
+
+    // ===== Modo EDITAR: UPDATE em atacado_aparelhos (+ assistências + invoice) =====
+    if (modoEditar && editarId && empresaId) {
+      try {
+        const u0 = unidades[0];
+        const imei1 = u0.imei1.trim();
+        const imei2 = u0.imei2.trim();
+
+        // Unicidade IMEI (excluindo o próprio)
+        const novosImeis = [imei1, imei2].filter(Boolean);
+        if (novosImeis.length) {
+          const orExpr = novosImeis
+            .flatMap((i) => [`imei_1.eq.${i}`, `imei_2.eq.${i}`])
+            .join(",");
+          const { data: dups } = await supabase
+            .from("atacado_aparelhos" as any)
+            .select("id")
+            .eq("empresa_id", empresaId)
+            .is("deleted_at", null)
+            .neq("id", editarId)
+            .or(orExpr);
+          if (dups && (dups as any[]).length > 0) {
+            setSalvando(false);
+            return toast.error("IMEI já cadastrado em outro aparelho.");
+          }
+        }
+
+        const somaAssist = u0.assistencias.reduce(
+          (s, a) => s + (Number(a.valor) || 0),
+          0,
+        );
+        const custoTotalUnit = custoBaseUnit + somaAssist;
+
+        // Garante invoice se importado e ainda não tem
+        const { data: apAtual } = await supabase
+          .from("atacado_aparelhos" as any)
+          .select("invoice_id")
+          .eq("id", editarId)
+          .eq("empresa_id", empresaId)
+          .maybeSingle();
+        let invoiceId: string | null = (apAtual as any)?.invoice_id ?? null;
+
+        const invoicePayload = {
+          empresa_id: empresaId,
+          importado,
+          fornecedor: fornecedor || null,
+          numero: numero || null,
+          data_compra: dataCompra || null,
+          pais_origem: paisOrigem || null,
+          moeda: importado ? moeda : "BRL",
+          cotacao: importado ? cotacaoNum || null : null,
+        };
+
+        if (invoiceId) {
+          await supabase
+            .from("atacado_invoices" as any)
+            .update(invoicePayload)
+            .eq("id", invoiceId)
+            .eq("empresa_id", empresaId);
+          // Replace custos da invoice
+          await supabase
+            .from("atacado_invoice_custos" as any)
+            .delete()
+            .eq("invoice_id", invoiceId)
+            .eq("empresa_id", empresaId);
+          const linhas = custos
+            .filter((c) => importado || (c.tipo !== "aduana" && c.tipo !== "seguro"))
+            .map((c) => ({
+              empresa_id: empresaId,
+              invoice_id: invoiceId,
+              tipo: c.tipo,
+              descricao: c.descricao || null,
+              modo: c.modo,
+              moeda: c.moeda,
+              valor: num(c.valor),
+            }));
+          if (linhas.length) {
+            await supabase.from("atacado_invoice_custos" as any).insert(linhas);
+          }
+        } else if (importado || custos.length > 0) {
+          const { data: novaInv } = await supabase
+            .from("atacado_invoices" as any)
+            .insert(invoicePayload)
+            .select("id")
+            .single();
+          invoiceId = (novaInv as any)?.id ?? null;
+          if (invoiceId) {
+            const linhas = custos
+              .filter((c) => importado || (c.tipo !== "aduana" && c.tipo !== "seguro"))
+              .map((c) => ({
+                empresa_id: empresaId,
+                invoice_id: invoiceId,
+                tipo: c.tipo,
+                descricao: c.descricao || null,
+                modo: c.modo,
+                moeda: c.moeda,
+                valor: num(c.valor),
+              }));
+            if (linhas.length) {
+              await supabase.from("atacado_invoice_custos" as any).insert(linhas);
+            }
+          }
+        }
+
+        // UPDATE no aparelho
+        const apPayload: any = {
+          marca,
+          modelo,
+          capacidade: capacidade || null,
+          cor: cor || null,
+          grade: grade || null,
+          condicao,
+          status: status || "estoque",
+          imei_1: imei1 || null,
+          imei_2: imei2 || null,
+          custo: custoTotalUnit,
+          preco_sugerido: precoNum || null,
+          data_compra: dataCompra
+            ? new Date(dataCompra + "T12:00:00").toISOString()
+            : null,
+          invoice_id: invoiceId,
+        };
+        const { error: errUp } = await supabase
+          .from("atacado_aparelhos" as any)
+          .update(apPayload)
+          .eq("id", editarId)
+          .eq("empresa_id", empresaId);
+        if (errUp) throw errUp;
+
+        // Replace assistências da unidade
+        await supabase
+          .from("atacado_aparelho_assistencias" as any)
+          .delete()
+          .eq("aparelho_id", editarId)
+          .eq("empresa_id", empresaId);
+        if (u0.assistencias.length > 0) {
+          await supabase.from("atacado_aparelho_assistencias" as any).insert(
+            u0.assistencias.map((a) => ({
+              empresa_id: empresaId,
+              aparelho_id: editarId,
+              tipo_nome: a.nome,
+              valor: Number(a.valor) || 0,
+            })),
+          );
+        }
+
+        setSalvando(false);
+        toast.success("Aparelho atualizado");
+        await qc.invalidateQueries({ queryKey: ["atacado-aparelhos"] });
+        await qc.invalidateQueries({ queryKey: ["atacado-aparelho-detalhe"] });
+        navigate("/atacado/aparelhos");
+        return;
+      } catch (e: any) {
+        setSalvando(false);
+        toast.error("Erro ao salvar: " + (e?.message || "tente novamente"));
+        return;
+      }
+    }
+
+    // ===== Modo NOVO/DUPLICAR: cadastra lote =====
     const payload: any = {
       importado,
       fornecedor,
@@ -569,12 +757,16 @@ export default function AtacadoCadastroProduto() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {modoDuplicar
+            {modoEditar
+              ? "Editar aparelho"
+              : modoDuplicar
               ? `Duplicar${duplicarOrigem ? ` de ${duplicarOrigem}` : ""}`
               : "Novo produto"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {modoDuplicar
+            {modoEditar
+              ? "Mesmo formulário do cadastro — todos os campos editáveis"
+              : modoDuplicar
               ? "Pré-preenchido com os dados do aparelho original — informe o novo IMEI"
               : "Cadastre um lote: N aparelhos individuais com IMEI próprio"}
           </p>
@@ -961,10 +1153,10 @@ export default function AtacadoCadastroProduto() {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-base font-semibold text-foreground">
-            {modoDuplicar ? "Aparelho duplicado" : "Aparelhos do lote"}
+            {modoEditar ? "Aparelho" : modoDuplicar ? "Aparelho duplicado" : "Aparelhos do lote"}
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            {!modoDuplicar && (
+            {!modoDuplicar && !modoEditar && (
               <>
                 <Label className="text-xs">Quantidade</Label>
                 <Input
@@ -1171,7 +1363,9 @@ export default function AtacadoCadastroProduto() {
         )}
         <Button onClick={() => handleSalvar()} disabled={salvando}>
           {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-          {modoDuplicar
+          {modoEditar
+            ? "Salvar alterações"
+            : modoDuplicar
             ? "Salvar e fechar"
             : `Cadastrar ${unidades.length} aparelho${unidades.length > 1 ? "s" : ""}`}
         </Button>
@@ -1183,7 +1377,7 @@ export default function AtacadoCadastroProduto() {
           <div className="flex items-center gap-2 text-sm">
             <Package className="h-4 w-4 text-primary" />
             <span className="font-semibold text-foreground">
-              Lote · {unidades.length} un
+              {modoEditar ? "Editando · 1 un" : `Lote · ${unidades.length} un`}
             </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-1 text-sm flex-1 min-w-0">
@@ -1203,7 +1397,7 @@ export default function AtacadoCadastroProduto() {
           </div>
           <Button onClick={() => handleSalvar()} disabled={salvando} size="sm">
             {salvando && <Loader2 className="h-4 w-4 animate-spin" />}
-            {modoDuplicar ? "Salvar" : `Cadastrar ${unidades.length}`}
+            {modoEditar ? "Salvar" : modoDuplicar ? "Salvar" : `Cadastrar ${unidades.length}`}
           </Button>
         </div>
       </div>

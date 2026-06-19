@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Trash2, Copy, Check, Printer, Files, Pencil } from "lucide-react";
 import { AtacadoStatusBadge } from "./AtacadoStatusBadge";
-import { EditarAparelhoDialog } from "./AtacadoAparelhoAcoesMenu";
+
 import { printEtiquetaAtacado } from "@/lib/printEtiquetaAtacado";
 import { useNavigate } from "react-router-dom";
 
@@ -81,7 +81,6 @@ export function AtacadoAparelhoDetalheSheet({
   const navigate = useNavigate();
   const [novoStatus, setNovoStatus] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
 
   const { data: aparelho, isLoading } = useQuery({
     queryKey: ["atacado-aparelho-detalhe", aparelhoId],
@@ -445,7 +444,10 @@ export function AtacadoAparelhoDetalheSheet({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditOpen(true)}
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/atacado/aparelhos/novo?editar=${aparelho.id}`);
+                      }}
                     >
                       <Pencil className="h-4 w-4" /> Editar
                     </Button>
@@ -503,14 +505,6 @@ export function AtacadoAparelhoDetalheSheet({
         </AlertDialogContent>
       </AlertDialog>
 
-      {aparelho && (
-        <EditarAparelhoDialog
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          aparelho={aparelho}
-          statusCatalogo={statusCatalogo}
-        />
-      )}
     </>
   );
 }
