@@ -77,7 +77,7 @@ export default function AtacadoDashboard() {
     enabled: !!empresaId,
   });
 
-  // Estoque (independente de vendas)
+  // Estoque (independente de vendas) — inventário inteiro
   const { data: estoqueAparelhos = [] } = useQuery({
     queryKey: ["atacado-dashboard-estoque", empresaId],
     queryFn: async () => {
@@ -85,26 +85,30 @@ export default function AtacadoDashboard() {
         .from("atacado_aparelhos" as any)
         .select("id, modelo, capacidade, custo, preco_sugerido, quantidade, status, data_entrada, data_compra")
         .eq("empresa_id", empresaId!)
-        .is("deleted_at", null)
-        .gt("quantidade", 0);
+        .is("deleted_at", null);
       return (data as any[]) ?? [];
     },
     enabled: !!empresaId,
   });
 
+  const { data: statusCatalogo = [] } = useQuery({
+    queryKey: ["atacado-status-catalogo", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("atacado_status_aparelho" as any)
+        .select("nome, categoria")
+        .eq("empresa_id", empresaId!);
+      return (data as any[]) ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const invKpis = computeInventarioKpis(estoqueAparelhos, statusCatalogo as any);
+
   const estoque = (() => {
-    const aps = estoqueAparelhos.filter((a: any) =>
-      ["estoque", "em_estoque", "disponivel", "STOQUE", "ESTOQUE", "DISPONIVEL"].some(
-        (s) => String(a.status ?? "").toLowerCase() === s.toLowerCase(),
-      ),
+    const aps = estoqueAparelhos.filter(
+      (a: any) => getStatusCategoria(a.status, statusCatalogo as any) === "em_estoque",
     );
-    const unidades = aps.reduce((s, a: any) => s + Number(a.quantidade || 0), 0);
-    const custoTotal = aps.reduce((s, a: any) => s + Number(a.custo || 0) * Number(a.quantidade || 0), 0);
-    const vendaTotal = aps.reduce(
-      (s, a: any) => s + Number(a.preco_sugerido || a.custo || 0) * Number(a.quantidade || 0),
-      0,
-    );
-    const lucroPotencial = vendaTotal - custoTotal;
     const agora = Date.now();
     const diasOf = (a: any) =>
       a.data_entrada ? Math.floor((agora - new Date(a.data_entrada).getTime()) / 86400000) : 0;
@@ -113,9 +117,10 @@ export default function AtacadoDashboard() {
       ? Math.round(aps.reduce((s, a: any) => s + diasOf(a), 0) / aps.length)
       : 0;
 
-    // Top modelos
+    // Top modelos (todos os locais, excluindo vendido)
     const map = new Map<string, { modelo: string; qtd: number; venda: number }>();
-    for (const a of aps as any[]) {
+    for (const a of estoqueAparelhos as any[]) {
+      if (getStatusCategoria(a.status, statusCatalogo as any) === "vendido") continue;
       const k = `${a.modelo}${a.capacidade ? " · " + a.capacidade : ""}`;
       const cur = map.get(k) ?? { modelo: k, qtd: 0, venda: 0 };
       cur.qtd += Number(a.quantidade || 0);
@@ -123,7 +128,7 @@ export default function AtacadoDashboard() {
       map.set(k, cur);
     }
     const topModelos = Array.from(map.values()).sort((a, b) => b.venda - a.venda).slice(0, 5);
-    return { unidades, custoTotal, vendaTotal, lucroPotencial, lentos, idadeMedia, topModelos };
+    return { lentos, idadeMedia, topModelos };
   })();
 
   const fat = Number(kpis?.faturamento ?? 0);
