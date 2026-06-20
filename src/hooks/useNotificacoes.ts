@@ -111,6 +111,7 @@ export function useNotificacoes() {
     channel.subscribe();
 
     return () => {
+      cancelled = true;
       void supabase.removeChannel(channel);
     };
   }, [fetchBadgeCounts, fetchNotificacoes, queryClient]);
