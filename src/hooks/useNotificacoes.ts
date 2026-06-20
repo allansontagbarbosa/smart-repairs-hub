@@ -78,10 +78,21 @@ export function useNotificacoes() {
 
     const channel = supabase.channel(`notificacoes-rt-${crypto.randomUUID()}`);
 
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      const uid = data?.user?.id;
+      // Scope realtime to this user's notifications only (RLS-aligned, prevents cross-user leak)
+      if (uid) {
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "notificacoes", filter: `user_id=eq.${uid}` },
+          () => fetchNotificacoes(),
+        );
+      }
+    });
+
     channel
-      .on("postgres_changes", { event: "*", schema: "public", table: "notificacoes" }, () => {
-        fetchNotificacoes();
-      })
       .on("postgres_changes", { event: "*", schema: "public", table: "ordens_de_servico" }, () => {
         fetchBadgeCounts();
         queryClient.invalidateQueries({ queryKey: ["os-aguardando-aprovacao-count"] });
