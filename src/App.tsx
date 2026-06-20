@@ -28,7 +28,6 @@ import AparelhosAssistencia from "./pages/AparelhosAssistencia";
 import Configuracoes from "./pages/Configuracoes";
 import Relatorios from "./pages/Relatorios";
 import Financeiro from "./pages/Financeiro";
-import ContasBancarias from "./pages/financeiro/ContasBancarias";
 import FaturasLojistas from "./pages/FaturasLojistas";
 import Clientes from "./pages/Clientes";
 import ClientePerfil from "./pages/ClientePerfil";
@@ -267,7 +266,6 @@ const App = () => (
                     <Route path="/aparelhos" element={<ProtectedRoute permissao="aparelhos.ver"><AparelhosAssistencia /></ProtectedRoute>} />
                     <Route path="/pecas" element={<ProtectedRoute permissao="pecas.ver"><Pecas /></ProtectedRoute>} />
                     <Route path="/financeiro" element={<ProtectedRoute permissao="financeiro.ver"><Financeiro /></ProtectedRoute>} />
-                    <Route path="/financeiro/contas" element={<ProtectedRoute permissao="financeiro.ver"><ContasBancarias /></ProtectedRoute>} />
                     <Route path="/financeiro/faturas-lojistas" element={<ProtectedRoute permissao="faturas_b2b.ver"><FaturasLojistas /></ProtectedRoute>} />
                     <Route path="/cashback" element={<ProtectedRoute permissao="financeiro.ver"><Cashback /></ProtectedRoute>} />
                     <Route path="/cashback/cliente/:id" element={<ProtectedRoute permissao="financeiro.ver"><CashbackCliente /></ProtectedRoute>} />

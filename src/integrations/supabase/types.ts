@@ -3269,56 +3269,6 @@ export type Database = {
           },
         ]
       }
-      conta_movimentacoes: {
-        Row: {
-          conta_id: string
-          created_at: string
-          data: string
-          descricao: string | null
-          empresa_id: string
-          id: string
-          origem: string | null
-          origem_id: string | null
-          tipo: string
-          transfer_par_id: string | null
-          valor: number
-        }
-        Insert: {
-          conta_id: string
-          created_at?: string
-          data?: string
-          descricao?: string | null
-          empresa_id: string
-          id?: string
-          origem?: string | null
-          origem_id?: string | null
-          tipo: string
-          transfer_par_id?: string | null
-          valor: number
-        }
-        Update: {
-          conta_id?: string
-          created_at?: string
-          data?: string
-          descricao?: string | null
-          empresa_id?: string
-          id?: string
-          origem?: string | null
-          origem_id?: string | null
-          tipo?: string
-          transfer_par_id?: string | null
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "conta_movimentacoes_conta_id_fkey"
-            columns: ["conta_id"]
-            isOneToOne: false
-            referencedRelation: "contas_bancarias"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contas_a_pagar: {
         Row: {
           categoria: string
@@ -3446,51 +3396,6 @@ export type Database = {
             referencedColumns: ["ordem_id"]
           },
         ]
-      }
-      contas_bancarias: {
-        Row: {
-          ativa: boolean
-          cor: string | null
-          created_at: string
-          deleted_at: string | null
-          empresa_id: string
-          id: string
-          instituicao: string | null
-          nome: string
-          ordem: number
-          saldo_inicial: number
-          tipo: string
-          updated_at: string
-        }
-        Insert: {
-          ativa?: boolean
-          cor?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          empresa_id: string
-          id?: string
-          instituicao?: string | null
-          nome: string
-          ordem?: number
-          saldo_inicial?: number
-          tipo?: string
-          updated_at?: string
-        }
-        Update: {
-          ativa?: boolean
-          cor?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          empresa_id?: string
-          id?: string
-          instituicao?: string | null
-          nome?: string
-          ordem?: number
-          saldo_inicial?: number
-          tipo?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       contas_pagar_pagamentos: {
         Row: {
@@ -10538,61 +10443,7 @@ export type Database = {
         }
         Returns: Json
       }
-      conta_ajustar_saldo: {
-        Args: { p_conta_id: string; p_motivo: string; p_novo_saldo: number }
-        Returns: Json
-      }
-      conta_bancaria_arquivar: { Args: { p_id: string }; Returns: Json }
-      conta_bancaria_criar: {
-        Args: {
-          p_cor: string
-          p_instituicao: string
-          p_nome: string
-          p_saldo_inicial: number
-          p_tipo: string
-        }
-        Returns: Json
-      }
-      conta_bancaria_editar: {
-        Args: {
-          p_ativa: boolean
-          p_cor: string
-          p_id: string
-          p_instituicao: string
-          p_nome: string
-          p_tipo: string
-        }
-        Returns: Json
-      }
-      conta_extrato: {
-        Args: { p_conta_id: string; p_limit?: number; p_offset?: number }
-        Returns: Json
-      }
-      conta_lancar_movimentacao: {
-        Args: {
-          p_conta_id: string
-          p_data: string
-          p_descricao: string
-          p_tipo: string
-          p_valor: number
-        }
-        Returns: Json
-      }
-      conta_transferir: {
-        Args: {
-          p_data: string
-          p_descricao: string
-          p_destino_id: string
-          p_origem_id: string
-          p_valor: number
-        }
-        Returns: Json
-      }
       contar_dados_modulo: { Args: { p_modulo: string }; Returns: Json }
-      contas_bancarias_listar: {
-        Args: { p_incluir_inativas?: boolean }
-        Returns: Json
-      }
       creditar_cashback_os: { Args: { p_ordem_id: string }; Returns: Json }
       criar_convite_cliente:
         | { Args: { p_cliente_id: string }; Returns: Json }
