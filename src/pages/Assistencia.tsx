@@ -2026,6 +2026,9 @@ export default function Assistencia() {
                   modelos={modelosFiltro}
                   onSetFilter={setAdvancedFilter}
                   onClearAll={clearAdvancedFilters}
+                  selectedClientes={selectedClientes}
+                  onToggleCliente={toggleClienteFilter}
+                  onClearClientes={clearClientesFilter}
                 />
               </div>
 
