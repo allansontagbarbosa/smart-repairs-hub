@@ -4,7 +4,7 @@ import {
   ChevronRight, CheckCircle, Truck, AlertTriangle, Clock,
   CircleDot, ArrowUpDown, RefreshCw, Package, Wrench,
   CalendarClock, Printer, Brain, Shield, Trash2, XCircle,
-  X, SlidersHorizontal, Download, ChevronDown, MoreVertical, ArrowUp, ArrowDown,
+  X, Check, SlidersHorizontal, Download, ChevronDown, MoreVertical, ArrowUp, ArrowDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Link, useSearchParams } from "react-router-dom";
@@ -70,7 +70,7 @@ type DateRangeFilter = { de?: string; ate?: string } | null;
 type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
 type GarantiaFilter = "em_garantia" | "expirada" | "sem_garantia";
 type OrderFilters = {
-  cliente_id?: string;
+  cliente_ids?: string[];
   funcionario_id?: string;
   marca?: string;
   modelo?: string;
@@ -138,16 +138,28 @@ function applyDateRange(query: any, dateRange: DateRangeFilter): any {
 }
 
 function filterHash(filters: OrderFilters) {
-  return JSON.stringify(Object.keys(filters).sort().reduce((acc, key) => {
+  const norm: Record<string, string> = {};
+  for (const key of Object.keys(filters).sort()) {
     const value = filters[key as keyof OrderFilters];
-    if (value) acc[key] = value;
-    return acc;
-  }, {} as Record<string, string>));
+    if (Array.isArray(value)) {
+      if (value.length) norm[key] = [...value].sort().join(",");
+    } else if (value) {
+      norm[key] = value as string;
+    }
+  }
+  return JSON.stringify(norm);
 }
 
 function getFiltersFromParams(params: URLSearchParams): OrderFilters {
+  const rawIds = params.get("cliente_ids");
+  const legacy = params.get("cliente_id"); // compatibilidade com links antigos
+  const idsList = [...(rawIds ? rawIds.split(",") : []), ...(legacy ? [legacy] : [])]
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const cliente_ids = idsList.length ? Array.from(new Set(idsList)) : undefined;
+
   return {
-    cliente_id: params.get("cliente_id") || undefined,
+    cliente_ids,
     funcionario_id: params.get("funcionario_id") || undefined,
     marca: params.get("marca") || undefined,
     modelo: params.get("modelo") || undefined,
@@ -158,7 +170,7 @@ function getFiltersFromParams(params: URLSearchParams): OrderFilters {
 }
 
 function applyOrderFilters(query: any, filters: OrderFilters): any {
-  if (filters.cliente_id) query = query.eq("aparelhos.cliente_id", filters.cliente_id);
+  if (filters.cliente_ids && filters.cliente_ids.length) query = query.in("aparelhos.cliente_id", filters.cliente_ids);
   if (filters.funcionario_id) query = query.eq("os_servicos.tecnico_id", filters.funcionario_id);
   if (filters.marca) query = query.eq("aparelhos.marca", filters.marca);
   if (filters.modelo) query = query.eq("aparelhos.modelo", filters.modelo);
@@ -678,6 +690,9 @@ function FiltrosAvancados({
   modelos,
   onSetFilter,
   onClearAll,
+  selectedClientes,
+  onToggleCliente,
+  onClearClientes,
 }: {
   filters: OrderFilters;
   clienteSearch: string;
@@ -688,6 +703,9 @@ function FiltrosAvancados({
   modelos: string[];
   onSetFilter: (key: keyof OrderFilters, value?: string) => void;
   onClearAll: () => void;
+  selectedClientes: { id: string; nome: string }[];
+  onToggleCliente: (id: string) => void;
+  onClearClientes: () => void;
 }) {
   const activeCount = Object.values(filters).filter(Boolean).length;
 
@@ -712,29 +730,56 @@ function FiltrosAvancados({
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Cliente</label>
+            <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">Clientes</label>
+                {selectedClientes.length > 0 && (
+                  <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={onClearClientes}>
+                    Limpar ({selectedClientes.length})
+                  </button>
+                )}
+              </div>
+
+              {selectedClientes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedClientes.map((c) => (
+                    <span key={c.id} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                      {c.nome}
+                      <button type="button" onClick={() => onToggleCliente(c.id)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <Input
                 value={clienteSearch}
                 onChange={(e) => setClienteSearch(e.target.value)}
-                placeholder="Buscar cliente"
+                placeholder="Buscar cliente para adicionar"
                 className="h-9 text-sm"
               />
               {clientes.length > 0 && (
-                <div className="max-h-36 overflow-auto rounded-md border border-border bg-background">
-                  {clientes.map((cliente) => (
-                    <button
-                      key={cliente.id}
-                      className="block w-full px-3 py-2 text-left text-xs hover:bg-muted"
-                      onClick={() => {
-                        onSetFilter("cliente_id", cliente.id);
-                        setClienteSearch(cliente.nome);
-                      }}
-                    >
-                      <span className="font-medium text-foreground">{cliente.nome}</span>
-                      <span className="block text-muted-foreground">{cliente.telefone ?? "Sem telefone"}</span>
-                    </button>
-                  ))}
+                <div className="max-h-44 overflow-auto rounded-md border border-border bg-background">
+                  {clientes.map((cliente) => {
+                    const checked = (filters.cliente_ids ?? []).includes(cliente.id);
+                    return (
+                      <button
+                        key={cliente.id}
+                        type="button"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+                        onClick={() => onToggleCliente(cliente.id)}
+                      >
+                        <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>
+                          {checked && <Check className="h-3 w-3" />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-medium text-foreground truncate">{cliente.nome}</span>
+                          <span className="block text-muted-foreground truncate">{cliente.telefone ?? "Sem telefone"}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1384,21 +1429,58 @@ export default function Assistencia() {
     if (value) next.set(key, value);
     else next.delete(key);
     if (key === "marca") next.delete("modelo");
+    if (key === "cliente_ids") next.delete("cliente_id"); // limpa legado junto
+    setSearchParams(next, { replace: true });
+  };
+
+  const toggleClienteFilter = (id: string) => {
+    const current = filters.cliente_ids ?? [];
+    const nextIds = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    const next = new URLSearchParams(searchParams);
+    next.delete("cliente_id"); // remove legado
+    if (nextIds.length) next.set("cliente_ids", nextIds.join(","));
+    else next.delete("cliente_ids");
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearClientesFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("cliente_ids");
+    next.delete("cliente_id");
     setSearchParams(next, { replace: true });
   };
 
   const clearAdvancedFilters = () => {
     const next = new URLSearchParams(searchParams);
-    ["cliente_id", "funcionario_id", "marca", "modelo", "prioridade", "garantia", "aprovacao"].forEach((key) => next.delete(key));
+    ["cliente_ids", "cliente_id", "funcionario_id", "marca", "modelo", "prioridade", "garantia", "aprovacao"].forEach((key) => next.delete(key));
     setClienteSearch("");
     setSearchParams(next, { replace: true });
   };
+
+  const { data: selectedClientes = [] } = useQuery({
+    queryKey: ["os-clientes-selecionados", (filters.cliente_ids ?? []).slice().sort().join(",")],
+    enabled: (filters.cliente_ids?.length ?? 0) > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .in("id", filters.cliente_ids!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const activeFilterPills = useMemo(() => {
     const pills: { key: keyof OrderFilters; label: string }[] = [];
     const tecnico = funcionariosFiltro.find((f) => f.id === filters.funcionario_id)?.nome;
     const garantia = GARANTIA_OPTIONS.find((g) => g.value === filters.garantia)?.label;
-    if (filters.cliente_id) pills.push({ key: "cliente_id", label: `Cliente: ${clienteSearch || filters.cliente_id.slice(0, 8)}` });
+    if (filters.cliente_ids?.length) {
+      const nomes = selectedClientes.map((c) => c.nome);
+      const label = nomes.length <= 2 && nomes.length === filters.cliente_ids.length
+        ? `Clientes: ${nomes.join(", ")}`
+        : `Clientes: ${filters.cliente_ids.length} selecionados`;
+      pills.push({ key: "cliente_ids", label });
+    }
     if (filters.funcionario_id) pills.push({ key: "funcionario_id", label: `Técnico: ${tecnico ?? filters.funcionario_id.slice(0, 8)}` });
     if (filters.marca) pills.push({ key: "marca", label: `Marca: ${filters.marca}` });
     if (filters.modelo) pills.push({ key: "modelo", label: `Modelo: ${filters.modelo}` });
@@ -1406,7 +1488,7 @@ export default function Assistencia() {
     if (filters.garantia) pills.push({ key: "garantia", label: `Garantia: ${garantia ?? filters.garantia}` });
     if (filters.aprovacao) pills.push({ key: "aprovacao", label: `Aprovação: ${filters.aprovacao}` });
     return pills;
-  }, [filters, funcionariosFiltro, clienteSearch]);
+  }, [filters, funcionariosFiltro, clienteSearch, selectedClientes]);
 
   // Texto e flags para o modal de confirmação
   const tecnicosComAtual = useMemo(
@@ -1944,6 +2026,9 @@ export default function Assistencia() {
                   modelos={modelosFiltro}
                   onSetFilter={setAdvancedFilter}
                   onClearAll={clearAdvancedFilters}
+                  selectedClientes={selectedClientes}
+                  onToggleCliente={toggleClienteFilter}
+                  onClearClientes={clearClientesFilter}
                 />
               </div>
 
