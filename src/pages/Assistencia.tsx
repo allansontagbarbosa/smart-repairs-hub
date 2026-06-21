@@ -70,7 +70,7 @@ type DateRangeFilter = { de?: string; ate?: string } | null;
 type PeriodFilterState = { preset: PeriodPreset | null; de?: string; ate?: string; key: string; dateRange: DateRangeFilter };
 type GarantiaFilter = "em_garantia" | "expirada" | "sem_garantia";
 type OrderFilters = {
-  cliente_id?: string;
+  cliente_ids?: string[];
   funcionario_id?: string;
   marca?: string;
   modelo?: string;
