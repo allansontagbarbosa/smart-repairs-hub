@@ -1429,21 +1429,58 @@ export default function Assistencia() {
     if (value) next.set(key, value);
     else next.delete(key);
     if (key === "marca") next.delete("modelo");
+    if (key === "cliente_ids") next.delete("cliente_id"); // limpa legado junto
+    setSearchParams(next, { replace: true });
+  };
+
+  const toggleClienteFilter = (id: string) => {
+    const current = filters.cliente_ids ?? [];
+    const nextIds = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    const next = new URLSearchParams(searchParams);
+    next.delete("cliente_id"); // remove legado
+    if (nextIds.length) next.set("cliente_ids", nextIds.join(","));
+    else next.delete("cliente_ids");
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearClientesFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("cliente_ids");
+    next.delete("cliente_id");
     setSearchParams(next, { replace: true });
   };
 
   const clearAdvancedFilters = () => {
     const next = new URLSearchParams(searchParams);
-    ["cliente_id", "funcionario_id", "marca", "modelo", "prioridade", "garantia", "aprovacao"].forEach((key) => next.delete(key));
+    ["cliente_ids", "cliente_id", "funcionario_id", "marca", "modelo", "prioridade", "garantia", "aprovacao"].forEach((key) => next.delete(key));
     setClienteSearch("");
     setSearchParams(next, { replace: true });
   };
+
+  const { data: selectedClientes = [] } = useQuery({
+    queryKey: ["os-clientes-selecionados", (filters.cliente_ids ?? []).slice().sort().join(",")],
+    enabled: (filters.cliente_ids?.length ?? 0) > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome")
+        .in("id", filters.cliente_ids!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const activeFilterPills = useMemo(() => {
     const pills: { key: keyof OrderFilters; label: string }[] = [];
     const tecnico = funcionariosFiltro.find((f) => f.id === filters.funcionario_id)?.nome;
     const garantia = GARANTIA_OPTIONS.find((g) => g.value === filters.garantia)?.label;
-    if (filters.cliente_id) pills.push({ key: "cliente_id", label: `Cliente: ${clienteSearch || filters.cliente_id.slice(0, 8)}` });
+    if (filters.cliente_ids?.length) {
+      const nomes = selectedClientes.map((c) => c.nome);
+      const label = nomes.length <= 2 && nomes.length === filters.cliente_ids.length
+        ? `Clientes: ${nomes.join(", ")}`
+        : `Clientes: ${filters.cliente_ids.length} selecionados`;
+      pills.push({ key: "cliente_ids", label });
+    }
     if (filters.funcionario_id) pills.push({ key: "funcionario_id", label: `Técnico: ${tecnico ?? filters.funcionario_id.slice(0, 8)}` });
     if (filters.marca) pills.push({ key: "marca", label: `Marca: ${filters.marca}` });
     if (filters.modelo) pills.push({ key: "modelo", label: `Modelo: ${filters.modelo}` });
@@ -1451,7 +1488,7 @@ export default function Assistencia() {
     if (filters.garantia) pills.push({ key: "garantia", label: `Garantia: ${garantia ?? filters.garantia}` });
     if (filters.aprovacao) pills.push({ key: "aprovacao", label: `Aprovação: ${filters.aprovacao}` });
     return pills;
-  }, [filters, funcionariosFiltro, clienteSearch]);
+  }, [filters, funcionariosFiltro, clienteSearch, selectedClientes]);
 
   // Texto e flags para o modal de confirmação
   const tecnicosComAtual = useMemo(
