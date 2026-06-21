@@ -730,29 +730,56 @@ function FiltrosAvancados({
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Cliente</label>
+            <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">Clientes</label>
+                {selectedClientes.length > 0 && (
+                  <button type="button" className="text-[11px] text-muted-foreground hover:text-foreground" onClick={onClearClientes}>
+                    Limpar ({selectedClientes.length})
+                  </button>
+                )}
+              </div>
+
+              {selectedClientes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedClientes.map((c) => (
+                    <span key={c.id} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">
+                      {c.nome}
+                      <button type="button" onClick={() => onToggleCliente(c.id)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <Input
                 value={clienteSearch}
                 onChange={(e) => setClienteSearch(e.target.value)}
-                placeholder="Buscar cliente"
+                placeholder="Buscar cliente para adicionar"
                 className="h-9 text-sm"
               />
               {clientes.length > 0 && (
-                <div className="max-h-36 overflow-auto rounded-md border border-border bg-background">
-                  {clientes.map((cliente) => (
-                    <button
-                      key={cliente.id}
-                      className="block w-full px-3 py-2 text-left text-xs hover:bg-muted"
-                      onClick={() => {
-                        onSetFilter("cliente_id", cliente.id);
-                        setClienteSearch(cliente.nome);
-                      }}
-                    >
-                      <span className="font-medium text-foreground">{cliente.nome}</span>
-                      <span className="block text-muted-foreground">{cliente.telefone ?? "Sem telefone"}</span>
-                    </button>
-                  ))}
+                <div className="max-h-44 overflow-auto rounded-md border border-border bg-background">
+                  {clientes.map((cliente) => {
+                    const checked = (filters.cliente_ids ?? []).includes(cliente.id);
+                    return (
+                      <button
+                        key={cliente.id}
+                        type="button"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-muted"
+                        onClick={() => onToggleCliente(cliente.id)}
+                      >
+                        <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>
+                          {checked && <Check className="h-3 w-3" />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-medium text-foreground truncate">{cliente.nome}</span>
+                          <span className="block text-muted-foreground truncate">{cliente.telefone ?? "Sem telefone"}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
