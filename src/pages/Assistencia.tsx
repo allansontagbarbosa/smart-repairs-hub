@@ -138,16 +138,28 @@ function applyDateRange(query: any, dateRange: DateRangeFilter): any {
 }
 
 function filterHash(filters: OrderFilters) {
-  return JSON.stringify(Object.keys(filters).sort().reduce((acc, key) => {
+  const norm: Record<string, string> = {};
+  for (const key of Object.keys(filters).sort()) {
     const value = filters[key as keyof OrderFilters];
-    if (value) acc[key] = value;
-    return acc;
-  }, {} as Record<string, string>));
+    if (Array.isArray(value)) {
+      if (value.length) norm[key] = [...value].sort().join(",");
+    } else if (value) {
+      norm[key] = value as string;
+    }
+  }
+  return JSON.stringify(norm);
 }
 
 function getFiltersFromParams(params: URLSearchParams): OrderFilters {
+  const rawIds = params.get("cliente_ids");
+  const legacy = params.get("cliente_id"); // compatibilidade com links antigos
+  const idsList = [...(rawIds ? rawIds.split(",") : []), ...(legacy ? [legacy] : [])]
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const cliente_ids = idsList.length ? Array.from(new Set(idsList)) : undefined;
+
   return {
-    cliente_id: params.get("cliente_id") || undefined,
+    cliente_ids,
     funcionario_id: params.get("funcionario_id") || undefined,
     marca: params.get("marca") || undefined,
     modelo: params.get("modelo") || undefined,
