@@ -861,9 +861,11 @@ export default function Assistencia() {
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
-    queryKey: ["ordens", "status-counts", "periodo", period.key],
-    queryFn: () => fetchStatusCounts({ dateRange: period.dateRange }),
+    queryKey: ["ordens", "status-counts", "periodo", period.key, "filtros", filtersKey, "match", serverSearch.matchingIds],
+    queryFn: () => fetchStatusCounts({ dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds }),
+    enabled: searchEnabled,
   });
+
 
   const { data: clientesFiltro = [] } = useQuery({
     queryKey: ["clientes-filtro-os", debouncedClienteSearch],
