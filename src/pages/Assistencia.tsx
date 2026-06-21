@@ -690,6 +690,9 @@ function FiltrosAvancados({
   modelos,
   onSetFilter,
   onClearAll,
+  selectedClientes,
+  onToggleCliente,
+  onClearClientes,
 }: {
   filters: OrderFilters;
   clienteSearch: string;
@@ -700,6 +703,9 @@ function FiltrosAvancados({
   modelos: string[];
   onSetFilter: (key: keyof OrderFilters, value?: string) => void;
   onClearAll: () => void;
+  selectedClientes: { id: string; nome: string }[];
+  onToggleCliente: (id: string) => void;
+  onClearClientes: () => void;
 }) {
   const activeCount = Object.values(filters).filter(Boolean).length;
 
