@@ -323,12 +323,19 @@ async function fetchAllOrdersForSelection({ filterStatus, dateRange, filters, ma
   return Array.from(rowsById.values());
 }
 
-async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) {
+async function fetchStatusCounts({ dateRange, filters, matchingIds }: { dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
+  if (matchingIds && matchingIds.length === 0) return { todos: 0 };
+
   let query = supabase
     .from("ordens_de_servico")
-    .select("status");
+    .select(`status, aparelhos!inner(cliente_id, marca, modelo), ${filters.funcionario_id ? "os_servicos!inner" : "os_servicos"}(tecnico_id)`);
 
   query = applyDateRange(query, dateRange);
+  query = applyOrderFilters(query, filters);
+
+  if (matchingIds && matchingIds.length > 0) {
+    query = query.in("id", matchingIds);
+  }
 
   const { data, error } = await query;
   if (error) throw error;
@@ -340,6 +347,7 @@ async function fetchStatusCounts({ dateRange }: { dateRange: DateRangeFilter }) 
   }
   return counts;
 }
+
 
 async function fetchOrdersForExport({ filterStatus, dateRange, filters, matchingIds }: { filterStatus: StatusFilter; dateRange: DateRangeFilter; filters: OrderFilters; matchingIds?: string[] | null }) {
   if (matchingIds && matchingIds.length === 0) return [];
@@ -853,9 +861,11 @@ export default function Assistencia() {
   });
 
   const { data: statusCounts = { todos: 0 } } = useQuery({
-    queryKey: ["ordens", "status-counts", "periodo", period.key],
-    queryFn: () => fetchStatusCounts({ dateRange: period.dateRange }),
+    queryKey: ["ordens", "status-counts", "periodo", period.key, "filtros", filtersKey, "match", serverSearch.matchingIds],
+    queryFn: () => fetchStatusCounts({ dateRange: period.dateRange, filters, matchingIds: serverSearch.matchingIds }),
+    enabled: searchEnabled,
   });
+
 
   const { data: clientesFiltro = [] } = useQuery({
     queryKey: ["clientes-filtro-os", debouncedClienteSearch],
