@@ -310,8 +310,38 @@ export function PedidoAtacadoDrawer({ open, onOpenChange, pedidoId }: Props) {
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" /> Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Excluir pedido #P-{String(pedido.numero_pedido).padStart(6, "0")} definitivamente?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação é <strong>irreversível</strong>. O pedido, seus itens, parcelas e lançamentos
+                        no financeiro/cobrança/DRE serão removidos. O estoque <strong>não</strong> é reposto —
+                        se precisar repor, cancele antes em vez de excluir.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => excluirPedido.mutate()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir definitivamente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
+
 
             <Tabs defaultValue="resumo" className="p-4">
               <TabsList className="w-full">
