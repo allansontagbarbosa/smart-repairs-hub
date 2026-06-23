@@ -301,11 +301,25 @@ export default function AtacadoCadastroProduto() {
         0,
       );
       const custoBaseAp = Math.max(0, Number(aparelho.custo ?? 0) - somaAssistsAp);
-      // Importado: mostra o custo na MOEDA ORIGINAL (back-calc), não em R$. 4 casas p/
-      // minimizar drift de arredondamento no round-trip (produto × cotação ≈ custo salvo).
+      // Importado: back-calc do custo do PRODUTO na moeda original, EXCLUINDO os fretes/taxas
+      // (restaurados como linhas separadas abaixo). Inverte exatamente o custoBaseUnit do form:
+      //   custoBaseAp = produtoBRL*(1+Σpct/100) + ΣfixoBRL
+      let somaFixaBRL = 0;
+      let somaPct = 0;
+      if (restaurarImportado && cotacaoInv > 0) {
+        for (const c of invoiceCustos) {
+          const v = Number(c.valor) || 0;
+          if (c.modo === "pct") somaPct += v;            // % sobre o produto
+          else if (c.moeda === "BRL") somaFixaBRL += v;  // fixo em R$
+          else somaFixaBRL += v * cotacaoInv;            // fixo em moeda estrangeira -> R$
+        }
+      }
+      const fatorPct = 1 + somaPct / 100;
+      const produtoBRLorig =
+        fatorPct > 0 ? Math.max(0, (custoBaseAp - somaFixaBRL) / fatorPct) : custoBaseAp;
       const custoProdutoInicial =
         restaurarImportado && cotacaoInv > 0
-          ? (custoBaseAp / cotacaoInv).toFixed(4)
+          ? (produtoBRLorig / cotacaoInv).toFixed(4) // US$ do produto, sem o frete
           : String(custoBaseAp);
       setCustoProduto(
         aparelho.custo != null ? custoProdutoInicial : "",
@@ -314,11 +328,11 @@ export default function AtacadoCadastroProduto() {
       setPrecoVenda(
         aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
       );
-      // ATACADO-CAD-12: em modo EDITAR, não carregar custos da invoice — o custo
-      // salvo em atacado_aparelhos.custo já inclui o rateio de frete/aduana/etc.
-      // Carregá-los aqui causaria dupla contagem no recálculo do rodapé.
+      // Importado em edição: restaura as linhas de frete/taxa originais (como o duplicar faz).
+      // O back-calc acima já tirou esses custos do "custo do produto", então NÃO há dupla
+      // contagem — o rodapé recompõe exatamente o custo salvo. Não-importado em edição: [].
       setCustos(
-        modoEditar
+        modoEditar && !restaurarImportado
           ? []
           : invoiceCustos.map((c) => ({
               tipo: (c.tipo as CustoTipo) ?? "outro",
@@ -328,6 +342,7 @@ export default function AtacadoCadastroProduto() {
               moeda: c.moeda || "BRL",
             })),
       );
+
 
       setQuantidade(1);
       setUnidades([
