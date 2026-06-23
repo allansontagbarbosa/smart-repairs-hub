@@ -140,6 +140,30 @@ export function PedidoAtacadoDrawer({ open, onOpenChange, pedidoId }: Props) {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const excluirPedido = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, {
+        p_id: pedidoId!,
+      });
+      if (error) throw error;
+      return data as { success: boolean; error?: string };
+    },
+    onSuccess: (res) => {
+      if (!res?.success) {
+        toast({ title: "Erro", description: res?.error || "Não foi possível excluir", variant: "destructive" });
+        return;
+      }
+      toast({ title: "✓ Pedido excluído" });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+      qc.invalidateQueries({ queryKey: ["financeiro"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+
   if (!open) return null;
 
   return (
