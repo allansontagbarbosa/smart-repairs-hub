@@ -46,6 +46,7 @@ import PainelSocioContas from "./pages/PainelSocioContas";
 
 const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
 const PERFIS_TECNICO = ["Técnico"];
+const PERFIS_VENDEDOR = ["Vendedor"];
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
