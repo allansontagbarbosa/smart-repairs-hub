@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { ComboWidget } from "@/components/ComboWidget";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useModulos } from "@/hooks/useModulos";
 import { usePermissoes } from "@/hooks/usePermissoes";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -469,6 +470,12 @@ export default function Dashboard() {
   // ─────────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────────
+
+  // Empresa atacado (sem loja) nunca deve ficar presa no dashboard da assistência.
+  const { atacadoAtivo, lojaAtivo, isLoading: modulosLoading } = useModulos();
+  if (!modulosLoading && atacadoAtivo && !lojaAtivo) {
+    return <Navigate to="/atacado/dashboard" replace />;
+  }
 
   if (isLoading) {
     return (

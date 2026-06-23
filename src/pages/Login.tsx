@@ -50,9 +50,10 @@ async function getRotaInicial(userId: string): Promise<string> {
     const loja = !!emp?.modulo_loja_ativo;
     const assist = emp?.modulo_assistencia_ativo ?? true;
     const atacado = !!emp?.modulo_atacado_ativo;
+    if (atacado && !loja) return "/atacado/dashboard"; // atacado puro: prioridade na landing
     if (loja && assist) return "/combo/dashboard";
     if (loja && !assist) return "/loja/dashboard";
-    if (atacado) return "/atacado/dashboard"; // empresa atacado (sem loja) cai no dashboard do atacado
+    if (atacado) return "/atacado/dashboard"; // atacado + loja: ainda assim cai no atacado
   }
   return "/dashboard";
 }
