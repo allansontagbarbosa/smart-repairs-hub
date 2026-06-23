@@ -44,13 +44,15 @@ async function getRotaInicial(userId: string): Promise<string> {
   if (empresaId) {
     const { data: emp } = await supabase
       .from("empresas")
-      .select("modulo_loja_ativo, modulo_assistencia_ativo")
+      .select("modulo_loja_ativo, modulo_assistencia_ativo, modulo_atacado_ativo")
       .eq("id", empresaId)
       .maybeSingle();
     const loja = !!emp?.modulo_loja_ativo;
     const assist = emp?.modulo_assistencia_ativo ?? true;
+    const atacado = !!emp?.modulo_atacado_ativo;
     if (loja && assist) return "/combo/dashboard";
     if (loja && !assist) return "/loja/dashboard";
+    if (atacado) return "/atacado/dashboard"; // empresa atacado (sem loja) cai no dashboard do atacado
   }
   return "/dashboard";
 }
