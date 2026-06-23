@@ -758,7 +758,7 @@ export default function AtacadoCadastroProduto() {
           valor: num(c.valor),
         })),
       unidades: unidades.map((u) => ({
-        imei1: u.imei1.trim(),
+        imei1: u.imei1.trim() || null,
         imei2: u.imei2.trim() || null,
         assistencias: u.assistencias,
       })),
