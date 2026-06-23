@@ -21,7 +21,7 @@ interface InviteUserDialogProps {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-const PERFIS_CLT = ["tecnico", "atendimento", "gerente", "financeiro"];
+const PERFIS_CLT = ["tecnico", "atendimento", "gerente", "financeiro", "vendedor"];
 
 export function InviteUserDialog({
   perfisAcesso,
