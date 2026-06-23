@@ -75,6 +75,7 @@ export default function AtacadoNovoPedido() {
   const [customEntrada, setCustomEntrada] = useState(0);
   const [desconto, setDesconto] = useState("0");
   const [observacoes, setObservacoes] = useState("");
+  const [dataPedido, setDataPedido] = useState<string>(new Date().toISOString().slice(0, 10));
   const [salvando, setSalvando] = useState(false);
   const preselectAppliedRef = useRef(false);
 
