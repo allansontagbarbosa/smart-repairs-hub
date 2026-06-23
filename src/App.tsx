@@ -140,6 +140,11 @@ import TecnicoMetas from "./pages/tecnico/TecnicoMetas";
 import TecnicoTransferencias from "./pages/tecnico/TecnicoTransferencias";
 import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
 
+// Portal do Vendedor (atacado B2B)
+import { VendedorGuard, VendedorLayout } from "@/components/vendedor/VendedorLayout";
+import VendedorHome from "./pages/vendedor/VendedorHome";
+
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
