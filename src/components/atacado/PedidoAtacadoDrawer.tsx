@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, FileText, Truck, Ban, Printer, Loader2, Building2 } from "lucide-react";
+import { CheckCircle2, FileText, Truck, Ban, Printer, Loader2, Building2, Trash2 } from "lucide-react";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
 
 interface Props {
@@ -139,6 +139,30 @@ export function PedidoAtacadoDrawer({ open, onOpenChange, pedidoId }: Props) {
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
+
+  const excluirPedido = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, {
+        p_id: pedidoId!,
+      });
+      if (error) throw error;
+      return data as { success: boolean; error?: string };
+    },
+    onSuccess: (res) => {
+      if (!res?.success) {
+        toast({ title: "Erro", description: res?.error || "Não foi possível excluir", variant: "destructive" });
+        return;
+      }
+      toast({ title: "✓ Pedido excluído" });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+      qc.invalidateQueries({ queryKey: ["financeiro"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
 
   if (!open) return null;
 
@@ -286,8 +310,38 @@ export function PedidoAtacadoDrawer({ open, onOpenChange, pedidoId }: Props) {
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" /> Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Excluir pedido #P-{String(pedido.numero_pedido).padStart(6, "0")} definitivamente?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação é <strong>irreversível</strong>. O pedido, seus itens, parcelas e lançamentos
+                        no financeiro/cobrança/DRE serão removidos. O estoque <strong>não</strong> é reposto —
+                        se precisar repor, cancele antes em vez de excluir.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => excluirPedido.mutate()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Excluir definitivamente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
+
 
             <Tabs defaultValue="resumo" className="p-4">
               <TabsList className="w-full">

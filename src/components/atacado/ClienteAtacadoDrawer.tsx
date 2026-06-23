@@ -2,10 +2,22 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Phone,
   Mail,
@@ -15,6 +27,7 @@ import {
   Ban,
   Loader2,
   User,
+  Trash2,
 } from "lucide-react";
 
 interface Props {
@@ -25,6 +38,28 @@ interface Props {
 
 export function ClienteAtacadoDrawer({ open, onOpenChange, clienteId }: Props) {
   const { empresaId: _empresaId } = useEmpresa();
+  const qc = useQueryClient();
+
+  const excluir = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("atacado_excluir_cliente" as any, {
+        p_id: clienteId!,
+      });
+      if (error) throw error;
+      return data as { success: boolean; error?: string };
+    },
+    onSuccess: (res) => {
+      if (!res?.success) {
+        toast.error(res?.error || "Não foi possível excluir");
+        return;
+      }
+      toast.success("Cliente excluído");
+      qc.invalidateQueries({ queryKey: ["atacado-clientes"] });
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast.error("Erro ao excluir", { description: e.message }),
+  });
+
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ["atacado-cliente-detalhe", clienteId],
@@ -206,7 +241,33 @@ export function ClienteAtacadoDrawer({ open, onOpenChange, clienteId }: Props) {
                   <Button size="sm" variant="outline" disabled>
                     <Ban className="h-4 w-4" /> Bloquear
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" /> Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir cliente definitivamente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é <strong>irreversível</strong>. Se o cliente tiver pedidos no histórico,
+                          a exclusão é bloqueada — exclua os pedidos primeiro.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => excluir.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Excluir cliente
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
+
               </TabsContent>
 
               <TabsContent value="pedidos" className="space-y-2 mt-4">

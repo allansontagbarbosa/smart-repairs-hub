@@ -9992,10 +9992,13 @@ export type Database = {
           ticket_medio: number
         }[]
       }
+      atacado_excluir_cliente: { Args: { p_id: string }; Returns: Json }
       atacado_excluir_item: {
         Args: { p_chave: string; p_lista: string }
         Returns: Json
       }
+      atacado_excluir_modelo: { Args: { p_id: string }; Returns: Json }
+      atacado_excluir_pedido: { Args: { p_id: string }; Returns: Json }
       atacado_financeiro_kpis: {
         Args: { p_empresa_id: string }
         Returns: {
