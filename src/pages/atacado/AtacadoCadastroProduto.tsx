@@ -319,7 +319,7 @@ export default function AtacadoCadastroProduto() {
         fatorPct > 0 ? Math.max(0, (custoBaseAp - somaFixaBRL) / fatorPct) : custoBaseAp;
       const custoProdutoInicial =
         restaurarImportado && cotacaoInv > 0
-          ? (produtoBRLorig / cotacaoInv).toFixed(4) // US$ do produto, sem o frete
+          ? (produtoBRLorig / cotacaoInv).toFixed(2) // US$ do produto, sem o frete (2 casas)
           : String(custoBaseAp);
       setCustoProduto(
         aparelho.custo != null ? custoProdutoInicial : "",
