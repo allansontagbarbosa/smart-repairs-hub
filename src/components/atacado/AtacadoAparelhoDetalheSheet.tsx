@@ -323,11 +323,25 @@ export function AtacadoAparelhoDetalheSheet({
                 <Info label="Preço sugerido" value={precoNum ? formatBRL(precoNum) : "—"} />
                 <Info
                   label="Lucro"
-                  value={lucro > 0 ? formatBRL(lucro) : "—"}
-                  valueClass={lucro > 0 ? "text-success font-medium" : ""}
+                  value={precoNum > 0 ? formatBRL(lucro) : "—"}
+                  valueClass={
+                    precoNum > 0
+                      ? lucro >= 0
+                        ? "text-success font-medium"
+                        : "text-destructive font-medium"
+                      : ""
+                  }
                 />
-                <Info label="Markup" value={markup > 0 ? `${markup.toFixed(1)}%` : "—"} />
-                <Info label="Margem" value={margem > 0 ? `${margem.toFixed(1)}%` : "—"} />
+                <Info
+                  label="Markup"
+                  value={precoNum > 0 && custoTotal > 0 ? `${markup.toFixed(1)}%` : "—"}
+                  valueClass={precoNum > 0 && custoTotal > 0 && markup < 0 ? "text-destructive" : ""}
+                />
+                <Info
+                  label="Margem"
+                  value={precoNum > 0 ? `${margem.toFixed(1)}%` : "—"}
+                  valueClass={precoNum > 0 && margem < 0 ? "text-destructive" : ""}
+                />
                 <Info label="Quantidade" value={String(aparelho.quantidade ?? 0)} />
                 <Info label="Fornecedor" value={aparelho.fornecedor?.nome ?? "—"} />
                 <Info
