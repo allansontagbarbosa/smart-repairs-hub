@@ -259,7 +259,7 @@ export default function AtacadoCadastroProduto() {
 
       // Importado em edição: restaurar modo importado e back-calcular o custo na moeda original.
       const cotacaoInv = invoice?.cotacao != null ? Number(invoice.cotacao) : 0;
-      const restaurarImportado = modoEditar && !!invoice?.importado && cotacaoInv > 0;
+      const restaurarImportado = (modoEditar || modoDuplicar) && !!invoice?.importado && cotacaoInv > 0;
 
       if (invoice) {
         // Importado em edição: restaura importado=true + moeda + cotação. O custo na moeda
