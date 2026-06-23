@@ -471,6 +471,12 @@ export default function Dashboard() {
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────────
 
+  // Empresa atacado (sem loja) nunca deve ficar presa no dashboard da assistência.
+  const { atacadoAtivo, lojaAtivo, isLoading: modulosLoading } = useModulos();
+  if (!modulosLoading && atacadoAtivo && !lojaAtivo) {
+    return <Navigate to="/atacado/dashboard" replace />;
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
