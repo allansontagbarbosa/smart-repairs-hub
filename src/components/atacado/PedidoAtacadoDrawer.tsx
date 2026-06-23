@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, FileText, Truck, Ban, Printer, Loader2, Building2 } from "lucide-react";
+import { CheckCircle2, FileText, Truck, Ban, Printer, Loader2, Building2, Trash2 } from "lucide-react";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
 
 interface Props {
