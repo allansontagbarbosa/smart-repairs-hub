@@ -383,6 +383,7 @@ export default function AtacadoNovoPedido() {
         desconto: descontoNum,
         condicao_pagamento: condicaoPagamento,
         observacoes,
+        data: dataPedido,
         origem: "manual",
         itens: carrinho.map((c) => ({
           aparelho_id: c.aparelho_id,
