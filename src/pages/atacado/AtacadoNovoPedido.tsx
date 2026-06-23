@@ -899,8 +899,22 @@ export default function AtacadoNovoPedido() {
               </div>
             </div>
 
+            <div className="space-y-1">
+              <Label>Data do pedido</Label>
+              <Input
+                type="date"
+                value={dataPedido}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setDataPedido(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use uma data passada para registrar um pedido retroativo. Entra no financeiro e relatórios desse período.
+              </p>
+            </div>
+
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
+
                 <span>Subtotal</span>
                 <span className="tabular-nums">{formatBRL(subtotal)}</span>
               </div>
