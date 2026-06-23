@@ -301,9 +301,16 @@ export default function AtacadoCadastroProduto() {
         0,
       );
       const custoBaseAp = Math.max(0, Number(aparelho.custo ?? 0) - somaAssistsAp);
+      // Importado: mostra o custo na MOEDA ORIGINAL (back-calc), não em R$. 4 casas p/
+      // minimizar drift de arredondamento no round-trip (produto × cotação ≈ custo salvo).
+      const custoProdutoInicial =
+        restaurarImportado && cotacaoInv > 0
+          ? (custoBaseAp / cotacaoInv).toFixed(4)
+          : String(custoBaseAp);
       setCustoProduto(
-        aparelho.custo != null ? String(custoBaseAp) : "",
+        aparelho.custo != null ? custoProdutoInicial : "",
       );
+
       setPrecoVenda(
         aparelho.preco_sugerido != null ? String(aparelho.preco_sugerido) : "",
       );
