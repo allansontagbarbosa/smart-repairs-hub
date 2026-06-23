@@ -393,9 +393,13 @@ export default function AtacadoAparelhos() {
           {precoNum > 0 ? formatBRL(precoNum) : <span className="text-muted-foreground">—</span>}
         </td>
         <td className="px-4 py-3 text-right">
-          {lucro > 0 ? (
+          {precoNum > 0 ? (
             <div>
-              <div className="tabular-nums text-success font-medium">
+              <div
+                className={`tabular-nums font-medium ${
+                  lucro >= 0 ? "text-success" : "text-destructive"
+                }`}
+              >
                 {formatBRL(lucro)}
               </div>
               <div className="text-xs text-muted-foreground tabular-nums">
