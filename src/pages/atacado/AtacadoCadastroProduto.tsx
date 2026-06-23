@@ -257,15 +257,17 @@ export default function AtacadoCadastroProduto() {
 
       hydratingRef.current = true;
 
+      // Importado em edição: restaurar modo importado e back-calcular o custo na moeda original.
+      const cotacaoInv = invoice?.cotacao != null ? Number(invoice.cotacao) : 0;
+      const restaurarImportado = modoEditar && !!invoice?.importado && cotacaoInv > 0;
+
       if (invoice) {
-        // ATACADO-CAD-12: no modo EDITAR, NÃO reaplicar conversão US$×cotação+fretes.
-        // O banco só guarda o custo final em R$ (sem breakdown). Reusar moeda/cotação
-        // da invoice faria dupla conversão (R$ tratado como US$). Por isso, em edit,
-        // forçamos importado=false / moeda=BRL / cotacao vazio e não carregamos os
-        // custos da invoice — o usuário edita direto o "Custo final (R$)".
-        // Metadados informativos (fornecedor, nº, data, país) seguem preenchidos.
-        const editarComoBRL = modoEditar;
-        setImportado(editarComoBRL ? false : !!invoice.importado);
+        // Importado em edição: restaura importado=true + moeda + cotação. O custo na moeda
+        // original é back-calculado no Passo 3 (custoBaseAp / cotação). Como custos=[] no
+        // editar, produtoBRL volta a ser exatamente o custo salvo -> round-trip exato.
+        // Só força BRL quando NÃO é importado (ou invoice sem cotação).
+        const editarComoBRL = modoEditar && !restaurarImportado;
+        setImportado(restaurarImportado ? true : (editarComoBRL ? false : !!invoice.importado));
         setFornecedor(invoice.fornecedor ?? "");
         setNumero(invoice.numero ?? "");
         setDataCompra(
@@ -276,11 +278,12 @@ export default function AtacadoCadastroProduto() {
             : "",
         );
         setPaisOrigem(invoice.pais_origem ?? "");
-        setMoeda(editarComoBRL ? "BRL" : (invoice.moeda || "BRL"));
-        setCotacao(editarComoBRL ? "" : (invoice.cotacao != null ? String(invoice.cotacao) : ""));
+        setMoeda(restaurarImportado ? (invoice.moeda || "USD") : (editarComoBRL ? "BRL" : (invoice.moeda || "BRL")));
+        setCotacao(restaurarImportado ? String(invoice.cotacao) : (editarComoBRL ? "" : (invoice.cotacao != null ? String(invoice.cotacao) : "")));
       } else if (modoEditar && aparelho.data_compra) {
         setDataCompra(new Date(aparelho.data_compra).toISOString().slice(0, 10));
       }
+
 
       setMarca(aparelho.marca ?? "");
       setModelo(aparelho.modelo ?? "");
