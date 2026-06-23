@@ -543,16 +543,22 @@ export default function AtacadoCadastroProduto() {
       );
     }
 
-    // Bloco 3.1: IMEI 1 obrigatório
-    const idxSemImei = unidades.findIndex((u) => !u.imei1.trim());
-    if (idxSemImei >= 0) {
-      return toast.error(`Aparelho ${idxSemImei + 1}: informe o IMEI 1`);
+    // IMEI 1 é opcional QUANDO o status é "Compra" (aparelho comprado, ainda não recebido).
+    // Em qualquer outro status, segue obrigatório.
+    const ehCompra =
+      status.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === "compra";
+    if (!ehCompra) {
+      const idxSemImei = unidades.findIndex((u) => !u.imei1.trim());
+      if (idxSemImei >= 0) {
+        return toast.error(`Aparelho ${idxSemImei + 1}: informe o IMEI 1`);
+      }
     }
 
     // Bloco 3.1: sem duplicados dentro do lote (IMEI 1 + IMEI 2 não-vazios)
     const todos: string[] = [];
     for (const u of unidades) {
-      todos.push(u.imei1.trim());
+      const v1 = u.imei1.trim();
+      if (v1) todos.push(v1);
       const v2 = u.imei2.trim();
       if (v2) todos.push(v2);
     }
@@ -752,7 +758,7 @@ export default function AtacadoCadastroProduto() {
           valor: num(c.valor),
         })),
       unidades: unidades.map((u) => ({
-        imei1: u.imei1.trim(),
+        imei1: u.imei1.trim() || null,
         imei2: u.imei2.trim() || null,
         assistencias: u.assistencias,
       })),
