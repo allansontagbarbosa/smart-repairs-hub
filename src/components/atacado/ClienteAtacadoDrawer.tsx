@@ -38,6 +38,28 @@ interface Props {
 
 export function ClienteAtacadoDrawer({ open, onOpenChange, clienteId }: Props) {
   const { empresaId: _empresaId } = useEmpresa();
+  const qc = useQueryClient();
+
+  const excluir = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("atacado_excluir_cliente" as any, {
+        p_id: clienteId!,
+      });
+      if (error) throw error;
+      return data as { success: boolean; error?: string };
+    },
+    onSuccess: (res) => {
+      if (!res?.success) {
+        toast.error(res?.error || "Não foi possível excluir");
+        return;
+      }
+      toast.success("Cliente excluído");
+      qc.invalidateQueries({ queryKey: ["atacado-clientes"] });
+      onOpenChange(false);
+    },
+    onError: (e: any) => toast.error("Erro ao excluir", { description: e.message }),
+  });
+
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ["atacado-cliente-detalhe", clienteId],
