@@ -46,6 +46,7 @@ import PainelSocioContas from "./pages/PainelSocioContas";
 
 const PERFIS_ADMIN = ["Administrador", "Gerente", "Financeiro", "Atendimento"];
 const PERFIS_TECNICO = ["Técnico"];
+const PERFIS_VENDEDOR = ["Vendedor"];
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalOrdemDetalhe from "./pages/portal/PortalOrdemDetalhe";
@@ -139,6 +140,11 @@ import TecnicoMetas from "./pages/tecnico/TecnicoMetas";
 import TecnicoTransferencias from "./pages/tecnico/TecnicoTransferencias";
 import TecnicoHistorico from "./pages/tecnico/TecnicoHistorico";
 
+// Portal do Vendedor (atacado B2B)
+import { VendedorGuard, VendedorLayout } from "@/components/vendedor/VendedorLayout";
+import VendedorHome from "./pages/vendedor/VendedorHome";
+
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -227,6 +233,10 @@ const App = () => (
               <Route path="/tecnico/metas" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoMetas /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
               <Route path="/tecnico/transferencias" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoTransferencias /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
               <Route path="/tecnico/historico" element={<PerfilGuard perfis={PERFIS_TECNICO}><TecnicoGuard><TecnicoLayout><TecnicoHistorico /></TecnicoLayout></TecnicoGuard></PerfilGuard>} />
+
+              {/* Portal do Vendedor (atacado B2B) */}
+              <Route path="/vendedor" element={<PerfilGuard perfis={PERFIS_VENDEDOR}><VendedorGuard><VendedorLayout><VendedorHome /></VendedorLayout></VendedorGuard></PerfilGuard>} />
+
 
               {/* Internal system with sidebar */}
               {/* Painel do Sócio — acessível a qualquer user que esteja na tabela socios */}

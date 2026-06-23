@@ -36,6 +36,7 @@ export function PerfilGuard({ perfis, children }: Props) {
     }
     if (!perfis.includes(perfil)) {
       if (perfil === "Técnico") return <Navigate to="/tecnico" replace />;
+      if (perfil === "Vendedor") return <Navigate to="/vendedor" replace />;
       return <Navigate to="/dashboard" replace />;
     }
   }
