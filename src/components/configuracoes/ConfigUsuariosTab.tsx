@@ -41,6 +41,18 @@ const MODULOS_CRUD = [
   { key: "faturas_b2b", label: "Faturas B2B" },
   { key: "metas", label: "Metas" },
   { key: "rh", label: "RH" },
+  // Atacado (já existem em usePermissoes; só faltava expor no editor)
+  { key: "atacado_dashboard", label: "Atacado · Dashboard" },
+  { key: "atacado_pedidos", label: "Atacado · Pedidos" },
+  { key: "atacado_clientes", label: "Atacado · Clientes" },
+  { key: "atacado_aparelhos", label: "Atacado · Estoque" },
+  { key: "atacado_tabelas_preco", label: "Atacado · Tabelas de Preço" },
+  { key: "atacado_vendedores", label: "Atacado · Vendedores" },
+  { key: "atacado_metas", label: "Atacado · Metas" },
+  { key: "atacado_financeiro", label: "Atacado · Financeiro" },
+  { key: "atacado_cobranca", label: "Atacado · Cobrança" },
+  { key: "atacado_relatorios", label: "Atacado · Relatórios" },
+  { key: "atacado_configuracoes", label: "Atacado · Configurações" },
 ];
 
 const MODULOS_BOOL = [
