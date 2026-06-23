@@ -241,7 +241,33 @@ export function ClienteAtacadoDrawer({ open, onOpenChange, clienteId }: Props) {
                   <Button size="sm" variant="outline" disabled>
                     <Ban className="h-4 w-4" /> Bloquear
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" /> Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir cliente definitivamente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é <strong>irreversível</strong>. Se o cliente tiver pedidos no histórico,
+                          a exclusão é bloqueada — exclua os pedidos primeiro.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => excluir.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Excluir cliente
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
+
               </TabsContent>
 
               <TabsContent value="pedidos" className="space-y-2 mt-4">
