@@ -299,6 +299,22 @@ export function ListasManager() {
     if (!confirmDelete) return;
     setSavingKey(`del-${confirmDelete.chave}`);
     try {
+      // Modelo: exclusão definitiva (irreversível) via RPC dedicada
+      if (confirmDelete.lista === "modelo") {
+        const { data, error } = await supabase.rpc("atacado_excluir_modelo" as any, {
+          p_id: confirmDelete.chave,
+        });
+        if (error) throw error;
+        const res = data as { success: boolean; error?: string };
+        if (!res?.success) {
+          toast.error("Não foi possível excluir", { description: res?.error || "" });
+        } else {
+          toast.success(`Modelo "${confirmDelete.nome}" excluído`);
+          await dados.recarregar();
+        }
+        return;
+      }
+
       const res = await dados.excluirItem(confirmDelete.lista, confirmDelete.chave);
       if (!res?.success) {
         if (res?.error === "em_uso") {
@@ -318,6 +334,7 @@ export function ListasManager() {
       setConfirmDelete(null);
     }
   };
+
 
   const renderItem = (lista: Lista, it: Item) => (
     <div key={it.id} className="flex items-center justify-between gap-2 px-3 py-2">
