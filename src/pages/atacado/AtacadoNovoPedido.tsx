@@ -355,8 +355,7 @@ export default function AtacadoNovoPedido() {
         });
         return;
       }
-      const hojeISO = new Date().toISOString().slice(0, 10);
-      if (pagamentos.some((p) => p.vencimento && p.vencimento < hojeISO)) {
+      if (pagamentos.some((p) => p.vencimento && dataPedido && p.vencimento < dataPedido)) {
         toast({ title: "Vencimento anterior à data do pedido", variant: "destructive" });
         return;
       }
