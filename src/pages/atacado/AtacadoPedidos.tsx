@@ -157,6 +157,112 @@ export default function AtacadoPedidos() {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  // ===== Seleção múltipla / ações em massa =====
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulkPagOpen, setBulkPagOpen] = useState(false);
+  const [bulkDelOpen, setBulkDelOpen] = useState(false);
+
+  const selArr = pedidos.filter((p: any) => sel.has(p.id));
+  const allOnPage = pedidos.length > 0 && pedidos.every((p: any) => sel.has(p.id));
+  const toggle = (id: string) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  const toggleAll = () =>
+    setSel(allOnPage ? new Set() : new Set(pedidos.map((p: any) => p.id)));
+  const clearSel = () => setSel(new Set());
+
+  const receberMassa = useMutation({
+    mutationFn: async ({ data, forma }: { data: string; forma: string }) => {
+      const alvos: string[] = [];
+      for (const p of selArr)
+        for (const pg of (p.pagamentos ?? []) as any[])
+          if (pg.status !== "pago" && pg.status !== "cancelado") alvos.push(pg.id);
+      for (const pgId of alvos) {
+        const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
+          p_pagamento_id: pgId,
+          p_forma: forma,
+          p_data_recebimento: data,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Pagamentos recebidos" });
+      setBulkPagOpen(false);
+      clearSel();
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const mudarStatusMassa = useMutation({
+    mutationFn: async (novoStatus: string) => {
+      for (const p of selArr) {
+        const { error } = await supabase.rpc("atacado_mudar_status_pedido", {
+          p_pedido_id: p.id,
+          p_novo_status: novoStatus,
+          p_motivo: null,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Status atualizado" });
+      clearSel();
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const excluirMassa = useMutation({
+    mutationFn: async () => {
+      for (const p of selArr) {
+        const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, { p_id: p.id });
+        if (error) throw error;
+        const res = data as any;
+        if (res && res.success === false) throw new Error(res.error || "Falha ao excluir");
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Pedidos excluídos" });
+      setBulkDelOpen(false);
+      clearSel();
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  function exportarCSV() {
+    const linhas: string[][] = [["Pedido", "Cliente", "Vendedor", "Total", "Status", "Data"]];
+    for (const p of selArr)
+      linhas.push([
+        `#P-${String(p.numero_pedido).padStart(6, "0")}`,
+        p.cliente?.nome_fantasia || p.cliente?.razao_social || "",
+        p.vendedor?.nome || "",
+        String(p.total),
+        p.status,
+        new Date(p.created_at).toLocaleDateString("pt-BR"),
+      ]);
+    const csv = linhas
+      .map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between">
