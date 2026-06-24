@@ -44,6 +44,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
 import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
 import {
