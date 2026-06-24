@@ -1,6 +1,7 @@
 export type PagamentoLinha = {
   status: string;
   vencimento?: string | null;
+  valor_pago?: number | null;
 };
 
 export type StatusPagamentoPedido = "pago" | "parcial" | "aguardando" | "atrasado" | "sem_pagamentos";
@@ -10,11 +11,15 @@ export function calcularStatusPagamento(pagamentos: PagamentoLinha[] | null | un
   const ativas = pagamentos.filter((p) => p.status !== "cancelado");
   if (ativas.length === 0) return "sem_pagamentos";
   const pagas = ativas.filter((p) => p.status === "pago").length;
+  const temParcial = ativas.some(
+    (p) => p.status === "parcial" || (Number(p.valor_pago ?? 0) > 0 && p.status !== "pago"),
+  );
   const hoje = new Date().toISOString().slice(0, 10);
   const temAtrasada = ativas.some(
-    (p) => p.status !== "pago" && p.vencimento && p.vencimento < hoje,
+    (p) => p.status !== "pago" && p.status !== "parcial" && p.vencimento && p.vencimento < hoje,
   );
   if (pagas === ativas.length) return "pago";
+  if (temParcial) return "parcial";
   if (temAtrasada) return "atrasado";
   if (pagas > 0) return "parcial";
   return "aguardando";
