@@ -17,7 +17,13 @@ import {
   RotateCcw,
   Loader2,
   Trash2,
+  Wallet,
+  Download,
+  X,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -79,7 +85,7 @@ export default function AtacadoPedidos() {
       let q = supabase
         .from("atacado_pedidos")
         .select(
-          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(status, vencimento)`
+          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(id, valor, status, vencimento, forma)`
         )
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null)
@@ -150,6 +156,112 @@ export default function AtacadoPedidos() {
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
+
+  // ===== Seleção múltipla / ações em massa =====
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulkPagOpen, setBulkPagOpen] = useState(false);
+  const [bulkDelOpen, setBulkDelOpen] = useState(false);
+
+  const selArr = pedidos.filter((p: any) => sel.has(p.id));
+  const allOnPage = pedidos.length > 0 && pedidos.every((p: any) => sel.has(p.id));
+  const toggle = (id: string) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  const toggleAll = () =>
+    setSel(allOnPage ? new Set() : new Set(pedidos.map((p: any) => p.id)));
+  const clearSel = () => setSel(new Set());
+
+  const receberMassa = useMutation({
+    mutationFn: async ({ data, forma }: { data: string; forma: string }) => {
+      const alvos: string[] = [];
+      for (const p of selArr)
+        for (const pg of (p.pagamentos ?? []) as any[])
+          if (pg.status !== "pago" && pg.status !== "cancelado") alvos.push(pg.id);
+      for (const pgId of alvos) {
+        const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
+          p_pagamento_id: pgId,
+          p_forma: forma,
+          p_data_recebimento: data,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Pagamentos recebidos" });
+      setBulkPagOpen(false);
+      clearSel();
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const mudarStatusMassa = useMutation({
+    mutationFn: async (novoStatus: string) => {
+      for (const p of selArr) {
+        const { error } = await supabase.rpc("atacado_mudar_status_pedido", {
+          p_pedido_id: p.id,
+          p_novo_status: novoStatus,
+          p_motivo: null,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Status atualizado" });
+      clearSel();
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const excluirMassa = useMutation({
+    mutationFn: async () => {
+      for (const p of selArr) {
+        const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, { p_id: p.id });
+        if (error) throw error;
+        const res = data as any;
+        if (res && res.success === false) throw new Error(res.error || "Falha ao excluir");
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Pedidos excluídos" });
+      setBulkDelOpen(false);
+      clearSel();
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  function exportarCSV() {
+    const linhas: string[][] = [["Pedido", "Cliente", "Vendedor", "Total", "Status", "Data"]];
+    for (const p of selArr)
+      linhas.push([
+        `#P-${String(p.numero_pedido).padStart(6, "0")}`,
+        p.cliente?.nome_fantasia || p.cliente?.razao_social || "",
+        p.vendedor?.nome || "",
+        String(p.total),
+        p.status,
+        new Date(p.created_at).toLocaleDateString("pt-BR"),
+      ]);
+    const csv = linhas
+      .map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -226,10 +338,44 @@ export default function AtacadoPedidos() {
           ctaOnClick={() => navigate("/atacado/novo-pedido")}
         />
       ) : (
+        <div className="space-y-2">
+          {sel.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearSel} aria-label="Limpar seleção">
+                <X className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium">{sel.size} selecionado(s)</span>
+              <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => setBulkPagOpen(true)} disabled={receberMassa.isPending}>
+                  <Wallet className="h-4 w-4" /> Receber pagamento
+                </Button>
+                <Select onValueChange={(v) => mudarStatusMassa.mutate(v)}>
+                  <SelectTrigger className="h-8 w-[170px]">
+                    <SelectValue placeholder="Mudar status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aprovado">Aprovar</SelectItem>
+                    <SelectItem value="faturado">Faturar (NF-e)</SelectItem>
+                    <SelectItem value="entregue">Marcar entregue</SelectItem>
+                    <SelectItem value="cancelado">Cancelar</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={exportarCSV}>
+                  <Download className="h-4 w-4" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-destructive" onClick={() => setBulkDelOpen(true)}>
+                  <Trash2 className="h-4 w-4" /> Excluir
+                </Button>
+              </div>
+            </div>
+          )}
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="w-10 px-3 py-2">
+                  <Checkbox checked={allOnPage} onCheckedChange={toggleAll} aria-label="Selecionar todos" />
+                </th>
                 <th className="text-left px-4 py-2">Pedido</th>
                 <th className="text-left px-4 py-2">Cliente</th>
                 <th className="text-left px-4 py-2">Vendedor</th>
@@ -246,6 +392,9 @@ export default function AtacadoPedidos() {
                   className="border-t hover:bg-muted/30 cursor-pointer"
                   onClick={() => navigate(`/atacado/pedidos/${p.id}`)}
                 >
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={sel.has(p.id)} onCheckedChange={() => toggle(p.id)} aria-label="Selecionar pedido" />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-medium">
                       #P-{String(p.numero_pedido).padStart(6, "0")}
@@ -301,7 +450,38 @@ export default function AtacadoPedidos() {
             </tbody>
           </table>
         </div>
+        </div>
       )}
+
+      {bulkPagOpen && (
+        <BulkPagDialog
+          qtd={sel.size}
+          isPending={receberMassa.isPending}
+          onClose={() => setBulkPagOpen(false)}
+          onConfirm={(data: string, forma: string) => receberMassa.mutate({ data, forma })}
+        />
+      )}
+
+      <AlertDialog open={bulkDelOpen} onOpenChange={(v) => !v && setBulkDelOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {sel.size} pedido(s) definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove os pedidos e seus lançamentos (itens, parcelas, cobrança) do financeiro/relatórios. Irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBulkDelOpen(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => excluirMassa.mutate()}
+            >
+              Excluir definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
@@ -470,5 +650,48 @@ function PedidoActions({ pedido, perms, mudarStatus, excluirPedido }: any) {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function BulkPagDialog({ qtd, onConfirm, onClose, isPending }: any) {
+  const [forma, setForma] = useState("pix");
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Receber pagamento — {qtd} pedido(s)</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Forma de recebimento</Label>
+            <Select value={forma} onValueChange={setForma}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">Pix</SelectItem>
+                <SelectItem value="boleto">Boleto</SelectItem>
+                <SelectItem value="transferencia">Transferência</SelectItem>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="cartao">Cartão</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Data do recebimento</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Aplica a todas as parcelas em aberto dos pedidos selecionados. Pode ser retroativa.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onConfirm(data, forma)} disabled={isPending}>
+            Confirmar baixa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
