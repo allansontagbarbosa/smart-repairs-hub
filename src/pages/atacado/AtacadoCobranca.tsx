@@ -47,7 +47,7 @@ export default function AtacadoCobranca() {
         .select(
           `*, pedido:atacado_pedidos!inner(numero_pedido, empresa_id, cliente:atacado_clientes(*))`
         )
-        .in("status", ["aberto", "atrasado"])
+        .in("status", ["aberto", "atrasado", "parcial"])
         .lt("vencimento", new Date().toISOString().slice(0, 10))
         .order("vencimento");
 
