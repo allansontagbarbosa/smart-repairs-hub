@@ -338,10 +338,44 @@ export default function AtacadoPedidos() {
           ctaOnClick={() => navigate("/atacado/novo-pedido")}
         />
       ) : (
+        <div className="space-y-2">
+          {sel.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={clearSel} aria-label="Limpar seleção">
+                <X className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium">{sel.size} selecionado(s)</span>
+              <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => setBulkPagOpen(true)} disabled={receberMassa.isPending}>
+                  <Wallet className="h-4 w-4" /> Receber pagamento
+                </Button>
+                <Select onValueChange={(v) => mudarStatusMassa.mutate(v)}>
+                  <SelectTrigger className="h-8 w-[170px]">
+                    <SelectValue placeholder="Mudar status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aprovado">Aprovar</SelectItem>
+                    <SelectItem value="faturado">Faturar (NF-e)</SelectItem>
+                    <SelectItem value="entregue">Marcar entregue</SelectItem>
+                    <SelectItem value="cancelado">Cancelar</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={exportarCSV}>
+                  <Download className="h-4 w-4" /> CSV
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-destructive" onClick={() => setBulkDelOpen(true)}>
+                  <Trash2 className="h-4 w-4" /> Excluir
+                </Button>
+              </div>
+            </div>
+          )}
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
+                <th className="w-10 px-3 py-2">
+                  <Checkbox checked={allOnPage} onCheckedChange={toggleAll} aria-label="Selecionar todos" />
+                </th>
                 <th className="text-left px-4 py-2">Pedido</th>
                 <th className="text-left px-4 py-2">Cliente</th>
                 <th className="text-left px-4 py-2">Vendedor</th>
@@ -358,6 +392,9 @@ export default function AtacadoPedidos() {
                   className="border-t hover:bg-muted/30 cursor-pointer"
                   onClick={() => navigate(`/atacado/pedidos/${p.id}`)}
                 >
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={sel.has(p.id)} onCheckedChange={() => toggle(p.id)} aria-label="Selecionar pedido" />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-medium">
                       #P-{String(p.numero_pedido).padStart(6, "0")}
