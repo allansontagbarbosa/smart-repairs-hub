@@ -103,13 +103,15 @@ export default function AtacadoPedidoDetalhe() {
   });
 
   const marcarPago = useMutation({
-    mutationFn: async ({ pagamentoId, forma, data }: { pagamentoId: string; forma: string; data: string }) => {
-      const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
+    mutationFn: async ({ pagamentoId, valor, forma, data }: { pagamentoId: string; valor: number; forma: string; data: string }) => {
+      const { data: res, error } = await supabase.rpc("atacado_receber_pagamento" as any, {
         p_pagamento_id: pagamentoId,
-        p_forma_recebido: forma,
-        p_data_recebimento: data,
+        p_valor: valor,
+        p_forma: forma,
+        p_data: data,
       });
       if (error) throw error;
+      if (res && (res as any).success === false) throw new Error((res as any).error || "Não foi possível receber");
     },
     onSuccess: () => {
       setBaixaPg(null);
