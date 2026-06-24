@@ -274,7 +274,7 @@ function BaixaDialog({ pagamento, onClose, onConfirm, isPending }: any) {
         <div className="space-y-4">
           <div className="rounded-md border p-3 bg-muted/30">
             <div className="text-lg font-semibold">
-              {formatBRL(Number(pagamento.valor))}
+              {formatBRL(Number(pagamento.valor) - Number(pagamento.valor_pago ?? 0))}
             </div>
             <div className="text-xs text-muted-foreground">
               Parcela {pagamento.parcela}/{pagamento.total_parcelas}
