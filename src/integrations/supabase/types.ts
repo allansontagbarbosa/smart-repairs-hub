@@ -535,7 +535,6 @@ export type Database = {
           created_at: string | null
           email_login: string
           id: string
-          senha_hash: string | null
           ultimo_login: string | null
         }
         Insert: {
@@ -544,7 +543,6 @@ export type Database = {
           created_at?: string | null
           email_login: string
           id?: string
-          senha_hash?: string | null
           ultimo_login?: string | null
         }
         Update: {
@@ -553,7 +551,6 @@ export type Database = {
           created_at?: string | null
           email_login?: string
           id?: string
-          senha_hash?: string | null
           ultimo_login?: string | null
         }
         Relationships: [
@@ -562,6 +559,35 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "atacado_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atacado_catalogo_credenciais: {
+        Row: {
+          acesso_id: string
+          created_at: string
+          senha_hash: string
+          updated_at: string
+        }
+        Insert: {
+          acesso_id: string
+          created_at?: string
+          senha_hash: string
+          updated_at?: string
+        }
+        Update: {
+          acesso_id?: string
+          created_at?: string
+          senha_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_catalogo_credenciais_acesso_id_fkey"
+            columns: ["acesso_id"]
+            isOneToOne: true
+            referencedRelation: "atacado_catalogo_acessos"
             referencedColumns: ["id"]
           },
         ]
