@@ -47,7 +47,7 @@ export default function AtacadoCobranca() {
         .select(
           `*, pedido:atacado_pedidos!inner(numero_pedido, empresa_id, cliente:atacado_clientes(*))`
         )
-        .in("status", ["aberto", "atrasado"])
+        .in("status", ["aberto", "atrasado", "parcial"])
         .lt("vencimento", new Date().toISOString().slice(0, 10))
         .order("vencimento");
 
@@ -97,7 +97,7 @@ export default function AtacadoCobranca() {
   });
 
   const totalDevido = vencidos.reduce(
-    (s: number, p: any) => s + Number(p.valor),
+    (s: number, p: any) => s + (Number(p.valor) - Number(p.valor_pago ?? 0)),
     0
   );
   const clientesUnicos = new Set(
@@ -208,7 +208,7 @@ export default function AtacadoCobranca() {
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold">
-                      {formatBRL(Number(p.valor))}
+                      {formatBRL(Number(p.valor) - Number(p.valor_pago ?? 0))}
                     </div>
                   </div>
                 </div>
@@ -274,7 +274,7 @@ function BaixaDialog({ pagamento, onClose, onConfirm, isPending }: any) {
         <div className="space-y-4">
           <div className="rounded-md border p-3 bg-muted/30">
             <div className="text-lg font-semibold">
-              {formatBRL(Number(pagamento.valor))}
+              {formatBRL(Number(pagamento.valor) - Number(pagamento.valor_pago ?? 0))}
             </div>
             <div className="text-xs text-muted-foreground">
               Parcela {pagamento.parcela}/{pagamento.total_parcelas}

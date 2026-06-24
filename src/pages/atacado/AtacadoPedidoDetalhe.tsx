@@ -152,10 +152,9 @@ export default function AtacadoPedidoDetalhe() {
 
   // Pagamento
   const ativas = pagamentos.filter((pg) => pg.status !== "cancelado");
-  const totalPago = ativas
-    .filter((pg) => pg.status === "pago")
-    .reduce((a, pg) => a + Number(pg.valor ?? 0), 0);
-  const saldoAberto = Math.max(0, totalVenda - totalPago);
+  const totalPago = ativas.reduce((a, pg) => a + Number(pg.valor_pago ?? 0), 0);
+  const totalParcelas = ativas.reduce((a, pg) => a + Number(pg.valor ?? 0), 0);
+  const saldoAberto = Math.max(0, totalParcelas - totalPago);
   const proxima = ativas
     .filter((pg) => pg.status !== "pago" && pg.vencimento)
     .sort((a, b) => (a.vencimento ?? "").localeCompare(b.vencimento ?? ""))[0];
@@ -453,6 +452,11 @@ export default function AtacadoPedidoDetalhe() {
                 </div>
                 <div className="text-right space-y-1">
                   <div className="font-medium">{formatBRL(Number(pg.valor))}</div>
+                  {Number(pg.valor_pago ?? 0) > 0 && Number(pg.valor_pago) < Number(pg.valor) && (
+                    <div className="text-xs text-muted-foreground">
+                      Recebido {formatBRL(Number(pg.valor_pago))} · saldo {formatBRL(Number(pg.valor) - Number(pg.valor_pago))}
+                    </div>
+                  )}
                   <Badge variant="outline">
                     {pg.status}
                     {pg.pago_em ? ` · ${fmtDate(pg.pago_em)}` : ""}
