@@ -58,6 +58,8 @@ export default function AtacadoPedidoDetalhe() {
   const qc = useQueryClient();
   const perms = usePermissoesAtacado();
   const podeVerCusto = perms.podeVerFinanceiro;
+  const [baixaPg, setBaixaPg] = useState<any>(null);
+
 
   const { data: pedido, isLoading } = useQuery({
     queryKey: ["atacado-pedido-detalhe", id],
