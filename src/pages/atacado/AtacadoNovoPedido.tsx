@@ -382,7 +382,7 @@ export default function AtacadoNovoPedido() {
         desconto: descontoNum,
         condicao_pagamento: condicaoPagamento,
         observacoes,
-        data: dataPedido,
+        data: new Date(dataPedido + "T12:00:00").toISOString(), // meio-dia local -> evita off-by-one de fuso
         origem: "manual",
         itens: carrinho.map((c) => ({
           aparelho_id: c.aparelho_id,
