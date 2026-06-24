@@ -450,7 +450,38 @@ export default function AtacadoPedidos() {
             </tbody>
           </table>
         </div>
+        </div>
       )}
+
+      {bulkPagOpen && (
+        <BulkPagDialog
+          qtd={sel.size}
+          isPending={receberMassa.isPending}
+          onClose={() => setBulkPagOpen(false)}
+          onConfirm={(data: string, forma: string) => receberMassa.mutate({ data, forma })}
+        />
+      )}
+
+      <AlertDialog open={bulkDelOpen} onOpenChange={(v) => !v && setBulkDelOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {sel.size} pedido(s) definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove os pedidos e seus lançamentos (itens, parcelas, cobrança) do financeiro/relatórios. Irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBulkDelOpen(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => excluirMassa.mutate()}
+            >
+              Excluir definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
