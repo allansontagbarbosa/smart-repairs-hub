@@ -152,10 +152,9 @@ export default function AtacadoPedidoDetalhe() {
 
   // Pagamento
   const ativas = pagamentos.filter((pg) => pg.status !== "cancelado");
-  const totalPago = ativas
-    .filter((pg) => pg.status === "pago")
-    .reduce((a, pg) => a + Number(pg.valor ?? 0), 0);
-  const saldoAberto = Math.max(0, totalVenda - totalPago);
+  const totalPago = ativas.reduce((a, pg) => a + Number(pg.valor_pago ?? 0), 0);
+  const totalParcelas = ativas.reduce((a, pg) => a + Number(pg.valor ?? 0), 0);
+  const saldoAberto = Math.max(0, totalParcelas - totalPago);
   const proxima = ativas
     .filter((pg) => pg.status !== "pago" && pg.vencimento)
     .sort((a, b) => (a.vencimento ?? "").localeCompare(b.vencimento ?? ""))[0];
