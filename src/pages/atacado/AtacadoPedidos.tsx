@@ -719,3 +719,126 @@ function BulkPagDialog({ qtd, onConfirm, onClose, isPending }: any) {
     </Dialog>
   );
 }
+
+function statusTransicoes(status: string) {
+  switch (status) {
+    case "rascunho":
+      return [
+        { value: "aguardando_aprovacao", label: "Enviar p/ aprovação" },
+        { value: "aprovado", label: "Aprovar" },
+        { value: "cancelado", label: "Cancelar", danger: true },
+      ];
+    case "aguardando_aprovacao":
+      return [
+        { value: "aprovado", label: "Aprovar" },
+        { value: "cancelado", label: "Rejeitar", danger: true },
+      ];
+    case "aprovado":
+      return [
+        { value: "faturado", label: "Faturar (NF-e)" },
+        { value: "cancelado", label: "Cancelar", danger: true },
+      ];
+    case "faturado":
+      return [{ value: "entregue", label: "Marcar entregue" }];
+    case "entregue":
+      return [];
+    case "cancelado":
+      return [{ value: "rascunho", label: "Reativar (rascunho)" }];
+    default:
+      return [];
+  }
+}
+
+function StatusPopover({ pedido, mudarStatus }: any) {
+  const [open, setOpen] = useState(false);
+  const opcoes = statusTransicoes(pedido.status);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="cursor-pointer">
+          <StatusBadge status={pedido.status} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        {opcoes.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-2 py-1.5">Sem mudança disponível</p>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {opcoes.map((o: any) => (
+              <Button
+                key={o.value}
+                variant="ghost"
+                size="sm"
+                className={`justify-start h-8 ${o.danger ? "text-destructive hover:text-destructive" : ""}`}
+                onClick={() => {
+                  mudarStatus.mutate({ pedidoId: pedido.id, novoStatus: o.value });
+                  setOpen(false);
+                }}
+              >
+                {o.label}
+              </Button>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function PagamentoPopover({ pedido, receberPedido }: any) {
+  const [open, setOpen] = useState(false);
+  const [forma, setForma] = useState("pix");
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const s = calcularStatusPagamento(pedido.pagamentos as any);
+  if (s === "sem_pagamentos") return null;
+  const jaPago = s === "pago";
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="cursor-pointer">
+          <PagamentoBadge pagamentos={pedido.pagamentos} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="start">
+        {jaPago ? (
+          <p className="text-sm text-muted-foreground">Pagamento já recebido.</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Marcar recebido</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Forma</Label>
+              <Select value={forma} onValueChange={setForma}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="cartao">Cartão</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data do recebimento</Label>
+              <Input type="date" className="h-9" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={receberPedido.isPending}
+              onClick={() => {
+                receberPedido.mutate(
+                  { pedido, data, forma },
+                  { onSuccess: () => setOpen(false) },
+                );
+              }}
+            >
+              Confirmar recebimento
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
