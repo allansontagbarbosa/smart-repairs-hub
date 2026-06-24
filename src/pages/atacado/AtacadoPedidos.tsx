@@ -142,6 +142,29 @@ export default function AtacadoPedidos() {
       }),
   });
 
+  const receberPedido = useMutation({
+    mutationFn: async ({ pedido, data, forma }: any) => {
+      const alvos = (pedido.pagamentos ?? []).filter(
+        (pg: any) => pg.status !== "pago" && pg.status !== "cancelado",
+      );
+      for (const pg of alvos) {
+        const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
+          p_pagamento_id: pg.id,
+          p_forma: forma,
+          p_data_recebimento: data,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Pagamento recebido" });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   const excluirPedido = useMutation({
     mutationFn: async (pedidoId: string) => {
       const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, { p_id: pedidoId });
