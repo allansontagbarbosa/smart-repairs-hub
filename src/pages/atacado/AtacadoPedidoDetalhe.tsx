@@ -103,15 +103,20 @@ export default function AtacadoPedidoDetalhe() {
   });
 
   const marcarPago = useMutation({
-    mutationFn: async (pagamentoId: string) => {
-      const { error } = await supabase.rpc("atacado_marcar_pagamento_pago" as any, {
+    mutationFn: async ({ pagamentoId, forma, data }: { pagamentoId: string; forma: string; data: string }) => {
+      const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
         p_pagamento_id: pagamentoId,
+        p_forma_recebido: forma,
+        p_data_recebimento: data,
       });
       if (error) throw error;
     },
     onSuccess: () => {
+      setBaixaPg(null);
       qc.invalidateQueries({ queryKey: ["atacado-pedido-detalhe", id] });
       qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
       toast({ title: "✓ Pagamento recebido" });
     },
     onError: (e: any) =>
