@@ -293,6 +293,7 @@ export default function AtacadoPedidos() {
                       pedido={p}
                       perms={perms}
                       mudarStatus={mudarStatus}
+                      excluirPedido={excluirPedido}
                     />
                   </td>
                 </tr>
