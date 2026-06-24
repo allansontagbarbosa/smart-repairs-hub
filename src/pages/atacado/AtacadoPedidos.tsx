@@ -44,6 +44,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatBRL, maskCNPJ } from "@/lib/utils";
 import { AtacadoEmptyState } from "@/components/atacado/AtacadoEmptyState";
 import {
@@ -139,6 +140,29 @@ export default function AtacadoPedidos() {
         description: e.message,
         variant: "destructive",
       }),
+  });
+
+  const receberPedido = useMutation({
+    mutationFn: async ({ pedido, data, forma }: any) => {
+      const alvos = (pedido.pagamentos ?? []).filter(
+        (pg: any) => pg.status !== "pago" && pg.status !== "cancelado",
+      );
+      for (const pg of alvos) {
+        const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
+          p_pagamento_id: pg.id,
+          p_forma: forma,
+          p_data_recebimento: data,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Pagamento recebido" });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   const excluirPedido = useMutation({
@@ -428,10 +452,10 @@ export default function AtacadoPedidos() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <StatusBadge status={p.status} />
-                      <PagamentoBadge pagamentos={p.pagamentos} />
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col gap-1 items-start">
+                      <StatusPopover pedido={p} mudarStatus={mudarStatus} />
+                      <PagamentoPopover pedido={p} receberPedido={receberPedido} />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
@@ -693,5 +717,128 @@ function BulkPagDialog({ qtd, onConfirm, onClose, isPending }: any) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function statusTransicoes(status: string) {
+  switch (status) {
+    case "rascunho":
+      return [
+        { value: "aguardando_aprovacao", label: "Enviar p/ aprovação" },
+        { value: "aprovado", label: "Aprovar" },
+        { value: "cancelado", label: "Cancelar", danger: true },
+      ];
+    case "aguardando_aprovacao":
+      return [
+        { value: "aprovado", label: "Aprovar" },
+        { value: "cancelado", label: "Rejeitar", danger: true },
+      ];
+    case "aprovado":
+      return [
+        { value: "faturado", label: "Faturar (NF-e)" },
+        { value: "cancelado", label: "Cancelar", danger: true },
+      ];
+    case "faturado":
+      return [{ value: "entregue", label: "Marcar entregue" }];
+    case "entregue":
+      return [];
+    case "cancelado":
+      return [{ value: "rascunho", label: "Reativar (rascunho)" }];
+    default:
+      return [];
+  }
+}
+
+function StatusPopover({ pedido, mudarStatus }: any) {
+  const [open, setOpen] = useState(false);
+  const opcoes = statusTransicoes(pedido.status);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="cursor-pointer">
+          <StatusBadge status={pedido.status} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        {opcoes.length === 0 ? (
+          <p className="text-xs text-muted-foreground px-2 py-1.5">Sem mudança disponível</p>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {opcoes.map((o: any) => (
+              <Button
+                key={o.value}
+                variant="ghost"
+                size="sm"
+                className={`justify-start h-8 ${o.danger ? "text-destructive hover:text-destructive" : ""}`}
+                onClick={() => {
+                  mudarStatus.mutate({ pedidoId: pedido.id, novoStatus: o.value });
+                  setOpen(false);
+                }}
+              >
+                {o.label}
+              </Button>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function PagamentoPopover({ pedido, receberPedido }: any) {
+  const [open, setOpen] = useState(false);
+  const [forma, setForma] = useState("pix");
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const s = calcularStatusPagamento(pedido.pagamentos as any);
+  if (s === "sem_pagamentos") return null;
+  const jaPago = s === "pago";
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" className="cursor-pointer">
+          <PagamentoBadge pagamentos={pedido.pagamentos} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3" align="start">
+        {jaPago ? (
+          <p className="text-sm text-muted-foreground">Pagamento já recebido.</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Marcar recebido</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Forma</Label>
+              <Select value={forma} onValueChange={setForma}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="boleto">Boleto</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="cartao">Cartão</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data do recebimento</Label>
+              <Input type="date" className="h-9" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+            <Button
+              size="sm"
+              className="w-full"
+              disabled={receberPedido.isPending}
+              onClick={() => {
+                receberPedido.mutate(
+                  { pedido, data, forma },
+                  { onSuccess: () => setOpen(false) },
+                );
+              }}
+            >
+              Confirmar recebimento
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
