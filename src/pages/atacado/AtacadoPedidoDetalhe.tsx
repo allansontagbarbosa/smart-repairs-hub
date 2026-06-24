@@ -452,6 +452,11 @@ export default function AtacadoPedidoDetalhe() {
                 </div>
                 <div className="text-right space-y-1">
                   <div className="font-medium">{formatBRL(Number(pg.valor))}</div>
+                  {Number(pg.valor_pago ?? 0) > 0 && Number(pg.valor_pago) < Number(pg.valor) && (
+                    <div className="text-xs text-muted-foreground">
+                      Recebido {formatBRL(Number(pg.valor_pago))} · saldo {formatBRL(Number(pg.valor) - Number(pg.valor_pago))}
+                    </div>
+                  )}
                   <Badge variant="outline">
                     {pg.status}
                     {pg.pago_em ? ` · ${fmtDate(pg.pago_em)}` : ""}
