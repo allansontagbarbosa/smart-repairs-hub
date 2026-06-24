@@ -16,7 +16,12 @@ import {
   Truck,
   RotateCcw,
   Loader2,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -128,6 +133,22 @@ export default function AtacadoPedidos() {
         description: e.message,
         variant: "destructive",
       }),
+  });
+
+  const excluirPedido = useMutation({
+    mutationFn: async (pedidoId: string) => {
+      const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, { p_id: pedidoId });
+      if (error) throw error;
+      const res = data as any;
+      if (res && res.success === false) throw new Error(res.error || "Não foi possível excluir");
+    },
+    onSuccess: () => {
+      toast({ title: "Pedido excluído" });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
   return (
@@ -272,6 +293,7 @@ export default function AtacadoPedidos() {
                       pedido={p}
                       perms={perms}
                       mudarStatus={mudarStatus}
+                      excluirPedido={excluirPedido}
                     />
                   </td>
                 </tr>
@@ -341,7 +363,9 @@ function PagamentoBadge({ pagamentos }: { pagamentos: any[] | null | undefined }
   );
 }
 
-function PedidoActions({ pedido, perms, mudarStatus }: any) {
+function PedidoActions({ pedido, perms, mudarStatus, excluirPedido }: any) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const acoes: {
     label: string;
     icon: any;
@@ -389,34 +413,62 @@ function PedidoActions({ pedido, perms, mudarStatus }: any) {
     });
   }
 
-  if (acoes.length === 0) return null;
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {acoes.map((a, i) => {
-          const Icon = a.icon;
-          return (
-            <DropdownMenuItem
-              key={i}
-              className={a.danger ? "text-destructive" : ""}
-              onClick={() =>
-                mudarStatus.mutate({
-                  pedidoId: pedido.id,
-                  novoStatus: a.novoStatus,
-                })
-              }
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {acoes.map((a, i) => {
+            const Icon = a.icon;
+            return (
+              <DropdownMenuItem
+                key={i}
+                className={a.danger ? "text-destructive" : ""}
+                onClick={() =>
+                  mudarStatus.mutate({
+                    pedidoId: pedido.id,
+                    novoStatus: a.novoStatus,
+                  })
+                }
+              >
+                <Icon className="h-4 w-4 mr-2" /> {a.label}
+              </DropdownMenuItem>
+            );
+          })}
+          <DropdownMenuItem
+            className="text-destructive"
+            onSelect={(e) => { e.preventDefault(); setConfirmOpen(true); }}
+          >
+            <Trash2 className="h-4 w-4 mr-2" /> Excluir definitivamente
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir pedido #P-{String(pedido.numero_pedido).padStart(6, "0")} definitivamente?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso remove o pedido e seus lançamentos (itens, parcelas, cobrança) do financeiro/relatórios. Ação irreversível.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => excluirPedido.mutate(pedido.id)}
             >
-              <Icon className="h-4 w-4 mr-2" /> {a.label}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+              Excluir definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
