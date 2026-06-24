@@ -97,7 +97,7 @@ export default function AtacadoCobranca() {
   });
 
   const totalDevido = vencidos.reduce(
-    (s: number, p: any) => s + Number(p.valor),
+    (s: number, p: any) => s + (Number(p.valor) - Number(p.valor_pago ?? 0)),
     0
   );
   const clientesUnicos = new Set(
