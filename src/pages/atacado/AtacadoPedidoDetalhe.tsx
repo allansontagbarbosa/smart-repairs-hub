@@ -103,13 +103,15 @@ export default function AtacadoPedidoDetalhe() {
   });
 
   const marcarPago = useMutation({
-    mutationFn: async ({ pagamentoId, forma, data }: { pagamentoId: string; forma: string; data: string }) => {
-      const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
+    mutationFn: async ({ pagamentoId, valor, forma, data }: { pagamentoId: string; valor: number; forma: string; data: string }) => {
+      const { data: res, error } = await supabase.rpc("atacado_receber_pagamento" as any, {
         p_pagamento_id: pagamentoId,
-        p_forma_recebido: forma,
-        p_data_recebimento: data,
+        p_valor: valor,
+        p_forma: forma,
+        p_data: data,
       });
       if (error) throw error;
+      if (res && (res as any).success === false) throw new Error((res as any).error || "Não foi possível receber");
     },
     onSuccess: () => {
       setBaixaPg(null);
@@ -543,8 +545,8 @@ export default function AtacadoPedidoDetalhe() {
             <BaixaPedidoForm
               pagamento={baixaPg}
               isPending={marcarPago.isPending}
-              onConfirm={(forma, data) =>
-                marcarPago.mutate({ pagamentoId: baixaPg.id, forma, data })
+              onConfirm={(valor, forma, data) =>
+                marcarPago.mutate({ pagamentoId: baixaPg.id, valor, forma, data })
               }
             />
           </DialogContent>
@@ -560,12 +562,28 @@ function BaixaPedidoForm({ pagamento, onConfirm, isPending }: any) {
   );
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const hoje = new Date().toISOString().slice(0, 10);
+  const saldo = Math.max(0, Number(pagamento.valor) - Number(pagamento.valor_pago || 0));
+  const [valor, setValor] = useState<string>(saldo.toFixed(2));
   return (
     <div className="space-y-4">
-      <div className="rounded-md border p-3 bg-muted/30">
-        <div className="text-lg font-semibold">{formatBRL(Number(pagamento.valor))}</div>
+      <div className="rounded-md border p-3 bg-muted/30 space-y-2">
         <div className="text-xs text-muted-foreground">
-          Parcela {pagamento.parcela}/{pagamento.total_parcelas}
+          Parcela {pagamento.parcela}/{pagamento.total_parcelas} · Total {formatBRL(Number(pagamento.valor))}
+          {Number(pagamento.valor_pago) > 0 && <> · Já recebido {formatBRL(Number(pagamento.valor_pago))}</>}
+        </div>
+        <div className="space-y-1">
+          <Label>Valor a receber</Label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            max={saldo}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Saldo: {formatBRL(saldo)}. Receba o total ou um valor menor (pagamento parcial).
+          </p>
         </div>
       </div>
       <div className="space-y-1">
@@ -597,7 +615,7 @@ function BaixaPedidoForm({ pagamento, onConfirm, isPending }: any) {
         </p>
       </div>
       <div className="flex justify-end">
-        <Button onClick={() => onConfirm(forma, data)} disabled={isPending}>
+        <Button onClick={() => onConfirm(Number(valor), forma, data)} disabled={isPending || !(Number(valor) > 0)}>
           <CheckCircle2 className="h-4 w-4 mr-2" /> Confirmar
         </Button>
       </div>
