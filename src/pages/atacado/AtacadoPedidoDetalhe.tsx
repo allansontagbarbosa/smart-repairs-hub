@@ -533,6 +533,75 @@ export default function AtacadoPedidoDetalhe() {
           )}
         </TabsContent>
       </Tabs>
+
+      {baixaPg && (
+        <Dialog open onOpenChange={(v) => !v && setBaixaPg(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Marcar recebido</DialogTitle>
+            </DialogHeader>
+            <BaixaPedidoForm
+              pagamento={baixaPg}
+              isPending={marcarPago.isPending}
+              onConfirm={(forma, data) =>
+                marcarPago.mutate({ pagamentoId: baixaPg.id, forma, data })
+              }
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+
+function BaixaPedidoForm({ pagamento, onConfirm, isPending }: any) {
+  const [forma, setForma] = useState<string>(
+    pagamento.forma_recebido || pagamento.forma || "pix"
+  );
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const hoje = new Date().toISOString().slice(0, 10);
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border p-3 bg-muted/30">
+        <div className="text-lg font-semibold">{formatBRL(Number(pagamento.valor))}</div>
+        <div className="text-xs text-muted-foreground">
+          Parcela {pagamento.parcela}/{pagamento.total_parcelas}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label>Forma de recebimento</Label>
+        <Select value={forma} onValueChange={setForma}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="boleto">Boleto</SelectItem>
+            <SelectItem value="pix">Pix</SelectItem>
+            <SelectItem value="transferencia">Transferência</SelectItem>
+            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+            <SelectItem value="cartao">Cartão</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label>Data do recebimento</Label>
+        <Input
+          type="date"
+          value={data}
+          max={hoje}
+          onChange={(e) => setData(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Use uma data passada para registrar um pagamento retroativo.
+        </p>
+      </div>
+      <div className="flex justify-end">
+        <Button onClick={() => onConfirm(forma, data)} disabled={isPending}>
+          <CheckCircle2 className="h-4 w-4 mr-2" /> Confirmar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
