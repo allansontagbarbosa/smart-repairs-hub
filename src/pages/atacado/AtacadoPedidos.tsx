@@ -85,7 +85,7 @@ export default function AtacadoPedidos() {
       let q = supabase
         .from("atacado_pedidos")
         .select(
-          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(status, vencimento)`
+          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(id, valor, status, vencimento, forma)`
         )
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null)
