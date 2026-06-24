@@ -135,6 +135,22 @@ export default function AtacadoPedidos() {
       }),
   });
 
+  const excluirPedido = useMutation({
+    mutationFn: async (pedidoId: string) => {
+      const { data, error } = await supabase.rpc("atacado_excluir_pedido" as any, { p_id: pedidoId });
+      if (error) throw error;
+      const res = data as any;
+      if (res && res.success === false) throw new Error(res.error || "Não foi possível excluir");
+    },
+    onSuccess: () => {
+      toast({ title: "Pedido excluído" });
+      qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-kpis"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between">
