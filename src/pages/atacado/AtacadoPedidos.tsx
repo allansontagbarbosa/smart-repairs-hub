@@ -452,10 +452,10 @@ export default function AtacadoPedidos() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <StatusBadge status={p.status} />
-                      <PagamentoBadge pagamentos={p.pagamentos} />
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col gap-1 items-start">
+                      <StatusPopover pedido={p} mudarStatus={mudarStatus} />
+                      <PagamentoPopover pedido={p} receberPedido={receberPedido} />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
