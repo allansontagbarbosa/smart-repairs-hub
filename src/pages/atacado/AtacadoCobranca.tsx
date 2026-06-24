@@ -208,7 +208,7 @@ export default function AtacadoCobranca() {
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold">
-                      {formatBRL(Number(p.valor))}
+                      {formatBRL(Number(p.valor) - Number(p.valor_pago ?? 0))}
                     </div>
                   </div>
                 </div>
