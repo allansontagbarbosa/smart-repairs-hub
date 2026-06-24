@@ -562,12 +562,28 @@ function BaixaPedidoForm({ pagamento, onConfirm, isPending }: any) {
   );
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const hoje = new Date().toISOString().slice(0, 10);
+  const saldo = Math.max(0, Number(pagamento.valor) - Number(pagamento.valor_pago || 0));
+  const [valor, setValor] = useState<string>(saldo.toFixed(2));
   return (
     <div className="space-y-4">
-      <div className="rounded-md border p-3 bg-muted/30">
-        <div className="text-lg font-semibold">{formatBRL(Number(pagamento.valor))}</div>
+      <div className="rounded-md border p-3 bg-muted/30 space-y-2">
         <div className="text-xs text-muted-foreground">
-          Parcela {pagamento.parcela}/{pagamento.total_parcelas}
+          Parcela {pagamento.parcela}/{pagamento.total_parcelas} · Total {formatBRL(Number(pagamento.valor))}
+          {Number(pagamento.valor_pago) > 0 && <> · Já recebido {formatBRL(Number(pagamento.valor_pago))}</>}
+        </div>
+        <div className="space-y-1">
+          <Label>Valor a receber</Label>
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            max={saldo}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Saldo: {formatBRL(saldo)}. Receba o total ou um valor menor (pagamento parcial).
+          </p>
         </div>
       </div>
       <div className="space-y-1">
