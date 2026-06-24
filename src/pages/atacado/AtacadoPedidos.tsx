@@ -652,3 +652,46 @@ function PedidoActions({ pedido, perms, mudarStatus, excluirPedido }: any) {
     </>
   );
 }
+
+function BulkPagDialog({ qtd, onConfirm, onClose, isPending }: any) {
+  const [forma, setForma] = useState("pix");
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Receber pagamento — {qtd} pedido(s)</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Forma de recebimento</Label>
+            <Select value={forma} onValueChange={setForma}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pix">Pix</SelectItem>
+                <SelectItem value="boleto">Boleto</SelectItem>
+                <SelectItem value="transferencia">Transferência</SelectItem>
+                <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="cartao">Cartão</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Data do recebimento</Label>
+            <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Aplica a todas as parcelas em aberto dos pedidos selecionados. Pode ser retroativa.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onConfirm(data, forma)} disabled={isPending}>
+            Confirmar baixa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
