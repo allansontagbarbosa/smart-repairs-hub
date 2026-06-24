@@ -461,7 +461,7 @@ export default function AtacadoPedidoDetalhe() {
                         size="sm"
                         variant="outline"
                         disabled={marcarPago.isPending}
-                        onClick={() => marcarPago.mutate(pg.id)}
+                        onClick={() => setBaixaPg(pg)}
                       >
                         <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar recebido
                       </Button>
