@@ -615,7 +615,7 @@ function BaixaPedidoForm({ pagamento, onConfirm, isPending }: any) {
         </p>
       </div>
       <div className="flex justify-end">
-        <Button onClick={() => onConfirm(forma, data)} disabled={isPending}>
+        <Button onClick={() => onConfirm(Number(valor), forma, data)} disabled={isPending || !(Number(valor) > 0)}>
           <CheckCircle2 className="h-4 w-4 mr-2" /> Confirmar
         </Button>
       </div>
