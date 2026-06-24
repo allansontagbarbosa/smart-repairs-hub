@@ -355,8 +355,7 @@ export default function AtacadoNovoPedido() {
         });
         return;
       }
-      const hojeISO = new Date().toISOString().slice(0, 10);
-      if (pagamentos.some((p) => p.vencimento && p.vencimento < hojeISO)) {
+      if (pagamentos.some((p) => p.vencimento && dataPedido && p.vencimento < dataPedido)) {
         toast({ title: "Vencimento anterior à data do pedido", variant: "destructive" });
         return;
       }
@@ -688,6 +687,18 @@ export default function AtacadoNovoPedido() {
       {passo === 3 && (
         <Card className="p-6 space-y-4">
           <h2 className="font-bold">3. Condição de pagamento</h2>
+          <div className="space-y-1">
+            <Label>Data do pedido</Label>
+            <Input
+              type="date"
+              value={dataPedido}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDataPedido(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Data oficial do pedido. Para pedido retroativo, escolha uma data passada — as parcelas podem vencer a partir dela.
+            </p>
+          </div>
           <div className="space-y-4">
             <div className="space-y-1">
               <Label>Atalho</Label>
@@ -899,18 +910,7 @@ export default function AtacadoNovoPedido() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label>Data do pedido</Label>
-              <Input
-                type="date"
-                value={dataPedido}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setDataPedido(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Use uma data passada para registrar um pedido retroativo. Entra no financeiro e relatórios desse período.
-              </p>
-            </div>
+
 
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
