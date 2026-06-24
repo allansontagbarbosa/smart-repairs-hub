@@ -687,6 +687,18 @@ export default function AtacadoNovoPedido() {
       {passo === 3 && (
         <Card className="p-6 space-y-4">
           <h2 className="font-bold">3. Condição de pagamento</h2>
+          <div className="space-y-1">
+            <Label>Data do pedido</Label>
+            <Input
+              type="date"
+              value={dataPedido}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDataPedido(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Data oficial do pedido. Para pedido retroativo, escolha uma data passada — as parcelas podem vencer a partir dela.
+            </p>
+          </div>
           <div className="space-y-4">
             <div className="space-y-1">
               <Label>Atalho</Label>
