@@ -1648,6 +1648,7 @@ export type Database = {
           status: string
           total_parcelas: number | null
           valor: number
+          valor_pago: number
           vencimento: string | null
         }
         Insert: {
@@ -1662,6 +1663,7 @@ export type Database = {
           status?: string
           total_parcelas?: number | null
           valor: number
+          valor_pago?: number
           vencimento?: string | null
         }
         Update: {
@@ -1676,6 +1678,7 @@ export type Database = {
           status?: string
           total_parcelas?: number | null
           valor?: number
+          valor_pago?: number
           vencimento?: string | null
         }
         Relationships: [
@@ -1684,6 +1687,51 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "atacado_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atacado_recebimentos: {
+        Row: {
+          created_at: string
+          data: string
+          empresa_id: string
+          forma: string | null
+          id: string
+          pagamento_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          empresa_id: string
+          forma?: string | null
+          id?: string
+          pagamento_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          forma?: string | null
+          id?: string
+          pagamento_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atacado_recebimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atacado_recebimentos_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "atacado_pedidos_pagamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -10087,6 +10135,15 @@ export type Database = {
           qtd_pedidos: number
           qtd_vendida: number
         }[]
+      }
+      atacado_receber_pagamento: {
+        Args: {
+          p_data?: string
+          p_forma?: string
+          p_pagamento_id: string
+          p_valor: number
+        }
+        Returns: Json
       }
       atacado_rfm_clientes: {
         Args: { p_empresa_id: string }
