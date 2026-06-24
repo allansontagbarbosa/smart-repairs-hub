@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,21 @@ import { usePermissoesAtacado } from "@/hooks/usePermissoesAtacado";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -42,6 +58,8 @@ export default function AtacadoPedidoDetalhe() {
   const qc = useQueryClient();
   const perms = usePermissoesAtacado();
   const podeVerCusto = perms.podeVerFinanceiro;
+  const [baixaPg, setBaixaPg] = useState<any>(null);
+
 
   const { data: pedido, isLoading } = useQuery({
     queryKey: ["atacado-pedido-detalhe", id],
@@ -85,15 +103,20 @@ export default function AtacadoPedidoDetalhe() {
   });
 
   const marcarPago = useMutation({
-    mutationFn: async (pagamentoId: string) => {
-      const { error } = await supabase.rpc("atacado_marcar_pagamento_pago" as any, {
+    mutationFn: async ({ pagamentoId, forma, data }: { pagamentoId: string; forma: string; data: string }) => {
+      const { error } = await supabase.rpc("atacado_baixar_pagamento" as any, {
         p_pagamento_id: pagamentoId,
+        p_forma_recebido: forma,
+        p_data_recebimento: data,
       });
       if (error) throw error;
     },
     onSuccess: () => {
+      setBaixaPg(null);
       qc.invalidateQueries({ queryKey: ["atacado-pedido-detalhe", id] });
       qc.invalidateQueries({ queryKey: ["atacado-pedidos"] });
+      qc.invalidateQueries({ queryKey: ["atacado-cobranca"] });
+      qc.invalidateQueries({ queryKey: ["atacado-financeiro-kpis"] });
       toast({ title: "✓ Pagamento recebido" });
     },
     onError: (e: any) =>
@@ -438,7 +461,7 @@ export default function AtacadoPedidoDetalhe() {
                         size="sm"
                         variant="outline"
                         disabled={marcarPago.isPending}
-                        onClick={() => marcarPago.mutate(pg.id)}
+                        onClick={() => setBaixaPg(pg)}
                       >
                         <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar recebido
                       </Button>
@@ -510,6 +533,75 @@ export default function AtacadoPedidoDetalhe() {
           )}
         </TabsContent>
       </Tabs>
+
+      {baixaPg && (
+        <Dialog open onOpenChange={(v) => !v && setBaixaPg(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Marcar recebido</DialogTitle>
+            </DialogHeader>
+            <BaixaPedidoForm
+              pagamento={baixaPg}
+              isPending={marcarPago.isPending}
+              onConfirm={(forma, data) =>
+                marcarPago.mutate({ pagamentoId: baixaPg.id, forma, data })
+              }
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
+
+function BaixaPedidoForm({ pagamento, onConfirm, isPending }: any) {
+  const [forma, setForma] = useState<string>(
+    pagamento.forma_recebido || pagamento.forma || "pix"
+  );
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const hoje = new Date().toISOString().slice(0, 10);
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border p-3 bg-muted/30">
+        <div className="text-lg font-semibold">{formatBRL(Number(pagamento.valor))}</div>
+        <div className="text-xs text-muted-foreground">
+          Parcela {pagamento.parcela}/{pagamento.total_parcelas}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label>Forma de recebimento</Label>
+        <Select value={forma} onValueChange={setForma}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="boleto">Boleto</SelectItem>
+            <SelectItem value="pix">Pix</SelectItem>
+            <SelectItem value="transferencia">Transferência</SelectItem>
+            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+            <SelectItem value="cartao">Cartão</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label>Data do recebimento</Label>
+        <Input
+          type="date"
+          value={data}
+          max={hoje}
+          onChange={(e) => setData(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Use uma data passada para registrar um pagamento retroativo.
+        </p>
+      </div>
+      <div className="flex justify-end">
+        <Button onClick={() => onConfirm(forma, data)} disabled={isPending}>
+          <CheckCircle2 className="h-4 w-4 mr-2" /> Confirmar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
