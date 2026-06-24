@@ -545,8 +545,8 @@ export default function AtacadoPedidoDetalhe() {
             <BaixaPedidoForm
               pagamento={baixaPg}
               isPending={marcarPago.isPending}
-              onConfirm={(forma, data) =>
-                marcarPago.mutate({ pagamentoId: baixaPg.id, forma, data })
+              onConfirm={(valor, forma, data) =>
+                marcarPago.mutate({ pagamentoId: baixaPg.id, valor, forma, data })
               }
             />
           </DialogContent>
