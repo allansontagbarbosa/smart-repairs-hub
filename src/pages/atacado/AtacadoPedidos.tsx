@@ -65,36 +65,72 @@ export default function AtacadoPedidos() {
   const [busca, setBusca] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [periodoFilter, setPeriodoFilter] = useState("este_mes");
+  const [customInicio, setCustomInicio] = useState("");
+  const [customFim, setCustomFim] = useState("");
+  const [pagFilter, setPagFilter] = useState<StatusPagamentoPedido | "todos">("todos");
+  const [vendedorFilter, setVendedorFilter] = useState<string>("todos");
+  const [formaFilter, setFormaFilter] = useState<string>("todas");
+  const [semVendedor, setSemVendedor] = useState(false);
 
-  const hoje = new Date();
-  const inicio = (() => {
-    if (periodoFilter === "hoje") return hoje.toISOString().slice(0, 10);
+  const papel = usePapelSocio();
+  const mostrarLucro = !!papel.data?.ehAdmin || !!papel.data?.ehSocio;
+
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const { inicio, fim } = (() => {
+    if (periodoFilter === "custom" && customInicio && customFim) {
+      return { inicio: customInicio, fim: customFim };
+    }
+    const hoje = new Date();
+    if (periodoFilter === "hoje") return { inicio: hojeStr, fim: hojeStr };
     if (periodoFilter === "ultimos_7") {
-      const d = new Date();
-      d.setDate(d.getDate() - 7);
-      return d.toISOString().slice(0, 10);
+      const d = new Date(); d.setDate(d.getDate() - 7);
+      return { inicio: d.toISOString().slice(0, 10), fim: hojeStr };
     }
     if (periodoFilter === "ultimos_30") {
-      const d = new Date();
-      d.setDate(d.getDate() - 30);
-      return d.toISOString().slice(0, 10);
+      const d = new Date(); d.setDate(d.getDate() - 30);
+      return { inicio: d.toISOString().slice(0, 10), fim: hojeStr };
     }
-    if (periodoFilter === "este_ano") return `${hoje.getFullYear()}-01-01`;
-    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+    if (periodoFilter === "mes_passado") {
+      const ref = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const fimRef = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      return { inicio: ref.toISOString().slice(0, 10), fim: fimRef.toISOString().slice(0, 10) };
+    }
+    if (periodoFilter === "este_ano") return { inicio: `${hoje.getFullYear()}-01-01`, fim: hojeStr };
+    return {
+      inicio: `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`,
+      fim: hojeStr,
+    };
   })();
 
-  const { data: pedidos = [], isLoading } = useQuery({
-    queryKey: ["atacado-pedidos", empresaId, busca, statusFilter, inicio],
+  // Vendedores p/ filtro
+  const { data: vendedores = [] } = useQuery({
+    queryKey: ["atacado-vendedores-list", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("empresa_id", empresaId!)
+        .order("nome");
+      return data ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: pedidosRaw = [], isLoading } = useQuery({
+    queryKey: ["atacado-pedidos", empresaId, busca, statusFilter, inicio, fim, vendedorFilter, semVendedor],
     queryFn: async () => {
       let q = supabase
         .from("atacado_pedidos")
         .select(
-          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(id, valor, status, vencimento, forma)`
+          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(id, valor, valor_pago, status, vencimento, forma, pago_em)`
         )
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null)
-        .gte("created_at", inicio);
+        .gte("created_at", inicio)
+        .lte("created_at", fim + "T23:59:59.999");
       if (statusFilter !== "todos") q = q.eq("status", statusFilter);
+      if (vendedorFilter !== "todos") q = q.eq("vendedor_id", vendedorFilter);
+      if (semVendedor) q = q.is("vendedor_id", null);
       if (busca) {
         const num = busca.replace(/\D/g, "");
         if (num) q = q.eq("numero_pedido", parseInt(num));
@@ -106,6 +142,23 @@ export default function AtacadoPedidos() {
       return data ?? [];
     },
     enabled: !!empresaId,
+  });
+
+  // Filtros client-side: status de pagamento + forma + chip "pagos hoje"
+  const [pagosHoje, setPagosHoje] = useState(false);
+  const pedidos = pedidosRaw.filter((p: any) => {
+    if (pagFilter !== "todos") {
+      if (calcularStatusPagamento(p.pagamentos as any) !== pagFilter) return false;
+    }
+    if (formaFilter !== "todas") {
+      const pags = (p.pagamentos ?? []) as any[];
+      if (!pags.some((x) => x.forma === formaFilter)) return false;
+    }
+    if (pagosHoje) {
+      const pags = (p.pagamentos ?? []) as any[];
+      if (!pags.some((x) => x.pago_em && String(x.pago_em).slice(0, 10) === hojeStr)) return false;
+    }
+    return true;
   });
 
   const totalPedidos = pedidos.length;
