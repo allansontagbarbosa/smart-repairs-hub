@@ -161,19 +161,9 @@ export default function AtacadoPedidos() {
     return true;
   });
 
-  const totalPedidos = pedidos.length;
   const aguardando = pedidos.filter(
     (p: any) => p.status === "aguardando_aprovacao"
   ).length;
-  const faturados = pedidos.filter((p: any) =>
-    ["faturado", "entregue"].includes(p.status)
-  );
-  const valorFaturado = faturados.reduce(
-    (s: number, p: any) => s + Number(p.total),
-    0
-  );
-  const ticketMedio =
-    faturados.length > 0 ? valorFaturado / faturados.length : 0;
 
   const mudarStatus = useMutation({
     mutationFn: async ({ pedidoId, novoStatus, motivo }: any) => {
