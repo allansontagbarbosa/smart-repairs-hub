@@ -51,7 +51,10 @@ import {
   calcularStatusPagamento,
   labelStatusPagamento,
   classesStatusPagamento,
+  type StatusPagamentoPedido,
 } from "@/lib/atacadoPagamentoStatus";
+import { PedidosDashboardPanel } from "@/components/atacado/PedidosDashboardPanel";
+import { usePapelSocio } from "@/hooks/usePapelSocio";
 
 export default function AtacadoPedidos() {
   const { empresaId } = useEmpresa();
