@@ -51,7 +51,10 @@ import {
   calcularStatusPagamento,
   labelStatusPagamento,
   classesStatusPagamento,
+  type StatusPagamentoPedido,
 } from "@/lib/atacadoPagamentoStatus";
+import { PedidosDashboardPanel } from "@/components/atacado/PedidosDashboardPanel";
+import { usePapelSocio } from "@/hooks/usePapelSocio";
 
 export default function AtacadoPedidos() {
   const { empresaId } = useEmpresa();
@@ -62,36 +65,72 @@ export default function AtacadoPedidos() {
   const [busca, setBusca] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [periodoFilter, setPeriodoFilter] = useState("este_mes");
+  const [customInicio, setCustomInicio] = useState("");
+  const [customFim, setCustomFim] = useState("");
+  const [pagFilter, setPagFilter] = useState<StatusPagamentoPedido | "todos">("todos");
+  const [vendedorFilter, setVendedorFilter] = useState<string>("todos");
+  const [formaFilter, setFormaFilter] = useState<string>("todas");
+  const [semVendedor, setSemVendedor] = useState(false);
 
-  const hoje = new Date();
-  const inicio = (() => {
-    if (periodoFilter === "hoje") return hoje.toISOString().slice(0, 10);
+  const papel = usePapelSocio();
+  const mostrarLucro = !!papel.data?.ehAdmin || !!papel.data?.ehSocio;
+
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const { inicio, fim } = (() => {
+    if (periodoFilter === "custom" && customInicio && customFim) {
+      return { inicio: customInicio, fim: customFim };
+    }
+    const hoje = new Date();
+    if (periodoFilter === "hoje") return { inicio: hojeStr, fim: hojeStr };
     if (periodoFilter === "ultimos_7") {
-      const d = new Date();
-      d.setDate(d.getDate() - 7);
-      return d.toISOString().slice(0, 10);
+      const d = new Date(); d.setDate(d.getDate() - 7);
+      return { inicio: d.toISOString().slice(0, 10), fim: hojeStr };
     }
     if (periodoFilter === "ultimos_30") {
-      const d = new Date();
-      d.setDate(d.getDate() - 30);
-      return d.toISOString().slice(0, 10);
+      const d = new Date(); d.setDate(d.getDate() - 30);
+      return { inicio: d.toISOString().slice(0, 10), fim: hojeStr };
     }
-    if (periodoFilter === "este_ano") return `${hoje.getFullYear()}-01-01`;
-    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+    if (periodoFilter === "mes_passado") {
+      const ref = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const fimRef = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+      return { inicio: ref.toISOString().slice(0, 10), fim: fimRef.toISOString().slice(0, 10) };
+    }
+    if (periodoFilter === "este_ano") return { inicio: `${hoje.getFullYear()}-01-01`, fim: hojeStr };
+    return {
+      inicio: `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`,
+      fim: hojeStr,
+    };
   })();
 
-  const { data: pedidos = [], isLoading } = useQuery({
-    queryKey: ["atacado-pedidos", empresaId, busca, statusFilter, inicio],
+  // Vendedores p/ filtro
+  const { data: vendedores = [] } = useQuery({
+    queryKey: ["atacado-vendedores-list", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("id, nome")
+        .eq("empresa_id", empresaId!)
+        .order("nome");
+      return data ?? [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: pedidosRaw = [], isLoading } = useQuery({
+    queryKey: ["atacado-pedidos", empresaId, busca, statusFilter, inicio, fim, vendedorFilter, semVendedor],
     queryFn: async () => {
       let q = supabase
         .from("atacado_pedidos")
         .select(
-          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(id, valor, status, vencimento, forma)`
+          `*, cliente:atacado_clientes(razao_social, nome_fantasia, cnpj), vendedor:funcionarios!vendedor_id(nome), pagamentos:atacado_pedidos_pagamentos(id, valor, valor_pago, status, vencimento, forma, pago_em)`
         )
         .eq("empresa_id", empresaId!)
         .is("deleted_at", null)
-        .gte("created_at", inicio);
+        .gte("created_at", inicio)
+        .lte("created_at", fim + "T23:59:59.999");
       if (statusFilter !== "todos") q = q.eq("status", statusFilter);
+      if (vendedorFilter !== "todos") q = q.eq("vendedor_id", vendedorFilter);
+      if (semVendedor) q = q.is("vendedor_id", null);
       if (busca) {
         const num = busca.replace(/\D/g, "");
         if (num) q = q.eq("numero_pedido", parseInt(num));
@@ -105,19 +144,26 @@ export default function AtacadoPedidos() {
     enabled: !!empresaId,
   });
 
-  const totalPedidos = pedidos.length;
+  // Filtros client-side: status de pagamento + forma + chip "pagos hoje"
+  const [pagosHoje, setPagosHoje] = useState(false);
+  const pedidos = pedidosRaw.filter((p: any) => {
+    if (pagFilter !== "todos") {
+      if (calcularStatusPagamento(p.pagamentos as any) !== pagFilter) return false;
+    }
+    if (formaFilter !== "todas") {
+      const pags = (p.pagamentos ?? []) as any[];
+      if (!pags.some((x) => x.forma === formaFilter)) return false;
+    }
+    if (pagosHoje) {
+      const pags = (p.pagamentos ?? []) as any[];
+      if (!pags.some((x) => x.pago_em && String(x.pago_em).slice(0, 10) === hojeStr)) return false;
+    }
+    return true;
+  });
+
   const aguardando = pedidos.filter(
     (p: any) => p.status === "aguardando_aprovacao"
   ).length;
-  const faturados = pedidos.filter((p: any) =>
-    ["faturado", "entregue"].includes(p.status)
-  );
-  const valorFaturado = faturados.reduce(
-    (s: number, p: any) => s + Number(p.total),
-    0
-  );
-  const ticketMedio =
-    faturados.length > 0 ? valorFaturado / faturados.length : 0;
 
   const mudarStatus = useMutation({
     mutationFn: async ({ pedidoId, novoStatus, motivo }: any) => {
@@ -301,17 +347,68 @@ export default function AtacadoPedidos() {
         </Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Kpi label="Pedidos no período" valor={totalPedidos} />
-        <Kpi label="Aguardando aprovação" valor={aguardando} danger={aguardando > 0} />
-        <Kpi label="Valor faturado" valor={formatBRL(valorFaturado)} />
-        <Kpi label="Ticket médio" valor={formatBRL(ticketMedio)} />
+      {/* KPIs (cockpit) */}
+      <PedidosDashboardPanel
+        empresaId={empresaId}
+        inicio={inicio}
+        fim={fim}
+        mostrarLucro={mostrarLucro}
+      />
+
+      {/* Chips rápidos */}
+      <div className="flex flex-wrap gap-1.5">
+        <ChipFilter
+          label="Vencidos"
+          active={pagFilter === "atrasado"}
+          onClick={() => setPagFilter(pagFilter === "atrasado" ? "todos" : "atrasado")}
+          tone="destructive"
+        />
+        <ChipFilter
+          label="Aguardando aprovação"
+          active={statusFilter === "aguardando_aprovacao"}
+          onClick={() =>
+            setStatusFilter(statusFilter === "aguardando_aprovacao" ? "todos" : "aguardando_aprovacao")
+          }
+          tone="warning"
+          count={aguardando}
+        />
+        <ChipFilter
+          label="Pagos hoje"
+          active={pagosHoje}
+          onClick={() => setPagosHoje((v) => !v)}
+          tone="success"
+        />
+        <ChipFilter
+          label="Sem vendedor"
+          active={semVendedor}
+          onClick={() => setSemVendedor((v) => !v)}
+        />
+        {(pagFilter !== "todos" ||
+          statusFilter !== "todos" ||
+          pagosHoje ||
+          semVendedor ||
+          vendedorFilter !== "todos" ||
+          formaFilter !== "todas") && (
+          <button
+            type="button"
+            onClick={() => {
+              setPagFilter("todos");
+              setStatusFilter("todos");
+              setPagosHoje(false);
+              setSemVendedor(false);
+              setVendedorFilter("todos");
+              setFormaFilter("todas");
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Limpar filtros
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col md:flex-row gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col md:flex-row gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por número do pedido (ex.: 123)"
@@ -321,8 +418,8 @@ export default function AtacadoPedidos() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="md:w-52">
-            <SelectValue />
+          <SelectTrigger className="md:w-44">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos status</SelectItem>
@@ -334,6 +431,44 @@ export default function AtacadoPedidos() {
             <SelectItem value="cancelado">Cancelados</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={pagFilter} onValueChange={(v) => setPagFilter(v as any)}>
+          <SelectTrigger className="md:w-44">
+            <SelectValue placeholder="Pagamento" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos pagamentos</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="parcial">Parcial</SelectItem>
+            <SelectItem value="aguardando">Aguardando</SelectItem>
+            <SelectItem value="atrasado">Atrasado</SelectItem>
+            <SelectItem value="sem_pagamentos">Sem pagamentos</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
+          <SelectTrigger className="md:w-44">
+            <SelectValue placeholder="Vendedor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos vendedores</SelectItem>
+            {(vendedores as any[]).map((v) => (
+              <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={formaFilter} onValueChange={setFormaFilter}>
+          <SelectTrigger className="md:w-40">
+            <SelectValue placeholder="Forma" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas formas</SelectItem>
+            <SelectItem value="pix">Pix</SelectItem>
+            <SelectItem value="boleto">Boleto</SelectItem>
+            <SelectItem value="transferencia">Transferência</SelectItem>
+            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+            <SelectItem value="cartao">Cartão</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={periodoFilter} onValueChange={setPeriodoFilter}>
           <SelectTrigger className="md:w-44">
             <SelectValue />
@@ -342,10 +477,29 @@ export default function AtacadoPedidos() {
             <SelectItem value="hoje">Hoje</SelectItem>
             <SelectItem value="ultimos_7">Últimos 7 dias</SelectItem>
             <SelectItem value="este_mes">Este mês</SelectItem>
+            <SelectItem value="mes_passado">Mês passado</SelectItem>
             <SelectItem value="ultimos_30">Últimos 30 dias</SelectItem>
             <SelectItem value="este_ano">Este ano</SelectItem>
+            <SelectItem value="custom">Intervalo custom…</SelectItem>
           </SelectContent>
         </Select>
+        {periodoFilter === "custom" && (
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              className="md:w-36"
+              value={customInicio}
+              onChange={(e) => setCustomInicio(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <Input
+              type="date"
+              className="md:w-36"
+              value={customFim}
+              onChange={(e) => setCustomFim(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Lista */}
@@ -840,5 +994,50 @@ function PagamentoPopover({ pedido, receberPedido }: any) {
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+function ChipFilter({
+  label,
+  active,
+  onClick,
+  tone,
+  count,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  tone?: "warning" | "destructive" | "success";
+  count?: number;
+}) {
+  const baseTone =
+    tone === "destructive"
+      ? "border-destructive/40 text-destructive hover:bg-destructive/10"
+      : tone === "warning"
+      ? "border-warning/40 text-warning hover:bg-warning/10"
+      : tone === "success"
+      ? "border-success/40 text-success hover:bg-success/10"
+      : "border-border text-foreground hover:bg-muted";
+  const activeTone =
+    tone === "destructive"
+      ? "bg-destructive/15 border-destructive/60"
+      : tone === "warning"
+      ? "bg-warning/15 border-warning/60"
+      : tone === "success"
+      ? "bg-success/15 border-success/60"
+      : "bg-muted border-foreground/40";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${baseTone} ${
+        active ? activeTone : ""
+      }`}
+    >
+      {label}
+      {count != null && count > 0 && (
+        <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] tabular-nums">{count}</span>
+      )}
+    </button>
   );
 }

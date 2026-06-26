@@ -10121,6 +10121,10 @@ export type Database = {
         }[]
       }
       atacado_norm_text: { Args: { p: string }; Returns: string }
+      atacado_pedidos_dashboard: {
+        Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
+        Returns: Json
+      }
       atacado_performance_vendedores: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
         Returns: {
