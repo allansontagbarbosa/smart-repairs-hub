@@ -996,3 +996,48 @@ function PagamentoPopover({ pedido, receberPedido }: any) {
     </Popover>
   );
 }
+
+function ChipFilter({
+  label,
+  active,
+  onClick,
+  tone,
+  count,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  tone?: "warning" | "destructive" | "success";
+  count?: number;
+}) {
+  const baseTone =
+    tone === "destructive"
+      ? "border-destructive/40 text-destructive hover:bg-destructive/10"
+      : tone === "warning"
+      ? "border-warning/40 text-warning hover:bg-warning/10"
+      : tone === "success"
+      ? "border-success/40 text-success hover:bg-success/10"
+      : "border-border text-foreground hover:bg-muted";
+  const activeTone =
+    tone === "destructive"
+      ? "bg-destructive/15 border-destructive/60"
+      : tone === "warning"
+      ? "bg-warning/15 border-warning/60"
+      : tone === "success"
+      ? "bg-success/15 border-success/60"
+      : "bg-muted border-foreground/40";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${baseTone} ${
+        active ? activeTone : ""
+      }`}
+    >
+      {label}
+      {count != null && count > 0 && (
+        <span className="rounded-full bg-background/60 px-1.5 py-0.5 text-[10px] tabular-nums">{count}</span>
+      )}
+    </button>
+  );
+}
