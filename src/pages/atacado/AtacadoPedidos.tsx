@@ -347,17 +347,68 @@ export default function AtacadoPedidos() {
         </Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Kpi label="Pedidos no período" valor={totalPedidos} />
-        <Kpi label="Aguardando aprovação" valor={aguardando} danger={aguardando > 0} />
-        <Kpi label="Valor faturado" valor={formatBRL(valorFaturado)} />
-        <Kpi label="Ticket médio" valor={formatBRL(ticketMedio)} />
+      {/* KPIs (cockpit) */}
+      <PedidosDashboardPanel
+        empresaId={empresaId}
+        inicio={inicio}
+        fim={fim}
+        mostrarLucro={mostrarLucro}
+      />
+
+      {/* Chips rápidos */}
+      <div className="flex flex-wrap gap-1.5">
+        <ChipFilter
+          label="Vencidos"
+          active={pagFilter === "atrasado"}
+          onClick={() => setPagFilter(pagFilter === "atrasado" ? "todos" : "atrasado")}
+          tone="destructive"
+        />
+        <ChipFilter
+          label="Aguardando aprovação"
+          active={statusFilter === "aguardando_aprovacao"}
+          onClick={() =>
+            setStatusFilter(statusFilter === "aguardando_aprovacao" ? "todos" : "aguardando_aprovacao")
+          }
+          tone="warning"
+          count={aguardando}
+        />
+        <ChipFilter
+          label="Pagos hoje"
+          active={pagosHoje}
+          onClick={() => setPagosHoje((v) => !v)}
+          tone="success"
+        />
+        <ChipFilter
+          label="Sem vendedor"
+          active={semVendedor}
+          onClick={() => setSemVendedor((v) => !v)}
+        />
+        {(pagFilter !== "todos" ||
+          statusFilter !== "todos" ||
+          pagosHoje ||
+          semVendedor ||
+          vendedorFilter !== "todos" ||
+          formaFilter !== "todas") && (
+          <button
+            type="button"
+            onClick={() => {
+              setPagFilter("todos");
+              setStatusFilter("todos");
+              setPagosHoje(false);
+              setSemVendedor(false);
+              setVendedorFilter("todos");
+              setFormaFilter("todas");
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline ml-1"
+          >
+            Limpar filtros
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col md:flex-row gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col md:flex-row gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por número do pedido (ex.: 123)"
@@ -367,8 +418,8 @@ export default function AtacadoPedidos() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="md:w-52">
-            <SelectValue />
+          <SelectTrigger className="md:w-44">
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos status</SelectItem>
@@ -380,6 +431,44 @@ export default function AtacadoPedidos() {
             <SelectItem value="cancelado">Cancelados</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={pagFilter} onValueChange={(v) => setPagFilter(v as any)}>
+          <SelectTrigger className="md:w-44">
+            <SelectValue placeholder="Pagamento" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos pagamentos</SelectItem>
+            <SelectItem value="pago">Pago</SelectItem>
+            <SelectItem value="parcial">Parcial</SelectItem>
+            <SelectItem value="aguardando">Aguardando</SelectItem>
+            <SelectItem value="atrasado">Atrasado</SelectItem>
+            <SelectItem value="sem_pagamentos">Sem pagamentos</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
+          <SelectTrigger className="md:w-44">
+            <SelectValue placeholder="Vendedor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos vendedores</SelectItem>
+            {(vendedores as any[]).map((v) => (
+              <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={formaFilter} onValueChange={setFormaFilter}>
+          <SelectTrigger className="md:w-40">
+            <SelectValue placeholder="Forma" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas formas</SelectItem>
+            <SelectItem value="pix">Pix</SelectItem>
+            <SelectItem value="boleto">Boleto</SelectItem>
+            <SelectItem value="transferencia">Transferência</SelectItem>
+            <SelectItem value="dinheiro">Dinheiro</SelectItem>
+            <SelectItem value="cartao">Cartão</SelectItem>
+            <SelectItem value="cheque">Cheque</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={periodoFilter} onValueChange={setPeriodoFilter}>
           <SelectTrigger className="md:w-44">
             <SelectValue />
@@ -388,10 +477,29 @@ export default function AtacadoPedidos() {
             <SelectItem value="hoje">Hoje</SelectItem>
             <SelectItem value="ultimos_7">Últimos 7 dias</SelectItem>
             <SelectItem value="este_mes">Este mês</SelectItem>
+            <SelectItem value="mes_passado">Mês passado</SelectItem>
             <SelectItem value="ultimos_30">Últimos 30 dias</SelectItem>
             <SelectItem value="este_ano">Este ano</SelectItem>
+            <SelectItem value="custom">Intervalo custom…</SelectItem>
           </SelectContent>
         </Select>
+        {periodoFilter === "custom" && (
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              className="md:w-36"
+              value={customInicio}
+              onChange={(e) => setCustomInicio(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <Input
+              type="date"
+              className="md:w-36"
+              value={customFim}
+              onChange={(e) => setCustomFim(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Lista */}
