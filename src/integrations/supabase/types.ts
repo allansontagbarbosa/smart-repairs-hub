@@ -10847,6 +10847,7 @@ export type Database = {
         Returns: Json
       }
       eh_admin: { Args: never; Returns: boolean }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       empresa_tem_modulo: {
         Args: { p_empresa_id: string; p_modulo: string }
         Returns: boolean
