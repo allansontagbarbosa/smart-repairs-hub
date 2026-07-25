@@ -143,9 +143,17 @@ export default function Login() {
 
     if (authError) {
       setLoading(false);
-      setError("Email ou senha incorretos. Tente novamente.");
+      const msg = (authError.message || "").toLowerCase();
+      if (msg.includes("email not confirmed")) {
+        setError("Email ainda não confirmado. Verifique sua caixa de entrada ou reenvie a confirmação.");
+      } else {
+        setError(
+          "Email ou senha incorretos. Se você criou a conta com o Google, use o botão \"Entrar com Google\" abaixo — ou clique em \"Esqueci minha senha\" para definir uma senha."
+        );
+      }
       return;
     }
+
 
     const isInternal = await verifyInternalUser(data.user.id);
     if (!isInternal) {
