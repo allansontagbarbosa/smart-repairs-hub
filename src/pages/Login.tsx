@@ -19,22 +19,28 @@ const DEMO_PASSWORD = "Demo@123";
 
 type Mode = "login" | "signup" | "forgot";
 
-async function getRotaInicial(userId: string): Promise<string> {
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("perfil_id, empresa_id, perfis_acesso(nome_perfil)")
+async function getRotaInicial(userId: string): Promise<string | null> {
+  // Lojista (parceiro B2B) nunca acessa rotas internas.
+  const { data: lojista } = await supabase
+    .from("lojista_usuarios")
+    .select("id")
     .eq("user_id", userId)
     .eq("ativo", true)
     .maybeSingle();
+  if (lojista) return "/lojista";
 
-  console.log("[getRotaInicial] userId:", userId);
-  console.log("[getRotaInicial] data:", JSON.stringify(data));
-  console.log("[getRotaInicial] error:", error);
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("perfil_id, empresa_id, perfis_acesso(nome_perfil)")
+    .or(buildUserProfileLookup(userId))
+    .eq("ativo", true)
+    .maybeSingle();
 
   if (error || !data) {
-    console.warn("[getRotaInicial] sem dados, fallback /dashboard");
-    return "/dashboard";
+    console.warn("[getRotaInicial] perfil interno não encontrado/inativo");
+    return null;
   }
+
 
   const pa = (data as any).perfis_acesso;
   const perfilNome = Array.isArray(pa) ? pa[0]?.nome_perfil : pa?.nome_perfil;
@@ -79,8 +85,26 @@ export default function Login() {
 
   useEffect(() => {
     if (!user) return;
-    getRotaInicial(user.id).then(rota => navigate(rota, { replace: true }));
+    // Sessão de recuperação de senha: não redirecionar, senão o usuário entra
+    // no app sem trocar a senha.
+    if (window.location.hash.includes("type=recovery")) {
+      navigate("/redefinir-senha" + window.location.hash, { replace: true });
+      return;
+    }
+    let cancelled = false;
+    void getRotaInicial(user.id).then(async (rota) => {
+      if (cancelled) return;
+      if (!rota) {
+        // Sem perfil interno ativo: evita loop /login → /dashboard → /login.
+        await supabase.auth.signOut();
+        setError("Usuário não autorizado. Entre em contato com o administrador.");
+        return;
+      }
+      navigate(rota, { replace: true });
+    });
+    return () => { cancelled = true; };
   }, [user, navigate]);
+
 
   const { data: empresa } = useQuery({
     queryKey: ["empresa-login"],
@@ -115,7 +139,7 @@ export default function Login() {
     setLoading(true);
     setError("");
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (authError) {
       setLoading(false);
@@ -133,7 +157,7 @@ export default function Login() {
 
     setLoading(false);
     const rota = await getRotaInicial(data.user.id);
-    navigate(rota, { replace: true });
+    navigate(rota ?? "/dashboard", { replace: true });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -154,7 +178,7 @@ export default function Login() {
     }
 
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         data: { full_name: nome },
@@ -212,8 +236,8 @@ export default function Login() {
     setResetLoading(true);
     setError("");
 
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/login`,
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
     });
 
     setResetLoading(false);
