@@ -157,7 +157,7 @@ export default function Login() {
 
     setLoading(false);
     const rota = await getRotaInicial(data.user.id);
-    navigate(rota, { replace: true });
+    navigate(rota ?? "/dashboard", { replace: true });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
