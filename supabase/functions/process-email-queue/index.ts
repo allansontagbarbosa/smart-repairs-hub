@@ -52,6 +52,18 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
   }
 }
 
+function safeTokenEquals(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
   supabase: ReturnType<typeof createClient>,
@@ -99,12 +111,15 @@ Deno.serve(async (req) => {
     )
   }
 
-  // Defense in depth: verify_jwt=true already requires a valid JWT at the
-  // gateway layer. This adds an explicit role check so only service-role
-  // callers can trigger queue processing.
+  // Defense in depth: verify_jwt=true already requires a valid key at the
+  // gateway layer. Accept both legacy JWT service-role tokens and the newer
+  // managed secret-key format, which has no JWT claims to parse.
   const token = authHeader.slice('Bearer '.length).trim()
   const claims = parseJwtClaims(token)
-  if (claims?.role !== 'service_role') {
+  const isServiceRoleToken =
+    claims?.role === 'service_role' || safeTokenEquals(token, supabaseServiceKey)
+
+  if (!isServiceRoleToken) {
     return new Response(
       JSON.stringify({ error: 'Forbidden' }),
       { status: 403, headers: { 'Content-Type': 'application/json' } }
