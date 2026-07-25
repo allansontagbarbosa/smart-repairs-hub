@@ -140,6 +140,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setCredentialsIssue(false);
 
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
@@ -149,12 +150,14 @@ export default function Login() {
       if (msg.includes("email not confirmed")) {
         setError("Email ainda não confirmado. Verifique sua caixa de entrada ou reenvie a confirmação.");
       } else {
+        setCredentialsIssue(true);
         setError(
-          "Email ou senha incorretos. Se você criou a conta com o Google, use o botão \"Entrar com Google\" abaixo — ou clique em \"Esqueci minha senha\" para definir uma senha."
+          "Email ou senha incorretos. Se você criou a conta com o Google, use o botão \"Entrar com Google\" abaixo — ou defina uma senha para este email."
         );
       }
       return;
     }
+
 
 
     const isInternal = await verifyInternalUser(data.user.id);
