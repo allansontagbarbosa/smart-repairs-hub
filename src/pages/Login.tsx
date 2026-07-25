@@ -489,11 +489,23 @@ export default function Login() {
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{error}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                    {credentialsIssue && (
+                      <button
+                        type="button"
+                        onClick={() => switchMode("forgot")}
+                        className="text-xs font-medium text-primary underline underline-offset-2"
+                      >
+                        Definir senha por email
+                      </button>
+                    )}
                   </div>
                 )}
+
 
                 <Button type="submit" className="w-full" disabled={anyLoading}>
                   {loading ? (
