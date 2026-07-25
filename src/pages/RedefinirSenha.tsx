@@ -107,6 +107,18 @@ export default function RedefinirSenha() {
               minLength={6}
             />
           </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="password"
+              placeholder="Confirmar nova senha"
+              className="pl-9 h-11"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              minLength={6}
+            />
+          </div>
           <Button type="submit" className="w-full h-11" disabled={loading}>
             {loading ? "Salvando..." : "Salvar nova senha"}
           </Button>
