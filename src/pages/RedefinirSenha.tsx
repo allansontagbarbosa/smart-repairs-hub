@@ -9,20 +9,52 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function RedefinirSenha() {
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<"checking" | "ready" | "invalid">("checking");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
-      setReady(true);
-    }
+    // O client do Supabase consome o hash/`?code=` automaticamente, então
+    // checar apenas `type=recovery` no hash falha por corrida. Aceita também
+    // uma sessão já estabelecida pelo link de recuperação.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setStatus("ready");
+      }
+    });
+
+    const hasRecoveryParams =
+      window.location.hash.includes("type=recovery") ||
+      new URLSearchParams(window.location.search).has("code");
+
+    if (hasRecoveryParams) setStatus("ready");
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setStatus("ready");
+      } else if (!hasRecoveryParams) {
+        setStatus((prev) => (prev === "ready" ? prev : "invalid"));
+      }
+    });
+
+    const timer = setTimeout(() => {
+      setStatus((prev) => (prev === "checking" ? "invalid" : prev));
+    }, 4000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirm) {
+      toast({ title: "As senhas não coincidem", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -30,17 +62,30 @@ export default function RedefinirSenha() {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Senha atualizada!", description: "Você já pode fazer login." });
-      navigate("/login");
+      await supabase.auth.signOut();
+      navigate("/login", { replace: true });
     }
   };
 
-  if (!ready) {
+  if (status === "checking") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-sm text-muted-foreground">Link inválido ou expirado.</p>
+        <p className="text-sm text-muted-foreground">Validando link…</p>
       </div>
     );
   }
+
+  if (status === "invalid") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background px-4 text-center">
+        <p className="text-sm text-muted-foreground">Link inválido ou expirado.</p>
+        <Button variant="outline" onClick={() => navigate("/login", { replace: true })}>
+          Voltar ao login
+        </Button>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
