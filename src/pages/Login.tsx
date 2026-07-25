@@ -20,12 +20,22 @@ const DEMO_PASSWORD = "Demo@123";
 type Mode = "login" | "signup" | "forgot";
 
 async function getRotaInicial(userId: string): Promise<string> {
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("perfil_id, empresa_id, perfis_acesso(nome_perfil)")
+  // Lojista (parceiro B2B) nunca acessa rotas internas.
+  const { data: lojista } = await supabase
+    .from("lojista_usuarios")
+    .select("id")
     .eq("user_id", userId)
     .eq("ativo", true)
     .maybeSingle();
+  if (lojista) return "/lojista";
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("perfil_id, empresa_id, perfis_acesso(nome_perfil)")
+    .or(buildUserProfileLookup(userId))
+    .eq("ativo", true)
+    .maybeSingle();
+
 
   console.log("[getRotaInicial] userId:", userId);
   console.log("[getRotaInicial] data:", JSON.stringify(data));
