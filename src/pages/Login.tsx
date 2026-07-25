@@ -76,6 +76,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState<Mode>("login");
   const [resetEmail, setResetEmail] = useState("");
+  const [credentialsIssue, setCredentialsIssue] = useState(false);
+
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
@@ -138,6 +140,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setCredentialsIssue(false);
 
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
@@ -147,12 +150,14 @@ export default function Login() {
       if (msg.includes("email not confirmed")) {
         setError("Email ainda não confirmado. Verifique sua caixa de entrada ou reenvie a confirmação.");
       } else {
+        setCredentialsIssue(true);
         setError(
-          "Email ou senha incorretos. Se você criou a conta com o Google, use o botão \"Entrar com Google\" abaixo — ou clique em \"Esqueci minha senha\" para definir uma senha."
+          "Email ou senha incorretos. Se você criou a conta com o Google, use o botão \"Entrar com Google\" abaixo — ou defina uma senha para este email."
         );
       }
       return;
     }
+
 
 
     const isInternal = await verifyInternalUser(data.user.id);
@@ -259,8 +264,10 @@ export default function Login() {
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
     setError("");
+    setCredentialsIssue(false);
     setSignupSuccess(false);
     setResetSent(false);
+
     if (newMode === "forgot") setResetEmail(email);
   };
 
@@ -489,11 +496,23 @@ export default function Login() {
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{error}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                    {credentialsIssue && (
+                      <button
+                        type="button"
+                        onClick={() => switchMode("forgot")}
+                        className="text-xs font-medium text-primary underline underline-offset-2"
+                      >
+                        Definir senha por email
+                      </button>
+                    )}
                   </div>
                 )}
+
 
                 <Button type="submit" className="w-full" disabled={anyLoading}>
                   {loading ? (
