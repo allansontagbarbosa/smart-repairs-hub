@@ -99,13 +99,12 @@ Deno.serve(async (req) => {
     )
   }
 
-  // Defense in depth: verify_jwt=true already requires a valid credential at
-  // the gateway layer. Accept either the current service credential value or a
-  // legacy JWT service-role token; new managed service credentials are not
-  // always JWTs, so parsing claims alone would incorrectly reject the cron.
+  // Defense in depth: verify_jwt=true already requires a valid JWT at the
+  // gateway layer. This adds an explicit role check so only service-role
+  // callers can trigger queue processing.
   const token = authHeader.slice('Bearer '.length).trim()
   const claims = parseJwtClaims(token)
-  if (token !== supabaseServiceKey && claims?.role !== 'service_role') {
+  if (claims?.role !== 'service_role') {
     return new Response(
       JSON.stringify({ error: 'Forbidden' }),
       { status: 403, headers: { 'Content-Type': 'application/json' } }
