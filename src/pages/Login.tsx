@@ -76,6 +76,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState<Mode>("login");
   const [resetEmail, setResetEmail] = useState("");
+  const [credentialsIssue, setCredentialsIssue] = useState(false);
+
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
