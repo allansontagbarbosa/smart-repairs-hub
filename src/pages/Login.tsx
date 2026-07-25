@@ -265,8 +265,9 @@ export default function Login() {
     setMode(newMode);
     setError("");
     setCredentialsIssue(false);
-
+    setSignupSuccess(false);
     setResetSent(false);
+
     if (newMode === "forgot") setResetEmail(email);
   };
 
