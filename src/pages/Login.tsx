@@ -19,7 +19,7 @@ const DEMO_PASSWORD = "Demo@123";
 
 type Mode = "login" | "signup" | "forgot";
 
-async function getRotaInicial(userId: string): Promise<string> {
+async function getRotaInicial(userId: string): Promise<string | null> {
   // Lojista (parceiro B2B) nunca acessa rotas internas.
   const { data: lojista } = await supabase
     .from("lojista_usuarios")
