@@ -264,7 +264,8 @@ export default function Login() {
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
     setError("");
-    setSignupSuccess(false);
+    setCredentialsIssue(false);
+
     setResetSent(false);
     if (newMode === "forgot") setResetEmail(email);
   };
