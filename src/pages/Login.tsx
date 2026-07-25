@@ -139,7 +139,7 @@ export default function Login() {
     setLoading(true);
     setError("");
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
     if (authError) {
       setLoading(false);
@@ -178,7 +178,7 @@ export default function Login() {
     }
 
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
         data: { full_name: nome },
