@@ -1,0 +1,1 @@
+insert into admin.usuarios_internos (user_id, nome, email, role, ativo) values ('442f8610-ca37-4e64-b17c-7b7237c0190c', 'Sonta Gallan', 'sontagallan@gmail.com', 'owner', true) on conflict do nothing;
