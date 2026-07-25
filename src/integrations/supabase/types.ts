@@ -11130,6 +11130,7 @@ export type Database = {
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       is_rh: { Args: never; Returns: boolean }
       is_socio: { Args: never; Returns: boolean }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
       jornada_listar: { Args: { p_funcionario_id: string }; Returns: Json }
       jornada_salvar: {
         Args: { p_funcionario_id: string; p_jornada: Json }
