@@ -36,15 +36,11 @@ async function getRotaInicial(userId: string): Promise<string> {
     .eq("ativo", true)
     .maybeSingle();
 
-
-  console.log("[getRotaInicial] userId:", userId);
-  console.log("[getRotaInicial] data:", JSON.stringify(data));
-  console.log("[getRotaInicial] error:", error);
-
   if (error || !data) {
-    console.warn("[getRotaInicial] sem dados, fallback /dashboard");
-    return "/dashboard";
+    console.warn("[getRotaInicial] perfil interno não encontrado/inativo");
+    return null;
   }
+
 
   const pa = (data as any).perfis_acesso;
   const perfilNome = Array.isArray(pa) ? pa[0]?.nome_perfil : pa?.nome_perfil;
