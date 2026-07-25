@@ -85,8 +85,26 @@ export default function Login() {
 
   useEffect(() => {
     if (!user) return;
-    getRotaInicial(user.id).then(rota => navigate(rota, { replace: true }));
+    // Sessão de recuperação de senha: não redirecionar, senão o usuário entra
+    // no app sem trocar a senha.
+    if (window.location.hash.includes("type=recovery")) {
+      navigate("/redefinir-senha" + window.location.hash, { replace: true });
+      return;
+    }
+    let cancelled = false;
+    void getRotaInicial(user.id).then(async (rota) => {
+      if (cancelled) return;
+      if (!rota) {
+        // Sem perfil interno ativo: evita loop /login → /dashboard → /login.
+        await supabase.auth.signOut();
+        setError("Usuário não autorizado. Entre em contato com o administrador.");
+        return;
+      }
+      navigate(rota, { replace: true });
+    });
+    return () => { cancelled = true; };
   }, [user, navigate]);
+
 
   const { data: empresa } = useQuery({
     queryKey: ["empresa-login"],
