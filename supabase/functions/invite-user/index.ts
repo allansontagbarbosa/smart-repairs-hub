@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
 
     // Perfis operacionais que tipicamente são CLT — marcam eh_funcionario_rh
     const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-    const perfisCLT = ["tecnico", "atendimento", "gerente", "financeiro"];
+    const perfisCLT = ["tecnico", "atendimento", "gerente", "financeiro", "vendedor"];
     const ehFuncionarioRH = perfisCLT.includes(norm(nomePerfilOriginal));
 
     // Campos CLT opcionais vindos do modal (somente se eh_funcionario_rh)
@@ -315,7 +315,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: targetUserId }), {
+    // Link manual de acesso (fallback quando o email não chega — ex.: domínio de
+    // envio ainda não verificado). generateLink NÃO dispara email.
+    let actionLink: string | null = null;
+    try {
+      const { data: manualLink } = await adminClient.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo: `${siteUrl}/aceitar-convite` },
+      });
+      actionLink = (manualLink?.properties as any)?.action_link ?? null;
+    } catch (linkErr) {
+      console.error("[invite-user] falha ao gerar link manual:", linkErr);
+    }
+
+    return new Response(JSON.stringify({ success: true, user_id: targetUserId, action_link: actionLink }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
