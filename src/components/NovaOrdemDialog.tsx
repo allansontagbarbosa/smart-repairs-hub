@@ -676,6 +676,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     id: d.os_servico_id,
     servico_id: d.id,
     tecnico_id: d.tecnico_id ?? null,
+    motivo_sem_tecnico: d.motivo_sem_tecnico ?? null,
+    valor_terceirizado: Number(d.valor_terceirizado) || 0,
     valor: d.valor_mao_obra,
     comissao: d.comissao_padrao,
   })), [defeitosSelecionados]);
