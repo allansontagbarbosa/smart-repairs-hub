@@ -38,6 +38,7 @@ export function InviteUserDialog({
   const [perfilId, setPerfilId] = useState<string>(fixedPerfilId || "");
   const [loading, setLoading] = useState(false);
   const [expandirRH, setExpandirRH] = useState(false);
+  const [linkAcesso, setLinkAcesso] = useState<string | null>(null);
   const [dadosRH, setDadosRH] = useState({
     cpf: "",
     telefone: "",
@@ -63,6 +64,7 @@ export function InviteUserDialog({
     setEmail("");
     setPerfilId(fixedPerfilId || "");
     setExpandirRH(false);
+    setLinkAcesso(null);
     setDadosRH({ cpf: "", telefone: "", cargo: "", tipo_vinculo: "clt", salario: "", data_admissao: "", carga_horaria_semanal: 44 });
   };
 
