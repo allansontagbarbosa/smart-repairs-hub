@@ -268,51 +268,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     },
   });
 
-  const { data: tecnicosAtivos = [] } = useQuery<any[]>({
-    queryKey: ["funcionarios_ativos_nova_os"],
-    queryFn: async () => {
-      // 1) Buscar perfil_id do perfil "Técnico" em perfis_acesso
-      const { data: perfilTecnico } = await supabase
-        .from("perfis_acesso")
-        .select("id")
-        .eq("nome_perfil", "Técnico")
-        .maybeSingle();
+  const { data: tecnicosAtivos = [] } = useTecnicosOS();
 
-      // 2) IDs de funcionários vinculados a user_profiles com perfil "Técnico"
-      let funcionariosIdsComPerfilTecnico: string[] = [];
-      if (perfilTecnico?.id) {
-        const { data: ups } = await supabase
-          .from("user_profiles")
-          .select("funcionario_id")
-          .eq("perfil_id", perfilTecnico.id)
-          .not("funcionario_id", "is", null);
-        funcionariosIdsComPerfilTecnico = (ups ?? [])
-          .map((u: any) => u.funcionario_id)
-          .filter(Boolean);
-      }
-
-      // 3) Buscar funcionários ativos (com cargo, para filtro complementar)
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .select("id, nome, cargo")
-        .eq("ativo", true)
-        .is("deleted_at", null)
-        .order("nome");
-      if (error) throw error;
-
-      // 4) Filtrar: ou tem perfil "Técnico" via user_profiles, OU cargo contém "técnico"
-      const idsSet = new Set(funcionariosIdsComPerfilTecnico);
-      const filtrados = (data ?? []).filter((f: any) => {
-        if (idsSet.has(f.id)) return true;
-        const cargo = (f.cargo || "").toLowerCase();
-        return cargo.includes("técnico") || cargo.includes("tecnico");
-      });
-
-      // Fallback: se NENHUM funcionário casou (empresa sem perfis cadastrados
-      // e sem cargo "técnico"), retorna todos para não travar o uso.
-      return filtrados.length > 0 ? filtrados : (data ?? []);
-    },
-  });
 
   const { data: pecasEstoque = [] } = useQuery({
     queryKey: ["estoque_pecas_para_os"],
