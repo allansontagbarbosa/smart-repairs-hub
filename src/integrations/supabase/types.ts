@@ -10789,6 +10789,7 @@ export type Database = {
         }
         Returns: Json
       }
+      current_user_email_confirmed: { Args: never; Returns: boolean }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
