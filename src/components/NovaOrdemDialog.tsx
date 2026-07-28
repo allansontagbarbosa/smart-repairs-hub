@@ -78,6 +78,8 @@ interface DefeitoSelecionado {
   valor_mao_obra: number;
   comissao_padrao: number;
   tecnico_id?: string | null;
+  motivo_sem_tecnico?: "terceirizado" | "sem_atribuicao" | null;
+  valor_terceirizado?: number;
   os_servico_id?: string;
 }
 
