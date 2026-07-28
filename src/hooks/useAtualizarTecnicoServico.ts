@@ -20,6 +20,7 @@ export function useAtualizarTecnicoServico() {
       };
       if (tecnicoId !== null) {
         update.iniciado_em = new Date().toISOString();
+        update.valor_terceirizado = 0;
       }
       const { error } = await supabase
         .from("os_servicos")
