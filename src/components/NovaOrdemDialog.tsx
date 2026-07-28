@@ -1091,6 +1091,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           p_servicos: servicosEditorValue.map((s) => ({
             servico_id: s.servico_id,
             tecnico_id: s.tecnico_id,
+            motivo_sem_tecnico: s.motivo_sem_tecnico ?? null,
+            valor_terceirizado: Number(s.valor_terceirizado) || 0,
             valor: s.valor,
             comissao: s.comissao,
           })),
