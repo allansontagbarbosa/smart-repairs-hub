@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTecnicosOS } from "@/hooks/useTecnicosOS";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -238,30 +240,8 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
       return data || [];
     },
   });
-  const { data: funcionariosAtivos = [] } = useQuery<any[]>({
-    queryKey: ["tecnicos_os", empresaId],
-    enabled: !!empresaId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("funcionario_id, nome_exibicao, funcionarios!inner(id, nome, tipo_comissao, valor_comissao, cargo, funcao, ativo, deleted_at), perfis_acesso!inner(nome_perfil)")
-        .eq("empresa_id", empresaId!)
-        .eq("ativo", true)
-        .eq("perfis_acesso.nome_perfil", "Técnico")
-        .not("funcionario_id", "is", null);
+  const { data: funcionariosAtivos = [] } = useTecnicosOS();
 
-      if (error) throw error;
-
-      return (data ?? [])
-        .filter((up: any) =>
-          up.funcionario_id
-          && up.funcionarios?.ativo
-          && !up.funcionarios?.deleted_at
-        )
-        .map((up: any) => ({ ...up.funcionarios, id: up.funcionario_id, nome: up.funcionarios?.nome || up.nome_exibicao }))
-        .sort((a, b) => a.nome.localeCompare(b.nome));
-    },
-  });
 
   const tecnicoAtualForaDaLista = ordem?.funcionario_id && !funcionariosAtivos.some((f) => f.id === ordem.funcionario_id)
     ? { id: ordem.funcionario_id, nome: ordem.tecnico || "Atribuição atual", atual: true }
