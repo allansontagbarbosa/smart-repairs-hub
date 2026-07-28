@@ -20,6 +20,7 @@ export function useAtualizarTecnicoServico() {
       };
       if (tecnicoId !== null) {
         update.iniciado_em = new Date().toISOString();
+        update.valor_terceirizado = 0;
       }
       const { error } = await supabase
         .from("os_servicos")
@@ -53,7 +54,7 @@ export async function atribuirTodaOSAoTecnico(
     motivo_sem_tecnico: tecnicoId === null ? "sem_atribuicao" : null,
     updated_at: new Date().toISOString(),
   };
-  if (tecnicoId !== null) update.iniciado_em = new Date().toISOString();
+  if (tecnicoId !== null) { update.iniciado_em = new Date().toISOString(); update.valor_terceirizado = 0; }
   const { error } = await supabase
     .from("os_servicos")
     .update(update)

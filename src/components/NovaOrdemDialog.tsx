@@ -78,6 +78,8 @@ interface DefeitoSelecionado {
   valor_mao_obra: number;
   comissao_padrao: number;
   tecnico_id?: string | null;
+  motivo_sem_tecnico?: "terceirizado" | "sem_atribuicao" | null;
+  valor_terceirizado?: number;
   os_servico_id?: string;
 }
 
@@ -674,6 +676,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
     id: d.os_servico_id,
     servico_id: d.id,
     tecnico_id: d.tecnico_id ?? null,
+    motivo_sem_tecnico: d.motivo_sem_tecnico ?? null,
+    valor_terceirizado: Number(d.valor_terceirizado) || 0,
     valor: d.valor_mao_obra,
     comissao: d.comissao_padrao,
   })), [defeitosSelecionados]);
@@ -767,6 +771,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           valor_mao_obra: Number(s.valor) || 0,
           comissao_padrao: Number(s.comissao) || 0,
           tecnico_id: s.tecnico_id ?? null,
+          motivo_sem_tecnico: s.motivo_sem_tecnico ?? null,
+          valor_terceirizado: Number(s.valor_terceirizado) || 0,
         };
       }));
   }
@@ -1085,6 +1091,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           p_servicos: servicosEditorValue.map((s) => ({
             servico_id: s.servico_id,
             tecnico_id: s.tecnico_id,
+            motivo_sem_tecnico: s.motivo_sem_tecnico ?? null,
+            valor_terceirizado: Number(s.valor_terceirizado) || 0,
             valor: s.valor,
             comissao: s.comissao,
           })),

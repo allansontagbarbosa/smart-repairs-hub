@@ -795,6 +795,8 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
       id: s.id ?? null,
       servico_id: s.servico_id,
       tecnico_id: s.tecnico_id ?? null,
+      motivo_sem_tecnico: s.motivo_sem_tecnico ?? null,
+      valor_terceirizado: Number(s.valor_terceirizado) || 0,
       valor: Number(s.valor) || 0,
       comissao: Number(s.comissao) || 0,
     }));
