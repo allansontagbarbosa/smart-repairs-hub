@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Mail, UserPlus, ChevronDown, ChevronRight, BadgeCheck } from "lucide-react";
+import { Loader2, Mail, UserPlus, ChevronDown, ChevronRight, BadgeCheck, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -211,14 +211,47 @@ export function InviteUserDialog({
             </Collapsible>
           )}
 
-          <p className="text-xs text-muted-foreground">O usuário receberá um email com link para definir sua senha e acessar o sistema.</p>
-          <Button onClick={handleInviteUser} className="w-full" disabled={!canSubmit}>
-            {loading ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
-            ) : (
-              <><UserPlus className="h-4 w-4 mr-2" /> Enviar convite</>
-            )}
-          </Button>
+          {linkAcesso && (
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 space-y-2">
+              <p className="text-sm font-semibold">Link de acesso direto</p>
+              <p className="text-xs text-muted-foreground">
+                Caso o email não chegue, envie este link ao colaborador para ele definir a senha. Expira em 1 hora.
+              </p>
+              <div className="flex gap-2">
+                <Input readOnly value={linkAcesso} className="text-xs" onFocus={(e) => e.currentTarget.select()} />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(linkAcesso);
+                      toast.success("Link copiado");
+                    } catch {
+                      toast.error("Não foi possível copiar. Selecione e copie manualmente.");
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button variant="outline" className="w-full" onClick={() => { setOpen(false); reset(); }}>
+                Concluir
+              </Button>
+            </div>
+          )}
+
+          {!linkAcesso && (
+            <>
+              <p className="text-xs text-muted-foreground">O usuário receberá um email com link para definir sua senha e acessar o sistema.</p>
+              <Button onClick={handleInviteUser} className="w-full" disabled={!canSubmit}>
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                ) : (
+                  <><UserPlus className="h-4 w-4 mr-2" /> Enviar convite</>
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
