@@ -11156,6 +11156,14 @@ export type Database = {
         }
         Returns: Json
       }
+      listar_tecnicos_os: {
+        Args: never
+        Returns: {
+          cargo: string
+          id: string
+          nome: string
+        }[]
+      }
       listar_todos_funcionarios: { Args: never; Returns: Json }
       loja_dashboard_kpis: {
         Args: { p_empresa_id: string; p_fim: string; p_inicio: string }
