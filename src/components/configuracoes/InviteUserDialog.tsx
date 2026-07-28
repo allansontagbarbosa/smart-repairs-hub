@@ -121,8 +121,13 @@ export function InviteUserDialog({
         if (!errorMsg) toast.success(`Convite enviado para ${email}`);
         const perfilNomeReg = perfisAcesso.find((p) => p.id === perfilId)?.nome_perfil || "Sem perfil";
         registrar("Usuário convidado", "configuracoes", null, null, { email, perfil: perfilNomeReg });
-        setOpen(false);
-        reset();
+        const link = (res.data as any)?.action_link as string | undefined;
+        if (link) {
+          setLinkAcesso(link);
+        } else {
+          setOpen(false);
+          reset();
+        }
         qc.invalidateQueries({ queryKey: ["user_profiles"] });
         qc.invalidateQueries({ queryKey: ["rh"] });
         await qc.refetchQueries({ queryKey: ["user_profiles"] });
