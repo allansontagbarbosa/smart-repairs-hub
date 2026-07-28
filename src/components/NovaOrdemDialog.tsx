@@ -771,6 +771,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
           valor_mao_obra: Number(s.valor) || 0,
           comissao_padrao: Number(s.comissao) || 0,
           tecnico_id: s.tecnico_id ?? null,
+          motivo_sem_tecnico: s.motivo_sem_tecnico ?? null,
+          valor_terceirizado: Number(s.valor_terceirizado) || 0,
         };
       }));
   }
