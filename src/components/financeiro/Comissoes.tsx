@@ -1,10 +1,20 @@
-import { useMemo, useState } from "react";
-import { Check, CreditCard, DollarSign, Eye, Search, Users, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, CreditCard, DollarSign, Eye, Loader2, Search, Users, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/hooks/useComissoesActions";
 import type { Comissao } from "@/hooks/useFinanceiro";
 import { format, startOfMonth, endOfMonth } from "date-fns";
