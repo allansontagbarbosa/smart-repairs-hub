@@ -1,10 +1,20 @@
-import { useMemo, useState } from "react";
-import { Check, CreditCard, DollarSign, Eye, Search, Users, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, CreditCard, DollarSign, Eye, Loader2, Search, Users, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLiberarComissao, usePagarComissao, usePagarComissoesLote } from "@/hooks/useComissoesActions";
 import type { Comissao } from "@/hooks/useFinanceiro";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -55,6 +65,11 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const liberarMutation = useLiberarComissao();
   const pagarMutation = usePagarComissao();
   const pagarLoteMutation = usePagarComissoesLote();
+  // Só a linha em ação fica travada — antes qualquer clique desabilitava os botões de toda a tabela.
+  const liberandoId = liberarMutation.isPending ? (liberarMutation.variables as string | undefined) ?? null : null;
+  const pagandoId = pagarMutation.isPending ? (pagarMutation.variables as string | undefined) ?? null : null;
+  const [confirmarPagar, setConfirmarPagar] = useState<Comissao | null>(null);
+  const [confirmarLote, setConfirmarLote] = useState(false);
   // Filtro de período unificado: mesma curadoria de 9 presets do Dashboard e Assistência.
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("este_mes");
   const [periodRange, setPeriodRange] = useState<PeriodRange>(
@@ -170,9 +185,17 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const allPayableSelected = payable.length > 0 && payable.every(c => selected.includes(c.id));
   const toggleAll = (checked: boolean) => setSelected(checked ? payable.map(c => c.id) : []);
   const toggleOne = (id: string, checked: boolean) => setSelected(prev => checked ? [...prev, id] : prev.filter(item => item !== id));
+  // Ao mudar filtros/período, descarta seleções que saíram da lista pagável.
+  useEffect(() => {
+    setSelected(prev => {
+      const validos = prev.filter(id => payable.some(c => c.id === id));
+      return validos.length === prev.length ? prev : validos;
+    });
+  }, [payable]);
   const handlePagarLote = () => {
     if (selectedPayable.length === 0) return;
     pagarLoteMutation.mutate(selectedPayable.map(c => c.id), { onSuccess: () => setSelected([]) });
+    setConfirmarLote(false);
   };
 
   const toComissoesRows = (): ExportRow[] => {
@@ -293,7 +316,8 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
 
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <p className="text-sm text-muted-foreground">{selectedPayable.length} selecionada(s)</p>
-        <Button size="sm" onClick={handlePagarLote} disabled={selectedPayable.length === 0 || pagarLoteMutation.isPending}>
+        <Button size="sm" onClick={() => setConfirmarLote(true)} disabled={selectedPayable.length === 0 || pagarLoteMutation.isPending}>
+          {pagarLoteMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
           Pagar selecionadas ({fmtCurrency(selectedTotal)})
         </Button>
       </div>
@@ -349,11 +373,11 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                     </td>
                     <td>
                       <div className="flex items-center justify-end gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-info" title="Liberar" disabled={!canRelease || liberarMutation.isPending} onClick={() => liberarMutation.mutate(c.id)}>
-                          <Check className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-info" title={canRelease ? "Liberar" : "Só comissões pendentes podem ser liberadas"} disabled={!canRelease || liberandoId === c.id} onClick={() => liberarMutation.mutate(c.id)}>
+                          {liberandoId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Pagar" disabled={!canPay || pagarMutation.isPending} onClick={() => pagarMutation.mutate(c.id)}>
-                          <DollarSign className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title={canPay ? "Pagar" : "Comissão já paga ou estornada"} disabled={!canPay || pagandoId === c.id} onClick={() => setConfirmarPagar(c)}>
+                          {pagandoId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5" />}
                         </Button>
                         {c.ordem_id && onViewOrder && (
                           <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver OS" onClick={() => onViewOrder(c.ordem_id!)}>
@@ -376,6 +400,45 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
           </table>
         </div>
       </div>
+
+      <AlertDialog open={!!confirmarPagar} onOpenChange={(open) => !open && setConfirmarPagar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento da comissão</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarPagar
+                ? `${confirmarPagar.funcionarios?.nome ?? "Técnico"} — ${fmtCurrency(Number(confirmarPagar.valor))}. Essa ação registra o pagamento no financeiro.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmarPagar) pagarMutation.mutate(confirmarPagar.id);
+                setConfirmarPagar(null);
+              }}
+            >
+              Confirmar pagamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmarLote} onOpenChange={setConfirmarLote}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pagar {selectedPayable.length} comissão(ões)</AlertDialogTitle>
+            <AlertDialogDescription>
+              Total de {fmtCurrency(selectedTotal)} será registrado como pago no financeiro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePagarLote}>Confirmar pagamento</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
