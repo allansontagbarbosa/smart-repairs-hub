@@ -316,7 +316,8 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
 
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <p className="text-sm text-muted-foreground">{selectedPayable.length} selecionada(s)</p>
-        <Button size="sm" onClick={handlePagarLote} disabled={selectedPayable.length === 0 || pagarLoteMutation.isPending}>
+        <Button size="sm" onClick={() => setConfirmarLote(true)} disabled={selectedPayable.length === 0 || pagarLoteMutation.isPending}>
+          {pagarLoteMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
           Pagar selecionadas ({fmtCurrency(selectedTotal)})
         </Button>
       </div>
