@@ -185,9 +185,17 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const allPayableSelected = payable.length > 0 && payable.every(c => selected.includes(c.id));
   const toggleAll = (checked: boolean) => setSelected(checked ? payable.map(c => c.id) : []);
   const toggleOne = (id: string, checked: boolean) => setSelected(prev => checked ? [...prev, id] : prev.filter(item => item !== id));
+  // Ao mudar filtros/período, descarta seleções que saíram da lista pagável.
+  useEffect(() => {
+    setSelected(prev => {
+      const validos = prev.filter(id => payable.some(c => c.id === id));
+      return validos.length === prev.length ? prev : validos;
+    });
+  }, [payable]);
   const handlePagarLote = () => {
     if (selectedPayable.length === 0) return;
     pagarLoteMutation.mutate(selectedPayable.map(c => c.id), { onSuccess: () => setSelected([]) });
+    setConfirmarLote(false);
   };
 
   const toComissoesRows = (): ExportRow[] => {
