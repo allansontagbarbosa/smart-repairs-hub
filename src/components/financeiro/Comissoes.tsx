@@ -84,9 +84,12 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
     const matchStatus = filterStatus === "todos" || c.status === filterStatus;
     const matchFunc = filterFunc === "todos" || c.funcionario_id === filterFunc;
     const os = c.ordens_de_servico;
-    const dataRef = os?.data_conclusao ? new Date(os.data_conclusao) : null;
-    const matchPeriodo = !dataRef
-      ? false
+    // Fallback: comissões sem OS concluída (ou sem OS vinculada) usam a data de criação,
+    // senão desapareciam da listagem em qualquer período.
+    const dataRefRaw = os?.data_conclusao ?? c.data_pagamento ?? c.created_at;
+    const dataRef = dataRefRaw ? new Date(dataRefRaw) : null;
+    const matchPeriodo = !dataRef || Number.isNaN(dataRef.getTime())
+      ? true
       : dataRef >= periodRange.from && dataRef <= periodRange.to;
     return matchSearch && matchStatus && matchFunc && matchPeriodo;
   }), [comissoes, filterFunc, filterStatus, search, periodRange]);
