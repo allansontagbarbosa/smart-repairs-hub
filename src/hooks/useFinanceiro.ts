@@ -120,20 +120,32 @@ async function fetchContas() {
 }
 
 async function fetchComissoes() {
-  const { data, error } = await supabase
-    .from("comissoes")
-    .select(`*,
-      funcionarios ( nome ),
-      ordens_de_servico ( numero, numero_formatado, status, data_conclusao, aparelhos ( marca, modelo, clientes ( nome ) ) ),
-      os_servicos ( nome, status )
-    `)
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.error("ERRO fetchComissoes:", error.code, error.message, error.details);
-    throw error;
+  // PostgREST limita a resposta (1000 linhas por padrão). Paginamos pra não perder comissões antigas.
+  const PAGE = 1000;
+  const all: Comissao[] = [];
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from("comissoes")
+      .select(`*,
+        funcionarios ( nome ),
+        ordens_de_servico ( numero, numero_formatado, status, data_conclusao, aparelhos ( marca, modelo, clientes ( nome ) ) ),
+        os_servicos ( nome, status )
+      `)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) {
+      console.error("ERRO fetchComissoes:", error.code, error.message, error.details);
+      throw error;
+    }
+    const rows = (data ?? []) as Comissao[];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+    if (page > 30) break; // guarda de segurança
   }
-  return (data ?? []) as Comissao[];
+  return all;
 }
+
 
 async function fetchCategoriasFinanceiras() {
   const { data, error } = await supabase
