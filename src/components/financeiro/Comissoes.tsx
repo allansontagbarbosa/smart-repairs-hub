@@ -65,6 +65,11 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
   const liberarMutation = useLiberarComissao();
   const pagarMutation = usePagarComissao();
   const pagarLoteMutation = usePagarComissoesLote();
+  // Só a linha em ação fica travada — antes qualquer clique desabilitava os botões de toda a tabela.
+  const liberandoId = liberarMutation.isPending ? (liberarMutation.variables as string | undefined) ?? null : null;
+  const pagandoId = pagarMutation.isPending ? (pagarMutation.variables as string | undefined) ?? null : null;
+  const [confirmarPagar, setConfirmarPagar] = useState<Comissao | null>(null);
+  const [confirmarLote, setConfirmarLote] = useState(false);
   // Filtro de período unificado: mesma curadoria de 9 presets do Dashboard e Assistência.
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("este_mes");
   const [periodRange, setPeriodRange] = useState<PeriodRange>(
