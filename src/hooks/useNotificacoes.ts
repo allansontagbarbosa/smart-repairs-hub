@@ -79,7 +79,11 @@ export function useNotificacoes() {
     const channel = supabase.channel(`notificacoes-rt-${crypto.randomUUID()}`);
 
     let cancelled = false;
-    void supabase.auth.getUser().then(({ data }) => {
+
+    // IMPORTANTE: todos os listeners precisam ser registrados ANTES do subscribe(),
+    // por isso resolvemos o usuário antes de assinar o canal.
+    void (async () => {
+      const { data } = await supabase.auth.getUser();
       if (cancelled) return;
       const uid = data?.user?.id;
       // Scope realtime to this user's notifications only (RLS-aligned, prevents cross-user leak)
@@ -90,25 +94,26 @@ export function useNotificacoes() {
           () => fetchNotificacoes(),
         );
       }
-    });
 
-    channel
-      .on("postgres_changes", { event: "*", schema: "public", table: "ordens_de_servico" }, () => {
-        fetchBadgeCounts();
-        queryClient.invalidateQueries({ queryKey: ["os-aguardando-aprovacao-count"] });
-        queryClient.invalidateQueries({ queryKey: ["os-atrasadas-count"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "contas_a_pagar" }, () => {
-        fetchBadgeCounts();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "estoque_itens" }, () => {
-        fetchBadgeCounts();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "comissoes" }, () => {
-        fetchBadgeCounts();
-      });
+      channel
+        .on("postgres_changes", { event: "*", schema: "public", table: "ordens_de_servico" }, () => {
+          fetchBadgeCounts();
+          queryClient.invalidateQueries({ queryKey: ["os-aguardando-aprovacao-count"] });
+          queryClient.invalidateQueries({ queryKey: ["os-atrasadas-count"] });
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "contas_a_pagar" }, () => {
+          fetchBadgeCounts();
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "estoque_itens" }, () => {
+          fetchBadgeCounts();
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "comissoes" }, () => {
+          fetchBadgeCounts();
+        });
 
-    channel.subscribe();
+      if (cancelled) return;
+      channel.subscribe();
+    })();
 
     return () => {
       cancelled = true;
