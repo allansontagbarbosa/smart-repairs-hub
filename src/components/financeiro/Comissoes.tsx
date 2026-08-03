@@ -372,11 +372,11 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
                     </td>
                     <td>
                       <div className="flex items-center justify-end gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-info" title="Liberar" disabled={!canRelease || liberarMutation.isPending} onClick={() => liberarMutation.mutate(c.id)}>
-                          <Check className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-info" title={canRelease ? "Liberar" : "Só comissões pendentes podem ser liberadas"} disabled={!canRelease || liberandoId === c.id} onClick={() => liberarMutation.mutate(c.id)}>
+                          {liberandoId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Pagar" disabled={!canPay || pagarMutation.isPending} onClick={() => pagarMutation.mutate(c.id)}>
-                          <DollarSign className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title={canPay ? "Pagar" : "Comissão já paga ou estornada"} disabled={!canPay || pagandoId === c.id} onClick={() => setConfirmarPagar(c)}>
+                          {pagandoId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DollarSign className="h-3.5 w-3.5" />}
                         </Button>
                         {c.ordem_id && onViewOrder && (
                           <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver OS" onClick={() => onViewOrder(c.ordem_id!)}>
