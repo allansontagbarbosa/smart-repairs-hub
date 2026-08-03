@@ -400,6 +400,45 @@ export function Comissoes({ comissoes, funcionarios, onViewOrder }: Props) {
           </table>
         </div>
       </div>
+
+      <AlertDialog open={!!confirmarPagar} onOpenChange={(open) => !open && setConfirmarPagar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar pagamento da comissão</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmarPagar
+                ? `${confirmarPagar.funcionarios?.nome ?? "Técnico"} — ${fmtCurrency(Number(confirmarPagar.valor))}. Essa ação registra o pagamento no financeiro.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmarPagar) pagarMutation.mutate(confirmarPagar.id);
+                setConfirmarPagar(null);
+              }}
+            >
+              Confirmar pagamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmarLote} onOpenChange={setConfirmarLote}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pagar {selectedPayable.length} comissão(ões)</AlertDialogTitle>
+            <AlertDialogDescription>
+              Total de {fmtCurrency(selectedTotal)} será registrado como pago no financeiro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePagarLote}>Confirmar pagamento</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
