@@ -107,7 +107,11 @@ export function ServicosOSEditor({ ordemId, servicosIniciais, tiposServico, tecn
   }
 
   const totalValor = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.valor), 0), [servicos]);
-  const totalComissao = useMemo(() => servicos.reduce((sum, s) => sum + norm(s.comissao), 0), [servicos]);
+  // Comissão só é devida quando há técnico atribuído (mesma regra do backend).
+  const totalComissao = useMemo(
+    () => servicos.reduce((sum, s) => sum + (s.tecnico_id ? norm(s.comissao) : 0), 0),
+    [servicos],
+  );
   const totalTerceirizado = useMemo(
     () => servicos.reduce((sum, s) => sum + (s.motivo_sem_tecnico === "terceirizado" ? norm(s.valor_terceirizado) : 0), 0),
     [servicos],
