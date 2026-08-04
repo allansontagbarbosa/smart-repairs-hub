@@ -489,7 +489,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
       invalidateOrdensDependentes(queryClient);
       setAddingPart(false);
       setSelectedPecaId("");
-      setPecaQtd(1);
+      setPecaQtd(1); setBuscaPeca("");
       toast.success("Peça registrada e estoque atualizado!");
     },
     onError: (e: any) => toast.error(e.message),
@@ -1725,7 +1725,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
                           {addPecaMutation.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
                           Registrar
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setAddingPart(false); setSelectedPecaId(""); setPecaQtd(1); }}>
+                        <Button size="sm" variant="ghost" onClick={() => { setAddingPart(false); setSelectedPecaId(""); setPecaQtd(1); setBuscaPeca(""); }}>
                           <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>
