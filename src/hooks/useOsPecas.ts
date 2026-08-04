@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invalidateOrdensDependentes } from "@/lib/cacheInvalidation";
 
 export interface PecaUtilizadaItem {
   id: string;
@@ -94,8 +95,11 @@ export function useAdicionarPecaNaOS() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["pecas-utilizadas-os", vars.ordem_id] });
+      qc.invalidateQueries({ queryKey: ["pecas_utilizadas", vars.ordem_id] });
       qc.invalidateQueries({ queryKey: ["pecas-disponiveis-catalogo"] });
       qc.invalidateQueries({ queryKey: ["estoque_itens"] });
+      qc.invalidateQueries({ queryKey: ["ordem", vars.ordem_id] });
+      invalidateOrdensDependentes(qc);
     },
   });
 }
@@ -112,8 +116,11 @@ export function useRemoverPecaDaOS() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["pecas-utilizadas-os", vars.ordem_id] });
+      qc.invalidateQueries({ queryKey: ["pecas_utilizadas", vars.ordem_id] });
       qc.invalidateQueries({ queryKey: ["pecas-disponiveis-catalogo"] });
       qc.invalidateQueries({ queryKey: ["estoque_itens"] });
+      qc.invalidateQueries({ queryKey: ["ordem", vars.ordem_id] });
+      invalidateOrdensDependentes(qc);
     },
   });
 }

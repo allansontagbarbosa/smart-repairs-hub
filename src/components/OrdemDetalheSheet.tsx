@@ -468,32 +468,22 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
       const peca = pecasDisponiveis.find(p => p.id === pecaId);
       if (!peca) throw new Error("Peça não encontrada");
 
-      // Insert usage record
-      const { error: e1 } = await supabase.from("pecas_utilizadas").insert({
+      // O backend cuida da baixa de estoque e do recálculo dos totais da OS
+      // (triggers trg_baixa_estoque_os_pecas_insert e trg_recalc_os_pecas).
+      const { error } = await supabase.from("pecas_utilizadas").insert({
         ordem_id: ordem.id,
         peca_id: pecaId,
         quantidade: qtd,
         custo_unitario: peca.custo_medio ?? peca.custo_unitario ?? 0,
+        preco_unitario: (peca as any).preco_venda ?? 0,
       });
-      if (e1) throw e1;
-
-      // Deduct from stock (permite estoque negativo)
-      const { error: e2 } = await supabase.from("estoque_itens").update({
-        quantidade: peca.quantidade - qtd,
-      }).eq("id", pecaId);
-      if (e2) throw e2;
-
-      // Update OS custo_pecas
-      const custoAdicional = (peca.custo_medio ?? peca.custo_unitario ?? 0) * qtd;
-      const { error: e3 } = await supabase.from("ordens_de_servico").update({
-        custo_pecas: (ordem.custo_pecas ?? 0) + custoAdicional,
-      }).eq("id", ordem.id);
-      if (e3) throw e3;
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
       queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
       queryClient.invalidateQueries({ queryKey: ["pecas"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
       invalidateOrdensDependentes(queryClient);
       setAddingPart(false);
@@ -507,34 +497,23 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
   const removePecaMutation = useMutation({
     mutationFn: async (usage: { id: string; peca_id: string; quantidade: number; custo_unitario: number }) => {
       if (!ordem) return;
-      // Remove usage record
-      const { error: e1 } = await supabase.from("pecas_utilizadas").delete().eq("id", usage.id);
-      if (e1) throw e1;
-
-      // Return to stock
-      const { data: peca } = await supabase.from("estoque_itens").select("quantidade").eq("id", usage.peca_id).single();
-      if (peca) {
-        await supabase.from("estoque_itens").update({
-          quantidade: peca.quantidade + usage.quantidade,
-        }).eq("id", usage.peca_id);
-      }
-
-      // Update OS custo_pecas
-      const custoRemovido = usage.custo_unitario * usage.quantidade;
-      await supabase.from("ordens_de_servico").update({
-        custo_pecas: Math.max(0, (ordem.custo_pecas ?? 0) - custoRemovido),
-      }).eq("id", ordem.id);
+      // O backend devolve o estoque e recalcula custo/lucro/total da OS
+      // (triggers trg_devolver_peca_removida e trg_recalc_os_pecas).
+      const { error } = await supabase.from("pecas_utilizadas").delete().eq("id", usage.id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
       queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
       queryClient.invalidateQueries({ queryKey: ["pecas"] });
+      queryClient.invalidateQueries({ queryKey: ["estoque_itens"] });
       queryClient.invalidateQueries({ queryKey: ["ordem", orderId] });
       invalidateOrdensDependentes(queryClient);
       toast.success("Peça removida e estoque devolvido!");
     },
     onError: (e: any) => toast.error(e.message),
   });
+
 
   const changeStatus = useMutation({
     mutationFn: async (
