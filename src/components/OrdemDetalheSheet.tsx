@@ -102,6 +102,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
   const [addingPart, setAddingPart] = useState(false);
   const [selectedPecaId, setSelectedPecaId] = useState("");
   const [pecaQtd, setPecaQtd] = useState(1);
+  const [buscaPeca, setBuscaPeca] = useState("");
   const [editingDiag, setEditingDiag] = useState(false);
   const [diagValue, setDiagValue] = useState("");
   const [editingServico, setEditingServico] = useState(false);
