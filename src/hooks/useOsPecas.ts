@@ -108,12 +108,18 @@ export function useRemoverPecaDaOS() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { id: string; ordem_id: string }) => {
-      const { error } = await supabase
+      // .select() é obrigatório: sem ele um bloqueio de RLS retorna "sucesso" sem apagar nada.
+      const { data, error } = await supabase
         .from("pecas_utilizadas")
         .delete()
-        .eq("id", params.id);
+        .eq("id", params.id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Não foi possível remover a peça (sem permissão para excluir peças desta OS).");
+      }
     },
+
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["pecas-utilizadas-os", vars.ordem_id] });
       qc.invalidateQueries({ queryKey: ["pecas_utilizadas", vars.ordem_id] });
