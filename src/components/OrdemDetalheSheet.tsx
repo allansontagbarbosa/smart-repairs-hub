@@ -511,7 +511,6 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
       }
     },
 
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pecas_utilizadas", orderId] });
       queryClient.invalidateQueries({ queryKey: ["pecas_disponiveis"] });
