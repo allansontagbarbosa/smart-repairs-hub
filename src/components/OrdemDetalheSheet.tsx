@@ -1654,17 +1654,63 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
                     <div className="rounded-lg border bg-muted/30 p-3 space-y-3 mb-3">
                       <div>
                         <Label className="text-xs">Peça</Label>
-                        <Select value={selectedPecaId} onValueChange={setSelectedPecaId}>
-                          <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue placeholder="Selecione a peça" /></SelectTrigger>
-                          <SelectContent>
-                            {pecasDisponiveis.map((p: any) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.nome_personalizado || p.sku || "Peça"} — {p.quantidade} em estoque — R$ {Number(p.custo_medio ?? p.custo_unitario ?? 0).toFixed(2)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="relative mt-1">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Input
+                            autoFocus
+                            placeholder="Buscar peça por nome ou SKU..."
+                            value={buscaPeca}
+                            onChange={(e) => { setBuscaPeca(e.target.value); setSelectedPecaId(""); }}
+                            className="pl-8 h-8 text-sm"
+                          />
+                        </div>
+                        {(() => {
+                          const termo = buscaPeca.trim().toLowerCase();
+                          const lista = (pecasDisponiveis as any[])
+                            .filter((p) => {
+                              if (!termo) return true;
+                              const nome = (p.nome_personalizado || "").toLowerCase();
+                              const sku = (p.sku || "").toLowerCase();
+                              return nome.includes(termo) || sku.includes(termo);
+                            })
+                            .slice(0, 30);
+                          const selecionada = (pecasDisponiveis as any[]).find((p) => p.id === selectedPecaId);
+                          if (selecionada) {
+                            return (
+                              <div className="mt-2 flex items-center justify-between rounded-md border bg-background px-2 py-1.5">
+                                <span className="text-xs font-medium truncate">
+                                  {selecionada.nome_personalizado || selecionada.sku || "Peça"} — {selecionada.quantidade} em estoque — R$ {Number(selecionada.custo_medio ?? selecionada.custo_unitario ?? 0).toFixed(2)}
+                                </span>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0" onClick={() => setSelectedPecaId("")}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="mt-2 max-h-48 overflow-y-auto rounded-md border divide-y bg-background">
+                              {lista.length === 0 ? (
+                                <p className="text-center text-xs text-muted-foreground py-3">Nenhuma peça encontrada</p>
+                              ) : (
+                                lista.map((p) => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => setSelectedPecaId(p.id)}
+                                    className="w-full text-left px-2 py-1.5 text-xs hover:bg-muted/50"
+                                  >
+                                    <span className="block truncate">{p.nome_personalizado || p.sku || "Peça"}</span>
+                                    <span className="block text-[10px] text-muted-foreground">
+                                      {p.quantidade} em estoque · R$ {Number(p.custo_medio ?? p.custo_unitario ?? 0).toFixed(2)}
+                                    </span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
+
                       <div>
                         <Label className="text-xs">Quantidade</Label>
                         <Input type="number" min={1} value={pecaQtd} onChange={(e) => setPecaQtd(Number(e.target.value))} className="mt-1 h-8" />
