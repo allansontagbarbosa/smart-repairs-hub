@@ -1638,7 +1638,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-medium text-muted-foreground">Peças utilizadas</p>
-                    {ordem.status !== "entregue" && !addingPart && (
+                    {(ordem.status !== "entregue" || isAdmin) && !addingPart && (
                       <button
                         type="button"
                         onClick={() => setAddingPart(true)}
@@ -1707,7 +1707,8 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
                             <span className="text-sm font-medium">
                               R$ {(pu.quantidade * Number(pu.custo_unitario)).toFixed(2)}
                             </span>
-                            {ordem.status !== "entregue" && (
+                            {(ordem.status !== "entregue" || isAdmin) && (
+
                               <Button
                                 variant="ghost"
                                 size="icon"
