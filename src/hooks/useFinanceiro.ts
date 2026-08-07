@@ -107,17 +107,29 @@ async function fetchPrejuizos() {
 }
 
 async function fetchContas() {
-  const { data, error } = await supabase
-    .from("contas_a_pagar")
-    .select("*, lojas ( nome ), fornecedores ( nome ), ordens_de_servico ( numero )")
-    .is("deleted_at", null)
-    .order("data_vencimento", { ascending: true });
-  if (error) {
-    console.error("ERRO fetchContas:", error.code, error.message, error.details);
-    throw error;
+  // PostgREST limita a 1000 linhas por padrão. Paginamos pra não perder contas antigas.
+  const PAGE = 1000;
+  const all: ContaPagar[] = [];
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from("contas_a_pagar")
+      .select("*, lojas ( nome ), fornecedores ( nome ), ordens_de_servico ( numero )")
+      .is("deleted_at", null)
+      .order("data_vencimento", { ascending: true })
+      .order("id", { ascending: true })
+      .range(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) {
+      console.error("ERRO fetchContas:", error.code, error.message, error.details);
+      throw error;
+    }
+    const rows = (data ?? []) as ContaPagar[];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+    if (page > 30) break;
   }
-  return (data ?? []) as ContaPagar[];
+  return all;
 }
+
 
 async function fetchComissoes() {
   // PostgREST limita a resposta (1000 linhas por padrão). Paginamos pra não perder comissões antigas.
