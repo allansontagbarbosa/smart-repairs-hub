@@ -208,6 +208,7 @@ async function fetchContasPeriodo(rangeStart: Date, rangeEnd: Date) {
     .from("contas_a_pagar")
     .select("valor, recorrente, mes_competencia, categoria")
     .in("mes_competencia", competencias)
+    .neq("status", "cancelada")
     .is("deleted_at", null);
   if (error) throw error;
   // Igual à DRE (RelDRE.tsx): ignora categorias já contadas em "Custos".
