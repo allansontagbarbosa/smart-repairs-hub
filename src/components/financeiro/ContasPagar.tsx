@@ -120,14 +120,12 @@ export function ContasPagar({
 
   const filtered = alertList ?? filteredBase;
 
-  const abrirAlerta = (key: "atrasado" | "hoje" | "semana", lista: typeof contasComStatus) => {
-    if (lista.length === 1) {
-      setEditingConta(lista[0]);
-      setDialogOpen(true);
-      return;
-    }
+  // Clicar sempre filtra a lista (mesmo com 1 conta): abrir o diálogo direto
+  // escondia o fato de a conta estar fora do período selecionado.
+  const abrirAlerta = (key: "atrasado" | "hoje" | "semana") => {
     setAlertFilter(prev => (prev === key ? null : key));
   };
+
 
 
   // Sempre deriva da lista atual: assim o resumo (já pago / pendente) atualiza
