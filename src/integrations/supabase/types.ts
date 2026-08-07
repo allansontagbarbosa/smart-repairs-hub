@@ -11519,6 +11519,10 @@ export type Database = {
         Args: { p_funcionario_id: string; p_mes_competencia: string }
         Returns: undefined
       }
+      sync_status_conta_comissoes: {
+        Args: { p_funcionario_id: string; p_mes: string }
+        Returns: undefined
+      }
       test_consistencia_financeira: { Args: never; Returns: Json }
       test_painel_socio_invariantes: {
         Args: never
