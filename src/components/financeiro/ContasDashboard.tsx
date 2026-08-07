@@ -9,7 +9,9 @@ interface ContaItem {
   categoria?: string | null;
   data_vencimento: string | null;
   data_pagamento?: string | null;
+  valor_pago_centavos?: number | null;
 }
+
 
 interface Props {
   contas: ContaItem[];
