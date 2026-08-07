@@ -43,7 +43,7 @@ const FORMA_INFO: Record<FormaPagamentoConta, { label: string; icon: React.Compo
 const fmt = (centavos: number) =>
   (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export function RegistrarPagamentoDialog({ open, onOpenChange, conta }: Props) {
+export function RegistrarPagamentoDialog({ open, onOpenChange, conta, onQuitada }: Props) {
   const registrar = useRegistrarPagamento();
   const estornar = useEstornarPagamento();
   const { data: historico = [] } = useHistoricoPagamentos(open ? conta?.id ?? null : null);

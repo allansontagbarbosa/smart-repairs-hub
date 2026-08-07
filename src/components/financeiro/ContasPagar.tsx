@@ -458,10 +458,11 @@ export function ContasPagar({
         open={!!contaPagarAtual}
         onOpenChange={(o) => !o && setContaPagarId(null)}
         conta={contaPagarAtual}
-        onQuitada={(conta) => {
-          if (conta.recorrente) gerarRecorrenciaMutation.mutate(conta);
+        onQuitada={() => {
+          if (contaPagarAtual?.recorrente) gerarRecorrenciaMutation.mutate(contaPagarAtual);
         }}
       />
+
 
     </div>
   );
