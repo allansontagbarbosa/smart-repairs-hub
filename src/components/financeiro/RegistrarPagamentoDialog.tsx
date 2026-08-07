@@ -63,9 +63,16 @@ export function RegistrarPagamentoDialog({ open, onOpenChange, conta, onQuitada 
   }, [open, conta?.id]);
 
   const valorTotalCent = useMemo(() => (conta ? Math.round(conta.valor * 100) : 0), [conta]);
-  const valorPagoCent = conta?.valor_pago_centavos ?? 0;
-  const valorRestanteCent = valorTotalCent - valorPagoCent;
-  const pctPago = valorTotalCent > 0 ? (valorPagoCent / valorTotalCent) * 100 : 0;
+  // Fallback pelo histórico: se a coluna valor_pago_centavos estiver desatualizada
+  // (contas quitadas pelo fluxo antigo), o resumo ainda mostra o valor correto.
+  const pagoHistoricoCent = useMemo(
+    () => historico.filter((p) => !p.estornado_em).reduce((s, p) => s + p.valor_centavos, 0),
+    [historico],
+  );
+  const valorPagoCent = Math.max(conta?.valor_pago_centavos ?? 0, pagoHistoricoCent);
+  const valorRestanteCent = Math.max(valorTotalCent - valorPagoCent, 0);
+  const pctPago = valorTotalCent > 0 ? Math.min((valorPagoCent / valorTotalCent) * 100, 100) : 0;
+
 
   const handleQuickFill = (pct: number) => {
     const cents = Math.round((valorRestanteCent * pct) / 100);
@@ -99,10 +106,14 @@ export function RegistrarPagamentoDialog({ open, onOpenChange, conta, onQuitada 
       );
       setValor("");
       setObservacao("");
-      if (r.novo_status === "paga") onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message);
+      if (r.novo_status === "paga") {
+        onQuitada?.(conta);
+        onOpenChange(false);
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao registrar pagamento");
     }
+
   };
 
   const handleEstornar = async (pgtoId: string, valorCents: number) => {
