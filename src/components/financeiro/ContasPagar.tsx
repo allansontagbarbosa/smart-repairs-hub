@@ -63,6 +63,7 @@ export function ContasPagar({
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterLoja, setFilterLoja] = useState("todas");
+  const [alertFilter, setAlertFilter] = useState<"atrasado" | "hoje" | "semana" | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
   const [contaPagarId, setContaPagarId] = useState<string | null>(null);
