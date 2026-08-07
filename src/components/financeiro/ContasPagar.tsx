@@ -406,8 +406,13 @@ export function ContasPagar({
               Limpar seleção
             </button>
           )}
-
+          {alertList && (
+            <p className="w-full text-xs text-muted-foreground">
+              Mostrando {alertList.length} conta{alertList.length > 1 ? "s" : ""} do alerta selecionado, ignorando o filtro de período.
+            </p>
+          )}
         </div>
+
       )}
 
       <ContasDashboard contas={filtered} />
