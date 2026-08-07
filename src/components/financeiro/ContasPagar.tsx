@@ -120,14 +120,12 @@ export function ContasPagar({
 
   const filtered = alertList ?? filteredBase;
 
-  const abrirAlerta = (key: "atrasado" | "hoje" | "semana", lista: typeof contasComStatus) => {
-    if (lista.length === 1) {
-      setEditingConta(lista[0]);
-      setDialogOpen(true);
-      return;
-    }
+  // Clicar sempre filtra a lista (mesmo com 1 conta): abrir o diálogo direto
+  // escondia o fato de a conta estar fora do período selecionado.
+  const abrirAlerta = (key: "atrasado" | "hoje" | "semana") => {
     setAlertFilter(prev => (prev === key ? null : key));
   };
+
 
 
   // Sempre deriva da lista atual: assim o resumo (já pago / pendente) atualiza
@@ -369,8 +367,8 @@ export function ContasPagar({
           {atrasadas.length > 0 && (
             <button
               type="button"
-              onClick={() => abrirAlerta("atrasado", atrasadas)}
-              title={atrasadas.length === 1 ? "Abrir conta atrasada" : "Ver contas atrasadas"}
+              onClick={() => abrirAlerta("atrasado")}
+              title="Ver contas atrasadas"
               className={`inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 ${alertFilter === "atrasado" ? "ring-1 ring-destructive/50" : ""}`}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -380,8 +378,8 @@ export function ContasPagar({
           {hoje.length > 0 && (
             <button
               type="button"
-              onClick={() => abrirAlerta("hoje", hoje)}
-              title={hoje.length === 1 ? "Abrir conta" : "Ver contas que vencem hoje"}
+              onClick={() => abrirAlerta("hoje")}
+              title="Ver contas que vencem hoje"
               className={`inline-flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/8 px-3 py-1.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/15 ${alertFilter === "hoje" ? "ring-1 ring-warning/50" : ""}`}
             >
               <Clock className="h-3.5 w-3.5" />
@@ -391,8 +389,8 @@ export function ContasPagar({
           {semana.length > 0 && (
             <button
               type="button"
-              onClick={() => abrirAlerta("semana", semana)}
-              title={semana.length === 1 ? "Abrir conta" : "Ver contas desta semana"}
+              onClick={() => abrirAlerta("semana")}
+              title="Ver contas desta semana"
               className={`inline-flex items-center gap-1.5 rounded-lg border border-info/30 bg-info/8 px-3 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/15 ${alertFilter === "semana" ? "ring-1 ring-info/50" : ""}`}
             >
               <CalendarDays className="h-3.5 w-3.5" />
@@ -408,8 +406,13 @@ export function ContasPagar({
               Limpar seleção
             </button>
           )}
-
+          {alertList && (
+            <p className="w-full text-xs text-muted-foreground">
+              Mostrando {alertList.length} conta{alertList.length > 1 ? "s" : ""} do alerta selecionado, ignorando o filtro de período.
+            </p>
+          )}
         </div>
+
       )}
 
       <ContasDashboard contas={filtered} />
