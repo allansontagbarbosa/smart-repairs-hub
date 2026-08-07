@@ -379,11 +379,19 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
 
     const totalPendente = contasPendentes.reduce((s, c) => s + saldoRestante(c), 0);
 
-    const pagoMes = allContas.filter(c => {
-      if (c.status !== "paga" || !c.data_pagamento) return false;
+    // Pago no período: contas quitadas + o que já foi pago em contas parciais.
+    const pagoMes = allContas.reduce((s, c) => {
+      if (!c.data_pagamento) return s;
       const d = new Date(c.data_pagamento + "T12:00:00");
-      return d >= periodStart && d <= periodEnd;
-    }).reduce((s, c) => s + Number(c.valor), 0);
+      if (d < periodStart || d > periodEnd) return s;
+      if (c.status === "paga") {
+        const pago = (c.valor_pago_centavos ?? 0) / 100;
+        return s + (pago > 0 ? pago : Number(c.valor));
+      }
+      if (c.status === "parcial") return s + (c.valor_pago_centavos ?? 0) / 100;
+      return s;
+    }, 0);
+
 
 
     // Comissões
