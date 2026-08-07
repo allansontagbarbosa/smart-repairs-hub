@@ -63,6 +63,7 @@ export function ContasPagar({
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterLoja, setFilterLoja] = useState("todas");
+  const [alertFilter, setAlertFilter] = useState<"atrasado" | "hoje" | "semana" | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
   const [contaPagarId, setContaPagarId] = useState<string | null>(null);
@@ -97,7 +98,7 @@ export function ContasPagar({
     isWithinInterval(new Date(c.data_vencimento + "T12:00:00"), { start: now, end: weekEnd })
   );
 
-  const filtered = contasComStatus.filter(c => {
+  const filteredBase = contasComStatus.filter(c => {
     const q = search.toLowerCase();
     const fornNome = c.fornecedores?.nome ?? c.fornecedor ?? "";
     const matchSearch = !search || c.descricao.toLowerCase().includes(q) || fornNome.toLowerCase().includes(q);
@@ -110,6 +111,24 @@ export function ContasPagar({
 
     return matchSearch && matchStatus && matchLoja && matchPeriodo;
   });
+
+  // Ao clicar num alerta, mostramos exatamente aquelas contas (ignorando período).
+  const alertList = alertFilter === "atrasado" ? atrasadas
+    : alertFilter === "hoje" ? hoje
+    : alertFilter === "semana" ? semana
+    : null;
+
+  const filtered = alertList ?? filteredBase;
+
+  const abrirAlerta = (key: "atrasado" | "hoje" | "semana", lista: typeof contasComStatus) => {
+    if (lista.length === 1) {
+      setEditingConta(lista[0]);
+      setDialogOpen(true);
+      return;
+    }
+    setAlertFilter(prev => (prev === key ? null : key));
+  };
+
 
   // Sempre deriva da lista atual: assim o resumo (já pago / pendente) atualiza
   // depois de cada pagamento parcial em vez de ficar preso ao snapshot do clique.
@@ -348,23 +367,48 @@ export function ContasPagar({
       {(atrasadas.length > 0 || hoje.length > 0) && (
         <div className="flex flex-wrap gap-2">
           {atrasadas.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-1.5 text-xs font-semibold text-destructive">
+            <button
+              type="button"
+              onClick={() => abrirAlerta("atrasado", atrasadas)}
+              title={atrasadas.length === 1 ? "Abrir conta atrasada" : "Ver contas atrasadas"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 ${alertFilter === "atrasado" ? "ring-1 ring-destructive/50" : ""}`}
+            >
               <AlertTriangle className="h-3.5 w-3.5" />
               {atrasadas.length} conta{atrasadas.length > 1 ? "s" : ""} atrasada{atrasadas.length > 1 ? "s" : ""} — {fmtCurrency(atrasadas.reduce((s, c) => s + Number(c.valor), 0))}
-            </div>
+            </button>
           )}
           {hoje.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/8 px-3 py-1.5 text-xs font-semibold text-warning">
+            <button
+              type="button"
+              onClick={() => abrirAlerta("hoje", hoje)}
+              title={hoje.length === 1 ? "Abrir conta" : "Ver contas que vencem hoje"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/8 px-3 py-1.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/15 ${alertFilter === "hoje" ? "ring-1 ring-warning/50" : ""}`}
+            >
               <Clock className="h-3.5 w-3.5" />
               {hoje.length} conta{hoje.length > 1 ? "s" : ""} vencendo hoje — {fmtCurrency(hoje.reduce((s, c) => s + Number(c.valor), 0))}
-            </div>
+            </button>
           )}
           {semana.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-info/30 bg-info/8 px-3 py-1.5 text-xs font-semibold text-info">
+            <button
+              type="button"
+              onClick={() => abrirAlerta("semana", semana)}
+              title={semana.length === 1 ? "Abrir conta" : "Ver contas desta semana"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-info/30 bg-info/8 px-3 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/15 ${alertFilter === "semana" ? "ring-1 ring-info/50" : ""}`}
+            >
               <CalendarDays className="h-3.5 w-3.5" />
               {semana.length} conta{semana.length > 1 ? "s" : ""} esta semana — {fmtCurrency(semana.reduce((s, c) => s + Number(c.valor), 0))}
-            </div>
+            </button>
           )}
+          {alertFilter && (
+            <button
+              type="button"
+              onClick={() => setAlertFilter(null)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted"
+            >
+              Limpar seleção
+            </button>
+          )}
+
         </div>
       )}
 
