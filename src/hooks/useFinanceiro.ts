@@ -460,10 +460,11 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     // Lucro REAL
     const lucroReal = receitaMes + recebimentosMes - custosPecasMes - despesasMes - comissoesMes - totalPrejuizosMes;
 
-    // Despesas por categoria — competências no range
+    // Despesas por categoria — competências no range (canceladas fora)
     const despesasPorCategoria: Record<string, number> = {};
     allContas
       .filter(c => {
+        if (c.status === "cancelada") return false;
         return c.mes_competencia ? competenciasNoRange.includes(c.mes_competencia) : false;
       })
       .forEach(c => {
@@ -481,10 +482,9 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
       const competencia = formatCompetencia(d);
 
       const desp = allContas
-        .filter(c => {
-          return c.mes_competencia === competencia;
-        })
+        .filter(c => c.status !== "cancelada" && c.mes_competencia === competencia)
         .reduce((s, c) => s + Number(c.valor), 0);
+
 
       const rec = (allOrdens as unknown as OrdemFin[])
         .filter((o) => {
