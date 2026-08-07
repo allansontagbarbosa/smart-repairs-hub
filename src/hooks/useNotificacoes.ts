@@ -44,7 +44,11 @@ export function useNotificacoes() {
         .lt("previsao_entrega", nowIso)
         .not("status", "in", '("pronto","entregue","cancelado")')
         .is("deleted_at", null),
-      supabase.from("contas_a_pagar").select("id", { count: "exact", head: true }).eq("status", "vencida").is("deleted_at", null),
+      // O app nunca grava status "vencida": atraso é pendente/parcial com vencimento passado.
+      supabase.from("contas_a_pagar").select("id", { count: "exact", head: true })
+        .in("status", ["pendente", "parcial", "vencida"])
+        .lt("data_vencimento", new Date().toISOString().slice(0, 10))
+        .is("deleted_at", null),
       supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("status", "pendente"),
       // Estoque baixo: PostgREST não suporta col×col, então buscamos no cliente
       supabase.from("estoque_itens")
