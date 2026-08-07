@@ -107,17 +107,29 @@ async function fetchPrejuizos() {
 }
 
 async function fetchContas() {
-  const { data, error } = await supabase
-    .from("contas_a_pagar")
-    .select("*, lojas ( nome ), fornecedores ( nome ), ordens_de_servico ( numero )")
-    .is("deleted_at", null)
-    .order("data_vencimento", { ascending: true });
-  if (error) {
-    console.error("ERRO fetchContas:", error.code, error.message, error.details);
-    throw error;
+  // PostgREST limita a 1000 linhas por padrão. Paginamos pra não perder contas antigas.
+  const PAGE = 1000;
+  const all: ContaPagar[] = [];
+  for (let page = 0; ; page++) {
+    const { data, error } = await supabase
+      .from("contas_a_pagar")
+      .select("*, lojas ( nome ), fornecedores ( nome ), ordens_de_servico ( numero )")
+      .is("deleted_at", null)
+      .order("data_vencimento", { ascending: true })
+      .order("id", { ascending: true })
+      .range(page * PAGE, page * PAGE + PAGE - 1);
+    if (error) {
+      console.error("ERRO fetchContas:", error.code, error.message, error.details);
+      throw error;
+    }
+    const rows = (data ?? []) as ContaPagar[];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+    if (page > 30) break;
   }
-  return (data ?? []) as ContaPagar[];
+  return all;
 }
+
 
 async function fetchComissoes() {
   // PostgREST limita a resposta (1000 linhas por padrão). Paginamos pra não perder comissões antigas.
@@ -332,40 +344,47 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
 
     const totalPrejuizosMes = prejuizosOpMes + prejuizosNaoOpMes;
 
-    // Contas a pagar — buckets DISJUNTOS pra UI não confundir
-    const contasPendentes = allContas.filter(c => c.status === "pendente" || c.status === "vencida");
+    // Contas a pagar — buckets DISJUNTOS pra UI não confundir.
+    // "parcial" também é pendente: entra pelo SALDO restante (valor - já pago).
+    const saldoRestante = (c: ContaPagar) =>
+      Math.max(Number(c.valor) - (c.valor_pago_centavos ?? 0) / 100, 0);
+
+    const contasPendentes = allContas.filter(
+      c => c.status === "pendente" || c.status === "vencida" || c.status === "parcial"
+    );
 
     const tomorrowStart = addDays(todayStart, 1);
     const next7DaysExclusive = addDays(todayStart, 7);   // limite superior inclusive p/ próximos 7
     const next30DaysExclusive = addDays(todayStart, 30); // limite superior inclusive p/ próximos 30
 
     const vencidas = contasPendentes.filter(c => new Date(c.data_vencimento + "T12:00:00") < todayStart);
-    const vencidasTotal = vencidas.reduce((s, c) => s + Number(c.valor), 0);
+    const vencidasTotal = vencidas.reduce((s, c) => s + saldoRestante(c), 0);
 
     const venceHoje = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
       return d >= todayStart && d < tomorrowStart;
-    }).reduce((s, c) => s + Number(c.valor), 0);
+    }).reduce((s, c) => s + saldoRestante(c), 0);
 
     // Disjunto: AMANHÃ até dia +7
     const venceEm7Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
       return d >= tomorrowStart && d <= next7DaysExclusive;
-    }).reduce((s, c) => s + Number(c.valor), 0);
+    }).reduce((s, c) => s + saldoRestante(c), 0);
 
     // Disjunto: dia +8 até dia +30
     const venceEm30Dias = contasPendentes.filter(c => {
       const d = new Date(c.data_vencimento + "T12:00:00");
       return d > next7DaysExclusive && d <= next30DaysExclusive;
-    }).reduce((s, c) => s + Number(c.valor), 0);
+    }).reduce((s, c) => s + saldoRestante(c), 0);
 
-    const totalPendente = contasPendentes.reduce((s, c) => s + Number(c.valor), 0);
+    const totalPendente = contasPendentes.reduce((s, c) => s + saldoRestante(c), 0);
 
     const pagoMes = allContas.filter(c => {
       if (c.status !== "paga" || !c.data_pagamento) return false;
       const d = new Date(c.data_pagamento + "T12:00:00");
       return d >= periodStart && d <= periodEnd;
     }).reduce((s, c) => s + Number(c.valor), 0);
+
 
     // Comissões
     const comissoesPendentes = allComissoes.filter(c => c.status === "pendente" || c.status === "liberada");

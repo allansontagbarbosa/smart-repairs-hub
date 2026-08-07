@@ -9,7 +9,9 @@ interface ContaItem {
   categoria?: string | null;
   data_vencimento: string | null;
   data_pagamento?: string | null;
+  valor_pago_centavos?: number | null;
 }
+
 
 interface Props {
   contas: ContaItem[];
@@ -47,29 +49,35 @@ export function ContasDashboard({ contas }: Props) {
       const valor = typeof c.valor === "string" ? parseFloat(c.valor) : c.valor;
       if (isNaN(valor)) return;
 
+      const pago = (c.valor_pago_centavos ?? 0) / 100;
       const venc = c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00") : null;
       const isPaga = c.status === "paga";
-      const isVencida = venc && venc < hoje && !isPaga;
-      const isEstaSemana = venc && venc >= hoje && venc <= em7dias && !isPaga;
+      const isCancelada = c.status === "cancelada";
+      const saldo = Math.max(valor - pago, 0);
+      const isVencida = venc && venc < hoje && !isPaga && !isCancelada;
+      const isEstaSemana = venc && venc >= hoje && venc <= em7dias && !isPaga && !isCancelada;
 
       if (isPaga) {
         totalPagas += valor;
         qtdPagas++;
-      } else {
-        totalPendente += valor;
+      } else if (!isCancelada) {
+        // Parcial conta apenas o saldo em aberto; a parte já paga entra em "pagas".
+        totalPagas += pago;
+        totalPendente += saldo;
         qtdPendente++;
         if (isVencida) {
-          totalAtrasadas += valor;
+          totalAtrasadas += saldo;
           qtdAtrasadas++;
         } else if (isEstaSemana) {
-          totalEstaSemana += valor;
+          totalEstaSemana += saldo;
           qtdEstaSemana++;
         }
       }
 
       const cat = c.categoria || "Outros";
-      porCategoria[cat] = (porCategoria[cat] || 0) + valor;
+      if (!isCancelada) porCategoria[cat] = (porCategoria[cat] || 0) + valor;
     });
+
 
     const totalGeral = Object.values(porCategoria).reduce((s, v) => s + v, 0);
     const categoriasOrdenadas = Object.entries(porCategoria)
