@@ -427,10 +427,22 @@ export function useFinanceiro(options: UseFinanceiroOptions = {}) {
     const receitaMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.valor_total ?? o.valor ?? 0), 0);
     const custosPecasMes = ordensConcluidasMes.reduce((s, o) => s + Number(o.custo_pecas ?? 0), 0);
 
-    // Despesas por competência cobertas pelo range
-    const despesasMes = allContas.filter(c => {
-      return c.mes_competencia ? competenciasNoRange.includes(c.mes_competencia) : false;
-    }).reduce((s, c) => s + Number(c.valor), 0);
+    // Despesas por competência cobertas pelo range.
+    // IMPORTANTE: comissões e prejuízos JÁ são somados separadamente
+    // (comissoesMes / totalPrejuizosMes) e também existem como conta a pagar —
+    // contá-los aqui duplicaria a despesa. Canceladas também ficam fora.
+    const CATEGORIAS_DUPLICADAS = ["comissões", "comissoes", "prejuízos", "prejuizos"];
+    const isDespesaContabil = (c: ContaPagar) => {
+      if (c.status === "cancelada") return false;
+      const cat = (c.categoria ?? "").trim().toLowerCase();
+      return !CATEGORIAS_DUPLICADAS.includes(cat);
+    };
+
+    const despesasMes = allContas.filter(c =>
+      isDespesaContabil(c) &&
+      (c.mes_competencia ? competenciasNoRange.includes(c.mes_competencia) : false)
+    ).reduce((s, c) => s + Number(c.valor), 0);
+
 
     // Recebimentos extras no período: APENAS entradas avulsas genuínas.
     // Excluídos:
