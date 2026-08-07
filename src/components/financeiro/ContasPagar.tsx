@@ -367,23 +367,48 @@ export function ContasPagar({
       {(atrasadas.length > 0 || hoje.length > 0) && (
         <div className="flex flex-wrap gap-2">
           {atrasadas.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-1.5 text-xs font-semibold text-destructive">
+            <button
+              type="button"
+              onClick={() => abrirAlerta("atrasado", atrasadas)}
+              title={atrasadas.length === 1 ? "Abrir conta atrasada" : "Ver contas atrasadas"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/15 ${alertFilter === "atrasado" ? "ring-1 ring-destructive/50" : ""}`}
+            >
               <AlertTriangle className="h-3.5 w-3.5" />
               {atrasadas.length} conta{atrasadas.length > 1 ? "s" : ""} atrasada{atrasadas.length > 1 ? "s" : ""} — {fmtCurrency(atrasadas.reduce((s, c) => s + Number(c.valor), 0))}
-            </div>
+            </button>
           )}
           {hoje.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/8 px-3 py-1.5 text-xs font-semibold text-warning">
+            <button
+              type="button"
+              onClick={() => abrirAlerta("hoje", hoje)}
+              title={hoje.length === 1 ? "Abrir conta" : "Ver contas que vencem hoje"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/8 px-3 py-1.5 text-xs font-semibold text-warning transition-colors hover:bg-warning/15 ${alertFilter === "hoje" ? "ring-1 ring-warning/50" : ""}`}
+            >
               <Clock className="h-3.5 w-3.5" />
               {hoje.length} conta{hoje.length > 1 ? "s" : ""} vencendo hoje — {fmtCurrency(hoje.reduce((s, c) => s + Number(c.valor), 0))}
-            </div>
+            </button>
           )}
           {semana.length > 0 && (
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-info/30 bg-info/8 px-3 py-1.5 text-xs font-semibold text-info">
+            <button
+              type="button"
+              onClick={() => abrirAlerta("semana", semana)}
+              title={semana.length === 1 ? "Abrir conta" : "Ver contas desta semana"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border border-info/30 bg-info/8 px-3 py-1.5 text-xs font-semibold text-info transition-colors hover:bg-info/15 ${alertFilter === "semana" ? "ring-1 ring-info/50" : ""}`}
+            >
               <CalendarDays className="h-3.5 w-3.5" />
               {semana.length} conta{semana.length > 1 ? "s" : ""} esta semana — {fmtCurrency(semana.reduce((s, c) => s + Number(c.valor), 0))}
-            </div>
+            </button>
           )}
+          {alertFilter && (
+            <button
+              type="button"
+              onClick={() => setAlertFilter(null)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-muted"
+            >
+              Limpar seleção
+            </button>
+          )}
+
         </div>
       )}
 
