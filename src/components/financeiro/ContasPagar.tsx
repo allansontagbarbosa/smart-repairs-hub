@@ -111,6 +111,14 @@ export function ContasPagar({
     return matchSearch && matchStatus && matchLoja && matchPeriodo;
   });
 
+  // Sempre deriva da lista atual: assim o resumo (já pago / pendente) atualiza
+  // depois de cada pagamento parcial em vez de ficar preso ao snapshot do clique.
+  const contaPagarAtual = contaPagarId
+    ? contas.find(c => c.id === contaPagarId) ?? null
+    : null;
+
+
+
   const resolveEmpresaId = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     const uid = user?.id ?? "";

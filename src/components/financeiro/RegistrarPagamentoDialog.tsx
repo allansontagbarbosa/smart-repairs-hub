@@ -15,17 +15,23 @@ import {
   type FormaPagamentoConta,
 } from "@/hooks/useContasAPagar";
 
+interface ContaPgto {
+  id: string;
+  descricao: string;
+  valor: number;
+  valor_pago_centavos?: number | null;
+  status: string;
+  recorrente?: boolean;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  conta: {
-    id: string;
-    descricao: string;
-    valor: number;
-    valor_pago_centavos?: number | null;
-    status: string;
-  } | null;
+  conta: ContaPgto | null;
+  /** Disparado quando o pagamento quita a conta (usado p/ gerar recorrência). */
+  onQuitada?: (conta: ContaPgto) => void;
 }
+
 
 const FORMA_INFO: Record<FormaPagamentoConta, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   pix: { label: "PIX", icon: Smartphone },
