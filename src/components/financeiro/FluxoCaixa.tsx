@@ -80,14 +80,26 @@ export function FluxoCaixa({ contas, comissoes, recebimentos, ordens, prejuizos 
 
       const entradas = recebimentosSemana;
 
-      // Saídas: contas pagas + comissões pagas
+      // Saídas: contas pagas + comissões pagas.
+      // Comissões e prejuízos também existem como conta a pagar — se somássemos
+      // a conta E a comissão/prejuízo, a saída apareceria em dobro.
       const contasPagas = contas
-        .filter(c => c.status === "paga" && c.data_pagamento && inRange(c.data_pagamento, w.start, w.end))
-        .reduce((s, c) => s + Number(c.valor), 0);
+        .filter(c => {
+          const cat = (c.categoria ?? "").trim().toLowerCase();
+          if (["comissões", "comissoes", "prejuízos", "prejuizos"].includes(cat)) return false;
+          if (c.status !== "paga" && c.status !== "parcial") return false;
+          return c.data_pagamento && inRange(c.data_pagamento, w.start, w.end);
+        })
+        .reduce((s, c) => {
+          const pago = ((c as { valor_pago_centavos?: number | null }).valor_pago_centavos ?? 0) / 100;
+          if (c.status === "parcial") return s + pago;
+          return s + (pago > 0 ? pago : Number(c.valor));
+        }, 0);
 
       const comissoesPagas = comissoes
         .filter(c => c.status === "paga" && c.data_pagamento && inRange(c.data_pagamento, w.start, w.end))
         .reduce((s, c) => s + Number(c.valor), 0);
+
 
       const prejuizosSemana = prejuizos
         .filter(p => inRange(p.data_evento, w.start, w.end))
