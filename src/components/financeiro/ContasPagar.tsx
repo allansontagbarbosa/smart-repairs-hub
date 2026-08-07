@@ -65,7 +65,7 @@ export function ContasPagar({
   const [filterLoja, setFilterLoja] = useState("todas");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
-  const [contaPagar, setContaPagar] = useState<ContaPagar | null>(null);
+  const [contaPagarId, setContaPagarId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const sincronizar = useSincronizarComissoesEmContas();
 
@@ -142,42 +142,51 @@ export function ContasPagar({
     return empresaId;
   };
 
-  const pagarMutation = useMutation({
+  // Gera a próxima parcela de uma conta recorrente (chamado quando a conta é quitada).
+  const gerarRecorrenciaMutation = useMutation({
     mutationFn: async (conta: ContaPagar) => {
-      const { error } = await supabase
-        .from("contas_a_pagar")
-        .update({ status: "paga" as any, data_pagamento: dateOnlyLocal() })
-        .eq("id", conta.id);
-      if (error) throw error;
+      const empresaId = await resolveEmpresaId();
+      const nextDate = new Date(conta.data_vencimento + "T12:00:00");
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      const proximoVenc = dateOnlyLocal(nextDate);
 
-      // Auto-generate next month for recurring
-      if (conta.recorrente) {
-        const empresaId = await resolveEmpresaId();
-        const nextDate = new Date(conta.data_vencimento + "T12:00:00");
-        nextDate.setMonth(nextDate.getMonth() + 1);
-        const { error: insertErr } = await supabase.from("contas_a_pagar").insert({
-          descricao: conta.descricao,
-          categoria: conta.categoria,
-          categoria_financeira_id: conta.categoria_financeira_id,
-          centro_custo: conta.centro_custo,
-          centro_custo_id: conta.centro_custo_id,
-          fornecedor_id: conta.fornecedor_id,
-          loja_id: conta.loja_id,
-          ordem_servico_id: null,
-          valor: conta.valor,
-          data_vencimento: dateOnlyLocal(nextDate),
-          mes_competencia: getDefaultCompetencia(nextDate, true),
-          recorrente: true,
-          observacoes: conta.observacoes,
-          status: "pendente" as any,
-          empresa_id: empresaId,
-        } as any);
-        if (insertErr) console.error("Erro ao gerar recorrência:", insertErr);
-      }
+      // Evita duplicar se a recorrência já foi gerada antes.
+      const { data: existente } = await supabase
+        .from("contas_a_pagar")
+        .select("id")
+        .eq("descricao", conta.descricao)
+        .eq("data_vencimento", proximoVenc)
+        .is("deleted_at", null)
+        .limit(1);
+      if (existente && existente.length > 0) return false;
+
+      const { error } = await supabase.from("contas_a_pagar").insert({
+        descricao: conta.descricao,
+        categoria: conta.categoria,
+        categoria_financeira_id: conta.categoria_financeira_id,
+        centro_custo: conta.centro_custo,
+        centro_custo_id: conta.centro_custo_id,
+        fornecedor_id: conta.fornecedor_id,
+        loja_id: conta.loja_id,
+        ordem_servico_id: null,
+        valor: conta.valor,
+        data_vencimento: proximoVenc,
+        mes_competencia: getDefaultCompetencia(nextDate, true),
+        recorrente: true,
+        observacoes: conta.observacoes,
+        status: "pendente" as any,
+        empresa_id: empresaId,
+      } as any);
+      if (error) throw error;
+      return true;
     },
-    onSuccess: (_, conta) => {
+    onSuccess: (criada) => {
       queryClient.invalidateQueries({ queryKey: ["contas_pagar"] });
-      toast.success(conta.recorrente ? "Conta paga! Próxima parcela gerada automaticamente." : "Conta marcada como paga!");
+      if (criada) toast.success("Próxima parcela da conta recorrente gerada.");
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Erro ao gerar recorrência";
+      toast.error(`Não foi possível gerar a próxima parcela: ${msg}`);
     },
   });
 
@@ -185,21 +194,28 @@ export function ContasPagar({
     mutationFn: async (id: string) => {
       // Soft delete: marca deleted_at em vez de remover fisicamente.
       // Mantém histórico pra auditoria. Filtragem fica em fetchContas (is null).
-      const { error } = await supabase
+      // .select() é obrigatório: sem ele, um UPDATE bloqueado por RLS retorna "sucesso" silencioso.
+      const { data, error } = await supabase
         .from("contas_a_pagar")
         .update({ deleted_at: new Date().toISOString() } as any)
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Sem permissão para excluir esta conta");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contas_pagar"] });
       toast.success("Conta removida do painel.");
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Erro ao excluir conta");
     },
   });
 
   const duplicarMutation = useMutation({
     mutationFn: async (conta: ContaPagar) => {
       const empresaId = await resolveEmpresaId();
+      if (!empresaId) throw new Error("Empresa não identificada");
       const nextMonth = new Date(conta.data_vencimento + "T12:00:00");
       nextMonth.setMonth(nextMonth.getMonth() + 1);
       const { error } = await supabase.from("contas_a_pagar").insert({
@@ -225,7 +241,11 @@ export function ContasPagar({
       queryClient.invalidateQueries({ queryKey: ["contas_pagar"] });
       toast.success("Conta duplicada para o próximo mês!");
     },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Erro ao duplicar conta");
+    },
   });
+
 
   const renderRow = (c: typeof contasComStatus[0]) => {
     const fornNome = c.fornecedores?.nome ?? c.fornecedor;
@@ -267,7 +287,7 @@ export function ContasPagar({
         <td>
           <div className="flex items-center justify-end gap-0.5">
             {c.status !== "paga" && c.status !== "cancelada" && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Registrar pagamento" onClick={() => setContaPagar(c)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Registrar pagamento" onClick={() => setContaPagarId(c.id)}>
                 <Check className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -357,6 +377,8 @@ export function ContasPagar({
             <SelectItem value="atrasado">Atrasado</SelectItem>
             <SelectItem value="parcial">Parcial</SelectItem>
             <SelectItem value="paga">Pago</SelectItem>
+            <SelectItem value="cancelada">Cancelada</SelectItem>
+
           </SelectContent>
         </Select>
         {lojas.length > 0 && (
@@ -425,10 +447,14 @@ export function ContasPagar({
       />
 
       <RegistrarPagamentoDialog
-        open={!!contaPagar}
-        onOpenChange={(o) => !o && setContaPagar(null)}
-        conta={contaPagar}
+        open={!!contaPagarAtual}
+        onOpenChange={(o) => !o && setContaPagarId(null)}
+        conta={contaPagarAtual}
+        onQuitada={(conta) => {
+          if (conta.recorrente) gerarRecorrenciaMutation.mutate(conta);
+        }}
       />
+
     </div>
   );
 }
