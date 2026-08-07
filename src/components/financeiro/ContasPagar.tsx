@@ -97,7 +97,7 @@ export function ContasPagar({
     isWithinInterval(new Date(c.data_vencimento + "T12:00:00"), { start: now, end: weekEnd })
   );
 
-  const filtered = contasComStatus.filter(c => {
+  const filteredBase = contasComStatus.filter(c => {
     const q = search.toLowerCase();
     const fornNome = c.fornecedores?.nome ?? c.fornecedor ?? "";
     const matchSearch = !search || c.descricao.toLowerCase().includes(q) || fornNome.toLowerCase().includes(q);
@@ -110,6 +110,24 @@ export function ContasPagar({
 
     return matchSearch && matchStatus && matchLoja && matchPeriodo;
   });
+
+  // Ao clicar num alerta, mostramos exatamente aquelas contas (ignorando período).
+  const alertList = alertFilter === "atrasado" ? atrasadas
+    : alertFilter === "hoje" ? hoje
+    : alertFilter === "semana" ? semana
+    : null;
+
+  const filtered = alertList ?? filteredBase;
+
+  const abrirAlerta = (key: "atrasado" | "hoje" | "semana", lista: typeof contasComStatus) => {
+    if (lista.length === 1) {
+      setEditingConta(lista[0]);
+      setDialogOpen(true);
+      return;
+    }
+    setAlertFilter(prev => (prev === key ? null : key));
+  };
+
 
   // Sempre deriva da lista atual: assim o resumo (já pago / pendente) atualiza
   // depois de cada pagamento parcial em vez de ficar preso ao snapshot do clique.
