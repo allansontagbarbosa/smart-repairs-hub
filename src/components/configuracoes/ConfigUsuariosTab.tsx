@@ -158,6 +158,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [vinculandoId, setVinculandoId] = useState<string | null>(null);
 
   const normalizar = (s: string) =>
     (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
