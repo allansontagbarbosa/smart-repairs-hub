@@ -193,7 +193,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
         (filtroStatus === "inativos" && !u.ativo);
       return matchSearch && matchPerfil && matchStatus;
     });
-  }, [userProfiles, search, filtroPerfil, filtroStatus]);
+  }, [userProfiles, search, filtroPerfil, filtroStatus, emailsLogin]);
 
   const kpis = useMemo(() => ({
     ativos: userProfiles.filter((u) => u.ativo).length,
@@ -354,7 +354,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   };
 
   const handleResendInvite = async (profile: any) => {
-    const email = profile.funcionarios?.email;
+    const email = emailDoUsuario(profile);
     if (!email) {
       toast.error("Email não encontrado para este usuário");
       return;
@@ -388,7 +388,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   };
 
   const handleResetPassword = async (profile: any) => {
-    const email = profile.email || profile.funcionarios?.email;
+    const email = profile.email || emailDoUsuario(profile);
     if (!email) {
       toast.error("Email não encontrado para este usuário");
       return;
@@ -637,7 +637,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                   <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="p-3 font-medium">{u.nome_exibicao || "Sem nome"}</td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
-                      {(u as any).funcionarios?.email || "—"}
+                      {emailDoUsuario(u) || "—"}
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
                       {(u as any).perfis_acesso?.nome_perfil || "—"}
