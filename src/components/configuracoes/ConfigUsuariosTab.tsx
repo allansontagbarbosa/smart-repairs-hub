@@ -291,6 +291,37 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
     }));
   };
 
+  const funcionariosDisponiveis = (u: any) => {
+    const usadosPorOutros = new Set(
+      userProfiles.filter((p) => p.id !== u.id && p.funcionario_id).map((p) => p.funcionario_id)
+    );
+    return (funcionarios || []).filter(
+      (f: any) => (f.ativo ?? true) && (!usadosPorOutros.has(f.id) || f.id === u.funcionario_id)
+    );
+  };
+
+  const handleVincularFuncionario = async (profile: any, funcionarioId: string | null) => {
+    setVinculandoId(profile.id);
+    const { data, error } = await supabase.rpc("vincular_funcionario_usuario", {
+      p_user_profile_id: profile.id,
+      p_funcionario_id: funcionarioId,
+    });
+    setVinculandoId(null);
+
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao vincular funcionário");
+      return;
+    }
+
+    registrar("Funcionário vinculado ao usuário", "configuracoes", profile.id, null, {
+      nome: profile.nome_exibicao,
+      funcionario_id: funcionarioId,
+    });
+    qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    await qc.refetchQueries({ queryKey: ["user_profiles"] });
+    toast.success(funcionarioId ? "Funcionário vinculado" : "Vínculo removido");
+  };
+
   const handleUpdateUserProfile = async (profileId: string, updates: { ativo?: boolean; perfil_id?: string | null }) => {
     const profile = userProfiles.find((u) => u.id === profileId);
 
