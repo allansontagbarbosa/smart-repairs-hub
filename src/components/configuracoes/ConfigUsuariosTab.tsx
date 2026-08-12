@@ -158,6 +158,7 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [vinculandoId, setVinculandoId] = useState<string | null>(null);
 
   const normalizar = (s: string) =>
     (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -289,6 +290,37 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
       ...prev,
       permissoes: { ...prev.permissoes, [modulo]: !prev.permissoes[modulo] },
     }));
+  };
+
+  const funcionariosDisponiveis = (u: any) => {
+    const usadosPorOutros = new Set(
+      userProfiles.filter((p) => p.id !== u.id && p.funcionario_id).map((p) => p.funcionario_id)
+    );
+    return (funcionarios || []).filter(
+      (f: any) => (f.ativo ?? true) && (!usadosPorOutros.has(f.id) || f.id === u.funcionario_id)
+    );
+  };
+
+  const handleVincularFuncionario = async (profile: any, funcionarioId: string | null) => {
+    setVinculandoId(profile.id);
+    const { data, error } = await supabase.rpc("vincular_funcionario_usuario", {
+      p_user_profile_id: profile.id,
+      p_funcionario_id: funcionarioId,
+    });
+    setVinculandoId(null);
+
+    if (error || !(data as any)?.success) {
+      toast.error((data as any)?.error || error?.message || "Erro ao vincular funcionário");
+      return;
+    }
+
+    registrar("Funcionário vinculado ao usuário", "configuracoes", profile.id, null, {
+      nome: profile.nome_exibicao,
+      funcionario_id: funcionarioId,
+    });
+    qc.invalidateQueries({ queryKey: ["user_profiles"] });
+    await qc.refetchQueries({ queryKey: ["user_profiles"] });
+    toast.success(funcionarioId ? "Funcionário vinculado" : "Vínculo removido");
   };
 
   const handleUpdateUserProfile = async (profileId: string, updates: { ativo?: boolean; perfil_id?: string | null }) => {
@@ -643,7 +675,25 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                       {(u as any).perfis_acesso?.nome_perfil || "—"}
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
-                      {(u as any).funcionarios?.nome || "—"}
+                      {isAdmin ? (
+                        <Select
+                          value={u.funcionario_id || "__none__"}
+                          disabled={vinculandoId === u.id}
+                          onValueChange={(v) => handleVincularFuncionario(u, v === "__none__" ? null : v)}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-40">
+                            <SelectValue placeholder="Vincular funcionário" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Sem vínculo</SelectItem>
+                            {funcionariosDisponiveis(u).map((f: any) => (
+                              <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        (u as any).funcionarios?.nome || "—"
+                      )}
                     </td>
                     <td className="p-3">
                       {u.ativo ? (
