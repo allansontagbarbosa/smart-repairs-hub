@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { usePermissoes, invalidatePermissoesCache } from "@/hooks/usePermissoes";
 import { useAuditoria } from "@/hooks/useAuditoria";
@@ -162,11 +162,28 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
   const normalizar = (s: string) =>
     (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+  // E-mails de login (auth) para usuários sem funcionário vinculado
+  const { data: emailsLogin = {} } = useQuery({
+    queryKey: ["emails_usuarios", empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("listar_emails_usuarios");
+      if (error) {
+        console.warn("[ConfigUsuariosTab] não foi possível carregar e-mails de login:", error.message);
+        return {} as Record<string, string>;
+      }
+      return Object.fromEntries(((data as any[]) || []).map((r) => [r.user_id, r.email])) as Record<string, string>;
+    },
+  });
+
+  const emailDoUsuario = (u: any) =>
+    u?.funcionarios?.email || emailsLogin[u?.user_id] || "";
+
   const filteredProfiles = useMemo(() => {
     const q = normalizar(search);
     return userProfiles.filter((u) => {
       const nome = normalizar(u.nome_exibicao);
-      const email = normalizar((u as any).funcionarios?.email ?? "");
+      const email = normalizar(emailDoUsuario(u));
       const perfilNome = normalizar((u as any).perfis_acesso?.nome_perfil ?? "");
       const matchSearch = !q || nome.includes(q) || email.includes(q) || perfilNome.includes(q);
       const matchPerfil = filtroPerfil === "todos" || u.perfil_id === filtroPerfil;
