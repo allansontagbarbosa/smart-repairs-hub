@@ -11143,6 +11143,13 @@ export type Database = {
       }
       liberar_comissao: { Args: { p_comissao_id: string }; Returns: Json }
       limpar_rate_limit_antigos: { Args: never; Returns: number }
+      listar_emails_usuarios: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       listar_funcionarios_rh: { Args: never; Returns: Json }
       listar_metas_com_progresso: { Args: { p_status?: string }; Returns: Json }
       listar_prejuizos: {
