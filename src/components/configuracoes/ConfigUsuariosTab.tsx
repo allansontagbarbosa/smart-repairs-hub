@@ -643,7 +643,25 @@ export function ConfigUsuariosTab({ userProfiles, perfisAcesso, funcionarios, lo
                       {(u as any).perfis_acesso?.nome_perfil || "—"}
                     </td>
                     <td className="p-3 hidden md:table-cell text-muted-foreground">
-                      {(u as any).funcionarios?.nome || "—"}
+                      {isAdmin ? (
+                        <Select
+                          value={u.funcionario_id || "__none__"}
+                          disabled={vinculandoId === u.id}
+                          onValueChange={(v) => handleVincularFuncionario(u, v === "__none__" ? null : v)}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-40">
+                            <SelectValue placeholder="Vincular funcionário" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Sem vínculo</SelectItem>
+                            {funcionariosDisponiveis(u).map((f: any) => (
+                              <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        (u as any).funcionarios?.nome || "—"
+                      )}
                     </td>
                     <td className="p-3">
                       {u.ativo ? (
