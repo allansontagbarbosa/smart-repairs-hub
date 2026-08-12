@@ -11581,6 +11581,10 @@ export type Database = {
           status: string
         }[]
       }
+      vincular_funcionario_usuario: {
+        Args: { p_funcionario_id?: string; p_user_profile_id: string }
+        Returns: Json
+      }
       votar_solicitacao: {
         Args: { p_motivo?: string; p_solicitacao_id: string; p_voto: string }
         Returns: Json
