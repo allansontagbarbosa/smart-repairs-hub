@@ -104,7 +104,7 @@ export default function TecnicoTransferencias() {
       <NovaTransferenciaDialog
         open={novaOpen}
         onOpenChange={setNovaOpen}
-        minhasOS={minhasOS.filter(o => !["entregue", "cancelado"].includes(o.status))}
+        minhasOS={minhasOS.filter(o => !["entregue", "cancelado", "nao_aprovado"].includes(o.status))}
         identidade={identidade}
         onCreated={refetch}
       />

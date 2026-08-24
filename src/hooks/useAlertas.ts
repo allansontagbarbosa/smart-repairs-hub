@@ -35,7 +35,7 @@ export function useAlertas(orders: OrderWithRelations[]) {
     const alertas: Alerta[] = [];
 
     for (const o of orders) {
-      if (o.status === "entregue" || o.status === "cancelado") continue;
+      if (o.status === "entregue" || o.status === "cancelado" || o.status === "nao_aprovado") continue;
 
       const cliente = o.aparelhos?.clientes?.nome ?? "Cliente";
       const aparelho = `${o.aparelhos?.marca ?? ""} ${o.aparelhos?.modelo ?? ""}`.trim() || "Aparelho";

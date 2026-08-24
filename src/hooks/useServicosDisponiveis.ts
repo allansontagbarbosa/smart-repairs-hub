@@ -18,7 +18,7 @@ export function useServicosDisponiveis(empresaId: string | null | undefined) {
         .eq("empresa_id", empresaId!)
         .eq("status", "pendente")
         .is("tecnico_id", null)
-        .not("ordens_de_servico.status", "in", "(entregue,cancelado)")
+        .not("ordens_de_servico.status", "in", "(entregue,cancelado,nao_aprovado)")
         .is("ordens_de_servico.deleted_at", null)
         .order("created_at", { ascending: true })
         .limit(100);

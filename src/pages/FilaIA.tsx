@@ -49,7 +49,7 @@ async function fetchFilaData() {
       aparelhos!inner ( marca, modelo, imei, capacidade, clientes!inner ( nome, telefone ) )
     `)
     .is("deleted_at", null)
-    .not("status", "in", '("entregue","cancelado")')
+    .not("status", "in", '("entregue","cancelado","nao_aprovado")')
     .order("data_entrada", { ascending: true });
 
   // 2. Serviços de cada OS
@@ -67,7 +67,7 @@ async function fetchFilaData() {
   }
 
   const nowFila = new Date();
-  const finalizados = new Set(["pronto", "entregue", "cancelado"]);
+  const finalizados = new Set(["pronto", "entregue", "cancelado", "nao_aprovado"]);
   const osMapped = (osPendentes ?? []).map((o: any) => ({
     id: o.id,
     numero: o.numero,

@@ -113,7 +113,7 @@ export default function TecnicoHome() {
   const minhaQtd = ranking.find(r => r.tecnico_id === identidade?.funcionario_id)?.qtd ?? 0;
 
   const proximas = ordenarPorUrgencia(
-    ordens.filter(o => !["entregue", "cancelado"].includes(o.status))
+    ordens.filter(o => !["entregue", "cancelado", "nao_aprovado"].includes(o.status))
   ).slice(0, 6);
 
   const conquistas = kpis ? calcularConquistas(kpis) : [];
