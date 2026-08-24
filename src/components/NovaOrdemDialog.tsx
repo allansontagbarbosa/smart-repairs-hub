@@ -928,21 +928,52 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const imeiLimpo = imei.replace(/\D/g, "");
       let aparelhoId: string;
       if (imeiLimpo) {
-        const { data: existente, error: lookupErr } = await supabase
+        const { data: cadastros, error: lookupErr } = await supabase
           .from("aparelhos")
           .select("id, cliente_id")
           .eq("imei", imeiLimpo)
-          .limit(1)
-          .maybeSingle();
+          .order("created_at", { ascending: false });
         if (lookupErr) throw lookupErr;
-        if (existente) {
-          aparelhoId = existente.id;
-          if (existente.cliente_id !== selectedClientId) {
+        const doCliente = (cadastros ?? []).find((a: any) => a.cliente_id === selectedClientId);
+        if (doCliente) {
+          aparelhoId = doCliente.id;
+        } else if ((cadastros ?? []).length > 0) {
+          // IMEI já existe para outro cliente/loja: só permite se não houver OS em aberto.
+          const { data: osAberta, error: osErr } = await supabase
+            .from("ordens_de_servico")
+            .select("id, numero, numero_formatado, status")
+            .in("aparelho_id", (cadastros ?? []).map((a: any) => a.id))
+            .is("deleted_at", null)
+            .not("status", "in", "(entregue,cancelado)")
+            .limit(1)
+            .maybeSingle();
+          if (osErr) throw osErr;
+          if (osAberta) {
             throw new Error(
-              "Este IMEI já está cadastrado para outro cliente. Confira o IMEI digitado ou ajuste o cadastro do aparelho diretamente."
+              `Este IMEI possui uma OS em aberto (status: ${(osAberta as any).status}). Finalize/entregue a OS anterior antes de cadastrar em outra loja ou cliente.`
             );
           }
+          // Cria um novo cadastro do aparelho para o novo cliente,
+          // preservando o histórico dos cadastros e OS anteriores.
+          const { data: aparelhoNovo, error: apNovoErr } = await supabase
+            .from("aparelhos")
+            .insert({
+              cliente_id: selectedClientId,
+              marca, modelo,
+              cor: cor || null,
+              capacidade: capacidade || null,
+              imei: imeiLimpo,
+              marca_id: marcaId || null,
+              modelo_id: modeloId || null,
+              cor_id: corId || null,
+              capacidade_id: capacidadeId || null,
+              observacoes: imei2 ? `IMEI 2: ${imei2}` : null,
+            } as any)
+            .select().single();
+          if (apNovoErr) throw apNovoErr;
+          aparelhoId = aparelhoNovo.id;
         } else {
+
           const { data: aparelho, error: apErr } = await supabase
             .from("aparelhos")
             .insert({
