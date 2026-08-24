@@ -864,6 +864,17 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
               </div>
             </DialogHeader>
 
+            {ordem.status === "nao_aprovado" && (
+              <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs space-y-1">
+                <div className="flex items-center gap-2 font-semibold">
+                  <X className="h-4 w-4" /> Orçamento não aprovado — OS encerrada
+                </div>
+                {(ordem as any).orcamento_motivo_reprovacao && (
+                  <p>Motivo: {(ordem as any).orcamento_motivo_reprovacao}</p>
+                )}
+              </div>
+            )}
+
             {ordem.status === "cancelado" && (
               <div className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive text-xs space-y-1">
                 <div className="flex items-center gap-2 font-semibold">
@@ -906,7 +917,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
             <TerceirizacaoAtivaPanel osId={ordem.id} />
 
             {/* Quick actions */}
-            {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
+            {ordem.status !== "entregue" && ordem.status !== "cancelado" && ordem.status !== "nao_aprovado" && (
               <div className="flex flex-wrap gap-2 mb-5">
                 {nextStatus && (
                   <Button
@@ -1094,7 +1105,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
             )}
 
             {/* Status change dropdown (sem 'cancelado'; cancelamento é via botão dedicado) */}
-            {ordem.status !== "entregue" && ordem.status !== "cancelado" && (
+            {ordem.status !== "entregue" && ordem.status !== "cancelado" && ordem.status !== "nao_aprovado" && (
               <div className="mb-5">
                 <Label className="text-xs text-muted-foreground">Mudar para qualquer status</Label>
                 <Select
@@ -1131,7 +1142,7 @@ function OrdemDetalheSheetContent({ orderId, onClose }: DetalheProps) {
                 >
                   <SelectTrigger className="mt-1 h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {statusFlow.map((s) => (
+                    {[...statusFlow, "nao_aprovado" as Status].map((s) => (
                       <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>
                     ))}
                   </SelectContent>

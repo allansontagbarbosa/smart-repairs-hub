@@ -19,6 +19,7 @@ export const statusLabels: Record<Status, string> = {
   garantia: "Garantia",
   pronto: "Pronto",
   entregue: "Entregue",
+  nao_aprovado: "Não Aprovado",
   cancelado: "Cancelada",
 };
 
@@ -34,5 +35,6 @@ export const statusLabelsCliente: Record<Status, string> = {
   garantia: "Em garantia",
   pronto: "Pronto para Retirada",
   entregue: "Entregue",
+  nao_aprovado: "Orçamento não aprovado",
   cancelado: "Cancelada",
 };

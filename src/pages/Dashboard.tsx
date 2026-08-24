@@ -60,6 +60,7 @@ const STATUS_LABELS: Record<string, string> = {
   em_reparo: "Em Reparo",
   pronto: "Pronto",
   entregue: "Entregue",
+  nao_aprovado: "Não Aprovado",
   cancelado: "Cancelada",
 };
 
@@ -70,10 +71,11 @@ const STATUS_COLORS: Record<string, string> = {
   em_reparo: "bg-blue-100 text-blue-700",
   pronto: "bg-green-100 text-green-700",
   entregue: "bg-muted text-muted-foreground",
+  nao_aprovado: "bg-red-100 text-red-700",
   cancelado: "bg-red-100 text-red-700",
 };
 
-const isCancelada = (s: string) => s === "cancelado";
+const isCancelada = (s: string) => s === "cancelado" || s === "nao_aprovado";
 const isAtiva = (s: string) => !isCancelada(s) && s !== "entregue";
 const isFaturado = (s: string) => s === "pronto" || s === "entregue";
 // "Aguardando reparo" = OS recebidas mas que ainda não entraram em reparo.

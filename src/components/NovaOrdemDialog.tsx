@@ -485,7 +485,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         .select("id, numero, numero_formatado, status")
         .in("aparelho_id", imeiOutrosIds)
         .is("deleted_at", null)
-        .not("status", "in", "(entregue,cancelado)")
+        .not("status", "in", "(entregue,cancelado,nao_aprovado)")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -944,7 +944,7 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
             .select("id, numero, numero_formatado, status")
             .in("aparelho_id", (cadastros ?? []).map((a: any) => a.id))
             .is("deleted_at", null)
-            .not("status", "in", "(entregue,cancelado)")
+            .not("status", "in", "(entregue,cancelado,nao_aprovado)")
             .limit(1)
             .maybeSingle();
           if (osErr) throw osErr;

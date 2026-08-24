@@ -553,6 +553,7 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "aguardando_peca", label: "Aguard. peça" },
   { value: "pronto", label: "Pronto" },
   { value: "entregue", label: "Entregue" },
+  { value: "nao_aprovado", label: "Não aprovado" },
   { value: "cancelado", label: "Cancelado" },
 ];
 
@@ -1573,6 +1574,7 @@ export default function Assistencia() {
       aguardando_peca: "bg-warning",
       pronto: "bg-success",
       entregue: "bg-secondary-foreground/50",
+      nao_aprovado: "bg-destructive",
       cancelado: "bg-muted-foreground",
     };
     return (

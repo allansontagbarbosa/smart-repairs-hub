@@ -41,7 +41,7 @@ async function fetchAparelhosAssistencia() {
       os_servicos ( tecnico_id, funcionarios ( nome ) )
     `)
     .is("deleted_at", null)
-    .not("status", "in", '("entregue","cancelado")')
+    .not("status", "in", '("entregue","cancelado","nao_aprovado")')
     .order("data_entrada", { ascending: false });
 
   if (error) throw error;
@@ -50,7 +50,7 @@ async function fetchAparelhosAssistencia() {
   // via trigger atualizar_prazo_vencido). Por isso calculamos no frontend usando
   // previsao_entrega vs now, ignorando o valor persistido.
   const now = new Date();
-  const statusFinalizados = new Set(["pronto", "entregue", "cancelado"]);
+  const statusFinalizados = new Set(["pronto", "entregue", "cancelado", "nao_aprovado"]);
 
   return (data ?? []).map((os: any) => {
     const servicos = os.os_servicos ?? [];

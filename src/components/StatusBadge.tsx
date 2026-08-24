@@ -14,7 +14,9 @@ const statusConfig: Record<Status, { label: string; dot: string; text: string; b
   garantia: { label: "Garantia", dot: "bg-[hsl(210_80%_56%)]", text: "text-[hsl(210_80%_45%)]", bg: "bg-[hsl(210_80%_56%/0.12)]" },
   pronto: { label: "Pronto", dot: "bg-success", text: "text-success", bg: "bg-success-muted" },
   entregue: { label: "Entregue", dot: "bg-foreground/30", text: "text-muted-foreground", bg: "bg-muted" },
+  nao_aprovado: { label: "Não Aprovado", dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
   cancelado: { label: "Cancelada", dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+
 };
 
 export function StatusBadge({ status }: { status: Status }) {
@@ -38,5 +40,6 @@ export const allStatuses: { value: Status | "todos"; label: string }[] = [
   { value: "terceirizado", label: "Terceirizado" },
   { value: "pronto", label: "Pronto" },
   { value: "entregue", label: "Entregue" },
+  { value: "nao_aprovado", label: "Não Aprovado" },
   { value: "cancelado", label: "Canceladas" },
 ];

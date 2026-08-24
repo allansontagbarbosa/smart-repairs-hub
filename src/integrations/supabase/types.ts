@@ -11629,6 +11629,7 @@ export type Database = {
         | "aguardando_peca"
         | "pronto"
         | "entregue"
+        | "nao_aprovado"
         | "cancelado"
         | "terceirizado"
         | "garantia"
@@ -11832,6 +11833,7 @@ export const Constants = {
         "aguardando_peca",
         "pronto",
         "entregue",
+        "nao_aprovado",
         "cancelado",
         "terceirizado",
         "garantia",

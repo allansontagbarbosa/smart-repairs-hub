@@ -138,7 +138,7 @@ export function useTecnicoMetricas(funcionarioId: string | null | undefined, ano
           .select("ordem_id, ordens_de_servico!inner(status, deleted_at)")
           .eq("tecnico_id", funcionarioId!)
           .eq("status", "em_reparo")
-          .not("ordens_de_servico.status", "in", "(entregue,cancelado)")
+          .not("ordens_de_servico.status", "in", "(entregue,cancelado,nao_aprovado)")
           .is("ordens_de_servico.deleted_at", null),
         supabase.from("comissoes")
           .select("valor")

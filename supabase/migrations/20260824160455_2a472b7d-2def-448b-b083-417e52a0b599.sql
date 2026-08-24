@@ -1,0 +1,1 @@
+ALTER TYPE public.status_ordem ADD VALUE IF NOT EXISTS 'nao_aprovado' BEFORE 'cancelado';

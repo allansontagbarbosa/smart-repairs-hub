@@ -17,7 +17,7 @@ export function useMeusServicosAtribuidos(funcionarioId: string | null | undefin
         `)
         .eq("tecnico_id", funcionarioId!)
         .eq("status", "pendente")
-        .not("ordens_de_servico.status", "in", "(entregue,cancelado)")
+        .not("ordens_de_servico.status", "in", "(entregue,cancelado,nao_aprovado)")
         .is("ordens_de_servico.deleted_at", null)
         .order("updated_at", { ascending: false });
       if (error) throw error;

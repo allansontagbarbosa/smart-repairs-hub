@@ -42,7 +42,7 @@ export function useNotificacoes() {
         .eq("status", "aguardando_aprovacao").is("deleted_at", null),
       supabase.from("ordens_de_servico").select("id", { count: "exact", head: true })
         .lt("previsao_entrega", nowIso)
-        .not("status", "in", '("pronto","entregue","cancelado")')
+        .not("status", "in", '("pronto","entregue","cancelado","nao_aprovado")')
         .is("deleted_at", null),
       // O app nunca grava status "vencida": atraso é pendente/parcial com vencimento passado.
       supabase.from("contas_a_pagar").select("id", { count: "exact", head: true })
