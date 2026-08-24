@@ -1554,6 +1554,20 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     </Button>
                   </div>
                 )}
+                {!osAbertaExistente && aparelhoExistente && !aparelhoExistente.mesmo_cliente && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium">Aparelho já atendido antes</p>
+                      <p className="text-xs">
+                        Este IMEI tem histórico com <strong>{aparelhoExistente.cliente_nome}</strong>
+                        {aparelhoExistente.total_os > 0 ? ` (${aparelhoExistente.total_os} OS)` : ""} e não possui OS em aberto —
+                        pode ser cadastrado neste cliente/loja. O histórico anterior é mantido.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
               </div>
 
 
