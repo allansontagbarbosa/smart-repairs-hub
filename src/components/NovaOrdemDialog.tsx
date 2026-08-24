@@ -160,6 +160,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [aparelhoExistente, setAparelhoExistente] = useState<{ id: string; cliente_id: string; cliente_nome: string; total_os: number; mesmo_cliente: boolean } | null>(null);
   const [osAbertaExistente, setOsAbertaExistente] = useState<{ id: string; numero: number | null; numero_formatado: string | null; status: string } | null>(null);
+  const [imeiOutrosIds, setImeiOutrosIds] = useState<string[]>([]);
+
   const [marca, setMarca] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
@@ -424,43 +426,55 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   }, [isImeiSearch, searchDigits]);
 
   // Detecção de aparelho cadastrado ao digitar IMEI no passo 2
+  // Considera TODOS os cadastros com o mesmo IMEI (histórico entre lojas/clientes)
   useEffect(() => {
     const imeiLimpo = imei.replace(/\D/g, "");
     if (imeiLimpo.length !== 15) {
       setAparelhoExistente(null);
+      setImeiOutrosIds([]);
       return;
     }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("aparelhos")
-        .select("id, cliente_id, clientes(nome)")
+        .select("id, cliente_id, created_at, clientes(nome)")
         .eq("imei", imeiLimpo)
-        .limit(1)
-        .maybeSingle();
-      if (cancelled || !data) {
+        .order("created_at", { ascending: false });
+
+      if (cancelled || !data || data.length === 0) {
         setAparelhoExistente(null);
+        setImeiOutrosIds([]);
         return;
       }
+      const ids = data.map((a: any) => a.id);
+      setImeiOutrosIds(ids);
+
+      // Prioriza um cadastro do cliente selecionado, se existir
+      const doCliente = data.find((a: any) => a.cliente_id === selectedClientId);
+      const escolhido: any = doCliente ?? data[0];
+
       const { count } = await supabase
         .from("ordens_de_servico")
         .select("id", { count: "exact", head: true })
-        .eq("aparelho_id", data.id)
+        .in("aparelho_id", ids)
         .is("deleted_at", null);
+      if (cancelled) return;
       setAparelhoExistente({
-        id: data.id,
-        cliente_id: data.cliente_id,
-        cliente_nome: (data as any).clientes?.nome ?? "outro cliente",
+        id: escolhido.id,
+        cliente_id: escolhido.cliente_id,
+        cliente_nome: escolhido.clientes?.nome ?? "outro cliente",
         total_os: count || 0,
-        mesmo_cliente: data.cliente_id === selectedClientId,
+        mesmo_cliente: escolhido.cliente_id === selectedClientId,
       });
     })();
     return () => { cancelled = true; };
   }, [imei, selectedClientId]);
 
-  // Bloqueio: verifica se já existe OS aberta pro mesmo aparelho
+  // Bloqueio: só bloqueia se existir OS EM ABERTO para o IMEI (qualquer loja/cliente).
+  // OS antigas concluídas/entregues não impedem novo atendimento em outra loja/cliente.
   useEffect(() => {
-    if (!aparelhoExistente?.id) {
+    if (imeiOutrosIds.length === 0) {
       setOsAbertaExistente(null);
       return;
     }
@@ -469,9 +483,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const { data } = await supabase
         .from("ordens_de_servico")
         .select("id, numero, numero_formatado, status")
-        .eq("aparelho_id", aparelhoExistente.id)
+        .in("aparelho_id", imeiOutrosIds)
         .is("deleted_at", null)
-        .not("status", "in", "(entregue,cancelada,Entregue,Cancelada)")
+        .not("status", "in", "(entregue,cancelado)")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -484,7 +498,9 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       } : null);
     })();
     return () => { cancelled = true; };
-  }, [aparelhoExistente?.id]);
+  }, [imeiOutrosIds]);
+
+
 
   // Auto-fill via ViaCEP
   useEffect(() => {
@@ -912,21 +928,52 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
       const imeiLimpo = imei.replace(/\D/g, "");
       let aparelhoId: string;
       if (imeiLimpo) {
-        const { data: existente, error: lookupErr } = await supabase
+        const { data: cadastros, error: lookupErr } = await supabase
           .from("aparelhos")
           .select("id, cliente_id")
           .eq("imei", imeiLimpo)
-          .limit(1)
-          .maybeSingle();
+          .order("created_at", { ascending: false });
         if (lookupErr) throw lookupErr;
-        if (existente) {
-          aparelhoId = existente.id;
-          if (existente.cliente_id !== selectedClientId) {
+        const doCliente = (cadastros ?? []).find((a: any) => a.cliente_id === selectedClientId);
+        if (doCliente) {
+          aparelhoId = doCliente.id;
+        } else if ((cadastros ?? []).length > 0) {
+          // IMEI já existe para outro cliente/loja: só permite se não houver OS em aberto.
+          const { data: osAberta, error: osErr } = await supabase
+            .from("ordens_de_servico")
+            .select("id, numero, numero_formatado, status")
+            .in("aparelho_id", (cadastros ?? []).map((a: any) => a.id))
+            .is("deleted_at", null)
+            .not("status", "in", "(entregue,cancelado)")
+            .limit(1)
+            .maybeSingle();
+          if (osErr) throw osErr;
+          if (osAberta) {
             throw new Error(
-              "Este IMEI já está cadastrado para outro cliente. Confira o IMEI digitado ou ajuste o cadastro do aparelho diretamente."
+              `Este IMEI possui uma OS em aberto (status: ${(osAberta as any).status}). Finalize/entregue a OS anterior antes de cadastrar em outra loja ou cliente.`
             );
           }
+          // Cria um novo cadastro do aparelho para o novo cliente,
+          // preservando o histórico dos cadastros e OS anteriores.
+          const { data: aparelhoNovo, error: apNovoErr } = await supabase
+            .from("aparelhos")
+            .insert({
+              cliente_id: selectedClientId,
+              marca, modelo,
+              cor: cor || null,
+              capacidade: capacidade || null,
+              imei: imeiLimpo,
+              marca_id: marcaId || null,
+              modelo_id: modeloId || null,
+              cor_id: corId || null,
+              capacidade_id: capacidadeId || null,
+              observacoes: imei2 ? `IMEI 2: ${imei2}` : null,
+            } as any)
+            .select().single();
+          if (apNovoErr) throw apNovoErr;
+          aparelhoId = aparelhoNovo.id;
         } else {
+
           const { data: aparelho, error: apErr } = await supabase
             .from("aparelhos")
             .insert({
@@ -1507,6 +1554,20 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
                     </Button>
                   </div>
                 )}
+                {!osAbertaExistente && aparelhoExistente && !aparelhoExistente.mesmo_cliente && (
+                  <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium">Aparelho já atendido antes</p>
+                      <p className="text-xs">
+                        Este IMEI tem histórico com <strong>{aparelhoExistente.cliente_nome}</strong>
+                        {aparelhoExistente.total_os > 0 ? ` (${aparelhoExistente.total_os} OS)` : ""} e não possui OS em aberto —
+                        pode ser cadastrado neste cliente/loja. O histórico anterior é mantido.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
               </div>
 
 
