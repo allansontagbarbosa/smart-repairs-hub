@@ -436,8 +436,10 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
         .from("aparelhos")
         .select("id, cliente_id, clientes(nome)")
         .eq("imei", imeiLimpo)
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
       if (cancelled || !data) {
         setAparelhoExistente(null);
         return;
