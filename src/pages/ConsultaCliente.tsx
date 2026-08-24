@@ -21,6 +21,7 @@ const statusDescriptions: Record<Status, string> = {
   garantia: "Seu aparelho está em atendimento de garantia.",
   pronto: "O reparo foi concluído! Seu aparelho está pronto para retirada.",
   entregue: "Aparelho já foi entregue. Obrigado pela confiança!",
+  nao_aprovado: "O orçamento não foi aprovado e o atendimento foi encerrado.",
   cancelado: "Esta ordem de serviço foi cancelada.",
 };
 
@@ -35,6 +36,7 @@ const statusColors: Record<Status, { dot: string; bg: string; text: string }> = 
   garantia: { dot: "bg-[hsl(210_80%_56%)]", bg: "bg-[hsl(210_80%_56%/0.12)]", text: "text-[hsl(210_80%_45%)]" },
   pronto: { dot: "bg-success", bg: "bg-success-muted", text: "text-success" },
   entregue: { dot: "bg-foreground/30", bg: "bg-muted", text: "text-muted-foreground" },
+  nao_aprovado: { dot: "bg-destructive", bg: "bg-destructive/10", text: "text-destructive" },
   cancelado: { dot: "bg-destructive", bg: "bg-destructive/10", text: "text-destructive" },
 };
 
