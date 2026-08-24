@@ -160,6 +160,8 @@ export function NovaOrdemDialog({ open, onOpenChange, onSuccess, preSelectedClie
   const [imeiResult, setImeiResult] = useState<ImeiResult>({ status: "idle" });
   const [aparelhoExistente, setAparelhoExistente] = useState<{ id: string; cliente_id: string; cliente_nome: string; total_os: number; mesmo_cliente: boolean } | null>(null);
   const [osAbertaExistente, setOsAbertaExistente] = useState<{ id: string; numero: number | null; numero_formatado: string | null; status: string } | null>(null);
+  const [imeiOutrosIds, setImeiOutrosIds] = useState<string[]>([]);
+
   const [marca, setMarca] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [modelo, setModelo] = useState("");
