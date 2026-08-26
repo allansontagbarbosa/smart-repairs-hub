@@ -34,7 +34,6 @@ interface Props {
   onSaved?: (id: string) => void;
 }
 
-const CONDICOES_PLACEHOLDER = null;
 
 
 const CONDICOES = [
