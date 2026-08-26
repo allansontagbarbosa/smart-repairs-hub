@@ -24,6 +24,8 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { formatBRL } from "@/lib/utils";
 import { Loader2, Smartphone, Trash2, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
+import { useLojaCatalogo } from "@/hooks/useLojaCatalogo";
 
 interface Props {
   open: boolean;
