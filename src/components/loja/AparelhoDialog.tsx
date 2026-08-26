@@ -118,6 +118,16 @@ export function AparelhoDialog({ open, onOpenChange, aparelhoId, onSaved }: Prop
     }
   }, [aparelho, isEdicao, open]);
 
+  // Ao abrir/editar, deduz a marca a partir do modelo salvo
+  useEffect(() => {
+    if (!open) { setMarcaId(""); return; }
+    if (!form.modelo || marcaId) return;
+    const encontrado = modelos.find((m) => m.nome === form.modelo);
+    if (encontrado?.marca_id) setMarcaId(encontrado.marca_id);
+  }, [open, form.modelo, modelos, marcaId]);
+
+
+
   const custoNum = parseFloat(String(form.custo).replace(",", ".")) || 0;
   const precoNum = parseFloat(String(form.preco_venda).replace(",", ".")) || 0;
   const margem = custoNum > 0 ? ((precoNum - custoNum) / custoNum) * 100 : 0;
