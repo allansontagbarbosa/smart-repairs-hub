@@ -102,6 +102,7 @@ export default function LojaConfiguracoes() {
 
         <div className="min-w-0">
           {sec === "empresa" && <SecaoEmpresa />}
+          {sec === "catalogo" && <SecaoCatalogo />}
           {sec === "usuarios" && <SecaoUsuarios />}
           {sec === "tef" && <SecaoTEF />}
           {sec === "pix" && <SecaoPix />}
