@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
+import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 
 type Section =
   | "empresa"
