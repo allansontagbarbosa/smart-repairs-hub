@@ -24,6 +24,8 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { formatBRL } from "@/lib/utils";
 import { Loader2, Smartphone, Trash2, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ComboboxWithCreate } from "@/components/smart-inputs/ComboboxWithCreate";
+import { useLojaCatalogo } from "@/hooks/useLojaCatalogo";
 
 interface Props {
   open: boolean;
@@ -32,20 +34,7 @@ interface Props {
   onSaved?: (id: string) => void;
 }
 
-const MODELOS_COMUNS = [
-  "iPhone 11", "iPhone 11 Pro", "iPhone 11 Pro Max",
-  "iPhone 12 mini", "iPhone 12", "iPhone 12 Pro", "iPhone 12 Pro Max",
-  "iPhone 13 mini", "iPhone 13", "iPhone 13 Pro", "iPhone 13 Pro Max",
-  "iPhone 14", "iPhone 14 Plus", "iPhone 14 Pro", "iPhone 14 Pro Max",
-  "iPhone 15", "iPhone 15 Plus", "iPhone 15 Pro", "iPhone 15 Pro Max",
-  "iPhone 16", "iPhone 16 Plus", "iPhone 16 Pro", "iPhone 16 Pro Max",
-  "iPhone XR", "iPhone XS", "iPhone XS Max", "iPhone SE",
-  "Samsung Galaxy S23", "Samsung Galaxy S24", "Samsung Galaxy A54",
-  "Xiaomi Redmi Note 13", "Motorola Edge 50",
-];
 
-const CAPACIDADES = ["64GB", "128GB", "256GB", "512GB", "1TB"];
-const CORES = ["Preto", "Branco", "Azul", "Verde", "Roxo", "Rosa", "Vermelho", "Coral", "Estelar", "Grafite", "Prata", "Dourado", "Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto"];
 
 const CONDICOES = [
   { v: "novo", l: "Novo" },
@@ -81,6 +70,11 @@ export function AparelhoDialog({ open, onOpenChange, aparelhoId, onSaved }: Prop
   const qc = useQueryClient();
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
+  const { marcas, modelos, cores, capacidades, criarMarca, criarModelo, criarCor, criarCapacidade } =
+    useLojaCatalogo();
+  const [marcaId, setMarcaId] = useState("");
+  const modelosFiltrados = marcaId ? modelos.filter((m) => m.marca_id === marcaId) : modelos;
+
 
   const isEdicao = !!aparelhoId;
 
@@ -123,6 +117,16 @@ export function AparelhoDialog({ open, onOpenChange, aparelhoId, onSaved }: Prop
       setForm(getEmptyForm());
     }
   }, [aparelho, isEdicao, open]);
+
+  // Ao abrir/editar, deduz a marca a partir do modelo salvo
+  useEffect(() => {
+    if (!open) { setMarcaId(""); return; }
+    if (!form.modelo || marcaId) return;
+    const encontrado = modelos.find((m) => m.nome === form.modelo);
+    if (encontrado?.marca_id) setMarcaId(encontrado.marca_id);
+  }, [open, form.modelo, modelos, marcaId]);
+
+
 
   const custoNum = parseFloat(String(form.custo).replace(",", ".")) || 0;
   const precoNum = parseFloat(String(form.preco_venda).replace(",", ".")) || 0;
@@ -264,39 +268,60 @@ export function AparelhoDialog({ open, onOpenChange, aparelhoId, onSaved }: Prop
             )}
 
             <fieldset disabled={readonly} className="space-y-4 py-2 disabled:opacity-80">
-              {/* Modelo / capacidade / cor */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-1">
-                  <Label>Modelo *</Label>
-                  <Input
-                    list="modelos-comuns"
-                    placeholder="iPhone 13"
-                    value={form.modelo}
-                    onChange={(e) => setForm({ ...form, modelo: e.target.value })}
-                  />
-                  <datalist id="modelos-comuns">
-                    {MODELOS_COMUNS.map((m) => <option key={m} value={m} />)}
-                  </datalist>
-                </div>
-                <div>
-                  <Label>Capacidade</Label>
-                  <Select value={form.capacidade} onValueChange={(v) => setForm({ ...form, capacidade: v })} disabled={readonly}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      {CAPACIDADES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Cor</Label>
-                  <Select value={form.cor} onValueChange={(v) => setForm({ ...form, cor: v })} disabled={readonly}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      {CORES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Marca / modelo / capacidade / cor */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ComboboxWithCreate
+                  label="Marca"
+                  entityName="marca"
+                  placeholder="Selecione a marca..."
+                  items={marcas}
+                  value={marcaId}
+                  onChange={(id) => { setMarcaId(id); setForm((f) => ({ ...f, modelo: "" })); }}
+                  onCreate={criarMarca}
+                  disabled={readonly}
+                />
+                <ComboboxWithCreate
+                  label="Modelo *"
+                  entityName="modelo"
+                  placeholder={marcaId ? "Selecione o modelo..." : "Escolha a marca primeiro"}
+                  items={modelosFiltrados}
+                  value={modelosFiltrados.find((m) => m.nome === form.modelo)?.id ?? ""}
+                  onChange={(_id, nome) => setForm((f) => ({ ...f, modelo: nome }))}
+                  onCreate={marcaId ? (nome) => criarModelo(nome, marcaId) : undefined}
+                  disabled={readonly || !marcaId}
+                  disabledReason={!marcaId ? "Selecione uma marca antes de cadastrar o modelo" : undefined}
+                />
+                <ComboboxWithCreate
+                  label="Capacidade"
+                  entityName="capacidade"
+                  placeholder="Selecione..."
+                  items={capacidades}
+                  value={capacidades.find((c) => c.nome === form.capacidade)?.id ?? ""}
+                  onChange={(_id, nome) => setForm((f) => ({ ...f, capacidade: nome }))}
+                  onCreate={criarCapacidade}
+                  disabled={readonly}
+                />
+                <ComboboxWithCreate
+                  label="Cor"
+                  entityName="cor"
+                  placeholder="Selecione..."
+                  items={cores}
+                  value={cores.find((c) => c.nome === form.cor)?.id ?? ""}
+                  onChange={(_id, nome) => setForm((f) => ({ ...f, cor: nome }))}
+                  onCreate={criarCor}
+                  disabled={readonly}
+                />
               </div>
+              {!readonly && (
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Não achou? digite o nome no campo e use “Cadastrar …”. Para gerenciar as listas, acesse{" "}
+                  <Link to="/loja/configuracoes" className="text-primary hover:underline">
+                    Configurações → Catálogo de aparelhos
+                  </Link>
+                  .
+                </p>
+              )}
+
 
               {/* IMEIs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

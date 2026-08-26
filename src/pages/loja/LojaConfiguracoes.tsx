@@ -21,9 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ConfigEstoqueTab } from "@/components/configuracoes/ConfigEstoqueTab";
+import { useConfiguracoes } from "@/hooks/useConfiguracoes";
 
 type Section =
   | "empresa"
+  | "catalogo"
   | "usuarios"
   | "tef"
   | "pix"
@@ -36,6 +39,7 @@ type Section =
 
 const SECTIONS: { id: Section; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "empresa", label: "Empresa", icon: Building2 },
+  { id: "catalogo", label: "Catálogo de aparelhos", icon: Smartphone },
   { id: "usuarios", label: "Usuários & Permissões", icon: UsersIcon },
   { id: "tef", label: "Integração TEF (cartão)", icon: CreditCard },
   { id: "pix", label: "Pix Dinâmico", icon: Smartphone },
@@ -46,6 +50,21 @@ const SECTIONS: { id: Section; label: string; icon: React.ComponentType<{ classN
   { id: "backup", label: "Backup & Exportação", icon: Download },
   { id: "geral", label: "Geral", icon: Cog },
 ];
+
+function SecaoCatalogo() {
+  const { marcas, modelos, cores, capacidades } = useConfiguracoes();
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-card p-6">
+        <h2 className="text-lg font-semibold">Catálogo de aparelhos</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Marcas, modelos, cores e capacidades usados nos campos de múltipla escolha do cadastro de aparelhos.
+        </p>
+      </div>
+      <ConfigEstoqueTab marcas={marcas} modelos={modelos} cores={cores} capacidades={capacidades} />
+    </div>
+  );
+}
 
 export default function LojaConfiguracoes() {
   const [sec, setSec] = useState<Section>("empresa");
@@ -83,6 +102,7 @@ export default function LojaConfiguracoes() {
 
         <div className="min-w-0">
           {sec === "empresa" && <SecaoEmpresa />}
+          {sec === "catalogo" && <SecaoCatalogo />}
           {sec === "usuarios" && <SecaoUsuarios />}
           {sec === "tef" && <SecaoTEF />}
           {sec === "pix" && <SecaoPix />}
