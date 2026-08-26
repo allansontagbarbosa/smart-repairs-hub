@@ -70,6 +70,11 @@ export function AparelhoDialog({ open, onOpenChange, aparelhoId, onSaved }: Prop
   const qc = useQueryClient();
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
+  const { marcas, modelos, cores, capacidades, criarMarca, criarModelo, criarCor, criarCapacidade } =
+    useLojaCatalogo();
+  const [marcaId, setMarcaId] = useState("");
+  const modelosFiltrados = marcaId ? modelos.filter((m) => m.marca_id === marcaId) : modelos;
+
 
   const isEdicao = !!aparelhoId;
 
